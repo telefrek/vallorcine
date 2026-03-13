@@ -28,7 +28,14 @@ If not, skip this step.
 
 ---
 
-## Step 3 — Confirm
+## Step 3 — Clear WIP.md
+
+If `WIP.md` exists, delete it. The work is either committed or captured in
+CONTEXT.md now — the checkpoint has served its purpose.
+
+---
+
+## Step 4 — Confirm
 
 Display what was updated:
 

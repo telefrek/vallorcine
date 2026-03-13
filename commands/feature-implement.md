@@ -31,6 +31,15 @@ Display opening header:
 
 Determine the current TDD cycle from the TDD Cycle Tracker.
 
+**If substage is `escalation-resolved`:**
+The Test Writer has resolved a contract conflict. Resume implementation.
+- Say: "Escalation resolved by Test Writer — checking current test state."
+- Read the most recent `test-escalation-resolved` entry from cycle-log.md to
+  understand what changed
+- Run the test suite to see what is passing and what is failing
+- Set status.md substage → `resuming-after-escalation`
+- Jump to Step 2 (implement in order, skipping constructs whose tests already pass)
+
 **If Implementation for this cycle is `complete`:**
 ```
 ⚙️  CODE WRITER · <slug> · Cycle <n>
@@ -189,8 +198,8 @@ Test: <test name>
 Problem: <paragraph>
 Work plan reference: <section>
 
-Run /feature-test "<slug>" — the Test Writer will review and either
-adjust the test or escalate the contract change to the Work Planner.
+Run /feature-test "<slug>" --escalation — the Test Writer will review
+and either adjust the test or escalate the contract change to the Work Planner.
 ```
 Stop.
 

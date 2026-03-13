@@ -8,6 +8,10 @@
 .kb/
 .decisions/
 
+# ── Development checkpoint ───────────────────────────────────────────────────
+# In-flight work state for crash recovery — read by /ideate, cleared by /save-work
+WIP.md
+
 # ── OS / editor ──────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
