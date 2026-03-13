@@ -1,0 +1,29 @@
+# ── Local test install ───────────────────────────────────────────────────────
+# When you run install.sh . from the repo root to test locally,
+# these directories are created. They are NOT part of the source.
+# Ignore .claude/ contents (local test install) but keep commands/ committed
+.claude/*
+!.claude/commands/
+.feature/
+.kb/
+.decisions/
+
+# ── OS / editor ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Note: .claude-plugin/ and .claude-dev-kit-source are intentionally NOT gitignored
+# It is committed to the repo so consumers receive it in the release zip
+
+# ── Build artefacts ───────────────────────────────────────────────────────────
+# Zips are generated release artefacts — not committed to history
+# Attach to GitHub Releases instead
+*.zip
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+.env
+.env.*
