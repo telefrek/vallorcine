@@ -5,6 +5,14 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.1.2] — 2026-03-13
+
+- Split CONTEXT.md into three bounded files with version sync
+- Add tail-read rule for cycle-log.md to cap token cost
+- Add escalation re-entry logic and WIP checkpoint system
+
+---
+
 ## [0.1.1] — 2026-03-13
 
 ### Changed
