@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+# vallorcine install script
+# Installs TDD pipeline + KB/Decisions agents into a Claude Code project.
+#
+# Usage:
+#   bash install.sh                    # install into current directory
+#   bash install.sh /path/to/project   # install into target path
+#   bash install.sh --dev              # install into repo itself (for local testing)
+#
+# Options:
+#   FORCE_UPDATE=1 bash install.sh     # overwrite all existing files
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VERSION="$(cat "$SCRIPT_DIR/VERSION" 2>/dev/null || echo "unknown")"
+
+# ── Argument handling ─────────────────────────────────────────────────────────
+
+DEV_MODE=0
+TARGET=""
+
+for arg in "$@"; do
+    case "$arg" in
+        --dev) DEV_MODE=1 ;;
+        *)     TARGET="$arg" ;;
+    esac
+done
+
+if [[ "$DEV_MODE" == "1" ]]; then
+    TARGET="$SCRIPT_DIR"
+elif [[ -z "$TARGET" ]]; then
+    TARGET="$(pwd)"
+fi
+
+FORCE="${FORCE_UPDATE:-0}"
+
+# ── Colour helpers ────────────────────────────────────────────────────────────
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+skipped=0
+created=0
+
+# ── Install helper ────────────────────────────────────────────────────────────
+
+install_file() {
+    local src="$1"
+    local dst="$2"
+    mkdir -p "$(dirname "$dst")"
+    if [[ -f "$dst" && "$FORCE" != "1" ]]; then
+        echo -e "  ${YELLOW}skip${NC}  $dst"
+        ((skipped++)) || true
+    else
+        cp "$src" "$dst"
+        echo -e "  ${GREEN}write${NC} $dst"
+        ((created++)) || true
+    fi
+}
+
+# ── Header ────────────────────────────────────────────────────────────────────
+
+echo ""
+if [[ "$DEV_MODE" == "1" ]]; then
+    echo -e "${BLUE}vallorcine v${VERSION} — dev mode (installing into repo root)${NC}"
+else
+    echo -e "${BLUE}vallorcine v${VERSION} — installing into: $TARGET${NC}"
+fi
+echo "────────────────────────────────────────────────"
+
+# ── Version mismatch warning ──────────────────────────────────────────────────
+
+INSTALLED_VERSION_FILE="$TARGET/.claude/.vallorcine-version"
+if [[ -f "$INSTALLED_VERSION_FILE" ]]; then
+    INSTALLED_VERSION="$(cat "$INSTALLED_VERSION_FILE")"
+    if [[ "$INSTALLED_VERSION" != "$VERSION" ]]; then
+        echo ""
+        echo -e "  ${YELLOW}⚠  Existing install detected: v${INSTALLED_VERSION} → v${VERSION}${NC}"
+        echo -e "     Run with FORCE_UPDATE=1 to overwrite all files."
+        echo -e "     Without it, existing files are skipped (safe default)."
+    fi
+fi
+
+# ── Slash commands ────────────────────────────────────────────────────────────
+
+echo ""
+echo "── Slash commands ───────────────────────────────"
+for f in "$SCRIPT_DIR"/commands/*.md; do
+    install_file "$f" "$TARGET/.claude/commands/$(basename "$f")"
+done
+
+# ── Agent definitions ─────────────────────────────────────────────────────────
+
+echo ""
+echo "── Agent definitions ────────────────────────────"
+for f in "$SCRIPT_DIR"/agents/*.md; do
+    install_file "$f" "$TARGET/.claude/agents/$(basename "$f")"
+done
+
+# ── Rules ─────────────────────────────────────────────────────────────────────
+
+echo ""
+echo "── Rules ────────────────────────────────────────"
+for f in "$SCRIPT_DIR"/rules/*.md; do
+    install_file "$f" "$TARGET/.claude/rules/$(basename "$f")"
+done
+
+# ── KB seed files ─────────────────────────────────────────────────────────────
+
+echo ""
+echo "── KB seed files ────────────────────────────────"
+install_file "$SCRIPT_DIR/kb/CLAUDE.md"                              "$TARGET/.kb/CLAUDE.md"
+install_file "$SCRIPT_DIR/kb/_refs/complexity-notation.md"           "$TARGET/.kb/_refs/complexity-notation.md"
+install_file "$SCRIPT_DIR/kb/_refs/benchmarking-methodology.md"      "$TARGET/.kb/_refs/benchmarking-methodology.md"
+
+# ── Decisions seed files ──────────────────────────────────────────────────────
+
+echo ""
+echo "── Decisions seed files ─────────────────────────"
+install_file "$SCRIPT_DIR/decisions/CLAUDE.md" "$TARGET/.decisions/CLAUDE.md"
+
+# ── Upgrade script ───────────────────────────────────────────────────────────
+
+echo ""
+echo "── Upgrade script ───────────────────────────────"
+install_file "$SCRIPT_DIR/upgrade.sh" "$TARGET/.claude/upgrade.sh"
+chmod +x "$TARGET/.claude/upgrade.sh" 2>/dev/null || true
+
+# ── Write version stamp and source file ──────────────────────────────────────
+
+mkdir -p "$TARGET/.claude"
+echo "$VERSION" > "$INSTALLED_VERSION_FILE"
+echo -e "  ${GREEN}write${NC} $INSTALLED_VERSION_FILE  (v${VERSION})"
+
+# Copy source file so /upgrade knows where to check for new releases
+SOURCE_FILE="$SCRIPT_DIR/.vallorcine-source"
+if [[ -f "$SOURCE_FILE" ]]; then
+    cp "$SOURCE_FILE" "$TARGET/.claude/.vallorcine-source"
+    echo -e "  ${GREEN}write${NC} $TARGET/.claude/.vallorcine-source"
+else
+    echo -e "  ${YELLOW}skip${NC}  .vallorcine-source not found (run /release to generate it)"
+fi
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+
+echo ""
+echo "────────────────────────────────────────────────"
+echo -e "${GREEN}Done.${NC}  v${VERSION}  ·  Created: $created  Skipped: $skipped"
+
+if [[ "$DEV_MODE" == "1" ]]; then
+    echo ""
+    echo -e "  Dev mode: commands live at .claude/ (gitignored)"
+    echo -e "  Test with Claude Code opened in: $TARGET"
+    echo ""
+    exit 0
+fi
+
+# ── CLAUDE.md block ───────────────────────────────────────────────────────────
+
+echo ""
+echo "Add this block to your root CLAUDE.md:"
+echo ""
+cat << 'CLAUDEMD'
+## Feature Development
+`.feature/<slug>/` — on-demand only. Profile: `.feature/project-config.md`
+Quick: `/quick "<description>"` — Full: `/feature "<description>"`
+Resume: `/feature-resume "<slug>"` — Status: `/feature-resume "<slug>" --status`
+Setup: `/feature-init` (first time only) — Entry point: `/vallorcine-help`
+
+## Knowledge Base & Decisions
+`.kb/<topic>/<category>/<subject>.md` and `.decisions/<slug>/adr.md` — on-demand only.
+Commands: `/research` `/architect` `/kb lookup` `/decisions review`
+Setup: `/setup-vallorcine` (first time only)
+CLAUDEMD
+echo ""
