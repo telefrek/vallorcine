@@ -28,7 +28,9 @@ Read these files in order:
    unless the user's goal explicitly overrides it.
 2. **DESIGN.md** — system architecture and the 9 core principles
 3. **CONTEXT.md** — focus on: Current focus, Recent decisions, Open questions.
-   Settled design is reference only, skim it.
+   CONTEXT.md is the active working state only. Settled design history lives in
+   SETTLED.md and competitive landscape in COMPETITIVE.md — do not read those
+   unless the session goal specifically requires them.
 
 ---
 

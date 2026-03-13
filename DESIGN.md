@@ -454,6 +454,9 @@ files are consistently larger or smaller than the defaults.
 vallorcine/
 │
 ├── DESIGN.md                        ← this file
+├── CONTEXT.md                       ← active session state (bounded ~150-200 lines)
+├── SETTLED.md                       ← graduated design history (pull-model reference)
+├── COMPETITIVE.md                   ← market positioning (pull-model reference)
 ├── install.sh                       ← installs to .claude/, .kb/, .decisions/
 │
 ├── commands/                        ← slash commands (loaded on invocation only)

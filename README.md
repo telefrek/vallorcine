@@ -166,7 +166,8 @@ hierarchy, work unit splitting, and extension points.
 
 ## Development
 
-See [CONTEXT.md](CONTEXT.md) for session context, decisions made, and open questions.
+See [CONTEXT.md](CONTEXT.md) for active session context, recent decisions, and open questions.
+See [SETTLED.md](SETTLED.md) for stable design history and [COMPETITIVE.md](COMPETITIVE.md) for market positioning.
 
 Use `/ideate` to start a session and `/save-work` to close one.
 If a session runs long and quality degrades, close early with `/save-work` and continue fresh — the structured context makes splitting sessions nearly free.

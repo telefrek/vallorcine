@@ -5,6 +5,16 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.1.1] — 2026-03-13
+
+### Changed
+- Split CONTEXT.md into three files: CONTEXT.md (active state, bounded),
+  SETTLED.md (graduated design history), COMPETITIVE.md (market positioning)
+- `/save-work` now graduates aged decisions to SETTLED.md and syncs DESIGN.md/README.md
+- `/ideate` skips reference files unless the session goal requires them
+
+---
+
 ## [0.1.0] — 2026-03-13
 
 Initial release. Two subsystems: TDD Pipeline and KB/Decisions.
@@ -25,6 +35,8 @@ Initial release. Two subsystems: TDD Pipeline and KB/Decisions.
 - `/feature-resume` — crash recovery from status.md checkpoint
 - `/feature-resume --status` — pipeline status display with --share mode
 - `/quick` — lightweight single-construct path with complexity assessment
+- Escalation chain: Code Writer → Test Writer → Work Planner with 3-strike limits and re-entry logic
+- `cycle-log.md` tail-read rule — agents read last 30 lines by default, capping token cost
 
 **KB/Decisions**
 - `/research` — Research Agent, writes to `.kb/`
@@ -40,7 +52,9 @@ Initial release. Two subsystems: TDD Pipeline and KB/Decisions.
 - Enter-to-proceed prompts throughout (no yes/no required)
 - `prompt-conventions.md` always-loaded rules file
 - `DESIGN.md` — 9 design principles, structural patterns, token budget
-- `CONTEXT.md` — rolling-section session context for multi-session development
+- `CONTEXT.md` — active session context (bounded ~150-200 lines)
+- `SETTLED.md` — graduated design history (pull-model reference)
+- `COMPETITIVE.md` — market positioning and ecosystem gaps (pull-model reference)
 - `RESUME.md` — session start/close instructions
 - `install.sh` — idempotent installer, skip-existing, FORCE_UPDATE=1 to overwrite
 - `VERSION` file with semver

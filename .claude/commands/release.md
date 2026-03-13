@@ -171,7 +171,11 @@ Make the following file changes:
 
 1. **Write `VERSION`**: single line containing `<NEW_VERSION>`
 
-2. **Prepend to `CHANGELOG.md`**: insert the new entry after the first `---`
+2. **Sync plugin manifests**: update the `"version"` field in both
+   `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` to
+   match `<NEW_VERSION>`.
+
+3. **Prepend to `CHANGELOG.md`**: insert the new entry after the first `---`
    separator (after the header section), before the previous latest entry.
    The entry format:
    ```
@@ -185,8 +189,10 @@ Make the following file changes:
 Display:
 ```
 ── Files updated ────────────────────────────────
-  VERSION        <CURRENT_VERSION> → <NEW_VERSION>
-  CHANGELOG.md   entry added for v<NEW_VERSION>
+  VERSION              <CURRENT_VERSION> → <NEW_VERSION>
+  plugin.json          <NEW_VERSION>
+  marketplace.json     <NEW_VERSION>
+  CHANGELOG.md         entry added for v<NEW_VERSION>
 ```
 
 ---
@@ -196,7 +202,7 @@ Display:
 Run the following git commands in sequence, displaying each before running:
 
 ```bash
-git add VERSION CHANGELOG.md .vallorcine-source
+git add VERSION CHANGELOG.md .vallorcine-source .claude-plugin/plugin.json .claude-plugin/marketplace.json
 git commit -m "release: v<NEW_VERSION>"
 git tag -a "v<NEW_VERSION>" -m "Release v<NEW_VERSION>"
 ```
