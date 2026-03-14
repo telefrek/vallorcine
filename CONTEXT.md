@@ -22,21 +22,19 @@ state of the project — what's happening now and what's next.
 
 *Last updated: 2026-03-14*
 
-**Session goal:** Continue after session failure — commit accumulated bug fixes and improvements.
+**Session goal:** Fix double version bump — `/release` was re-bumping VERSION even when
+`/save-work` had already bumped it.
 
 **Just completed:**
-- Fixed 6 bugs: feature-resume auto-start, autonomous mode opt-in timing, crash recovery
-  auto-resume, broken "hit enter" prompts, PR creation automation, feature branch in init
-- 3 improvements: handoff points offer to auto-continue, DEFERRED.md for local dev,
-  MANIFEST + stale-file removal in install/upgrade
-- Fail-forward upgrade policy documented (went straight to SETTLED.md)
-- Switched to branch-based PR workflow now that v0.1.2 is a live release
-- Opened PR #1: wip/session-bugs-and-improvements → main
+- Fixed `/release` Step 1: now checks `gh release list` for the latest GitHub release
+  tag before prompting for a bump. If VERSION is already ahead of the latest release,
+  skips the bump and uses the current VERSION as NEW_VERSION. Escape hatch "bump" lets
+  user override deliberately.
 
 **Where things stand:**
-PR #1 is open. All session work is on the branch. Next: review and merge PR #1,
-then continue feature work via branches. /decisions command is the highest-priority
-open item.
+PR #1 (wip/session-bugs-and-improvements → main) is still open. This fix is an
+additional commit on that branch. Next: review and merge PR #1, then continue
+feature work via branches. /decisions command is the highest-priority open item.
 
 ---
 
@@ -114,6 +112,16 @@ Neither path is strictly better — they complement each other.
 Standard repo layout with README, CHANGELOG, .gitignore, VERSION (semver).
 install.sh reads VERSION, writes stamp to target project, warns on mismatch.
 --dev flag for local testing. Branch convention: wip/<topic>.
+
+### 2026-03-14 — /release skips bump when VERSION already ahead
+
+Problem: `/save-work` bumps VERSION as part of session close-out; `/release` then
+bumped it again, resulting in an extra increment on every release.
+Decision: `/release` Step 1 now checks the latest GitHub release tag via
+`gh release list`. If VERSION > latest release, the bump is skipped and
+CURRENT_VERSION becomes NEW_VERSION. A "bump" escape hatch lets users override.
+Fallback: if `gh` is unavailable or no releases exist yet, the normal bump prompt
+runs as before.
 
 ### 2026-03-14 — Branch-based PR workflow
 
