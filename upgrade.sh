@@ -14,11 +14,20 @@ set -euo pipefail
 
 CHECK_ONLY=0
 TARGET_VERSION=""
+APPLY=0
+KIT_ROOT_APPLY=""
+FROM_VERSION=""
+TO_VERSION=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --check)            CHECK_ONLY=1 ;;
         --version)          TARGET_VERSION="$2"; shift ;;
+        --apply)            APPLY=1 ;;
+        --kit-root)         KIT_ROOT_APPLY="$2"; shift ;;
+        --project-root)     PROJECT_ROOT_ARG="$2"; shift ;;
+        --from-version)     FROM_VERSION="$2"; shift ;;
+        --to-version)       TO_VERSION="$2"; shift ;;
         *) ;;
     esac
     shift
@@ -35,36 +44,45 @@ NC='\033[0m'
 # ── Locate project root (where .claude/ lives) ────────────────────────────────
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"   # .claude/ is one level down from project root
-
-# ── Read installed metadata ───────────────────────────────────────────────────
-
-VERSION_FILE="$SCRIPT_DIR/.vallorcine-version"
-SOURCE_FILE="$SCRIPT_DIR/.vallorcine-source"
-
-if [[ ! -f "$VERSION_FILE" ]]; then
-    echo -e "${RED}Error:${NC} .claude/.vallorcine-version not found."
-    echo "Re-run install.sh to restore the version stamp."
-    exit 1
+# In --apply mode PROJECT_ROOT is passed explicitly; otherwise derive from SCRIPT_DIR
+if [[ $APPLY -eq 1 && -n "${PROJECT_ROOT_ARG:-}" ]]; then
+    PROJECT_ROOT="$PROJECT_ROOT_ARG"
+else
+    PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"   # .claude/ is one level down from project root
 fi
 
-if [[ ! -f "$SOURCE_FILE" ]]; then
-    echo -e "${RED}Error:${NC} .claude/.vallorcine-source not found."
-    echo "This file is written by install.sh from the kit package."
-    echo "Re-install from a release zip to restore it."
-    exit 1
+# ── Read installed metadata (skipped in --apply mode — PROJECT_ROOT is known) ─
+
+if [[ $APPLY -eq 0 ]]; then
+    VERSION_FILE="$SCRIPT_DIR/.vallorcine-version"
+    SOURCE_FILE="$SCRIPT_DIR/.vallorcine-source"
+
+    if [[ ! -f "$VERSION_FILE" ]]; then
+        echo -e "${RED}Error:${NC} .claude/.vallorcine-version not found."
+        echo "Re-run install.sh to restore the version stamp."
+        exit 1
+    fi
+
+    if [[ ! -f "$SOURCE_FILE" ]]; then
+        echo -e "${RED}Error:${NC} .claude/.vallorcine-source not found."
+        echo "This file is written by install.sh from the kit package."
+        echo "Re-install from a release zip to restore it."
+        exit 1
+    fi
+
+    INSTALLED_VERSION="$(cat "$VERSION_FILE")"
+    REPO_URL="$(grep '^repo=' "$SOURCE_FILE" | cut -d= -f2-)"
+    API_URL="$(grep '^api=' "$SOURCE_FILE" | cut -d= -f2-)"
+
+    if [[ -z "$REPO_URL" ]]; then
+        echo -e "${RED}Error:${NC} repo URL not found in .vallorcine-source."
+        exit 1
+    fi
 fi
 
-INSTALLED_VERSION="$(cat "$VERSION_FILE")"
-REPO_URL="$(grep '^repo=' "$SOURCE_FILE" | cut -d= -f2-)"
-API_URL="$(grep '^api=' "$SOURCE_FILE" | cut -d= -f2-)"
+# ── Fetch / compare / download / exec (skipped when called with --apply) ──────
 
-if [[ -z "$REPO_URL" ]]; then
-    echo -e "${RED}Error:${NC} repo URL not found in .vallorcine-source."
-    exit 1
-fi
-
-# ── Fetch latest release tag ──────────────────────────────────────────────────
+if [[ $APPLY -eq 0 ]]; then
 
 echo ""
 echo -e "${BLUE}vallorcine upgrade check${NC}"
@@ -274,33 +292,16 @@ if [[ -n "$NEW_UPGRADE_SCRIPT" ]]; then
         --to-version "$LATEST_VERSION"
 fi
 
+fi  # end APPLY -eq 0 block
+
 # ── Apply (reached when called with --apply from new script, or no new script) ─
 
-APPLY=0
-KIT_ROOT_APPLY=""
-FROM_VERSION=""
-TO_VERSION=""
-
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --apply)            APPLY=1 ;;
-        --kit-root)         KIT_ROOT_APPLY="$2"; shift ;;
-        --project-root)     PROJECT_ROOT="$2"; shift ;;
-        --from-version)     FROM_VERSION="$2"; shift ;;
-        --to-version)       TO_VERSION="$2"; shift ;;
-        *) ;;
-    esac
-    shift
-done
-
-# If we're not in apply mode and got here, use extracted kit
-if [[ "$APPLY" == "0" ]]; then
+# If we're not in apply mode and got here (no new upgrade.sh in zip), use extracted kit
+if [[ $APPLY -eq 0 ]]; then
     KIT_ROOT_APPLY="$KIT_ROOT"
     FROM_VERSION="$INSTALLED_VERSION"
     TO_VERSION="$LATEST_VERSION"
 fi
-
-[[ -z "$KIT_ROOT_APPLY" ]] && KIT_ROOT_APPLY="$KIT_ROOT"
 
 echo ""
 echo "── Applying v${TO_VERSION} ──────────────────────────────"
