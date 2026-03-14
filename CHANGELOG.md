@@ -5,6 +5,25 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.1.3] — 2026-03-14
+
+### Fixed
+- `/feature-resume` now auto-invokes `/feature-plan` when that is the identified next step
+- Autonomous mode opt-in moved to `/feature-plan` (before testing begins, not after)
+- Crash recovery in autonomous mode auto-resumes without requiring a manual command
+- "Hit enter to continue" prompts replaced with explicit "continue" keyword throughout
+- `/feature-pr` now creates the PR via `gh pr create` directly, not just a draft file
+- `/feature-init` prompts for a feature branch and applies project naming rules
+
+### Added
+- Handoff points offer to invoke the next command automatically as a sub-agent
+- `DEFERRED.md` for vallorcine local development (pull-model, not loaded every session)
+- `MANIFEST` file listing all kit-managed files
+- `install.sh` and `upgrade.sh` remove stale files no longer in the kit MANIFEST
+- Fail-forward upgrade policy documented in `upgrade.sh` summary output
+
+---
+
 ## [0.1.2] — 2026-03-13
 
 - Split CONTEXT.md into three bounded files with version sync

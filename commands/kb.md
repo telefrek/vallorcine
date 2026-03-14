@@ -201,7 +201,7 @@ Description : <description>
 Path        : .kb/<name>/
 Existing topics: <list or "none yet">
 
-  ↵  create  ·  or type: stop
+  Type: continue  to create  ·  or: stop
 ```
 
 **Step 3 — Create**

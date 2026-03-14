@@ -457,21 +457,23 @@ vallorcine/
 ├── CONTEXT.md                       ← active session state (bounded ~150-200 lines)
 ├── SETTLED.md                       ← graduated design history (pull-model reference)
 ├── COMPETITIVE.md                   ← market positioning (pull-model reference)
+├── DEFERRED.md                      ← good-but-not-now ideas (pull-model, local dev only)
+├── MANIFEST                         ← list of all kit-managed files (used by upgrade.sh)
 ├── install.sh                       ← installs to .claude/, .kb/, .decisions/
+├── upgrade.sh                       ← downloaded into .claude/; applies new releases
 │
 ├── commands/                        ← slash commands (loaded on invocation only)
-│   ├── vallorcine-help.md                     ← /vallorcine-help — entry point and router
+│   ├── vallorcine-help.md           ← /vallorcine-help — entry point and router
 │   ├── feature.md                   ← /feature — scoping interview
-│   ├── feature-init.md              ← /feature-init — project profile setup
+│   ├── feature-init.md              ← /feature-init — project profile setup + branch prompt
 │   ├── feature-domains.md           ← /feature-domains — KB/ADR survey
-│   ├── feature-plan.md              ← /feature-plan — work plan + stubs + unit analysis
+│   ├── feature-plan.md              ← /feature-plan — work plan + stubs + autonomous mode opt-in
 │   ├── feature-test.md              ← /feature-test [--unit] — write failing tests
 │   ├── feature-implement.md         ← /feature-implement [--unit] — implement to green
 │   ├── feature-refactor.md          ← /feature-refactor [--unit] — quality review
-│   ├── feature-pr.md                ← /feature-pr — PR draft
+│   ├── feature-pr.md                ← /feature-pr — PR draft + gh pr create
 │   ├── feature-complete.md          ← /feature-complete — post-merge archival
-│   ├── feature-resume.md            ← /feature-resume — crash recovery
-│   ├── feature-resume.md            ← /feature-resume [--status] [--share] — resume + session briefing
+│   ├── feature-resume.md            ← /feature-resume [--status] [--share] — crash recovery + briefing
 │   ├── quick.md                     ← /quick — small changes, single session
 │   ├── research.md                  ← /research — KB research session
 │   ├── architect.md                 ← /architect — architecture decision session

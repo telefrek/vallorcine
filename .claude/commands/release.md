@@ -46,6 +46,34 @@ Display opening header:
 
 ## Step 1 — Version bump
 
+Check the latest GitHub release to determine whether VERSION was already bumped
+(e.g. by `/save-work`):
+
+```bash
+gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null
+```
+
+Strip the leading `v` from the result to get LATEST_RELEASE.
+
+**If LATEST_RELEASE could not be determined** (gh unavailable, not authenticated,
+or no releases yet): fall through to the normal bump prompt.
+
+**If CURRENT_VERSION != LATEST_RELEASE** (VERSION is already ahead of the latest
+release — `/save-work` bumped it):
+
+```
+── Version bump ─────────────────────────────────
+Current: <CURRENT_VERSION>  (latest release: v<LATEST_RELEASE>)
+Version was already bumped — no additional bump needed.
+
+  ↵  use <CURRENT_VERSION>  ·  or type: bump  to increment anyway
+```
+
+- Enter: set NEW_VERSION = CURRENT_VERSION and skip to Step 2.
+- "bump": fall through to the normal bump prompt below.
+
+**Normal bump prompt** (CURRENT_VERSION == LATEST_RELEASE, or user typed "bump"):
+
 Display:
 ```
 ── Version bump ─────────────────────────────────

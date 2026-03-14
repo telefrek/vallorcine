@@ -7,33 +7,34 @@ state of the project — what's happening now and what's next.
 **Related files (pull-model — read only when needed):**
 - `SETTLED.md` — stable design history, graduated decisions
 - `COMPETITIVE.md` — market positioning and ecosystem gaps
+- `DEFERRED.md` — good-but-not-now ideas; promote to Open questions when ready
 
 **Section update cadences:**
 - `Current focus` — replaced every session
 - `Recent decisions` — rolling window, ~last 3 sessions; oldest graduate to SETTLED.md
 - `Open questions` — live list; items resolve into SETTLED.md or get dropped
-- `Deferred ideas` — good thoughts not being worked on now
+- `Deferred ideas` — pointer only; content lives in DEFERRED.md
 - `Working preferences` — stable, shapes how we work together
 
 ---
 
 ## Current focus
 
-*Last updated: 2026-03-13*
+*Last updated: 2026-03-14*
 
-**Session goal:** Split CONTEXT.md into bounded active file + settled reference + competitive landscape.
+**Session goal:** Fix double version bump — `/release` was re-bumping VERSION even when
+`/save-work` had already bumped it.
 
 **Just completed:**
-- Three-file split: CONTEXT.md (active), SETTLED.md (design history), COMPETITIVE.md (market)
-- Updated /save-work with graduation mechanic and DESIGN.md/README.md sync step
-- Updated /ideate to skip reference files unless session goal requires them
-- Updated DESIGN.md file manifest and README.md development section
-- Updated CHANGELOG.md to reflect new file structure
+- Fixed `/release` Step 1: now checks `gh release list` for the latest GitHub release
+  tag before prompting for a bump. If VERSION is already ahead of the latest release,
+  skips the bump and uses the current VERSION as NEW_VERSION. Escape hatch "bump" lets
+  user override deliberately.
 
 **Where things stand:**
-Context split complete. /save-work now enforces bounded CONTEXT.md via graduation
-to SETTLED.md and keeps DESIGN.md + README.md in sync.
-Next: push to telefrek/vallorcine, test plugin install, submit to awesome-claude-code.
+PR #1 (wip/session-bugs-and-improvements → main) is still open. This fix is an
+additional commit on that branch. Next: review and merge PR #1, then continue
+feature work via branches. /decisions command is the highest-priority open item.
 
 ---
 
@@ -112,6 +113,22 @@ Standard repo layout with README, CHANGELOG, .gitignore, VERSION (semver).
 install.sh reads VERSION, writes stamp to target project, warns on mismatch.
 --dev flag for local testing. Branch convention: wip/<topic>.
 
+### 2026-03-14 — /release skips bump when VERSION already ahead
+
+Problem: `/save-work` bumps VERSION as part of session close-out; `/release` then
+bumped it again, resulting in an extra increment on every release.
+Decision: `/release` Step 1 now checks the latest GitHub release tag via
+`gh release list`. If VERSION > latest release, the bump is skipped and
+CURRENT_VERSION becomes NEW_VERSION. A "bump" escape hatch lets users override.
+Fallback: if `gh` is unavailable or no releases exist yet, the normal bump prompt
+runs as before.
+
+### 2026-03-14 — Branch-based PR workflow
+
+Now that v0.1.2 is a live release, all development happens on wip/<topic> branches
+and merges via PR. Direct commits to main are reserved for session context files
+(CONTEXT.md, WIP.md) and emergency patches only.
+
 ---
 
 ## Open questions
@@ -136,29 +153,8 @@ install.sh reads VERSION, writes stamp to target project, warns on mismatch.
 
 ## Deferred ideas
 
-*Good thoughts not being worked on — kept to avoid losing them*
-
-- **Hooks for non-TDD tooling** — linting on write, security scanning, formatting.
-  Future: `hooks/` directory with opt-in configs via project-config.md.
-
-- **LSP integration** — document in README which LSP plugins pair well with
-  vallorcine's Code Writer stage as a recommended companion.
-
-- **Context7 / live docs in Domain Scout** — pull current framework docs via
-  Context7 MCP. Opt-in via project-config.md flag.
-
-- **/decisions list** — browse and filter existing ADRs by status, date, or
-  keyword. See open questions for priority rationale.
-
-- **Project-level CONTEXT.md** — rolling-context pattern for projects *using*
-  the kit. Different from ADRs — "things we've learned about this codebase."
-
-- **Diff-based install** — diff mode showing what changed between installed
-  and package version.
-
-- **Coverage gating in refactor** — flag coverage drops below configured minimum.
-
-- **/feature-split** — split in-progress feature into two when scope expands.
+*Kept in `DEFERRED.md` — pull-model, not loaded every session.*
+*Read it when looking for future work to promote to Open questions.*
 
 ---
 

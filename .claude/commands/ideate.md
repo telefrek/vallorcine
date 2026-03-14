@@ -31,6 +31,8 @@ Read these files in order:
    CONTEXT.md is the active working state only. Settled design history lives in
    SETTLED.md and competitive landscape in COMPETITIVE.md — do not read those
    unless the session goal specifically requires them.
+   If the session goal is about exploring future ideas or picking up deferred work,
+   also read **DEFERRED.md**. Otherwise skip it — it is pull-model.
 
 ---
 
