@@ -23,10 +23,11 @@ Otherwise:
 ───────────────────────────────────────────────
 Work planning is already complete for '<slug>'.
 Work plan: .feature/<slug>/work-plan.md
-Next: /feature-test "<slug>"
-Run /feature-resume "<slug>" to see full status.
+
+  Type: continue  to proceed to test writing  ·  or: stop
 ```
-Stop.
+If "continue": invoke /feature-test "<slug>" as a sub-agent immediately.
+If "stop": display `Next: /feature-test "<slug>"` and stop.
 
 **If Planning stage is `in-progress`:**
 Display opening header, then:
@@ -80,9 +81,9 @@ New constructs to CREATE:
 
 Display:
 ```
-  ↵  looks good, write the stubs  ·  or type: corrections
+  Type: continue  ·  or: describe corrections
 ```
-Wait for the user to press Enter or describe corrections. Update status.md substage → `confirmed-design`
+Wait for the user to type "continue" or describe corrections. Update status.md substage → `confirmed-design`
 after confirmation.
 
 ---
@@ -166,11 +167,11 @@ Estimated savings: ~<N>K per session vs ~<N>K single unit
   WU-3: <name>  (depends on WU-1 + WU-2)  [if applicable]
         ...
 
-  ↵  split into work units  ·  or type: single
+  Type: split  ·  or: single
 ```
 
-If user chooses single: record `work_units: none` in status.md, proceed to Step 3.
-If user chooses split (or no split was proposed): proceed with unit structure.
+If "single": record `work_units: none` in status.md, proceed to Step 3.
+If "split" (or no split was proposed): proceed with unit structure.
 
 After confirmation, write the Work Units table to status.md:
 ```markdown
@@ -266,11 +267,41 @@ Stubs written: <list of files>
 
 Review the stub contracts above — the Test Writer works from these contracts
 and changing them later requires re-running tests.
-
-───────────────────────────────────────────────
-↵  continue to test writing  ·  or type: stop
-───────────────────────────────────────────────
 ```
+
+### Step 5a — Choose automation mode
+
+Ask the user how they want to run the TDD loop. This choice is recorded now and
+persists for the lifetime of this feature — it will not be asked again.
+
+Display:
+```
+── How would you like to run the TDD loop? ─────
+  autonomous  — test → implement → refactor cycles run without stopping.
+               I'll pause if I find something that needs your input.
+
+  manual      — I'll stop after each stage and wait for your command.
+
+Type: autonomous  or  manual
+```
+
+Wait for input:
+- "autonomous": set `automation_mode: autonomous` in status.md
+- "manual": set `automation_mode: manual` in status.md
+
+If autonomous, display:
+```
+Running autonomously. Type stop at any time to pause.
+──────────────────────────────────────────────────
+```
+
+If manual, display:
+```
+Manual mode. I'll prompt you at each stage boundary.
+──────────────────────────────────────────────────
+```
+
+### Step 5b — Start test writing
 
 If work units are defined:
 ```
@@ -282,12 +313,12 @@ Each unit runs its own test → implement → refactor cycle.
 Run /feature-resume "<slug>" at any point to see which unit is next.
 ───────────────────────────────────────────────
 ```
-If yes: invoke /feature-test "<slug>" --unit WU-1 as a sub-agent immediately.
-If no: print the command above and stop.
+Invoke `/feature-test "<slug>" --unit WU-1` as a sub-agent immediately.
 
 If single unit (no work units):
-If the user presses Enter or says yes: invoke /feature-test "<slug>" as a sub-agent immediately.
-If the user types stop or no:
+Invoke `/feature-test "<slug>"` as a sub-agent immediately.
+
+If the user types stop before test writing begins:
 ```
 When you're ready:
   /feature-test "<slug>"
@@ -364,10 +395,11 @@ Revised: <construct name>
 Root cause: <one sentence>
 Change: <what changed in the contract>
 
-The contract and stub have been updated. Re-run the test → implement cycle:
-  /feature-test "<slug>"<  --unit WU-<n>>
+Contract updated — resuming test → implement cycle.
 ```
-Stop.
+
+Invoke `/feature-test "<slug>"<  --unit WU-<n>>` as a sub-agent immediately.
+Do not wait for user input — the contract is revised and the cycle can resume.
 
 ---
 

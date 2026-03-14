@@ -90,10 +90,11 @@ If Testing status for the current cycle is `complete` (for this unit if --unit p
 Tests are already written for cycle <n><  · WU-<n>>.
 Test plan: .feature/<slug>/test-plan.md
 All tests verified failing.
-Next: /feature-implement "<slug>"
-Run /feature-resume "<slug>" to see full status.
+
+  Type: continue  to proceed to implementation  ·  or: stop
 ```
-Stop.
+If "continue": invoke /feature-implement "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
+If "stop": display `Next: /feature-implement "<slug>"` and stop.
 
 If Testing is `in-progress`:
 - Check which test files already exist
@@ -365,12 +366,12 @@ Display:
 Tests written and verified failing. Cycle <n><  · WU-<n>>.
 
 ───────────────────────────────────────────────
-  ↵  continue to implementation  ·  or type: stop
+  Type: continue  ·  or: stop
 ───────────────────────────────────────────────
 ```
 
-If the user presses Enter or says yes: invoke /feature-implement "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
-If the user types stop or no:
+If "continue": invoke /feature-implement "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
+If "stop":
 ```
 When you're ready:
   /feature-implement "<slug>"<  --unit WU-<n>>

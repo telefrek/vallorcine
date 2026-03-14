@@ -131,3 +131,17 @@ Problem: shallow answers, worse briefs.
 Decision: agent privately ranks unknowns by impact, asks one per turn.
 `── Question i of n ──` header. N shifts down if answers resolve multiple
 unknowns. 0 questions valid if description is fully specified.
+
+## Fail-forward upgrade policy (2026-03-14)
+
+Problem: upgrade.sh now removes stale files; a natural follow-on is rollback support.
+Decision: no rollback. vallorcine follows a fail-forward policy — if an upgrade
+introduces a problem, the fix is to upgrade again to a patched release.
+Rationale: commands are markdown prompt files, not compiled code or user data.
+A bad upgrade is annoying but not catastrophic. Rollback requires storing the
+old manifest + old file contents, and removing new files while restoring old ones
+risks leaving the system in a worse mixed state — especially for user-preserved
+files. Escape hatch: `bash .claude/upgrade.sh --version vX.Y.Z` pins to any
+released version. Noted in upgrade.sh summary output.
+Rejected: snapshot before upgrade (storage overhead, point-in-time problem);
+git-based restore (not all projects version .claude/).

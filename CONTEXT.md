@@ -7,12 +7,13 @@ state of the project — what's happening now and what's next.
 **Related files (pull-model — read only when needed):**
 - `SETTLED.md` — stable design history, graduated decisions
 - `COMPETITIVE.md` — market positioning and ecosystem gaps
+- `DEFERRED.md` — good-but-not-now ideas; promote to Open questions when ready
 
 **Section update cadences:**
 - `Current focus` — replaced every session
 - `Recent decisions` — rolling window, ~last 3 sessions; oldest graduate to SETTLED.md
 - `Open questions` — live list; items resolve into SETTLED.md or get dropped
-- `Deferred ideas` — good thoughts not being worked on now
+- `Deferred ideas` — pointer only; content lives in DEFERRED.md
 - `Working preferences` — stable, shapes how we work together
 
 ---
@@ -136,29 +137,8 @@ install.sh reads VERSION, writes stamp to target project, warns on mismatch.
 
 ## Deferred ideas
 
-*Good thoughts not being worked on — kept to avoid losing them*
-
-- **Hooks for non-TDD tooling** — linting on write, security scanning, formatting.
-  Future: `hooks/` directory with opt-in configs via project-config.md.
-
-- **LSP integration** — document in README which LSP plugins pair well with
-  vallorcine's Code Writer stage as a recommended companion.
-
-- **Context7 / live docs in Domain Scout** — pull current framework docs via
-  Context7 MCP. Opt-in via project-config.md flag.
-
-- **/decisions list** — browse and filter existing ADRs by status, date, or
-  keyword. See open questions for priority rationale.
-
-- **Project-level CONTEXT.md** — rolling-context pattern for projects *using*
-  the kit. Different from ADRs — "things we've learned about this codebase."
-
-- **Diff-based install** — diff mode showing what changed between installed
-  and package version.
-
-- **Coverage gating in refactor** — flag coverage drops below configured minimum.
-
-- **/feature-split** — split in-progress feature into two when scope expands.
+*Kept in `DEFERRED.md` — pull-model, not loaded every session.*
+*Read it when looking for future work to promote to Open questions.*
 
 ---
 

@@ -11,10 +11,13 @@ Read the current CONTEXT.md, then update it:
 - **Replace "Current focus" entirely** with what we did this session and where things stand
 - **Add new decisions** to "Recent decisions" (date + rationale)
 - **Update "Open questions"** — resolve closed ones, add new ones
-- **Add any good-but-deferred thoughts** to "Deferred ideas"
 - **Leave "Working preferences" alone** unless something genuinely changed
 - If "Recent decisions" exceeds ~10 items, **graduate the oldest to SETTLED.md**
   (append them as new sections at the bottom of SETTLED.md, then remove from CONTEXT.md)
+
+If any good-but-deferred thoughts arose this session, **append them to DEFERRED.md**
+under "Active deferrals" — do not add them to CONTEXT.md. The "Deferred ideas"
+section in CONTEXT.md is a pointer only.
 
 If competitive landscape information changed this session, update COMPETITIVE.md.
 
@@ -61,6 +64,8 @@ Display what was updated:
 Updated: CONTEXT.md
 <If decisions graduated:>
 Updated: SETTLED.md
+<If deferrals added:>
+Updated: DEFERRED.md
 <If competitive landscape changed:>
 Updated: COMPETITIVE.md
 <If docs synced:>

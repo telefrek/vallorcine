@@ -129,11 +129,17 @@ echo "── Upgrade script ─────────────────�
 install_file "$SCRIPT_DIR/upgrade.sh" "$TARGET/.claude/upgrade.sh"
 chmod +x "$TARGET/.claude/upgrade.sh" 2>/dev/null || true
 
-# ── Write version stamp and source file ──────────────────────────────────────
+# ── Write version stamp, manifest, and source file ───────────────────────────
 
 mkdir -p "$TARGET/.claude"
 echo "$VERSION" > "$INSTALLED_VERSION_FILE"
 echo -e "  ${GREEN}write${NC} $INSTALLED_VERSION_FILE  (v${VERSION})"
+
+# Copy manifest so upgrade can detect stale files
+if [[ -f "$SCRIPT_DIR/MANIFEST" ]]; then
+    cp "$SCRIPT_DIR/MANIFEST" "$TARGET/.claude/.vallorcine-manifest"
+    echo -e "  ${GREEN}write${NC} $TARGET/.claude/.vallorcine-manifest"
+fi
 
 # Copy source file so /upgrade knows where to check for new releases
 SOURCE_FILE="$SCRIPT_DIR/.vallorcine-source"
