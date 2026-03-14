@@ -12,7 +12,7 @@
       "name": "vallorcine",
       "source": "./",
       "description": "Full TDD pipeline (scoping → domains → planning → test → implement → refactor → PR) with crash recovery and token-aware work unit splitting. Pull-model knowledge base and architecture decision store. Sequential scoping interview, enter-to-proceed prompts throughout.",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "keywords": ["tdd", "workflow", "knowledge-base", "decisions", "pipeline"]
     }
   ]

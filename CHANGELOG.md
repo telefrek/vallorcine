@@ -5,6 +5,17 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.1.5] — 2026-03-14
+
+### Fixed
+- `upgrade.sh`: when exec'd with `--apply` by the new script, pre-flight
+  checks and the full fetch/download/extract block ran unnecessarily against
+  the temp extract directory, causing an immediate exit before any files were
+  applied; all args are now parsed upfront and both sections are gated behind
+  `APPLY -eq 0`
+
+---
+
 ## [0.1.4] — 2026-03-14
 
 ### Fixed
