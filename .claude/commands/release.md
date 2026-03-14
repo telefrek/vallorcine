@@ -26,10 +26,11 @@ Run silently before displaying anything:
    <list of changed files from git status>
 
    A release should be cut from a clean working tree.
+   Commit or stash your changes, then re-run /release.
 
-     ↵  commit changes first  ·  or type: force
+   To release anyway, type: force
    ```
-   If Enter: stop and remind the user to commit or stash changes first.
+   Wait for input. If anything other than "force": stop.
    If "force": proceed with a warning note in the release commit message.
 
 4. Read `VERSION` — store as CURRENT_VERSION.
@@ -64,13 +65,13 @@ release — `/save-work` bumped it):
 ```
 ── Version bump ─────────────────────────────────
 Current: <CURRENT_VERSION>  (latest release: v<LATEST_RELEASE>)
-Version was already bumped — no additional bump needed.
+Version was already bumped — proceeding with <CURRENT_VERSION>.
 
-  ↵  use <CURRENT_VERSION>  ·  or type: bump  to increment anyway
+Type: bump  to increment further instead.
 ```
 
-- Enter: set NEW_VERSION = CURRENT_VERSION and skip to Step 2.
-- "bump": fall through to the normal bump prompt below.
+Wait for input. If anything other than "bump": set NEW_VERSION = CURRENT_VERSION
+and proceed to Step 2. If "bump": fall through to the normal bump prompt below.
 
 **Normal bump prompt** (CURRENT_VERSION == LATEST_RELEASE, or user typed "bump"):
 
@@ -79,22 +80,20 @@ Display:
 ── Version bump ─────────────────────────────────
 Current: <CURRENT_VERSION>
 
-  ↵  patch  (<MAJOR>.<MINOR>.<PATCH+1>)  ·  or type: minor  /  major
+Type: patch  (<MAJOR>.<MINOR>.<PATCH+1>)  ·  minor  ·  major
 ```
 
 Wait for input:
-- Enter or "patch": increment PATCH, reset nothing
+- "patch": increment PATCH, reset nothing
 - "minor": increment MINOR, reset PATCH to 0
 - "major": increment MAJOR, reset MINOR and PATCH to 0
 
 Compute NEW_VERSION. Display:
 ```
-New version: <NEW_VERSION>
-
-  ↵  confirm  ·  or type: stop
+  New version: <NEW_VERSION>
 ```
 
-Wait. If stop: exit cleanly.
+Proceed immediately — no confirmation step.
 
 ---
 
@@ -112,16 +111,14 @@ Display the commits found:
 Display:
 ```
 ── Release notes ────────────────────────────────
-I'll draft CHANGELOG.md entries from the commits above.
-
-Describe what changed in this release, or press Enter and I'll
-generate a draft from the commit log.
+Describe what changed in this release, or type: auto
+to generate a draft from the commit log.
 ```
 
 Wait for input.
 
 **If the user provides notes:** use them as the base for the CHANGELOG entry.
-**If Enter:** draft the CHANGELOG entry yourself from the commit messages.
+**If "auto":** draft the CHANGELOG entry yourself from the commit messages.
   Group commits by type if they follow conventional commit format (feat/fix/chore).
   Otherwise summarise them plainly. Keep it factual — what changed, not why.
 
@@ -132,11 +129,11 @@ Show the drafted entry:
 
 <drafted content>
 ─────────────────────────────────────────────────
-  ↵  looks good  ·  or type: edit
+Proceeding. Type: edit  to revise first.
 ```
 
-If "edit": ask for corrections and incorporate them, then show again.
-If Enter: proceed.
+Wait for input. If "edit": ask for corrections, incorporate them, show again,
+then proceed. Otherwise: proceed immediately.
 
 ---
 
@@ -266,12 +263,11 @@ If remote exists, display:
 ```
 ── Push ─────────────────────────────────────────
 Remote: <remote URL>
-
-  ↵  push main + tag  ·  or type: skip
+Pushing main + tag. Type: skip  to skip.
 ```
 
-If skip: show the manual push commands and stop.
-If Enter: run:
+Wait for input. If "skip": show the manual push commands and stop.
+Otherwise: run immediately:
 
 ```bash
 git push origin main
@@ -296,12 +292,12 @@ If not authenticated: skip to summary with a note.
 If authenticated:
 ```
 ── GitHub Release ───────────────────────────────
-gh CLI detected. Create a GitHub Release with the zip attached?
-
-  ↵  create release  ·  or type: skip
+Creating GitHub Release with zip attached. Type: skip  to skip.
 ```
 
-If Enter: run:
+Wait for input. If "skip": display manual instructions and skip.
+Otherwise: run immediately:
+
 ```bash
 gh release create "v<NEW_VERSION>" \
   "vallorcine-v<NEW_VERSION>.zip" \
@@ -311,7 +307,7 @@ gh release create "v<NEW_VERSION>" \
 
 Display the release URL on success.
 
-If skip or gh fails: display instructions for creating manually:
+If gh fails: display instructions for creating manually:
 ```
 To create a GitHub Release manually:
   1. Go to: <remote URL>/releases/new

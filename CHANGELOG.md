@@ -5,6 +5,20 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.1.4] — 2026-03-14
+
+### Fixed
+- `upgrade.sh`: `compare_versions` returns non-zero exit codes (1 and 2) which
+  caused `set -e` to terminate the script before the return code could be
+  captured — upgrade check always exited prematurely when a newer version was
+  available
+- `/release`: removed redundant `↵ confirm` step after version bump; all
+  auto-proceed steps (push, GitHub release, CHANGELOG confirm) now proceed
+  unless the user types `skip` or `edit`, eliminating Enter-to-confirm prompts
+  that don't work in Claude Code's chat interface
+
+---
+
 ## [0.1.3] — 2026-03-14
 
 ### Fixed
