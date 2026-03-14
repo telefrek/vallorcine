@@ -159,8 +159,8 @@ compare_versions() {
     return 0
 }
 
-compare_versions "$LATEST_VERSION" "$INSTALLED_VERSION"
-CMP=$?
+CMP=0
+compare_versions "$LATEST_VERSION" "$INSTALLED_VERSION" || CMP=$?
 
 if [[ $CMP -eq 0 ]]; then
     echo -e "  ${GREEN}Already up to date.${NC} v${INSTALLED_VERSION} is the latest release."
