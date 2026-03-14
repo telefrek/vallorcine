@@ -20,21 +20,23 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-03-13*
+*Last updated: 2026-03-14*
 
-**Session goal:** Split CONTEXT.md into bounded active file + settled reference + competitive landscape.
+**Session goal:** Continue after session failure — commit accumulated bug fixes and improvements.
 
 **Just completed:**
-- Three-file split: CONTEXT.md (active), SETTLED.md (design history), COMPETITIVE.md (market)
-- Updated /save-work with graduation mechanic and DESIGN.md/README.md sync step
-- Updated /ideate to skip reference files unless session goal requires them
-- Updated DESIGN.md file manifest and README.md development section
-- Updated CHANGELOG.md to reflect new file structure
+- Fixed 6 bugs: feature-resume auto-start, autonomous mode opt-in timing, crash recovery
+  auto-resume, broken "hit enter" prompts, PR creation automation, feature branch in init
+- 3 improvements: handoff points offer to auto-continue, DEFERRED.md for local dev,
+  MANIFEST + stale-file removal in install/upgrade
+- Fail-forward upgrade policy documented (went straight to SETTLED.md)
+- Switched to branch-based PR workflow now that v0.1.2 is a live release
+- Opened PR #1: wip/session-bugs-and-improvements → main
 
 **Where things stand:**
-Context split complete. /save-work now enforces bounded CONTEXT.md via graduation
-to SETTLED.md and keeps DESIGN.md + README.md in sync.
-Next: push to telefrek/vallorcine, test plugin install, submit to awesome-claude-code.
+PR #1 is open. All session work is on the branch. Next: review and merge PR #1,
+then continue feature work via branches. /decisions command is the highest-priority
+open item.
 
 ---
 
@@ -112,6 +114,12 @@ Neither path is strictly better — they complement each other.
 Standard repo layout with README, CHANGELOG, .gitignore, VERSION (semver).
 install.sh reads VERSION, writes stamp to target project, warns on mismatch.
 --dev flag for local testing. Branch convention: wip/<topic>.
+
+### 2026-03-14 — Branch-based PR workflow
+
+Now that v0.1.2 is a live release, all development happens on wip/<topic> branches
+and merges via PR. Direct commits to main are reserved for session context files
+(CONTEXT.md, WIP.md) and emergency patches only.
 
 ---
 
