@@ -41,6 +41,12 @@ Display opening header:
 ───────────────────────────────────────────────
 ```
 
+## Step 0b — Token tracking
+
+Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "pr-draft"'`
+
+---
+
 ## Step 1 — Load context
 
 Read in order:
@@ -177,12 +183,16 @@ Append `pr-drafted` entry to cycle-log.md:
 
 ## Step 5 — Create the PR
 
+**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "pr-draft"'`
+and capture the output as TOKEN_USAGE.
+
 Check if `gh` CLI is available: run `gh auth status` silently.
 
 **If `gh` is not available or not authenticated:**
 ```
 ───────────────────────────────────────────────
 📋 PR DRAFT complete · <slug>
+  Tokens : <TOKEN_USAGE>
 ───────────────────────────────────────────────
 PR draft written to .feature/<slug>/pr-draft.md
 
@@ -202,6 +212,7 @@ Display:
 ```
 ───────────────────────────────────────────────
 📋 PR DRAFT complete · <slug>
+  Tokens : <TOKEN_USAGE>
 Draft: .feature/<slug>/pr-draft.md
 
   Type: create  to open the PR now via gh  ·  or: skip

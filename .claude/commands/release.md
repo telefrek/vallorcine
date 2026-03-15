@@ -99,6 +99,10 @@ Proceed immediately — no confirmation step.
 
 ## Step 2 — Draft release notes
 
+**Check for staged changelog notes:** read `.changelog-staging.md` if it exists.
+This file is written by `/save-work` across sessions and contains pre-drafted
+changelog entries.
+
 Run: `git log v<CURRENT_VERSION>..HEAD --oneline 2>/dev/null || git log --oneline -20`
 
 Display the commits found:
@@ -108,7 +112,16 @@ Display the commits found:
 ─────────────────────────────────────────────────
 ```
 
-Display:
+**If `.changelog-staging.md` exists**, display its contents and use it as the
+base for the CHANGELOG entry. Show:
+```
+── Staged changelog notes ──────────────────────────
+<contents of .changelog-staging.md>
+─────────────────────────────────────────────────
+Using staged notes as the base. Type: auto  to regenerate from commits instead.
+```
+
+**Otherwise**, display:
 ```
 ── Release notes ────────────────────────────────
 Describe what changed in this release, or type: auto
@@ -200,7 +213,10 @@ Make the following file changes:
    `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` to
    match `<NEW_VERSION>`.
 
-3. **Prepend to `CHANGELOG.md`**: insert the new entry after the first `---`
+3. **Sync `README.md` version**: find the line matching `Current: <old version>`
+   in the Version section and replace with `Current: <NEW_VERSION>`.
+
+5. **Prepend to `CHANGELOG.md`**: insert the new entry after the first `---`
    separator (after the header section), before the previous latest entry.
    The entry format:
    ```
@@ -211,12 +227,16 @@ Make the following file changes:
    ---
    ```
 
+6. **Clean up staging file**: if `.changelog-staging.md` exists, delete it.
+   Its contents have been incorporated into the CHANGELOG entry.
+
 Display:
 ```
 ── Files updated ────────────────────────────────
   VERSION              <CURRENT_VERSION> → <NEW_VERSION>
   plugin.json          <NEW_VERSION>
   marketplace.json     <NEW_VERSION>
+  README.md            version → <NEW_VERSION>
   CHANGELOG.md         entry added for v<NEW_VERSION>
 ```
 
@@ -227,7 +247,7 @@ Display:
 Run the following git commands in sequence, displaying each before running:
 
 ```bash
-git add VERSION CHANGELOG.md .vallorcine-source .claude-plugin/plugin.json .claude-plugin/marketplace.json
+git add VERSION CHANGELOG.md README.md .vallorcine-source .claude-plugin/plugin.json .claude-plugin/marketplace.json
 git commit -m "release: v<NEW_VERSION>"
 git tag -a "v<NEW_VERSION>" -m "Release v<NEW_VERSION>"
 ```

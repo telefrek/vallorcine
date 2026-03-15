@@ -175,12 +175,16 @@ If a session runs long and quality degrades, close early with `/save-work` and c
 ### Local testing
 
 ```bash
-# Install into the repo itself to test commands locally
-bash install.sh .
+# Install to a temp directory for testing (--dev flag)
+bash install.sh --dev
 
-# .claude/, .feature/, .kb/, .decisions/ are all gitignored
-# so local test state never contaminates the source
+# Opens Claude Code in the temp directory to test commands
+# Clean up when done: rm -rf /tmp/...  (path shown in output)
 ```
+
+**Warning:** Do not run `bash install.sh .` from the repo root — it would
+overwrite the source `.claude/commands/` files. The installer will detect
+this and block it with an error message.
 
 ### Branch workflow
 
@@ -199,4 +203,4 @@ pushes, and optionally creates a GitHub Release via the `gh` CLI.
 
 ## Version
 
-See `VERSION`. Current: 0.1.0
+See `VERSION`. Current: 0.1.5

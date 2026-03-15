@@ -51,6 +51,12 @@ Display opening header:
 
 ---
 
+## Step 0b — Token tracking
+
+Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "planning"'`
+
+---
+
 ## Step 1 — Load context
 
 Read in order:
@@ -254,13 +260,14 @@ Update `.feature/CLAUDE.md`.
 
 ## Step 5 — Hand off
 
+**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "planning"'`
+and capture the output as TOKEN_USAGE.
+
 Display:
 ```
 ───────────────────────────────────────────────
 🏗️  WORK PLANNER complete · <slug>
-⏱  Token estimate: ~<N>K
-   Loaded: brief ~2K, domains ~3K<, ADR files ~2-4K each, source files scanned>
-   Wrote:  work-plan ~4K, <n> stub files ~<N>K total
+  Tokens : <TOKEN_USAGE>
 ───────────────────────────────────────────────
 Work plan: .feature/<slug>/work-plan.md
 Stubs written: <list of files>

@@ -37,6 +37,8 @@ brief.md, and initialises status.md as the restart checkpoint.
 - Create `.feature/<slug>/` directory
 - Write initial `status.md` (see Status File Template below) with stage `scoping`,
   substage `interviewing`
+- **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "scoping"'`
+  (silently — no output to the user)
 
 Display opening header immediately:
 ```
@@ -201,13 +203,14 @@ Update `.feature/CLAUDE.md` Active Features table.
 
 ## Step 5 — Hand off
 
+**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "scoping"'`
+and capture the output as TOKEN_USAGE.
+
 Display:
 ```
 ───────────────────────────────────────────────
 🔍 SCOPING AGENT complete · <slug>
-⏱  Token estimate: ~<N>K
-   Loaded: project-config ~1K
-   Wrote:  brief ~2K, status ~1K, cycle-log ~1K
+  Tokens : <TOKEN_USAGE>
 ───────────────────────────────────────────────
 Brief written to .feature/<slug>/brief.md
 

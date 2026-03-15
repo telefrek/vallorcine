@@ -5,7 +5,7 @@
 # Usage:
 #   bash install.sh                    # install into current directory
 #   bash install.sh /path/to/project   # install into target path
-#   bash install.sh --dev              # install into repo itself (for local testing)
+#   bash install.sh --dev              # install to a temp directory (for local testing)
 #
 # Options:
 #   FORCE_UPDATE=1 bash install.sh     # overwrite all existing files
@@ -28,7 +28,8 @@ for arg in "$@"; do
 done
 
 if [[ "$DEV_MODE" == "1" ]]; then
-    TARGET="$SCRIPT_DIR"
+    TARGET="$(mktemp -d)"
+    echo "Dev mode: installing to temp directory $TARGET"
 elif [[ -z "$TARGET" ]]; then
     TARGET="$(pwd)"
 fi
@@ -44,6 +45,25 @@ NC='\033[0m'
 
 skipped=0
 created=0
+
+# ── Safety guard: prevent installing into the vallorcine repo itself ─────────
+
+if [[ "$DEV_MODE" != "1" && -f "$TARGET/install.sh" && -f "$TARGET/VERSION" ]]; then
+    RESOLVED_TARGET="$(cd "$TARGET" && pwd)"
+    if [[ "$RESOLVED_TARGET" == "$SCRIPT_DIR" ]]; then
+        echo ""
+        echo -e "${YELLOW}⚠  Target directory is the vallorcine repo itself.${NC}"
+        echo "   This would overwrite source files in .claude/commands/."
+        echo ""
+        echo "   Use --dev for local testing (installs to a temp directory):"
+        echo "     bash install.sh --dev"
+        echo ""
+        echo "   Or specify a different target project:"
+        echo "     bash install.sh /path/to/your/project"
+        echo ""
+        exit 1
+    fi
+fi
 
 # ── Install helper ────────────────────────────────────────────────────────────
 
@@ -65,7 +85,7 @@ install_file() {
 
 echo ""
 if [[ "$DEV_MODE" == "1" ]]; then
-    echo -e "${BLUE}vallorcine v${VERSION} — dev mode (installing into repo root)${NC}"
+    echo -e "${BLUE}vallorcine v${VERSION} — dev mode (installing into temp directory)${NC}"
 else
     echo -e "${BLUE}vallorcine v${VERSION} — installing into: $TARGET${NC}"
 fi
@@ -122,6 +142,12 @@ echo ""
 echo "── Decisions seed files ─────────────────────────"
 install_file "$SCRIPT_DIR/decisions/CLAUDE.md" "$TARGET/.decisions/CLAUDE.md"
 
+# ── Scripts ───────────────────────────────────────────────────────────────────
+
+echo ""
+echo "── Scripts ──────────────────────────────────────"
+install_file "$SCRIPT_DIR/scripts/token-usage.sh" "$TARGET/.claude/scripts/token-usage.sh"
+
 # ── Upgrade script ───────────────────────────────────────────────────────────
 
 echo ""
@@ -158,8 +184,9 @@ echo -e "${GREEN}Done.${NC}  v${VERSION}  ·  Created: $created  Skipped: $skipp
 
 if [[ "$DEV_MODE" == "1" ]]; then
     echo ""
-    echo -e "  Dev mode: commands live at .claude/ (gitignored)"
-    echo -e "  Test with Claude Code opened in: $TARGET"
+    echo -e "  Dev mode: installed to temp directory"
+    echo -e "  Test with Claude Code opened in: ${GREEN}$TARGET${NC}"
+    echo -e "  Clean up when done: rm -rf $TARGET"
     echo ""
     exit 0
 fi

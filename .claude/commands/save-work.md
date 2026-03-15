@@ -36,15 +36,20 @@ Skip if the session was purely internal (e.g., only CONTEXT.md or decision conte
 
 ---
 
-## Step 3 — Version and changelog
+## Step 3 — Stage changelog notes
 
-If this session constitutes a meaningful increment:
-- Update VERSION
-- Add a CHANGELOG.md entry
-- **Sync version to plugin manifests**: update the `"version"` field in both
-  `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` to match VERSION
+If this session made meaningful changes (bug fixes, new features, improvements):
 
-If not, skip this step.
+1. Read `.changelog-staging.md` if it exists (may have entries from previous sessions)
+2. Append a new section for this session's changes using Keep a Changelog format
+   (Added / Changed / Fixed / Removed). Include the date.
+3. Write the updated `.changelog-staging.md`
+
+This file is consumed by `/release` when drafting release notes — it does NOT
+bump VERSION or write to CHANGELOG.md directly. VERSION is only bumped during
+`/release` to prevent multi-session version drift.
+
+If no meaningful changes were made, skip this step.
 
 ---
 

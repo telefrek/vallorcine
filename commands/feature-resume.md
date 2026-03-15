@@ -91,6 +91,9 @@ DOMAIN STATUS (if domains stage was reached)
 TDD CYCLES (if testing was reached)
   Cycle 1: tests <date> | passing <date or "—"> | refactor <date or "—"> | missing: <n>
   Cycle 2: ...
+
+TOKEN USAGE (if .feature/<slug>/token-log.md exists)
+  <display the token-log.md table — run bash -c 'source .claude/scripts/token-usage.sh && token_report ".feature/<slug>"'>
 ───────────────────────────────────────────────
 ```
 

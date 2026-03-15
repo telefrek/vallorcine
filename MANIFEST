@@ -37,4 +37,5 @@
 .claude/rules/kb-research-agent.md
 .claude/rules/prompt-conventions.md
 .claude/rules/tdd-protocol.md
+.claude/scripts/token-usage.sh
 .claude/upgrade.sh
