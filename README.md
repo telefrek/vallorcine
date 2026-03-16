@@ -109,7 +109,7 @@ every feature completed.
 | `/feature-coordinate "<slug>"` | Parallel batch coordinator |
 | `/feature-test "<slug>"` | Write failing tests from contracts |
 | `/feature-implement "<slug>"` | Implement until tests pass |
-| `/feature-refactor "<slug>"` | Quality review (7-item checklist) |
+| `/feature-refactor "<slug>"` | Quality review (8-item checklist, 2a-2h) |
 | `/feature-pr "<slug>"` | Draft PR title, description, checklist |
 | `/feature-retro "<slug>"` | Post-feature retrospective |
 | `/feature-complete "<slug>"` | Archive after PR merges |
@@ -239,7 +239,7 @@ reviewing past decisions, crash recovery, and more.
 ## Architecture
 
 See [DESIGN.md](DESIGN.md) for the full design reference: the four concerns
-model, 9 core principles, token budget, agent write authority table, crash
+model, 10 core principles, token budget, agent write authority table, crash
 recovery model, KB/decisions hierarchy, work unit splitting, and extension points.
 
 ## Development

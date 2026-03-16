@@ -54,11 +54,7 @@ blunt context loading, no ADR concept. Passive and unstructured.
 
 ## Confirmed gaps vs ecosystem
 
-- Hooks integration
-- LSP awareness
-- /decisions list/filter command
-- Coverage gating
-- Live docs in domain analysis
+- LSP awareness (recommended as companion, not bundled — principle 1)
 
 ---
 
@@ -68,4 +64,20 @@ blunt context loading, no ADR concept. Passive and unstructured.
 cost. Our KB approach is more persistent.
 
 **Autonomous looping** — Ralph Wiggum pattern, explicitly against design
-principle 8.
+principle 9.
+
+**Hooks-based TDD enforcement** — TDD Guard and Superpowers use Claude Code hooks
+to block file modifications. Requires platform-specific hooks infrastructure —
+violates principle 1. Rules-based enforcement is reliable enough in practice.
+
+**Coverage gating** — requires language-specific coverage tools. Violates
+principle 1. Step 2e (missing test heuristic) is the language-agnostic proxy.
+
+**Context7 / live docs** — requires MCP server. Violates principle 1.
+
+## Closed gaps (previously listed)
+
+- ~~/decisions list/filter~~ — shipped v0.2.4
+- ~~Hooks integration~~ — dropped, violates principle 1
+- ~~Coverage gating~~ — dropped, violates principle 1
+- ~~Live docs in domain analysis~~ — dropped, violates principle 1

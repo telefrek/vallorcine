@@ -42,7 +42,38 @@ the 5th feature on a project faster than the 1st.
 
 ## Core design principles
 
-### 1. Pull model throughout
+Ordered by priority. When principles conflict, higher-numbered principles yield
+to lower-numbered ones. Each principle notes what breaks if it is violated.
+
+### 1. Bash and markdown only — no external dependencies
+
+The entire kit runs on two things every developer already has: a shell that can
+run bash, and text files. No package managers, no runtimes, no compiled tools,
+no MCP servers, no platform-specific hooks infrastructure, no database, no
+network services.
+
+This is a hard constraint, not a preference:
+- `install.sh` is a bash script that copies markdown files
+- Commands are markdown prompt files read by Claude Code
+- Agents are markdown identity definitions
+- Rules are markdown files loaded by convention
+- Scripts are bash — `token-usage.sh`, `version-check.sh`, etc.
+- State is markdown files — `status.md`, `cycle-log.md`, `CLAUDE.md` indexes
+
+The constraint eliminates an entire class of adoption friction: no `npm install`,
+no Python virtualenv, no Docker container, no CI pipeline dependency. A developer
+with Claude Code and a terminal can run vallorcine on any project in any language
+immediately.
+
+When evaluating new features, this is the first filter: if it requires anything
+beyond bash and markdown, it does not belong in the kit. Features that would
+benefit from external tooling (coverage gating, LSP integration, live docs) are
+documented as recommended companions, not bundled dependencies.
+
+**If violated:** the kit gains an installation prerequisite that gates adoption.
+Every external dependency is a reason for a developer to not use vallorcine.
+
+### 2. Pull model throughout
 
 Nothing loads automatically except the rules in `.claude/rules/` and the root
 `CLAUDE.md`. The KB, decision records, feature work files, and agent command
@@ -59,7 +90,32 @@ The pull model is enforced by three mechanisms:
 - Subdirectory `CLAUDE.md` files serve as lazy-loaded indexes rather than
   auto-loaded content
 
-### 2. File-based state, not in-memory state
+**If violated:** token cost grows with content volume. A project with rich KB
+and decision history becomes slower and more expensive to use with every entry
+added — the opposite of the intended compounding effect.
+
+### 3. Context is expensive — size every file accordingly
+
+Token cost shapes every structural decision in this kit:
+
+- Always-loaded files (`CLAUDE.md`, rules) are capped and pointer-only
+- Index files (`.kb/CLAUDE.md`, `.decisions/CLAUDE.md`) have 80-line hard caps
+  with archival rules that enforce them
+- Subject files (`.kb/<topic>/<category>/<subject>.md`) are capped at 200 lines
+  with overflow extracted to `<subject>-detail.md` via `@import`
+- The Work Planner loads only ADR sections and KB key-parameters, not full files
+- The Code Writer loads only stub files and test files relevant to the current
+  work unit, not the entire feature
+
+The token estimation in the Work Planner's work unit analysis (Step 2b) is a
+direct expression of this principle: split only when the savings justify the
+overhead. The crossover is ~15K for a single Code Writer session.
+
+**If violated:** individual operations become token-expensive even when the pull
+model is respected. A single oversized file can blow the context budget for a
+Code Writer session, causing truncation or degraded output quality.
+
+### 4. File-based state, not in-memory state
 
 Claude has no memory between sessions. Everything that needs to survive a session
 boundary — current stage, substage, cycle count, work unit status, in-progress
@@ -76,7 +132,11 @@ This separation — mutable checkpoint + immutable history — is the same patte
 used in write-ahead logs and event sourcing. It gives idempotency for free:
 read the checkpoint, if work is already done, stop.
 
-### 3. Idempotency at every stage
+**If violated:** work is lost on session end, context overflow, or crash. The
+pipeline cannot be resumed — every interruption requires starting over from
+scratch, wasting tokens and developer time.
+
+### 5. Idempotency at every stage
 
 Every command starts by reading `status.md` and checking whether its stage is
 already complete. If it is, it reports and stops. No command re-does completed
@@ -94,7 +154,26 @@ The idempotency pattern is:
 4. If stage not-started → proceed normally
 ```
 
-### 4. Write authority is strictly partitioned
+**If violated:** duplicate work on re-run — tests written twice, implementations
+overwritten, cycle counts inflated. Crash recovery becomes unreliable, and users
+lose confidence that interruptions are safe.
+
+### 6. Tests are the specification
+
+Test files are written before implementation and may never be modified by the
+Code Writer. If the implementation can't satisfy a test, that is a signal that
+the contract is wrong — handled by escalation to the Test Writer, not by
+changing the test to fit the implementation.
+
+This enforces genuine TDD rather than test-after development. The Test Writer
+writes tests against work-plan contracts. The Code Writer implements against
+those tests. The test files are the ground truth.
+
+**If violated:** TDD degrades into test-after development. The Code Writer shapes
+tests to fit implementation rather than implementing to satisfy contracts. Test
+coverage becomes a formality rather than a specification.
+
+### 7. Write authority is strictly partitioned
 
 Each agent writes only to its designated files. No agent writes to another
 agent's output files. This is enforced by explicit rules in each command file
@@ -121,35 +200,11 @@ belongs to another's domain:
 - Refactor Agent finds missing tests → escalates to Test Writer (does not write tests)
 - Test Writer needs a contract change → escalates to Work Planner (does not modify stubs)
 
-### 5. Tests are the specification
+**If violated:** agents silently overwrite each other's work. Escalation paths
+break down — problems get papered over instead of surfaced. The pipeline loses
+its separation of concerns and becomes a single monolithic agent with extra steps.
 
-Test files are written before implementation and may never be modified by the
-Code Writer. If the implementation can't satisfy a test, that is a signal that
-the contract is wrong — handled by escalation to the Test Writer, not by
-changing the test to fit the implementation.
-
-This enforces genuine TDD rather than test-after development. The Test Writer
-writes tests against work-plan contracts. The Code Writer implements against
-those tests. The test files are the ground truth.
-
-### 6. Context is expensive — size every file accordingly
-
-Token cost shapes every structural decision in this kit:
-
-- Always-loaded files (`CLAUDE.md`, rules) are capped and pointer-only
-- Index files (`.kb/CLAUDE.md`, `.decisions/CLAUDE.md`) have 80-line hard caps
-  with archival rules that enforce them
-- Subject files (`.kb/<topic>/<category>/<subject>.md`) are capped at 200 lines
-  with overflow extracted to `<subject>-detail.md` via `@import`
-- The Work Planner loads only ADR sections and KB key-parameters, not full files
-- The Code Writer loads only stub files and test files relevant to the current
-  work unit, not the entire feature
-
-The token estimation in the Work Planner's work unit analysis (Step 2b) is a
-direct expression of this principle: split only when the savings justify the
-overhead. The crossover is ~15K for a single Code Writer session.
-
-### 7. Human confirmation before irreversible writes
+### 8. Human confirmation before irreversible writes
 
 Two agents never write their primary output without explicit user confirmation:
 
@@ -165,7 +220,11 @@ All other agents write their outputs as part of their normal execution, but
 the handoff prompts between stages ("Continue? yes / no") give the user a
 review checkpoint before each stage begins.
 
-### 8. Agents are routers, not autonomy machines
+**If violated:** incorrect scope or flawed architectural decisions propagate
+through the entire pipeline before being caught. The cost of correction
+multiplies with each downstream stage that builds on the mistake.
+
+### 9. Agents are routers, not autonomy machines
 
 The pipeline is explicitly staged and human-paced. Agents do not chain
 automatically — they present their output, ask for confirmation, and either
@@ -179,7 +238,11 @@ unit's test writing. The user stays in the loop at every inter-stage boundary.
 question, and hands the user a pre-filled command. It never does pipeline work
 itself. It is a router, not an agent.
 
-### 9. Agents own the files — users don't edit them directly
+**If violated:** the pipeline runs ahead of the user's understanding. Errors
+compound silently across stages. The user loses the ability to course-correct
+at natural checkpoints, turning a collaborative tool into an unpredictable one.
+
+### 10. Agents own the files — users don't edit them directly
 
 Every file written by the kit — `.kb/CLAUDE.md`, `.decisions/CLAUDE.md`,
 `status.md`, `brief.md`, ADRs, subject files, index files — carries a managed-by
@@ -195,6 +258,10 @@ The rule: if you want something to change in a kit-managed file, there is a
 slash command for it. If there isn't, that is a gap in the kit — add a command
 rather than editing the file directly.
 
+**If violated:** kit-managed files drift into inconsistent states. Index files
+disagree with directory contents, status checkpoints lie about pipeline position,
+cap enforcement stops working. Recoverable, but requires manual investigation.
+
 ---
 
 ## Diagrams
@@ -204,7 +271,7 @@ rather than editing the file directly.
 ```mermaid
 graph TD
     TW["Test Writer<br>writes tests against contracts"] --> CW["Code Writer<br>implements to green"]
-    CW --> RA["Refactor Agent<br>quality review (2a-2f)"]
+    CW --> RA["Refactor Agent<br>quality review (2a-2h)"]
     RA -->|"all clear"| NEXT{"next unit?"}
     NEXT -->|"yes"| TW
     NEXT -->|"no"| PR["PR Draft"]
@@ -341,7 +408,7 @@ Last successful checkpoint: <human-readable description>
 ```
 
 The substage field enables intra-stage crash recovery — the Refactor Agent
-stores which checklist item it was on (2a through 2f) so it can resume exactly
+stores which checklist item it was on (2a through 2h) so it can resume exactly
 where it stopped.
 
 ### Work units
@@ -486,13 +553,11 @@ current branch's KB or decisions indexes are behind main. Advisory only.
 **Version skew** — `version-check.sh` warns when vallorcine version on the
 current branch differs from main.
 
-### Known but not yet mitigated
+**ADR contradiction** — `adr-validate.sh` warns at pipeline start when two
+accepted ADRs share the same slug. Catches the case where two developers
+independently accept conflicting decisions that the merge driver lands cleanly.
 
-**ADR contradiction** — two developers can independently accept conflicting ADRs
-for the same question. The merge driver ensures both rows land cleanly in the
-index, but does not detect the semantic conflict (two `accepted` answers to the
-same question). Fix requires a CI check or validation script that scans for
-duplicate accepted slugs. See DEFERRED.md.
+### Known but not yet mitigated
 
 **Same feature slug on different branches** — `.feature/<slug>/` is gitignored,
 so two developers using the same slug have silently divergent local state with
@@ -537,7 +602,7 @@ vallorcine/
 │   ├── feature-coordinate.md        ← /feature-coordinate — parallel batch coordinator
 │   ├── feature-test.md              ← /feature-test [--unit] — write failing tests
 │   ├── feature-implement.md         ← /feature-implement [--unit] — implement to green
-│   ├── feature-refactor.md          ← /feature-refactor [--unit] — quality review (2a-2g)
+│   ├── feature-refactor.md          ← /feature-refactor [--unit] — quality review (2a-2h)
 │   ├── feature-pr.md                ← /feature-pr — PR draft + gh pr create
 │   ├── feature-retro.md             ← /feature-retro — post-feature retrospective
 │   ├── feature-complete.md          ← /feature-complete — post-merge archival
@@ -572,7 +637,8 @@ vallorcine/
 │   ├── version-check.sh             ← warns if branch vallorcine version is behind main
 │   ├── kb-freshness-check.sh        ← warns if KB/decisions indexes are behind main
 │   ├── merge-driver-index.sh        ← git merge driver for CLAUDE.md index files
-│   └── ensure-merge-driver.sh       ← registers merge driver on first pipeline run
+│   ├── ensure-merge-driver.sh       ← registers merge driver on first pipeline run
+│   └── adr-validate.sh             ← warns if contradictory accepted ADRs exist
 │
 ├── tests/                           ← test scripts (not installed)
 │   ├── test-install.sh              ← install + upgrade smoke tests
@@ -581,7 +647,8 @@ vallorcine/
 │   ├── scenario-version-skew-warning.sh
 │   ├── scenario-index-merge-driver.sh
 │   ├── scenario-ensure-merge-driver.sh
-│   └── scenario-stale-kb.sh
+│   ├── scenario-stale-kb.sh
+│   └── scenario-adr-contradiction.sh
 │
 ├── kb/                              ← seed KB structure
 │   ├── CLAUDE.md                    ← KB root index template

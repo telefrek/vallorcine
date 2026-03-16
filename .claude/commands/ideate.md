@@ -26,7 +26,7 @@ Read these files in order:
    have crashed or been interrupted. If present and non-empty, this takes
    priority: the session goal should incorporate finishing or continuing this work
    unless the user's goal explicitly overrides it.
-2. **DESIGN.md** — system architecture and the 9 core principles
+2. **DESIGN.md** — system architecture and the 10 core principles
 3. **CONTEXT.md** — focus on: Current focus, Recent decisions, Open questions.
    CONTEXT.md is the active working state only. Settled design history lives in
    SETTLED.md and competitive landscape in COMPETITIVE.md — do not read those
