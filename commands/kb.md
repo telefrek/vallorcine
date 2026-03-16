@@ -150,14 +150,14 @@ KB currently contains:
   <n> topics: <list from CLAUDE.md Topic Map>
 
 I can research this now and add it to the KB.
-  Type: continue  to start research  ·  or: stop
+  Type **yes**  to start research  ·  or: stop
 ```
 
 When stale entries were found:
 ```
 Some entries used to answer this question may be outdated.
 I can refresh the research and update the KB.
-  Type: continue  to refresh stale entries  ·  or: skip  to use current data as-is
+  Type **yes**  to refresh stale entries  ·  or: skip  to use current data as-is
 ```
 
 When gaps were identified alongside valid results:
@@ -167,7 +167,7 @@ improve the answer:
   <gap description>
 
 I can research the gaps now and update the KB.
-  Type: continue  to research gaps  ·  or: skip
+  Type **yes**  to research gaps  ·  or: skip
 ```
 
 **If the user chooses to research:**
@@ -259,7 +259,7 @@ Description : <description>
 Path        : .kb/<name>/
 Existing topics: <list or "none yet">
 
-  Type: continue  to create  ·  or: stop
+  Type **yes**  to create  ·  or: stop
 ```
 
 **Step 3 — Create**

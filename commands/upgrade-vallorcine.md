@@ -110,7 +110,7 @@ Preserved (never touched):
   .kb/CLAUDE.md        if you have added topics
   .decisions/CLAUDE.md if you have added decisions
 
-  Type: continue  to apply upgrade  ·  or: stop
+  Type **yes**  to apply upgrade  ·  or: stop
 ```
 
 Wait. If "stop": exit cleanly with "Upgrade cancelled. No changes made."
