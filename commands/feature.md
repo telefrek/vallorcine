@@ -54,6 +54,11 @@ Display opening header immediately:
 Read `.feature/project-config.md`. If missing: stop and say
   "Run /feature-init to set up the project profile first."
 
+If `PROJECT-CONTEXT.md` exists in the project root: read the `## Active` section.
+Use global entries and any scoped entries matching the feature description to
+inform the scoping interview. Do not ask questions that active context entries
+already answer.
+
 ---
 
 ## Step 2 — The scoping interview

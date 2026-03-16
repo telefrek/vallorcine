@@ -24,8 +24,8 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 
 - ~~/decisions list~~ — **done** (v0.2.4). Browse and filter by status/keyword.
 
-- **Project-level CONTEXT.md** — rolling-context pattern for projects *using*
-  the kit. Different from ADRs — "things we've learned about this codebase."
+- ~~Project-level CONTEXT.md~~ — **done** (v0.2.4). `PROJECT-CONTEXT.md` with `/project-context` command.
+  90-day expiry, scoped entries, size cap, agent integration at scoping/domains/planning.
 
 - ~~Diff-based install~~ — **done** (v0.2.4). `install.sh --diff` shows changes without writing.
 

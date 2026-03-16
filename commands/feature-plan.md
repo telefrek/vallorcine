@@ -61,10 +61,13 @@ Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoin
 
 Read in order:
 1. `.feature/project-config.md`
-2. `.feature/<slug>/brief.md`
-3. `.feature/<slug>/domains.md`
-4. All ADR files linked in domains.md
-5. Key sections of linked KB subject files (`#key-parameters`, `#implementation-notes`)
+2. `PROJECT-CONTEXT.md` — if it exists, read Active entries (global + scoped to
+   relevant modules). Constraints from context entries should be reflected in
+   work plan contracts.
+3. `.feature/<slug>/brief.md`
+4. `.feature/<slug>/domains.md`
+5. All ADR files linked in domains.md
+6. Key sections of linked KB subject files (`#key-parameters`, `#implementation-notes`)
 
 Scan the source directory structure (names and module layout only — don't read
 every file). Read only files likely relevant to this feature.

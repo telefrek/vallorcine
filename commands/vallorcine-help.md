@@ -59,6 +59,9 @@ command to run, then explain what it does and what the user can expect.
 - `/decisions close "<problem>"` — rule out permanently
 
 **Setup and maintenance:**
+- `/project-context add "<entry>"` — add team-shared knowledge about the codebase
+- `/project-context cleanup` — review expired context entries
+- `/project-context` — display all active context entries
 - `/feature-init` — one-time project setup (language, test framework, conventions)
 - `/feature-cleanup` — interactive walkthrough of stale feature directories
 - `/setup-vallorcine` — initialise `.kb/` and `.decisions/` directories

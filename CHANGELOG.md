@@ -24,6 +24,9 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
   transcripts. PostSessionEnd hook scans for decision-shaped language and stages
   candidates for decide/draft/defer/dismiss. Notices surface at `/feature-domains`
   and `/feature-resume`.
+- `/project-context` — manage team-shared codebase knowledge (add/cleanup/display).
+  Entries have 90-day default expiry, optional scope per module, and size cap.
+  Agents read active entries during scoping, domain analysis, and planning.
 
 ---
 
