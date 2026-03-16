@@ -5,6 +5,21 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.2.2] — 2026-03-16
+
+### Added
+- Parallel work unit execution with batch coordinator (`/feature-coordinate`)
+- Execution strategy prompt (cost/balanced/speed) in `/feature-plan`
+- Per-unit file isolation (`units/WU-N/`) for parallel subagent safety
+- Parallel-aware display in `/feature-resume` with batch grouping
+- Per-unit change grouping in `/feature-pr` descriptions
+
+### Fixed
+- Standardized prompt language to "Type **yes**" across all commands
+  (feature-domains, feature-init, kb, quick, research, upgrade-vallorcine)
+
+---
+
 ## [0.2.1] — 2026-03-16
 
 ### Fixed
