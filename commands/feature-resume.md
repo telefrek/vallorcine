@@ -114,6 +114,9 @@ DOMAIN STATUS (if domains stage was reached)
 TDD CYCLES (if testing was reached)
   Cycle 1: tests <date> | passing <date or "—"> | refactor <date or "—"> | missing: <n>
   Cycle 2: ...
+
+<If .decisions/.decision-candidates has status: new entries:>
+  ℹ <n> decision candidates pending review (/decisions candidates)
 ───────────────────────────────────────────────
 ```
 

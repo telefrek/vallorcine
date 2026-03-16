@@ -13,6 +13,7 @@ Single entry point for all architecture decision operations.
 | `/decisions triage` | Review all deferred items and act on them |
 | `/decisions list [--status <filter>] [--search <term>]` | Browse and filter all decisions |
 | `/decisions explain "<slug>"` | Plain-language summary of a decision with KB context |
+| `/decisions candidates` | Review undocumented decision candidates from recent sessions |
 | `/decisions backfill [<path>] [--limit N]` | Surface implicit decisions from archived features and source code |
 
 **Default (no subcommand):** if the first argument looks like a question rather
@@ -556,6 +557,145 @@ NOTE: This topic is deferred. Resume condition: <condition or "not specified">.
 ```
 
 Stop. No files are written.
+
+---
+
+## decisions candidates — review discovered decision candidates
+
+Reviews undocumented decision candidates accumulated from recent sessions.
+Candidates are written to `.decisions/.decision-candidates` by a PostSessionEnd
+hook that scans conversation transcripts for decision-shaped language.
+
+Display opening header:
+```
+───────────────────────────────────────────────
+🏛️  DECISIONS CANDIDATES
+───────────────────────────────────────────────
+```
+
+### Candidate file format
+
+`.decisions/.decision-candidates` is an append-only file. Each candidate is a
+YAML-like block separated by `---`:
+
+```yaml
+---
+date: "2026-03-16"
+session: "<session-id>"
+signal: "<quote from transcript>"
+context: "<surrounding context>"
+suggested_problem: "<one-line problem statement>"
+status: "new"
+---
+```
+
+Status values: `new` (unreviewed), `processed` (acted on), `dismissed`.
+
+### Step 1 — Load candidates
+
+Read `.decisions/.decision-candidates`. If it doesn't exist or has no `new`
+entries:
+```
+No undocumented decision candidates to review.
+Candidates are discovered automatically at the end of each session.
+```
+Stop.
+
+Filter to `status: new` entries only.
+
+### Step 2 — Present candidates
+
+```
+── <n> candidates from recent sessions ────────
+```
+
+Present each candidate one at a time:
+
+```
+── <i> of <n> ─────────────────────────────────
+  "<signal>"
+  Session: <date>
+  Suggested: <suggested_problem>
+
+  Type: decide · draft · defer · dismiss
+```
+
+Wait for user response. Process identically to `/decisions backfill` Step 4:
+- **decide** → invoke `/architect "<suggested_problem>"` as a sub-agent
+- **draft** → prompt for rationale, write draft ADR
+- **defer** → prompt for who/context, write deferred stub
+- **dismiss** → mark as dismissed in the candidates file
+
+After processing, update the candidate's status in `.decision-candidates`
+to `processed` or `dismissed`.
+
+### Step 3 — Summary
+
+```
+───────────────────────────────────────────────
+🏛️  DECISIONS CANDIDATES complete
+  Decided:   <n>
+  Drafted:   <n>
+  Deferred:  <n>
+  Dismissed: <n>
+  Remaining: <n>
+───────────────────────────────────────────────
+```
+
+### Discovery — how candidates are surfaced to users
+
+Candidates accumulate silently. The following pipeline commands check for
+`new` candidates in `.decisions/.decision-candidates` and display a notice
+if any exist:
+
+**`/feature-domains`** — after Step 2 (domain coverage display):
+```
+  ℹ <n> undocumented decision candidates from recent sessions.
+    Run /decisions candidates to review.
+```
+
+**`/feature-resume`** — in the Step 2 status display:
+```
+  ℹ <n> decision candidates pending review.
+```
+
+**`/feature-resume --status`** — in the Current Blocker section (as informational,
+not a blocker):
+```
+  Decision candidates: <n> pending (/decisions candidates)
+```
+
+These notices are informational only — they never block the pipeline.
+
+### PostSessionEnd hook — transcript scanning
+
+The hook script scans the current session transcript for decision-shaped
+language patterns:
+
+**Signal patterns** (regex-like, case-insensitive):
+- "let's go with ...", "let's use ..."
+- "I decided to ...", "we decided to ..."
+- "chose X over Y", "picked X instead of Y"
+- "the reason we're doing X is ..."
+- "going with X because ..."
+- "ruled out X", "not going to use X"
+
+**Filtering:**
+- Skip if the signal is inside a code block (implementation, not a decision)
+- Skip if it references an existing ADR slug from `.decisions/CLAUDE.md`
+- Skip if an identical signal already exists in `.decision-candidates`
+- Skip signals that are clearly about implementation details, not architecture
+  ("let's use a for loop", "going with the simpler if/else")
+
+**What gets captured:**
+- The signal text (the decision-shaped quote)
+- Surrounding context (2-3 sentences before/after)
+- A suggested problem statement (inferred from the context)
+- The session date
+
+The hook script is installed as `.claude/hooks/post-session-decisions.sh`.
+It runs silently — no output to the user. It only appends to the candidates
+file.
 
 ---
 

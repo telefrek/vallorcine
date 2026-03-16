@@ -36,9 +36,8 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 - **KB coding agent** — third KB role that reads entries and implements against
   them. Would close the loop between research and implementation.
 
-- **Auto-capture of accidental decisions** — PostSessionEnd hook scans transcript
-  for decision-shaped language, prompts user to save as ADR. Preserves
-  intentionality while expanding capture surface.
+- ~~Auto-capture of accidental decisions~~ — **done** (v0.2.4). PostSessionEnd hook +
+  `/decisions candidates` review command. Surfaces at `/feature-domains` and `/feature-resume`.
 
 - **KB staleness: `depends-on` field** — frontmatter `depends-on` field in
   subject files for cross-entry dependency tracking. Staleness detection by

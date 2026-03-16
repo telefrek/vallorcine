@@ -124,6 +124,14 @@ baked into the implementation is expensive to change later.
 Update the Domain Resolution Tracker in status.md immediately after classifying
 each domain (don't wait until all are done — crash safety).
 
+**Decision candidates notice:** After classification, check if
+`.decisions/.decision-candidates` exists and has `status: new` entries. If so,
+append to the domain coverage display:
+```
+  ℹ <n> undocumented decision candidates from recent sessions.
+    Run /decisions candidates to review.
+```
+
 Display:
 ```
 ── Domain coverage ─────────────────────────────

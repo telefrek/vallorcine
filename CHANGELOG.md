@@ -20,6 +20,10 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 - Dependency topology view in `/feature-resume` — work units displayed in
   dependency layers with `└─ depends on:` annotations, batch info for parallel mode,
   and progress counter
+- `/decisions candidates` — review undocumented decisions discovered from session
+  transcripts. PostSessionEnd hook scans for decision-shaped language and stages
+  candidates for decide/draft/defer/dismiss. Notices surface at `/feature-domains`
+  and `/feature-resume`.
 
 ---
 
