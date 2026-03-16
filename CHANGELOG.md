@@ -5,6 +5,48 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.2.0] — 2026-03-16
+
+### Added
+- **Pre-flight checks** — three advisory scripts run at every pipeline command
+  start: version skew warning, index merge driver auto-setup, KB/decisions
+  freshness check against main branch
+- **Index merge driver** — custom git merge driver for `.kb/CLAUDE.md` and
+  `.decisions/CLAUDE.md` that auto-resolves concurrent table row additions by
+  keeping all rows from both sides. Scoped via `.gitattributes` to only
+  vallorcine-managed index files — never affects user code
+- **KB staleness detection** — `/kb "<question>"` checks entry age against
+  configurable threshold (default 90 days in project-config.md), warns on stale
+  entries, and offers to invoke `/research` as sub-agent inline for gaps or
+  outdated data
+- **Per-phase token tracking** — `scripts/token-usage.sh` reads Claude Code
+  session JSONL to track actual token consumption per pipeline phase. Integrated
+  into all 8 pipeline commands and `/feature-resume`
+- **Scenario test suite** — 6 scenario tests (53 assertions) covering
+  project-config conflicts, version skew detection/resolution/warning, merge
+  driver with/without, auto-setup, and stale KB detection. All tests use
+  `/tmp/vallorcine/*` paths for permission pre-granting
+- **"Known team issues" in DESIGN.md** — documents mitigated and unmitigated
+  team concurrency risks
+- **COMPETITIVE.md** — 7 new competitors added (claude-mem, memsearch,
+  claude-cognitive, Claude Code auto-memory, claude-code-workflows, feature-dev,
+  Jamie-BitFlight/claude_skills)
+- **DEFERRED.md** — 6 new feature ideas from research brief
+
+### Changed
+- `/save-work` no longer bumps VERSION — stages changelog notes in
+  `.changelog-staging.md` for `/release` to consume
+- `/release` syncs README.md version line
+- `install.sh --dev` uses temp dir instead of overwriting repo `.claude/`;
+  safety guard blocks `install.sh .` from repo root
+- `test-install.sh` updated to use `/tmp/vallorcine/` paths
+
+### Fixed
+- `install.sh` self-install safety guard prevents overwriting source files
+  when run from the vallorcine repo root
+
+---
+
 ## [0.1.5] — 2026-03-14
 
 ### Fixed
