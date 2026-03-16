@@ -5,6 +5,19 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.3.3] — 2026-03-16
+
+### Added
+- ADR-informed candidate ranking in `/architect` Step 4. When a KB category has
+  >8 entries, reads scoring data from related ADRs to prioritize which subject
+  files to load. High scorers and new/unranked entries load first. Low scorers
+  deprioritized but available on request. Saves 25-40K tokens on large categories.
+- ADR staleness signal: when new KB entries exist that a related ADR never
+  evaluated, the Architect flags it for potential `/decisions review`. Closes
+  the loop between new research and existing decisions.
+
+---
+
 ## [0.3.2] — 2026-03-16
 
 ### Added
