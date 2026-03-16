@@ -16,9 +16,9 @@ Read `.feature/<slug>/status.md`.
 Domain analysis is already complete for '<slug>'.
 Domains: .feature/<slug>/domains.md
 
-  Type: continue  to proceed to work planning  ·  or: stop
+  Type **yes**  to proceed to work planning  ·  or: stop
 ```
-If "continue": invoke /feature-plan "<slug>" as a sub-agent immediately.
+If "yes": invoke /feature-plan "<slug>" as a sub-agent immediately.
 If "stop": display `Next: /feature-plan "<slug>"` and stop.
 
 **If Domains stage is `in-progress`:**
@@ -188,11 +188,11 @@ Review the domain analysis above — the Work Planner will build the implementat
 structure from these constraints and ADRs.
 
 ───────────────────────────────────────────────
-  Type: continue  ·  or: stop
+  Type **yes**  ·  or: stop
 ───────────────────────────────────────────────
 ```
 
-If "continue": invoke /feature-plan "<slug>" as a sub-agent immediately.
+If "yes": invoke /feature-plan "<slug>" as a sub-agent immediately.
 If "stop":
 ```
 When you're ready:

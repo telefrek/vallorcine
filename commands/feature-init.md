@@ -114,9 +114,9 @@ If the user leaves it blank or says "none": record `branch_naming: none`.
 
 Display:
 ```
-  Type: continue  to save  ·  or: describe corrections
+  Type **yes**  to save  ·  or: describe corrections
 ```
-If "continue": save. If the user types corrections: apply them and confirm again.
+If "yes": save. If the user types corrections: apply them and confirm again.
 Do not re-ask about fields the user confirmed or did not mention.
 
 ---

@@ -101,11 +101,11 @@ Options:
   1. Continue as /quick — I'll keep it tight and flag scope creep if I find it
   2. Switch to /feature — run /feature "<description>" for the full pipeline
 
-  Type: continue  to stay as /quick  ·  or: feature
+  Type **yes**  to stay as /quick  ·  or: feature
 ───────────────────────────────────────────────
 ```
 
-If "continue": continue as /quick, note the signals in status.md and proceed with
+If "yes": continue as /quick, note the signals in status.md and proceed with
 heightened scope vigilance (see Step 3).
 
 **4+ signals:** Hard redirect. The description is clearly feature-scale:
@@ -279,7 +279,7 @@ Display:
 Tests I'll write:
   1. test_<n> — <scenario>
   2. test_<n> — <scenario>
-  Type: continue  ·  or: describe changes
+  Type **yes**  ·  or: describe changes
 ```
 Write on "continue" or immediately if the user provides changes.
 
@@ -293,10 +293,10 @@ Display:
 <n> tests written and verified failing.
 
 ───────────────────────────────────────────────
-  Type: continue  ·  or: stop
+  Type **yes**  ·  or: stop
 ───────────────────────────────────────────────
 ```
-If "continue": proceed to Step 5.
+If "yes": proceed to Step 5.
 
 ---
 
@@ -318,10 +318,10 @@ Display:
 All tests passing.
 
 ───────────────────────────────────────────────
-  Type: continue  ·  or: stop
+  Type **yes**  ·  or: stop
 ───────────────────────────────────────────────
 ```
-If "continue": proceed to Step 6.
+If "yes": proceed to Step 6.
 
 ---
 
@@ -370,4 +370,4 @@ Note: this touched <area> which may be worth a full /feature pass later.
 ```
 
 If the user types pr: invoke /feature-pr "<quick-slug>" as a sub-agent immediately.
-If Enter or stop: stop.
+If "stop": stop.

@@ -65,10 +65,10 @@ After the user responds: echo confirmed values, then proceed.
 Existing topics: <list from .kb/CLAUDE.md Topic Map>
 
 To add it: /kb topic "<topic>" "<one-line description>"
-  Type: continue  to create the topic now  ·  or: manual
+  Type **yes**  to create the topic now  ·  or: manual
 ```
 
-   If "continue": invoke `/kb topic "<topic>" "<description>"` as a sub-agent,
+   If "yes": invoke `/kb topic "<topic>" "<description>"` as a sub-agent,
    wait for it to complete, then proceed with the research session.
    If "manual": stop and let the user run it manually.
 
@@ -107,7 +107,7 @@ Report to user:
 
 If category already has content, display:
 ```
-  Type: continue  to proceed anyway  ·  or: stop
+  Type **yes**  to proceed anyway  ·  or: stop
 ```
 
 ---
