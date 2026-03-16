@@ -185,6 +185,10 @@ NEXT STEP
 
 **Auto-invoke rules** (apply after displaying the NEXT STEP block):
 
+- If the next step resolves to `/feature-domains` (stage is `scoping/complete`):
+  invoke `/feature-domains "<slug>"` as a sub-agent immediately. Domain analysis
+  requires no external action to proceed.
+
 - If the next step resolves to `/feature-plan` (stage is `domains/complete` or
   `planning/in-progress`): invoke `/feature-plan "<slug>"` as a sub-agent
   immediately. Planning requires no external action to proceed.

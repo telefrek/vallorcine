@@ -113,7 +113,8 @@ Display:
   Run: /research <topic> <category> "<subject>"
   Then re-run: /feature-domains "<slug>"
 
-  Or confirm to proceed without this research (gap will be noted in domains.md).
+  Type **yes** to proceed without research (gap will be noted in domains.md)
+  · or: research
 ```
 Append `domains-research-commissioned` to cycle-log.md. Wait for user response.
 
@@ -129,7 +130,7 @@ Display:
   Run: /architect "<decision problem>"
   Then re-run: /feature-domains "<slug>"
 
-  Or confirm to proceed without a formal decision.
+  Type **yes** to proceed without a formal decision · or: architect
 ```
 Append `domains-decision-commissioned` to cycle-log.md. Wait for user response.
 
