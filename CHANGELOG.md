@@ -12,6 +12,7 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 - `/feature-resume` displays estimated vs actual token comparison with delta %
 - `/decisions list` — browse and filter all decisions by status and keyword
 - `/decisions explain "<slug>"` — plain-language summary of a decision with KB context
+- `/feature-cleanup` — interactive walkthrough of stale feature directories (keep/archive/delete)
 
 ---
 

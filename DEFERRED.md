@@ -63,10 +63,7 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 
 - ~~/decisions explain~~ — **done** (v0.2.4). Plain-language ADR summary with KB context.
 
-- **/feature-cleanup** — interactive walkthrough of existing `.feature/<slug>/`
-  directories. For each: show last activity date and stage, ask user to keep,
-  archive (move to `_archive/`), or delete. Addresses abandoned feature directory
-  clutter for long-running projects.
+- ~~/feature-cleanup~~ — **done** (v0.2.4). Interactive walkthrough of stale feature dirs.
 
 - **HANDOFF.md for cross-developer session handoff** — `/save-work` writes a
   structured summary of decisions made, approaches tried, and open questions.

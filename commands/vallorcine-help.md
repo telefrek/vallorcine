@@ -60,6 +60,7 @@ command to run, then explain what it does and what the user can expect.
 
 **Setup and maintenance:**
 - `/feature-init` — one-time project setup (language, test framework, conventions)
+- `/feature-cleanup` — interactive walkthrough of stale feature directories
 - `/setup-vallorcine` — initialise `.kb/` and `.decisions/` directories
 - `/upgrade-vallorcine` — check for and apply kit updates
 
