@@ -24,9 +24,9 @@ Otherwise:
 Work planning is already complete for '<slug>'.
 Work plan: .feature/<slug>/work-plan.md
 
-  Type: continue  to proceed to test writing  ·  or: stop
+  Type **yes**  to proceed to test writing  ·  or: stop
 ```
-If "continue": invoke /feature-test "<slug>" as a sub-agent immediately.
+If "yes": invoke /feature-test "<slug>" as a sub-agent immediately.
 If "stop": display `Next: /feature-test "<slug>"` and stop.
 
 **If Planning stage is `in-progress`:**
@@ -87,7 +87,7 @@ New constructs to CREATE:
 
 Display:
 ```
-  Type: continue  ·  or: describe corrections
+  Type **yes**  ·  or: describe corrections
 ```
 Wait for the user to type "continue" or describe corrections. Update status.md substage → `confirmed-design`
 after confirmation.
@@ -172,12 +172,89 @@ Estimated savings: ~<N>K per session vs ~<N>K single unit
 
   WU-3: <name>  (depends on WU-1 + WU-2)  [if applicable]
         ...
-
-  Type: split  ·  or: single
 ```
 
-If "single": record `work_units: none` in status.md, proceed to Step 3.
-If "split" (or no split was proposed): proceed with unit structure.
+### Execution strategy prompt
+
+After the work unit analysis display, determine the execution strategy.
+
+**If feature doesn't qualify for splitting** (1–3 constructs, no boundaries):
+set `execution_strategy: cost` implicitly in status.md, skip the prompt.
+
+**If feature qualifies for splitting**, show the analysis then ask:
+
+```
+── Execution strategy ─────────────────────────────
+  cost      — sequential execution. Splits only when a single session
+              exceeds ~15K tokens.
+
+  balanced  — split at clean boundaries, independent units run in parallel.
+              Moderate token overhead.
+
+  speed     — split at every clean boundary, maximum parallelism.
+              Fastest completion, highest token cost.
+
+Type: cost, balanced, or speed
+```
+
+Record `execution_strategy: <choice>` in status.md and in the
+`<!-- execution_strategy: -->` comment under `## Work Units`.
+
+**Strategy behaviour:**
+
+- `cost`: use current split thresholds (>15K). If under threshold, `work_units: none`.
+  If over, split but units run sequentially. No per-unit dirs.
+- `balanced`: lower threshold to >8K OR 2+ independent groups. Split and create
+  per-unit dirs (see below).
+- `speed`: split at every clean boundary (still never split 1–3 total constructs).
+  Create per-unit dirs.
+
+**If "cost" and under threshold:** record `work_units: none` in status.md, proceed to Step 3.
+**If "cost" and over threshold:** proceed with unit structure (sequential execution).
+**If "balanced" or "speed":** proceed with unit structure and parallel setup.
+
+### Dependency graph (balanced/speed only)
+
+After the Work Units table is confirmed, display:
+```
+── Dependency graph ───────────────────────────
+  Batch 1: WU-1, WU-2  (parallel — no mutual deps)
+  Batch 2: WU-3         (depends on WU-1)
+
+  Critical path: <n> sequential batches
+  Estimated time: ~<n> sessions (vs ~<n> sequential)
+```
+
+### Per-unit directory creation (balanced/speed only)
+
+Create `.feature/<slug>/units/WU-N/` for each unit with:
+
+Per-unit `status.md`:
+```markdown
+---
+feature: "<slug>"
+unit: "WU-<n>"
+unit_name: "<name>"
+---
+
+## Current Position
+**Stage:** not-started
+**Substage:** —
+**Last successful checkpoint:** unit directory created
+**Cycle:** 0
+
+## TDD Cycle Tracker
+| Cycle | Tests written | Tests passing | Refactor done | Missing tests |
+```
+
+Per-unit `cycle-log.md`:
+```markdown
+# Cycle Log — <slug> / WU-<n>
+<!-- Append-only. Each agent appends entries. -->
+---
+```
+
+### Write Work Units table
 
 After confirmation, write the Work Units table to status.md:
 ```markdown
@@ -281,6 +358,21 @@ and changing them later requires re-running tests.
 Ask the user how they want to run the TDD loop. This choice is recorded now and
 persists for the lifetime of this feature — it will not be asked again.
 
+**When `execution_strategy` is `balanced` or `speed`:**
+
+Display:
+```
+── How would you like to run the TDD loop? ─────
+  autonomous  — independent units run their full test → implement → refactor
+               cycles in parallel. Checkpoints happen at batch boundaries.
+
+  manual      — I'll pause between batches and wait for your go-ahead.
+
+Type: autonomous  or  manual
+```
+
+**When `execution_strategy` is `cost` (or not set):**
+
 Display:
 ```
 ── How would you like to run the TDD loop? ─────
@@ -308,7 +400,19 @@ Manual mode. I'll prompt you at each stage boundary.
 ──────────────────────────────────────────────────
 ```
 
-### Step 5b — Start test writing
+### Step 5b — Start test writing or coordinator
+
+**If `execution_strategy` is `balanced` or `speed`:**
+
+```
+───────────────────────────────────────────────
+Launching parallel coordinator.
+Run /feature-resume "<slug>" at any point to see batch status.
+───────────────────────────────────────────────
+```
+Invoke `/feature-coordinate "<slug>"` as a sub-agent immediately.
+
+**If `execution_strategy` is `cost` (or not set):**
 
 If work units are defined:
 ```

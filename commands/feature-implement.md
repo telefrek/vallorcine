@@ -22,6 +22,23 @@ If work units are defined:
 
 Update the active unit status → `in-progress` in the Work Units table.
 
+### Per-unit path resolution (parallel mode)
+
+If `execution_strategy` is `balanced` or `speed` in feature-level status.md:
+```
+unit_status = .feature/<slug>/units/WU-<n>/status.md
+unit_log = .feature/<slug>/units/WU-<n>/cycle-log.md
+```
+Else:
+```
+unit_status = .feature/<slug>/status.md
+unit_log = .feature/<slug>/cycle-log.md
+```
+
+All status.md reads/writes for stage, substage, cycle tracker → use `unit_status`.
+All cycle-log.md appends → use `unit_log`.
+Feature-level status.md Work Units table → still update unit status there too.
+
 Display opening header:
 ```
 ───────────────────────────────────────────────
@@ -41,15 +58,29 @@ The Test Writer has resolved a contract conflict. Resume implementation.
 - Jump to Step 2 (implement in order, skipping constructs whose tests already pass)
 
 **If Implementation for this cycle is `complete`:**
+
+Read `automation_mode` from status.md.
+
+**If `automation_mode: autonomous`:**
+```
+⚙️  CODE WRITER · <slug> · Cycle <n>
+───────────────────────────────────────────────
+Implementation is already complete for cycle <n>.
+Starting refactor  ·  type stop to pause
+───────────────────────────────────────────────
+```
+Invoke /feature-refactor "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
+
+**If `automation_mode: manual` (or not set):**
 ```
 ⚙️  CODE WRITER · <slug> · Cycle <n>
 ───────────────────────────────────────────────
 Implementation is already complete for cycle <n>.
 All tests were passing as of: <date from status.md>
 
-  Type: continue  to proceed to refactor  ·  or: stop
+  Type **yes**  to proceed to refactor  ·  or: stop
 ```
-If "continue": invoke /feature-refactor "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
+If "yes": invoke /feature-refactor "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
 If "stop": display `Next: /feature-refactor "<slug>"` and stop.
 
 **If Implementation is `in-progress`:**
@@ -223,6 +254,10 @@ If work units are defined:
 - Mark the active unit as `complete` in the Work Units table in status.md
 - Check if any blocked units are now unblocked (all their deps are complete)
   → update those units from `blocked` → `not-started`
+- **Parallel mode (`execution_strategy` is `balanced` or `speed`):** mark unit
+  complete in feature-level Work Units table and unblock dependent units, but do
+  NOT invoke the next unit — the coordinator handles unit sequencing. Chain to
+  `/feature-refactor` for the current unit as normal.
 
 Update `.feature/CLAUDE.md`.
 
@@ -273,11 +308,11 @@ Work unit progress:
   ○ WU-3: <n> — blocked (waiting on WU-2)
 
 ───────────────────────────────────────────────
-  Type: continue  ·  or: stop
+  Type **yes**  ·  or: stop
 ───────────────────────────────────────────────
 ```
 
-If "continue": invoke `/feature-refactor "<slug>"<  --unit WU-<n>>` as a sub-agent.
+If "yes": invoke `/feature-refactor "<slug>"<  --unit WU-<n>>` as a sub-agent.
 If "stop":
 ```
 When you're ready:

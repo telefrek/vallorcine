@@ -74,6 +74,8 @@ Substage:   <substage>
 Last checkpoint: <last successful checkpoint>
 Last updated:    <timestamp>
 Automation: <autonomous | manual | not-set (will ask on next /feature-implement)>
+<If execution_strategy is balanced or speed:>
+EXECUTION: parallel (<balanced|speed>)
 
 STAGE PROGRESS
   ✓ Scoping        complete    <date>
@@ -112,7 +114,23 @@ If work units are defined, determine the precise next command:
 3. If all units are `complete` → feature is ready for `/feature-pr`
 4. If a unit is `blocked` → its dependencies need to complete first
 
-Display the work unit table as part of the resume output:
+**If `execution_strategy` is `balanced` or `speed`:** read per-unit
+`units/WU-N/status.md` for each unit's current stage/substage and display
+with batch grouping:
+
+```
+Work units:
+  Batch 1 (complete):
+    ✓ WU-1: <name>
+  Batch 2 (in-progress):
+    ↻ WU-2: <name> — implementing (cycle 1)
+    ↻ WU-3: <name> — testing (cycle 1)
+  Batch 3 (waiting):
+    ○ WU-4: <name> — blocked (waiting on WU-2, WU-3)
+```
+
+**Otherwise (sequential/cost mode):** display the work unit table as part of the
+resume output:
 ```
 Work units:
   ✓ WU-1: <n> — complete
@@ -120,9 +138,11 @@ Work units:
   ○ WU-3: <n> — blocked (waiting on WU-2)
 ```
 
-The "Next command" line must include the `--unit` flag:
+The "Next command" line must include the `--unit` flag (sequential mode) or
+use the coordinator (parallel mode):
 ```
-Next: /feature-implement "<slug>" --unit WU-2
+<sequential:> Next: /feature-implement "<slug>" --unit WU-2
+<parallel:>   Next: /feature-coordinate "<slug>"
 ```
 
 ## Step 3 — Determine and display what to run next
@@ -168,6 +188,10 @@ NEXT STEP
 - If the next step resolves to `/feature-plan` (stage is `domains/complete` or
   `planning/in-progress`): invoke `/feature-plan "<slug>"` as a sub-agent
   immediately. Planning requires no external action to proceed.
+
+- If `automation_mode: autonomous` AND `execution_strategy` is `balanced` or
+  `speed` AND work units remain incomplete: invoke `/feature-coordinate "<slug>"`
+  as a sub-agent immediately.
 
 - If `automation_mode: autonomous` AND the next step resolves to
   `/feature-implement` or `/feature-refactor` (stages `testing/complete`,

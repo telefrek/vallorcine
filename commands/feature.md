@@ -17,9 +17,9 @@ brief.md, and initialises status.md as the restart checkpoint.
      Scoping is already complete for '<slug>'.
      Brief: .feature/<slug>/brief.md
 
-       Type: continue  to proceed to domain analysis  ·  or: stop
+       Type **yes**  to proceed to domain analysis  ·  or: stop
      ```
-     If "continue": invoke /feature-domains "<slug>" as a sub-agent immediately.
+     If "yes": invoke /feature-domains "<slug>" as a sub-agent immediately.
      If "stop": display `Next: /feature-domains "<slug>"` and stop.
      Stop if the user says "redo" or "update brief" — proceed with re-scoping.
    - If stage is `scoping` and substage is `in-progress`:
@@ -246,11 +246,11 @@ If "skip": continue without creating a branch.
 
 ```
 ───────────────────────────────────────────────
-  Type: continue  ·  or: stop
+  Type **yes**  ·  or: stop
 ───────────────────────────────────────────────
 ```
 
-If "continue": invoke /feature-domains "<slug>" as a sub-agent immediately.
+If "yes": invoke /feature-domains "<slug>" as a sub-agent immediately.
 If "stop":
 ```
 When you're ready:
@@ -277,6 +277,7 @@ last_updated: "<YYYY-MM-DD HH:MM>"
 **Substage:** interviewing
 **Last successful checkpoint:** feature directory created
 **Automation mode:** not-set
+**Execution strategy:** not-set
 
 ## Stage Completion
 
@@ -298,6 +299,8 @@ last_updated: "<YYYY-MM-DD HH:MM>"
 ## Work Units
 <!-- Populated by /feature-plan if feature is split into units -->
 <!-- work_units: none  ← set this if no split was done -->
+<!-- execution_strategy: not-set -->
+<!-- current_batch: 0 -->
 
 | Unit | Name | Constructs | Depends On | Status | Cycle |
 |------|------|------------|------------|--------|-------|
