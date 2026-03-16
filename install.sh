@@ -99,8 +99,8 @@ if [[ -f "$INSTALLED_VERSION_FILE" ]]; then
     if [[ "$INSTALLED_VERSION" != "$VERSION" ]]; then
         echo ""
         echo -e "  ${YELLOW}⚠  Existing install detected: v${INSTALLED_VERSION} → v${VERSION}${NC}"
-        echo -e "     Run with FORCE_UPDATE=1 to overwrite all files."
-        echo -e "     Without it, existing files are skipped (safe default)."
+        echo -e "     Version mismatch — forcing update of all kit files."
+        FORCE=1
     fi
 fi
 

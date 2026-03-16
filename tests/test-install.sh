@@ -8,6 +8,7 @@
 #   3. Version stamp matches VERSION
 #   4. Idempotent install (re-run skips existing files)
 #   5. FORCE_UPDATE=1 overwrites existing files
+#   5b. Version mismatch auto-forces update (bootstrapping fix)
 #   6. Safety guard blocks install to repo root
 #   7. --dev flag installs to temp directory (not repo)
 #   8. Upgrade apply from "old" version to current
@@ -177,6 +178,50 @@ if ! grep -q "^# modified$" "$TARGET/.claude/commands/quick.md" 2>/dev/null; the
     pass "FORCE_UPDATE overwrites modified files"
 else
     fail "FORCE_UPDATE should overwrite" "file still has modification marker"
+fi
+
+# ── Test 5b: Version mismatch auto-forces update ─────────────────────────
+
+echo ""
+echo "── Test 5b: Version mismatch auto-forces update without FORCE_UPDATE"
+
+MISMATCH_TARGET="$(make_temp)"
+bash "$REPO_ROOT/install.sh" "$MISMATCH_TARGET" >/dev/null 2>&1
+
+# Plant a marker in a kit file to detect overwrite
+echo "# old-version-marker" >> "$MISMATCH_TARGET/.claude/commands/quick.md"
+
+# Fake an older version stamp so install.sh sees a mismatch
+echo "0.0.1" > "$MISMATCH_TARGET/.claude/.vallorcine-version"
+
+# Re-install WITHOUT FORCE_UPDATE — version mismatch should auto-force
+mismatch_output="$(bash "$REPO_ROOT/install.sh" "$MISMATCH_TARGET" 2>&1)"
+
+if ! grep -q "^# old-version-marker$" "$MISMATCH_TARGET/.claude/commands/quick.md" 2>/dev/null; then
+    pass "version mismatch overwrites kit files without FORCE_UPDATE"
+else
+    fail "version mismatch should auto-force overwrite" "file still has old marker"
+fi
+
+# Verify upgrade.sh specifically gets overwritten (the bootstrapping fix)
+# Plant a marker in upgrade.sh
+echo "# old-upgrade-marker" >> "$MISMATCH_TARGET/.claude/upgrade.sh"
+echo "0.0.1" > "$MISMATCH_TARGET/.claude/.vallorcine-version"
+
+mismatch_output2="$(bash "$REPO_ROOT/install.sh" "$MISMATCH_TARGET" 2>&1)"
+
+if ! grep -q "^# old-upgrade-marker$" "$MISMATCH_TARGET/.claude/upgrade.sh" 2>/dev/null; then
+    pass "version mismatch overwrites upgrade.sh (bootstrapping fix)"
+else
+    fail "version mismatch should overwrite upgrade.sh" "upgrade.sh still has old marker"
+fi
+
+# Verify version stamp updated to current
+MISMATCH_STAMP="$(cat "$MISMATCH_TARGET/.claude/.vallorcine-version")"
+if [[ "$MISMATCH_STAMP" == "$VERSION" ]]; then
+    pass "version stamp updated after mismatch install"
+else
+    fail "version stamp should match current" "got: $MISMATCH_STAMP"
 fi
 
 # ── Test 6: Safety guard blocks repo-root install ───────────────────────────
