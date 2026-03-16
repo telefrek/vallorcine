@@ -132,6 +132,86 @@ Decision: agent privately ranks unknowns by impact, asks one per turn.
 `── Question i of n ──` header. N shifts down if answers resolve multiple
 unknowns. 0 questions valid if description is fully specified.
 
+## CONTEXT.md three-file split (2026-03-13)
+
+CONTEXT.md split into three files: CONTEXT.md (active state, bounded),
+SETTLED.md (graduated history), COMPETITIVE.md (market positioning).
+Different update cadences, different token costs. `/save-work` graduates
+aged entries.
+
+## Escalation flags and re-entry logic (2026-03-13)
+
+Full Code Writer → Test Writer → Work Planner escalation chain with
+3-strike limits. Re-entry via substage markers (`escalation-resolved`,
+`contract-revised`).
+
+## WIP.md crash-recovery checkpoint (2026-03-13)
+
+WIP.md in repo root (gitignored) for vallorcine's own development.
+Mutable checkpoint read by /ideate, deleted by /save-work.
+
+## cycle-log.md tail-read rule (2026-03-13)
+
+Agents read only last 30 lines by default. Full reads reserved for
+PR draft and feature-complete.
+
+## Autonomous TDD loop mode (2026-03-13)
+
+Opt-in automation chaining implement → refactor → next unit tests.
+Missing tests escalation (2e) and structural issues (2c/2d) always pause.
+
+## Plugin system support (2026-03-13)
+
+Plugin manifest alongside shell installer, not replacing it. Plugin path
+is lower friction; shell path enables /upgrade-vallorcine.
+
+## GitHub repo structure and versioning (2026-03-13)
+
+Standard layout with README, CHANGELOG, .gitignore, VERSION (semver).
+Branch convention: wip/<topic>.
+
+## /release skips bump when VERSION already ahead (2026-03-14)
+
+/release checks latest GitHub release tag. If VERSION > latest, skip bump.
+"bump" escape hatch for manual override.
+
+## Branch-based PR workflow (2026-03-14)
+
+All development on wip/<topic> branches, merge via PR. Direct commits to
+main reserved for context files and emergency patches.
+
+## VERSION only bumped by /release (2026-03-15)
+
+/save-work stages changelog notes in .changelog-staging.md instead of
+touching VERSION. /release is single owner of version bumps.
+
+## install.sh self-install safety guard (2026-03-15)
+
+--dev installs to mktemp -d. Safety guard blocks install to repo root.
+
+## Per-phase token tracking (2026-03-15)
+
+scripts/token-usage.sh reads session JSONL for actual token consumption.
+Shell-only, zero token cost. Integrated into all pipeline commands.
+
+## Index merge driver for team concurrency (2026-03-16)
+
+Custom git merge driver for .kb/CLAUDE.md and .decisions/CLAUDE.md.
+Auto-resolves concurrent table row additions. Scoped via .gitattributes
+to only vallorcine-managed index files. Auto-configured on first pipeline
+command via ensure-merge-driver.sh.
+
+## Pre-flight checks at pipeline start (2026-03-16)
+
+Three advisory scripts run before every pipeline command: version-check.sh,
+ensure-merge-driver.sh, kb-freshness-check.sh. All silent on success,
+never block.
+
+## KB staleness detection in /kb query (2026-03-16)
+
+/kb checks entry age against configurable threshold (default 90 days).
+Offers inline /research for gaps or stale entries.
+
 ## Fail-forward upgrade policy (2026-03-14)
 
 Problem: upgrade.sh now removes stale files; a natural follow-on is rollback support.

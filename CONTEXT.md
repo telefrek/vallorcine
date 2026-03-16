@@ -22,145 +22,27 @@ state of the project — what's happening now and what's next.
 
 *Last updated: 2026-03-16*
 
-**Session goal:** Continue — triage remaining research brief items.
+**Just released: v0.2.0** — team concurrency safety, scenario tests, KB staleness.
 
-**Just completed (branch: wip/release-and-testing-fixes):**
-- `/release` now syncs README.md version line (was stale at 0.1.0 since initial release)
-- `/save-work` no longer bumps VERSION — stages changelog notes in `.changelog-staging.md`
-  for `/release` to consume. Prevents multi-session version drift.
-- `install.sh --dev` uses temp dir instead of overwriting repo `.claude/`; safety guard
-  blocks `install.sh .` from repo root
-- `tests/test-install.sh` — 9 smoke tests for install + upgrade (all passing)
-- `scripts/token-usage.sh` — per-phase token tracking via session JSONL, integrated into
-  all 8 pipeline commands + `/feature-resume`. Gracefully degrades without jq.
-- COMPETITIVE.md updated with 7 new competitors from research brief (4 memory/knowledge,
-  3 workflow pipelines)
-- DEFERRED.md updated with 6 new feature ideas from research brief
-- 7 open questions from brief triaged: 1 already resolved (token tracking), 3 scoped to
-  deferred team features, 3 added to Open questions below
+**What shipped in v0.2.0:**
+- Pre-flight checks (version skew, merge driver auto-setup, KB freshness)
+- Index merge driver for `.kb/CLAUDE.md` and `.decisions/CLAUDE.md`
+- KB staleness detection with inline `/research` for gaps and stale entries
+- Per-phase token tracking via session JSONL
+- 62 tests across 7 test files (install + 6 scenario tests)
+- Research brief fully consumed — competitors, feature ideas, open questions triaged
+- Known team issues documented in DESIGN.md
 
 **Where things stand:**
-Branch `wip/release-and-testing-fixes` has commits, not yet PR'd or merged.
-Research brief (`~/Code/vallorcine-agent-brief.md`) fully consumed — all items triaged.
-
-**Remaining:**
-- Research: team MANIFEST design and concurrency risks (deep design work)
-- Design: scenario test scripts for team features (blocked on MANIFEST research)
+v0.2.0 released and published to GitHub. All prior work merged. Clean main branch.
+No active WIP branches.
 
 ---
 
 ## Recent decisions
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
-
-### 2026-03-13 — CONTEXT.md three-file split
-
-Problem: CONTEXT.md grows unbounded — settled design history and competitive
-landscape notes cost tokens every session despite being rarely needed.
-Decision: split into three files with distinct domains and cadences:
-- **CONTEXT.md** — active working state (~150-200 lines, read every session)
-- **SETTLED.md** — graduated design decisions (pull-model, grows freely)
-- **COMPETITIVE.md** — market positioning (pull-model, updated during research)
-`/save-work` graduates aged Recent decisions to SETTLED.md. CONTEXT.md carries
-one-line pointers to both reference files.
-Rejected: two-file split with competitive in settled (different domain and
-update cadence); per-session files (too many files, harder to load).
-
-### 2026-03-13 — Escalation flags and re-entry logic
-
-Full Code Writer → Test Writer → Work Planner escalation chain. Code Writer
-detects contract conflict, logs `code-escalation`, directs to `/feature-test
---escalation`. Test Writer diagnoses: fixes the test (cases 1-2) or escalates
-to Work Planner via `test-to-planner-escalation` (case 3). Work Planner reads
-escalation, revises contract + stub in Contract Revision section, logs
-`contract-revised`.
-
-Both handoff points have 3-strike limits — after 3 escalations on the same
-contract/test, hard stop with manual resolution guidance. Prevents infinite loops.
-
-Re-entry: feature-implement.md checks `escalation-resolved` substage to resume
-after Test Writer fixes. feature-test.md checks `contract-revised` substage to
-re-verify tests after Work Planner revises.
-
-### 2026-03-13 — WIP.md crash-recovery checkpoint
-
-Problem: vallorcine uses status.md + cycle-log.md for projects that use it, but
-vallorcine's own development had no crash-recovery mechanism.
-Decision: WIP.md in repo root (gitignored) — mutable checkpoint with current
-task, files being modified, done/remaining. /ideate reads it on session start,
-/save-work deletes it on close. Lightweight: updated at milestones, not every edit.
-Rejected: memory system (tied to working tree state, not cross-project knowledge);
-full status.md model (overkill for meta-development).
-
-### 2026-03-13 — cycle-log.md tail-read rule
-
-Problem: cycle-log.md is append-only with no cap; long-running features pay full
-token cost on every agent read.
-Decision: tail-read rule in tdd-protocol.md (always loaded) — agents read only
-last 30 lines by default. Full reads reserved for PR draft and feature-complete.
-Rejected: file splitting with archival threshold (adds maintenance machinery);
-per-cycle sections with lazy loading (requires reformatting).
-
-### 2026-03-13 — Autonomous TDD loop mode
-
-Added opt-in automation that chains implement → refactor → next unit tests
-without stopping. User chooses mode once at first `/feature-implement` run;
-choice persists in status.md for the feature lifetime.
-
-Two deliberate non-automations: (1) missing tests escalation (2e) always pauses
-both modes — it's a quality gate, not friction. (2) structural issues in 2c/2d
-also always pause — interface changes affect other units and need human judgement.
-
-### 2026-03-13 — Plugin system support
-
-Decision: add plugin manifest alongside shell installer, not replace it.
-Two reasons: (1) plugin path is lower friction for new users; (2) shell path
-enables /upgrade-vallorcine with version stamps and user-file preservation.
-Neither path is strictly better — they complement each other.
-
-### 2026-03-13 — GitHub repo structure and versioning
-
-Standard repo layout with README, CHANGELOG, .gitignore, VERSION (semver).
-install.sh reads VERSION, writes stamp to target project, warns on mismatch.
---dev flag for local testing. Branch convention: wip/<topic>.
-
-### 2026-03-14 — /release skips bump when VERSION already ahead
-
-Problem: `/save-work` bumps VERSION as part of session close-out; `/release` then
-bumped it again, resulting in an extra increment on every release.
-Decision: `/release` Step 1 now checks the latest GitHub release tag via
-`gh release list`. If VERSION > latest release, the bump is skipped and
-CURRENT_VERSION becomes NEW_VERSION. A "bump" escape hatch lets users override.
-Fallback: if `gh` is unavailable or no releases exist yet, the normal bump prompt
-runs as before.
-
-### 2026-03-14 — Branch-based PR workflow
-
-Now that v0.1.2 is a live release, all development happens on wip/<topic> branches
-and merges via PR. Direct commits to main are reserved for session context files
-(CONTEXT.md, WIP.md) and emergency patches only.
-
-### 2026-03-15 — VERSION only bumped by /release
-
-Problem: `/save-work` was bumping VERSION, causing drift across multi-session work.
-Decision: `/save-work` Step 3 now stages changelog notes in `.changelog-staging.md`
-(gitignored) instead of touching VERSION or CHANGELOG.md. `/release` reads staged
-notes as the base for release notes, then deletes the file. VERSION is single-owner.
-
-### 2026-03-15 — install.sh self-install safety guard
-
-Problem: `bash install.sh .` from repo root overwrites source `.claude/commands/`.
-`--dev` flag did the same thing. Decision: `--dev` now installs to `mktemp -d`.
-Added safety guard that detects repo root (checks for `install.sh` + `VERSION` at
-target) and blocks with an actionable error message.
-
-### 2026-03-15 — Per-phase token tracking via session JSONL
-
-`scripts/token-usage.sh` reads Claude Code session JSONL to track actual token
-consumption per pipeline phase. Shell-only, zero token cost (runs outside context).
-Requires jq — gracefully returns "unknown" without it. Integrated into all 8 pipeline
-commands (checkpoint at start, summary at completion banner) and `/feature-resume`.
-Filters `stop_reason != null` to avoid double-counting streaming progress updates.
+*All decisions through v0.2.0 graduated to SETTLED.md on 2026-03-16.*
 
 ---
 
@@ -177,10 +59,6 @@ Filters `stop_reason != null` to avoid double-counting streaming progress update
 
 - **Work unit split thresholds** — 15K crossover and 3.5K per-construct are
   reasoned estimates, not measured. Real-world use will reveal if adjustment needed.
-
-- **CONTEXT.md maintenance discipline** — `/save-work` now handles graduation
-  and doc sync, but still depends on remembering to run it.
-  Could /feature-complete prompt for `/save-work` automatically?
 
 - **install.sh --run-tests flag** — validation flag for fresh installs and
   upgrades. Would run scenario scripts against a temp repo to verify the
