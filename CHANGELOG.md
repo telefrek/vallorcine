@@ -5,6 +5,43 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.3.1] — 2026-03-16
+
+### Added
+- **Principle 1: bash and markdown only** — new top-priority design principle.
+  Hard constraint gating all new features. No external dependencies beyond
+  bash and markdown.
+- **Refactor step 2h: security review** — holistic security audit after all
+  other refactoring. Checks auth, data handling, trust boundaries, dependencies,
+  and threat surface delta. HIGH/MEDIUM/LOW severity. Always pauses on findings.
+- **ADR contradiction check** (`scripts/adr-validate.sh`) — pre-flight script
+  warns when duplicate accepted slugs exist. Added to pipeline pre-flight checks.
+- **Backfill file threshold** — `/decisions backfill` requires explicit path on
+  projects over `backfill_file_threshold` (default 50, configurable in
+  project-config.md).
+- `tests/scenario-adr-contradiction.sh` — 10-case regression test for ADR
+  contradiction detection.
+
+### Changed
+- Design principles renumbered 1-10 by priority with violation consequences
+  documented. Structural constraints (1-3) > correctness (4-7) > workflow (8-10).
+- Refactor checklist updated from 7 items (2a-2g) to 8 items (2a-2h).
+- DEFERRED.md reorganized into active/dropped/done sections.
+- COMPETITIVE.md gaps updated — hooks, coverage gating, Context7 dropped
+  as principle 1 violations.
+- Open questions prioritized into four tiers (do next / do soon / when needed /
+  when scale demands).
+
+### Resolved
+- Command name collision audit — zero collisions across 22 commands vs 45
+  Claude Code built-ins.
+- setup-vallorcine / feature-init merge — settled as separate (four-concern
+  model boundary).
+- install.sh --run-tests — dropped (tests are for plugin development only).
+- KB depends-on field — deferred (P2/P3 tension, premature at current scale).
+
+---
+
 ## [0.3.0] — 2026-03-16
 
 ### Added
