@@ -72,11 +72,6 @@ No command re-does completed work without explicit user confirmation.
   Code Writer escalates contract conflicts to Test Writer.
   Test Writer escalates contract changes to Work Planner.
 
-## Bug fix regression rule
-  When a bug is identified and a test can be written for it, a regression test
-  MUST be added before the fix is considered complete. The test should fail
-  without the fix and pass with it. This applies to all bug fixes — inside or
-  outside the TDD pipeline (scripts, install, upgrade, etc.).
 
 ## .feature/ gitignore policy
   .feature/project-config.md  → committed

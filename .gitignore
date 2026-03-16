@@ -4,6 +4,7 @@
 # Ignore .claude/ contents (local test install) but keep commands/ committed
 .claude/*
 !.claude/commands/
+!.claude/rules/
 .feature/
 .kb/
 .decisions/
