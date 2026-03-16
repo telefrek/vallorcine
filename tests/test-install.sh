@@ -254,6 +254,41 @@ else
     fail "--dev should use temp dir" "could not find temp path in output"
 fi
 
+# ── Test 7b: --diff shows changes without writing ─────────────────────────
+
+echo ""
+echo "── Test 7b: --diff shows changes without writing"
+
+DIFF_TARGET="$(make_temp)"
+bash "$REPO_ROOT/install.sh" "$DIFF_TARGET" >/dev/null 2>&1
+
+# Modify a file so diff has something to report
+echo "# modified" >> "$DIFF_TARGET/.claude/commands/quick.md"
+
+# Run diff mode
+diff_output="$(bash "$REPO_ROOT/install.sh" --diff "$DIFF_TARGET" 2>&1)"
+
+# Should show "changed" for the modified file
+if echo "$diff_output" | grep -q "changed.*quick.md"; then
+    pass "--diff detects changed files"
+else
+    fail "--diff should detect changed files" "output did not contain 'changed'"
+fi
+
+# Should NOT have written the file (still has our marker)
+if grep -q "^# modified$" "$DIFF_TARGET/.claude/commands/quick.md" 2>/dev/null; then
+    pass "--diff does not write files"
+else
+    fail "--diff should not modify files" "file was modified"
+fi
+
+# Should show "Diff complete" summary
+if echo "$diff_output" | grep -q "Diff complete"; then
+    pass "--diff shows summary"
+else
+    fail "--diff should show summary" "output did not contain 'Diff complete'"
+fi
+
 # ── Test 8: Upgrade apply ───────────────────────────────────────────────────
 
 echo ""

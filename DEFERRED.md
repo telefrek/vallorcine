@@ -27,8 +27,7 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 - **Project-level CONTEXT.md** — rolling-context pattern for projects *using*
   the kit. Different from ADRs — "things we've learned about this codebase."
 
-- **Diff-based install** — diff mode showing what changed between installed
-  and package version.
+- ~~Diff-based install~~ — **done** (v0.2.4). `install.sh --diff` shows changes without writing.
 
 - **Coverage gating in refactor** — flag coverage drops below configured minimum.
 

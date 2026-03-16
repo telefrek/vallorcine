@@ -6,6 +6,7 @@
 #   bash install.sh                    # install into current directory
 #   bash install.sh /path/to/project   # install into target path
 #   bash install.sh --dev              # install to a temp directory (for local testing)
+#   bash install.sh --diff /path       # show what would change without writing
 #
 # Options:
 #   FORCE_UPDATE=1 bash install.sh     # overwrite all existing files
@@ -18,12 +19,14 @@ VERSION="$(cat "$SCRIPT_DIR/VERSION" 2>/dev/null || echo "unknown")"
 # ── Argument handling ─────────────────────────────────────────────────────────
 
 DEV_MODE=0
+DIFF_MODE=0
 TARGET=""
 
 for arg in "$@"; do
     case "$arg" in
-        --dev) DEV_MODE=1 ;;
-        *)     TARGET="$arg" ;;
+        --dev)  DEV_MODE=1 ;;
+        --diff) DIFF_MODE=1 ;;
+        *)      TARGET="$arg" ;;
     esac
 done
 
@@ -45,6 +48,8 @@ NC='\033[0m'
 
 skipped=0
 created=0
+changed=0
+unchanged=0
 
 # ── Safety guard: prevent installing into the vallorcine repo itself ─────────
 
@@ -71,6 +76,23 @@ install_file() {
     local src="$1"
     local dst="$2"
     mkdir -p "$(dirname "$dst")"
+
+    if [[ "$DIFF_MODE" == "1" ]]; then
+        # Diff mode: show what would change, don't write
+        if [[ ! -f "$dst" ]]; then
+            echo -e "  ${GREEN}new${NC}    $dst"
+            ((changed++)) || true
+        elif diff -q "$src" "$dst" >/dev/null 2>&1; then
+            ((unchanged++)) || true
+        else
+            echo -e "  ${YELLOW}changed${NC} $dst"
+            diff --unified=3 "$dst" "$src" 2>/dev/null | head -30 || true
+            echo ""
+            ((changed++)) || true
+        fi
+        return
+    fi
+
     if [[ -f "$dst" && "$FORCE" != "1" ]]; then
         echo -e "  ${YELLOW}skip${NC}  $dst"
         ((skipped++)) || true
@@ -84,7 +106,9 @@ install_file() {
 # ── Header ────────────────────────────────────────────────────────────────────
 
 echo ""
-if [[ "$DEV_MODE" == "1" ]]; then
+if [[ "$DIFF_MODE" == "1" ]]; then
+    echo -e "${BLUE}vallorcine v${VERSION} — diff mode (showing changes for: $TARGET)${NC}"
+elif [[ "$DEV_MODE" == "1" ]]; then
     echo -e "${BLUE}vallorcine v${VERSION} — dev mode (installing into temp directory)${NC}"
 else
     echo -e "${BLUE}vallorcine v${VERSION} — installing into: $TARGET${NC}"
@@ -191,6 +215,19 @@ GITATTR
     echo -e "  ${GREEN}write${NC} .gitattributes  (merge driver entries)"
 else
     echo -e "  ${YELLOW}skip${NC}  .gitattributes already has merge driver entries"
+fi
+
+# ── Diff mode exit ──────────────────────────────────────────────────────────
+
+if [[ "$DIFF_MODE" == "1" ]]; then
+    echo ""
+    echo "────────────────────────────────────────────────"
+    echo -e "${BLUE}Diff complete.${NC}  v${VERSION}  ·  Changed: $changed  Unchanged: $unchanged"
+    echo ""
+    echo "No files were modified. To apply these changes:"
+    echo "  bash install.sh $TARGET"
+    echo ""
+    exit 0
 fi
 
 # ── Write version stamp, manifest, and source file ───────────────────────────
