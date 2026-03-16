@@ -142,11 +142,12 @@ Show the drafted entry:
 
 <drafted content>
 ─────────────────────────────────────────────────
-Proceeding. Type: edit  to revise first.
+
+  Type **yes** to proceed · or: edit
 ```
 
 Wait for input. If "edit": ask for corrections, incorporate them, show again,
-then proceed. Otherwise: proceed immediately.
+then proceed. If "yes": proceed immediately.
 
 ---
 
