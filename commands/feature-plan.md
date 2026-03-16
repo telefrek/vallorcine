@@ -322,6 +322,8 @@ Write `.feature/<slug>/work-plan.md` (Work Plan Template below).
 
 Update status.md: Planning → `complete`, last checkpoint → "work-plan.md written,
 <n> stubs created".
+Update the Stage Completion table: Planning row → Est. Tokens `~<N>K` (sum of files
+loaded: brief ~2K + domains ~3K + ADRs + source scan).
 Append `planned` entry to cycle-log.md:
 ```markdown
 ## <YYYY-MM-DD> — planned
@@ -338,7 +340,8 @@ Update `.feature/CLAUDE.md`.
 ## Step 5 — Hand off
 
 **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "planning"'`
-and capture the output as TOKEN_USAGE.
+and capture the output as TOKEN_USAGE. Update the Stage Completion table: Planning
+row → Actual Tokens from TOKEN_USAGE.
 
 Display:
 ```

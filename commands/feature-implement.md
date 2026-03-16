@@ -247,6 +247,8 @@ Update status.md:
 - Implementation cycle N → `complete`
 - TDD Cycle Tracker: Tests passing → today
 - substage → "all tests passing"
+- Stage Completion table: Implementation row → Est. Tokens `~<N>K` (work-plan
+  section ~2K + test files ~3K + stub files ~1K + dependency interfaces)
 
 Append `implemented` entry to cycle-log.md.
 
@@ -264,7 +266,8 @@ Update `.feature/CLAUDE.md`.
 Read `automation_mode` from status.md.
 
 **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "implementation"'`
-and capture the output as TOKEN_USAGE.
+and capture the output as TOKEN_USAGE. Update the Stage Completion table:
+Implementation row → Actual Tokens from TOKEN_USAGE.
 
 **If `automation_mode: autonomous`:**
 

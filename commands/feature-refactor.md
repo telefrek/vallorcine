@@ -325,6 +325,8 @@ Update status.md:
 - Refactor cycle N → `complete`
 - TDD Cycle Tracker: Refactor done → today, Missing tests → <n found>
 - substage → "refactor complete"
+- Stage Completion table: Refactor row → Est. Tokens `~<N>K` (project-config ~1K +
+  work-plan ~2K + all impl files + all test files)
 
 If no further cycles needed: update status.md Refactor stage → `complete`.
 
@@ -348,7 +350,8 @@ Update `.feature/CLAUDE.md`.
 Read `automation_mode` from status.md.
 
 **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "refactor"'`
-and capture the output as TOKEN_USAGE.
+and capture the output as TOKEN_USAGE. Update the Stage Completion table: Refactor
+row → Actual Tokens from TOKEN_USAGE.
 
 **If `execution_strategy` is `balanced` or `speed` (parallel mode):**
 

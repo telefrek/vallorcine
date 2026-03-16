@@ -196,6 +196,7 @@ This file is append-only. Each agent appends entries. Nothing is edited or delet
 ```
 
 Update `status.md`: stage → `scoping`, substage → `complete`.
+Update the Stage Completion table: Scoping row → Est. Tokens `~5K`, status → `complete`.
 Remove the `## Draft Brief` section from status.md now that brief.md is written.
 Update `.feature/CLAUDE.md` Active Features table.
 
@@ -204,7 +205,8 @@ Update `.feature/CLAUDE.md` Active Features table.
 ## Step 5 — Hand off
 
 **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "scoping"'`
-and capture the output as TOKEN_USAGE.
+and capture the output as TOKEN_USAGE. Update the Stage Completion table: Scoping
+row → Actual Tokens from TOKEN_USAGE (extract the `<N>K in / <N>K out` values).
 
 Display:
 ```
@@ -263,6 +265,28 @@ When you're ready:
 
 Written at Step 0, updated in-place by every agent throughout the pipeline.
 
+### Token tracking in Stage Completion table
+
+Every pipeline agent updates the Stage Completion table with token data:
+
+**Est. Tokens** — written at stage start. The agent's estimate of context window
+load for this stage, derived from the construct count and file sizes. Format:
+`~<N>K` (e.g., `~8K`, `~15K`). Based on:
+- Scoping: project-config (~1K) + brief writing (~2K) + status (~1K)
+- Domains: brief (~2K) + KB/decisions indexes (~2K) + ADR files loaded
+- Planning: brief (~2K) + domains (~3K) + ADRs + source scan
+- Testing: project-config (~1K) + brief (~2K) + work-plan section (~2K)
+- Implementation: work-plan section (~2K) + test files (~3K) + stubs (~1K)
+- Refactor: project-config (~1K) + work-plan (~2K) + impl files + test files
+
+**Actual Tokens** — written at stage completion. Captured from the `token_summary`
+shell output. Format: `<N>K in / <N>K out` (e.g., `12K in / 8K out`). If
+`token_summary` returns "unknown", write `unknown`.
+
+When each stage completes and calls `token_summary`, also update the Stage
+Completion row for that stage with the actual token values. The estimate is
+written when the stage begins (or when the work unit analysis calculates load).
+
 ```markdown
 ---
 feature: "<feature-slug>"
@@ -281,14 +305,14 @@ last_updated: "<YYYY-MM-DD HH:MM>"
 
 ## Stage Completion
 
-| Stage | Status | Completed | Notes |
-|-------|--------|-----------|-------|
-| Scoping | in-progress | — | |
-| Domains | not-started | — | |
-| Planning | not-started | — | |
-| Testing | not-started | — | cycle 0 |
-| Implementation | not-started | — | cycle 0 |
-| Refactor | not-started | — | cycle 0 |
+| Stage | Status | Completed | Est. Tokens | Actual Tokens | Notes |
+|-------|--------|-----------|-------------|---------------|-------|
+| Scoping | in-progress | — | — | — | |
+| Domains | not-started | — | — | — | |
+| Planning | not-started | — | — | — | |
+| Testing | not-started | — | — | — | cycle 0 |
+| Implementation | not-started | — | — | — | cycle 0 |
+| Refactor | not-started | — | — | — | cycle 0 |
 
 ## Domain Resolution Tracker
 <!-- Populated by /feature-domains -->

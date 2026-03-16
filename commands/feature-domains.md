@@ -228,6 +228,8 @@ After all domains are resolved (or user confirmed proceeding with gaps noted).
 Write `.feature/<slug>/domains.md` (Domains File Template below).
 
 Update status.md: Domains stage → `complete`, last checkpoint → "domains.md written".
+Update the Stage Completion table: Domains row → Est. Tokens `~<N>K` (sum of files
+loaded: brief ~2K + KB/decisions indexes ~2K + any ADR/KB files read).
 
 Append `domains-resolved` to cycle-log.md:
 ```markdown
@@ -246,7 +248,8 @@ Update `.feature/CLAUDE.md` stage column.
 ## Step 5 — Hand off
 
 **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "domains"'`
-and capture the output as TOKEN_USAGE.
+and capture the output as TOKEN_USAGE. Update the Stage Completion table: Domains
+row → Actual Tokens from TOKEN_USAGE.
 
 Display:
 ```

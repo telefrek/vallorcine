@@ -85,6 +85,27 @@ STAGE PROGRESS
   · Implementation not-started
   · Refactor       not-started
 
+TOKEN USAGE (from Stage Completion table in status.md)
+  Read the Stage Completion table and display estimated vs actual:
+
+  | Stage          | Est.   | Actual         | Δ       |
+  |----------------|--------|----------------|---------|
+  | Scoping        | ~5K    | 4.2K in / 3K out | -16%  |
+  | Domains        | ~6K    | 8.1K in / 2K out | +35%  |
+  | Planning       | ~8K    | 7.5K in / 5K out | -6%   |
+  | Testing        | ~5K    | —              | —       |
+  | Implementation | —      | —              | —       |
+  | Refactor       | —      | —              | —       |
+  | **Total**      | **~24K** | **19.8K in / 10K out** | |
+
+  The Δ column compares estimated tokens to actual input tokens.
+  Calculate as: ((actual_input - estimate) / estimate × 100), rounded.
+  Only show for completed stages with both values present.
+
+  If token-log.md also exists, additionally run:
+  `bash -c 'source .claude/scripts/token-usage.sh && token_report ".feature/<slug>"'`
+  and display below the comparison table.
+
 DOMAIN STATUS (if domains stage was reached)
   ✓ <domain>   resolved    ADR: .decisions/<adr>/adr.md
   ✓ <domain>   resolved    KB: .kb/<topic>/<cat>/<subject>.md
@@ -93,9 +114,6 @@ DOMAIN STATUS (if domains stage was reached)
 TDD CYCLES (if testing was reached)
   Cycle 1: tests <date> | passing <date or "—"> | refactor <date or "—"> | missing: <n>
   Cycle 2: ...
-
-TOKEN USAGE (if .feature/<slug>/token-log.md exists)
-  <display the token-log.md table — run bash -c 'source .claude/scripts/token-usage.sh && token_report ".feature/<slug>"'>
 ───────────────────────────────────────────────
 ```
 

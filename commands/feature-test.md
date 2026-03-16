@@ -384,6 +384,8 @@ Update status.md:
 - Testing cycle N → `complete`
 - TDD Cycle Tracker: Tests written → today
 - substage → "tests verified failing"
+- Stage Completion table: Testing row → Est. Tokens `~<N>K` (project-config ~1K +
+  brief ~2K + work-plan section ~2K + test files written)
 
 Append `tests-written` entry to cycle-log.md.
 Update `.feature/CLAUDE.md`.
@@ -395,7 +397,8 @@ Update `.feature/CLAUDE.md`.
 Read `automation_mode` from status.md.
 
 **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "testing"'`
-and capture the output as TOKEN_USAGE.
+and capture the output as TOKEN_USAGE. Update the Stage Completion table: Testing
+row → Actual Tokens from TOKEN_USAGE.
 
 **If `automation_mode: autonomous`:**
 
