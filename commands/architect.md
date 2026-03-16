@@ -208,17 +208,50 @@ Missing dimensions will be noted as unknowns and will reduce decision confidence
 
 Display: `── Surveying KB ─────────────────────────────`
 
+### 2a — Top-down navigation (primary path)
+
 Read `.kb/CLAUDE.md` → relevant topic/category `CLAUDE.md` files.
 Do NOT read individual subject files yet — use category indexes to identify candidates.
 
-Produce a candidate list:
+### 2b — Cross-topic keyword scan (discovery path)
+
+Extract 3–5 keywords from the problem statement and constraint dimensions.
+Search across ALL category-level `CLAUDE.md` files for entries whose descriptions
+match these keywords. This catches tangentially related research that lives in
+a different topic/category than the obvious one.
+
+```bash
+# Example: problem is "rate limiting strategy"
+# Keywords: rate, limiting, throughput, capacity, request
+# Scan all category indexes for matches
+grep -ril "rate\|throughput\|capacity" .kb/*/CLAUDE.md .kb/*/*/CLAUDE.md
+```
+
+Read only the matching category `CLAUDE.md` files (not subject files). Extract
+any entries not already found in 2a.
+
+**Cost control:** this reads category indexes only (~10-30 lines each). Even on
+a large KB (50 categories), the scan costs ~1-2K tokens — less than a single
+subject file. Subject files are NOT loaded until Step 4 after the user reviews
+the candidate list.
+
+### 2c — Merge and present candidates
+
+Combine results from 2a (direct navigation) and 2b (keyword scan). Mark the
+source of each candidate:
+
 ```
 ── Candidates ──────────────────────────────────
 Candidates identified:
   ✓ .kb/algorithms/vector-indexing/hnsw.md
   ✓ .kb/algorithms/vector-indexing/ivf-flat.md
+  ✓ .kb/infrastructure/databases/connection-pooling.md  (keyword match: "throughput")
   ✗ DiskANN — not in KB (needs research)
 ```
+
+Keyword-matched candidates are shown with the matching term so the user can
+quickly judge relevance. The user can exclude any candidate before subject
+files are loaded in Step 4.
 
 ---
 
