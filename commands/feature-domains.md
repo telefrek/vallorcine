@@ -99,7 +99,10 @@ Display:
 
 ---
 
-## Step 3 — Commission missing work (pending domains only)
+## Step 3 — Resolve missing work (pending domains only)
+
+Process each pending domain in order. For each one, resolve it before moving
+to the next — don't batch commissions and leave them for the user.
 
 ### If research is missing
 
@@ -110,42 +113,75 @@ Display:
 ```
 ── Research needed ─────────────────────────────
   Domain: <domain>
-  Run: /research <topic> <category> "<subject>"
-  Then re-run: /feature-domains "<slug>"
+  Topic: <topic> / <category> / "<subject>"
 
-  Type **yes** to proceed without research (gap will be noted in domains.md)
-  · or: research
+  Launching research to fill this gap.
+
+  Type **yes** to research now · or: skip (gap will be noted in domains.md)
 ```
 Append `domains-research-commissioned` to cycle-log.md. Wait for user response.
+
+If "yes" (or any response other than "skip"):
+- Invoke `/research <topic> <category> "<subject>"` as a sub-agent immediately
+- After research completes, verify the KB entry now exists
+- If yes → mark domain `resolved` in status.md, display `✓ <domain> — resolved`
+- If research failed or was incomplete → mark `gap-noted`, continue
+
+If "skip": mark domain `skipped` in status.md, note gap in domains.md.
 
 ### If an architectural decision is missing
 
 Update Domain Resolution Tracker: status → `pending-decision`, commissioned → today's date.
 
+Architectural decisions that affect system structure — data models, indexing
+strategies, protocol choices, API boundaries, storage engines — should be
+resolved through the Architect Agent rather than decided implicitly during
+planning or implementation.
+
+**Detection signals** (any one is sufficient to classify as `pending-decision`):
+- The domain involves a choice between competing approaches (e.g., table
+  structure A vs B, index type X vs Y)
+- The domain has cross-cutting implications (affects multiple constructs or
+  future features)
+- The domain involves an external system boundary (storage, API, protocol)
+- The domain has constraints that need deliberation (performance vs simplicity,
+  consistency vs availability)
+
 Display:
 ```
 ── Decision needed ─────────────────────────────
   Domain: <domain>
-  KB coverage: <path>
-  Run: /architect "<decision problem>"
-  Then re-run: /feature-domains "<slug>"
+  KB coverage: <path or "none">
+  Decision: "<one-sentence framing of the architectural choice>"
 
-  Type **yes** to proceed without a formal decision · or: architect
+  Launching architect to deliberate.
+
+  Type **yes** to decide now · or: skip (proceeds without formal ADR)
 ```
 Append `domains-decision-commissioned` to cycle-log.md. Wait for user response.
 
+If "yes" (or any response other than "skip"):
+- Invoke `/architect "<decision problem>"` as a sub-agent immediately
+- After architect completes, check if ADR's log.md contains a
+  `decision-confirmed` entry
+- If yes → mark domain `resolved` in status.md, display `✓ <domain> — resolved`
+- If architect session was incomplete → warn and offer to resume:
+  ```
+  ⚠ <domain> — architect session incomplete
+    .decisions/<adr-slug>/log.md has no decision-confirmed entry.
+
+    Type **yes** to resume · or: skip
+  ```
+
+If "skip": mark domain `skipped` in status.md, note gap in domains.md.
+
 ### Verifying commissioned work on resume
 
-When re-running after commissioning:
+When re-running after commissioning (crash recovery):
 - For each domain with status `pending-research`: check if the KB entry now exists.
-  If yes → mark `resolved`. If no → repeat commission message.
+  If yes → mark `resolved`. If no → re-offer research (same flow as above).
 - For each domain with status `pending-decision`: check if the ADR's log.md contains
-  a `decision-confirmed` entry. If yes → mark `resolved`. If no → warn:
-  ```
-  ⚠ <domain> — architect session may be incomplete
-    .decisions/<adr-slug>/log.md has no decision-confirmed entry.
-    Run /decisions review "<adr-slug>" or /architect "<problem>" to complete it.
-  ```
+  a `decision-confirmed` entry. If yes → mark `resolved`. If no → re-offer architect.
 
 ---
 

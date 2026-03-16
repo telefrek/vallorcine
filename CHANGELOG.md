@@ -14,9 +14,19 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 - Parallel-aware display in `/feature-resume` with batch grouping
 - Per-unit change grouping in `/feature-pr` descriptions
 
+### Changed
+- `/feature-domains` now auto-invokes `/architect` and `/research` as sub-agents
+  when gaps are found, instead of deferring to manual user action. Default is to
+  resolve decisions inline; user can skip with explicit opt-out.
+- `/feature-resume` auto-invokes `/feature-domains` when scoping is complete
+  (previously required manual command entry)
+
 ### Fixed
 - Standardized prompt language to "Type **yes**" across all commands
   (feature-domains, feature-init, kb, quick, research, upgrade-vallorcine)
+- `install.sh` now auto-forces update on version mismatch, fixing the
+  bootstrapping problem where a broken `upgrade.sh` could never be patched
+- `/release` push and GitHub Release prompts use "Type **yes**" pattern
 
 ---
 
