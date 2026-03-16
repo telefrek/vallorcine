@@ -24,6 +24,23 @@ If work units are defined:
   refactored (all other units are `complete`). Skip 2f for intermediate units
   and note: "Integration tests deferred — not the final work unit."
 
+### Per-unit path resolution (parallel mode)
+
+If `execution_strategy` is `balanced` or `speed` in feature-level status.md:
+```
+unit_status = .feature/<slug>/units/WU-<n>/status.md
+unit_log = .feature/<slug>/units/WU-<n>/cycle-log.md
+```
+Else:
+```
+unit_status = .feature/<slug>/status.md
+unit_log = .feature/<slug>/cycle-log.md
+```
+
+All status.md reads/writes for stage, substage, cycle tracker → use `unit_status`.
+All cycle-log.md appends → use `unit_log`.
+Feature-level status.md Work Units table → still update unit status there too.
+
 Display opening header with unit if applicable:
 ```
 ───────────────────────────────────────────────
@@ -146,9 +163,9 @@ This issue may affect other units or require interface changes:
 
   <description of issue and why it can't be self-contained>
 
-  Type: continue  ·  or: stop  to review before continuing
+  Type **yes**  ·  or: stop  to review before continuing
 ```
-Wait for input. If "continue": continue the refactor and resume chaining if autonomous.
+Wait for input. If "yes": continue the refactor and resume chaining if autonomous.
 If "stop": complete the current checklist item, write the log entry, then stop.
 
 ### 2e — Missing tests
@@ -167,6 +184,9 @@ If missing tests are found → see Step 3 (escalate, do not continue).
 ### 2f — Integration tests
 `status.md substage → "refactor: integration-tests"`
 `Display: ── Integration tests ───────────────────────`
+
+**Parallel mode (`execution_strategy` is `balanced` or `speed`):** skip 2f entirely.
+Display: "Integration tests deferred to coordinator." Continue to Step 4.
 
 Only run this step if all unit tests are passing and no missing-test escalation
 was triggered in 2e.
@@ -330,7 +350,22 @@ Read `automation_mode` from status.md.
 **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "refactor"'`
 and capture the output as TOKEN_USAGE.
 
-**If more work units remain (not the final unit):**
+**If `execution_strategy` is `balanced` or `speed` (parallel mode):**
+
+Mark unit complete in per-unit `unit_status`.
+Mark unit complete in feature-level Work Units table.
+Do NOT chain to next unit or PR — the coordinator handles that.
+
+```
+───────────────────────────────────────────────
+✨ REFACTOR AGENT complete · <slug> · WU-<n>
+  Tokens : <TOKEN_USAGE>
+───────────────────────────────────────────────
+Unit complete. Returning to coordinator.
+```
+STOP. (Coordinator launched this as subagent; returning is sufficient.)
+
+**If more work units remain (not the final unit) — sequential/cost mode only:**
 
 — Autonomous:
 ```
@@ -350,12 +385,12 @@ Invoke `/feature-test "<slug>" --unit WU-<next>` immediately.
 ───────────────────────────────────────────────
 ✨ REFACTOR AGENT complete · <slug> · Cycle <n> · WU-<n>
 ───────────────────────────────────────────────
-  Type: continue  ·  or: stop
+  Type **yes**  ·  or: stop
 ```
-If "continue": invoke `/feature-test "<slug>" --unit WU-<next>`.
+If "yes": invoke `/feature-test "<slug>" --unit WU-<next>`.
 If "stop": display the manual command and stop.
 
-**If this is the final (or only) unit and refactor is clean:**
+**If this is the final (or only) unit and refactor is clean — sequential/cost mode only:**
 
 — Autonomous:
 ```
@@ -376,9 +411,9 @@ Invoke `/feature-pr "<slug>"` immediately.
 Refactor cycle <n> complete. <n> tests passing.
 Feature is ready for review.
 
-  Type: continue  ·  or: stop
+  Type **yes**  ·  or: stop
 ```
-If "continue": invoke `/feature-pr "<slug>"`.
+If "yes": invoke `/feature-pr "<slug>"`.
 If "stop": display manual commands and stop.
 
 **If missing tests escalation triggered (either mode):**
@@ -390,8 +425,8 @@ If "stop": display manual commands and stop.
 Missing tests found — handing to Test Writer.
 <If autonomous:> Pausing — missing tests require your review.
 
-  Type: continue  ·  or: stop
+  Type **yes**  ·  or: stop
 ```
 Wait for input regardless of automation_mode — missing tests are always a
-human checkpoint. If Enter: invoke `/feature-test "<slug>" --add-missing`.
+human checkpoint. If "yes": invoke `/feature-test "<slug>" --add-missing`.
 If "stop": display the manual sequence and stop.

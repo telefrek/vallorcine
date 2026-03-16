@@ -27,10 +27,10 @@ If a previous PR draft exists in `.feature/<slug>/pr-draft.md`:
 A PR draft already exists for '<slug>'.
 Draft: .feature/<slug>/pr-draft.md
 
-  Type: continue  to proceed to PR creation  ·  or: regenerate
+  Type **yes**  to proceed to PR creation  ·  or: regenerate
 ```
 If "regenerate": proceed to regenerate the draft.
-If "continue": skip to Step 5 — PR creation (attempt to create the PR from the existing draft).
+If "yes": skip to Step 5 — PR creation (attempt to create the PR from the existing draft).
 
 ---
 
@@ -55,6 +55,8 @@ Read in order:
    OR the Description field from status.md (quick task)
 3. `.feature/<slug>/work-plan.md` if it exists
 4. `.feature/<slug>/cycle-log.md` — full history
+   (If `units/` directory exists, the coordinator has already merged per-unit
+   logs into the feature-level cycle-log.md — read that merged log.)
 5. `.feature/<slug>/domains.md` if it exists — for ADR links
 
 Do NOT read implementation or test files — the PR description should describe
@@ -84,6 +86,13 @@ who has not seen the feature work. No implementation details.>
 ## Changes
 <Bullet list of the meaningful changes — constructs added, behaviour changed,
 files modified. One line each. Sourced from work-plan.md and cycle-log.md.>
+
+<If units/ directory exists (parallel feature), group changes by work unit:>
+### WU-1: <name>
+- <changes from WU-1 cycle-log entries>
+
+### WU-2: <name>
+- <changes from WU-2 cycle-log entries>
 
 ## Tests
 <How the change is tested. Number of tests written, what they cover at a high
