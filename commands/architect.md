@@ -496,6 +496,27 @@ Display after writing:
 ───────────────────────────────────────────────
 Decision written: .decisions/<slug>/adr.md
 ```
+
+**Check for paused feature:** scan `.feature/*/status.md` for any feature with
+`substage: paused-for-research` or `substage: paused-for-architect`. If found:
+
+```
+Feature "<slug>" is paused waiting for this decision.
+
+  ↵  Resume scoping  ·  or type: stop
+```
+
+If Enter/yes: invoke `/feature "<original description>"` to resume the scoping
+interview where it left off (the scoping agent reads status.md and continues
+from its checkpoint).
+
+If stop: display the manual command and stop.
+
+**If no paused feature found:** display the decision path and stop:
+```
+  To use this decision in a feature: /feature "<description>"
+```
+
 2. If constraints were updated during deliberation:
    - Append `## Updates YYYY-MM-DD` to `constraints.md`
 3. Write `.decisions/<problem-slug>/adr.md` using the **ADR Template**
