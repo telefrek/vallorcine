@@ -278,7 +278,57 @@ Append a log entry: event `research-commissioned`, listing subjects requested.
 
 ## Step 4 — Deep evaluation
 
-For each candidate:
+### 4a — ADR-informed candidate ranking (when category has >8 candidates)
+
+If any category in the candidate list has more than 8 entries, rank candidates
+before loading subject files to control token cost:
+
+1. Check `.decisions/CLAUDE.md` for accepted ADRs. For each, read the
+   `candidates:` frontmatter in `evaluation.md` (not the full file — just the
+   candidate list with paths and scores, typically ~10-20 lines per ADR).
+2. Identify ADRs that reference entries in the same category as the current
+   candidates. These are "related ADRs."
+3. Build a priority ranking using the current decision's constraint profile:
+
+   - **High priority:** entries that scored well (4-5) on constraint dimensions
+     that overlap with the current decision's top constraints
+   - **Normal priority:** entries with no ADR history (new/unranked — must be
+     evaluated since they've never been scored)
+   - **Low priority:** entries that scored poorly (1-2) across multiple related
+     ADRs on dimensions that still matter for the current decision
+
+4. Load subject files for the top 8 candidates by this ranking. Display:
+   ```
+   ── Candidate ranking (15 in category, loading top 8) ──
+     ✓ hnsw.md           — scored 5/5 performance in <related-adr-slug>
+     ✓ diskann.md         — new, unranked
+     ✓ ivf-pq.md          — scored 4/5 memory in <related-adr-slug>
+     ✓ ...
+     · vamana.md          — scored 2/5 complexity in <related-adr-slug>
+     · brute-force.md     — scored 1/5 scalability in <related-adr-slug>
+
+     Load more?  Type **yes**  ·  or: proceed with these
+   ```
+
+   If "yes": load the next batch. If proceed: continue with loaded candidates.
+
+**ADR staleness signal:** if any related ADR was accepted before new KB entries
+were added to the same category (entries exist that the ADR never evaluated),
+flag it:
+```
+  ℹ ADR <slug> (accepted <date>) has not evaluated <n> newer entries:
+      <entry-1>.md (added <date>)
+      <entry-2>.md (added <date>)
+    Consider: /decisions review "<slug>" after this session.
+```
+This is informational — it does not block the current decision.
+
+**When category has 8 or fewer candidates:** skip ranking, load all subject
+files directly (no ADR lookup needed).
+
+### 4b — Score candidates
+
+For each loaded candidate:
 1. Read the full subject file at `.kb/<topic>/<category>/<subject>.md`
 2. Record the exact path — every score must reference it
 3. Score against each constraint dimension (1–5, see scale below)
