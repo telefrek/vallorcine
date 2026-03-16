@@ -395,11 +395,35 @@ If "stop": display the manual command and stop.
 
 **If this is the final (or only) unit and refactor is clean — sequential/cost mode only:**
 
-— Autonomous:
+Read the Stage Completion table from status.md and display a token summary:
+
 ```
 ───────────────────────────────────────────────
 ✨ REFACTOR AGENT complete · <slug> · Cycle <n>
 ───────────────────────────────────────────────
+Refactor cycle <n> complete. <n> tests passing.
+
+── Token Summary ──────────────────────────────
+  | Stage          | Est.   | Actual           | Δ      |
+  |----------------|--------|------------------|--------|
+  | Scoping        | ~5K    | 4.2K in / 3K out | -16%   |
+  | Domains        | ~6K    | 8.1K in / 2K out | +35%   |
+  | Planning       | ~8K    | 7.5K in / 5K out | -6%    |
+  | Testing        | ~5K    | 6.0K in / 4K out | +20%   |
+  | Implementation | ~8K    | 9.2K in / 7K out | +15%   |
+  | Refactor       | ~6K    | 5.8K in / 3K out | -3%    |
+  |----------------|--------|------------------|--------|
+  | Total          | ~38K   | 40.8K in / 24K out       |
+───────────────────────────────────────────────
+```
+
+The Δ column compares estimated tokens to actual input tokens:
+`((actual_input - estimate) / estimate × 100)`, rounded to nearest integer.
+Only show for stages with both values present. Parse actual input tokens from
+the "Actual Tokens" column (the number before "in").
+
+— Autonomous:
+```
 All units complete. Starting PR draft  ·  type stop to pause
 ───────────────────────────────────────────────
 ```
@@ -407,14 +431,10 @@ Invoke `/feature-pr "<slug>"` immediately.
 
 — Manual:
 ```
-───────────────────────────────────────────────
-✨ REFACTOR AGENT complete · <slug> · Cycle <n>
-  Tokens : <TOKEN_USAGE>
-───────────────────────────────────────────────
-Refactor cycle <n> complete. <n> tests passing.
 Feature is ready for review.
 
   Type **yes**  ·  or: stop
+───────────────────────────────────────────────
 ```
 If "yes": invoke `/feature-pr "<slug>"`.
 If "stop": display manual commands and stop.

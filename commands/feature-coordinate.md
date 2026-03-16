@@ -165,7 +165,8 @@ Update feature-level status.md:
 
 ### 4d — Hand off
 
-Display:
+Read the Stage Completion table from status.md and display a token summary:
+
 ```
 ───────────────────────────────────────────────
 🔀 COORDINATOR complete · <slug>
@@ -173,6 +174,19 @@ Display:
 All <n> work units complete.
 Integration tests: <result>
 Merged cycle log: .feature/<slug>/cycle-log.md
+
+── Token Summary ──────────────────────────────
+  | Stage          | Est.   | Actual           | Δ      |
+  |----------------|--------|------------------|--------|
+  | Scoping        | ~5K    | 4.2K in / 3K out | -16%   |
+  | Domains        | ~6K    | 8.1K in / 2K out | +35%   |
+  | Planning       | ~8K    | 7.5K in / 5K out | -6%    |
+  | Testing        | ~5K    | 6.0K in / 4K out | +20%   |
+  | Implementation | ~8K    | 9.2K in / 7K out | +15%   |
+  | Refactor       | ~6K    | 5.8K in / 3K out | -3%    |
+  |----------------|--------|------------------|--------|
+  | Total          | ~38K   | 40.8K in / 24K out       |
+───────────────────────────────────────────────
 ```
 
 - If `automation_mode: autonomous`: invoke `/feature-pr "<slug>"` immediately.
