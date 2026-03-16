@@ -5,6 +5,34 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.2.3] — 2026-03-16
+
+### Added
+- `/decisions backfill` — retroactive decision extraction from archived features
+  and source structure. Surfaces implicit decisions for decide/draft/defer/dismiss.
+  Scoped by path, incremental (default 5 per session), dismissed items don't
+  resurface.
+- `/vallorcine-help` answers plain-text questions about commands and workflows
+  ("how do I resume a feature?") in addition to interactive routing
+
+### Changed
+- `/feature-domains` now auto-invokes `/architect` and `/research` as sub-agents
+  when gaps are found, instead of deferring to manual user action
+- Domain Scout classification tightened: `resolved` requires an actual ADR in
+  `.decisions/`, not the scout's own reasoning. Design choices without an existing
+  ADR are classified as `pending-decision` and routed to the Architect Agent.
+- Draft ADRs (`status: draft`) display as warnings in domain analysis but do not
+  block
+- `/feature-resume` auto-invokes `/feature-domains` when scoping is complete
+
+### Fixed
+- `install.sh` auto-forces update on version mismatch, fixing the bootstrapping
+  problem where a broken `upgrade.sh` could never be patched
+- `/release` push and GitHub Release prompts use "Type **yes**" pattern
+- Standardized remaining "confirm to proceed" prompts in feature-domains
+
+---
+
 ## [0.2.2] — 2026-03-16
 
 ### Added
@@ -13,30 +41,10 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 - Per-unit file isolation (`units/WU-N/`) for parallel subagent safety
 - Parallel-aware display in `/feature-resume` with batch grouping
 - Per-unit change grouping in `/feature-pr` descriptions
-- `/decisions backfill` — retroactive decision extraction from archived features
-  and source structure. Surfaces implicit decisions for decide/draft/defer/dismiss.
-  Scoped by path, incremental (default 5 per session), dismissed items don't
-  resurface.
-
-### Changed
-- `/feature-domains` now auto-invokes `/architect` and `/research` as sub-agents
-  when gaps are found, instead of deferring to manual user action. Default is to
-  resolve decisions inline; user can skip with explicit opt-out.
-- Domain Scout classification rules tightened: `resolved` requires an actual ADR
-  in `.decisions/`, not the scout's own reasoning that something is "standard
-  practice." Design choices without an existing ADR are classified as
-  `pending-decision` and routed to the Architect Agent.
-- Draft ADRs (`status: draft`) display as warnings in domain analysis but do not
-  block — user's choice to proceed or formalize first.
-- `/feature-resume` auto-invokes `/feature-domains` when scoping is complete
-  (previously required manual command entry)
 
 ### Fixed
 - Standardized prompt language to "Type **yes**" across all commands
   (feature-domains, feature-init, kb, quick, research, upgrade-vallorcine)
-- `install.sh` now auto-forces update on version mismatch, fixing the
-  bootstrapping problem where a broken `upgrade.sh` could never be patched
-- `/release` push and GitHub Release prompts use "Type **yes**" pattern
 
 ---
 
