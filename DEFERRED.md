@@ -52,9 +52,7 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
   for concurrent index writes is already built — these commands would extend
   the team support further.
 
-- **Feature retrospectives** — optional `/feature-retro` after `/feature-pr`.
-  Reviews divergence from scope, invalidated ADRs, missed domain analysis gaps.
-  Writes back to `.decisions/` and `.kb/`.
+- ~~Feature retrospectives~~ — **done** (v0.2.4). `/feature-retro` reviews scope, assumptions, domains, tokens, TDD efficiency.
 
 - **Dependency-aware work splitting** — `depends-on` field per work unit in
   `/feature-plan`. Enables topology-aware status view in `/feature-resume

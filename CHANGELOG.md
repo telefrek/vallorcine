@@ -14,6 +14,9 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 - `/decisions explain "<slug>"` — plain-language summary of a decision with KB context
 - `/feature-cleanup` — interactive walkthrough of stale feature directories (keep/archive/delete)
 - `install.sh --diff` — show what would change between installed and package version without writing
+- `/feature-retro` — post-feature retrospective: scope divergence, assumption validation,
+  domain gap review, token accuracy, TDD efficiency. Auto-invokes `/architect`,
+  `/decisions review`, and `/research` for actionable findings.
 
 ---
 

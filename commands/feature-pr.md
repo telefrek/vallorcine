@@ -259,7 +259,10 @@ Display:
 ───────────────────────────────────────────────
 ✓ PR opened: <URL>
 ───────────────────────────────────────────────
-When the PR merges, run:
+While the feature is fresh, consider running a retrospective:
+  /feature-retro "<slug>"
+
+When the PR merges:
   /feature-complete "<slug>"
 ```
 

@@ -72,6 +72,7 @@ command to run, then explain what it does and what the user can expect.
 - `/feature-implement "<slug>"` — implement until tests pass
 - `/feature-refactor "<slug>"` — quality review checklist
 - `/feature-pr "<slug>"` — draft PR title, description, checklist
+- `/feature-retro "<slug>"` — post-feature retrospective (scope, assumptions, gaps, tokens)
 - `/feature-complete "<slug>"` — archive after PR merges
 
 ### Answer format

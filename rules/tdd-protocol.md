@@ -9,12 +9,12 @@ its designated files. No agent may skip a stage or act outside its write authori
 
 ## Full pipeline order (sequential / cost mode)
   /feature → /feature-domains → /feature-plan → /feature-test →
-  /feature-implement → /feature-refactor → /feature-pr → /feature-complete
+  /feature-implement → /feature-refactor → /feature-pr → /feature-retro (optional) → /feature-complete
 
 ## Parallel pipeline (balanced/speed mode)
   /feature → /feature-domains → /feature-plan → /feature-coordinate
   (coordinator launches batches of: /feature-test → /feature-implement → /feature-refactor)
-  → /feature-pr → /feature-complete
+  → /feature-pr → /feature-retro (optional) → /feature-complete
 
 ## Utility commands (any time)
   /feature-resume "<slug>"  — where am I, what do I run next
@@ -49,6 +49,8 @@ No command re-does completed work without explicit user confirmation.
   Refactor Agent     → implementation files + .feature/<slug>/cycle-log.md (refactor entries)
                        .feature/<slug>/units/WU-N/cycle-log.md (parallel: refactor entries)
   PR command         → .feature/<slug>/pr-draft.md
+  Retro command      → .feature/<slug>/cycle-log.md (retro-complete entry)
+                       (invokes /architect, /decisions review, /research as sub-agents)
 
 ## Shared read
   All TDD agents read: .feature/project-config.md, .feature/<slug>/status.md,
