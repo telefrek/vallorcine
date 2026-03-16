@@ -11,6 +11,7 @@ Single entry point for all architecture decision operations.
 | `/decisions defer "<problem>" [--until <condition>]` | Park a topic for later |
 | `/decisions close "<problem>" [--reason <text>]` | Rule a topic out permanently |
 | `/decisions triage` | Review all deferred items and act on them |
+| `/decisions list [--status <filter>] [--search <term>]` | Browse and filter all decisions |
 | `/decisions backfill [<path>] [--limit N]` | Surface implicit decisions from archived features and source code |
 
 **Default (no subcommand):** if the first argument looks like a question rather
@@ -409,6 +410,69 @@ comment to that section in `.decisions/CLAUDE.md`.
 
 Check total line count: if over 80 lines, move oldest Recently Accepted rows
 to `history.md` (same rule as `/architect` Step 7).
+
+---
+
+## decisions list [--status <filter>] [--search <term>] — browse all decisions
+
+Lists all decisions with filtering. Read-only — no files are written.
+
+Display opening header:
+```
+───────────────────────────────────────────────
+🏛️  DECISIONS LIST
+───────────────────────────────────────────────
+```
+
+### Step 1 — Load index
+
+Read `.decisions/CLAUDE.md` in full. Parse all sections: Active, Recently
+Accepted, Deferred, Closed.
+
+If `.decisions/history.md` exists, also read it (contains archived rows moved
+from the main index when it exceeded 80 lines).
+
+### Step 2 — Apply filters
+
+**`--status <filter>`** — show only decisions matching this status. Values:
+- `accepted` or `confirmed` — confirmed ADRs
+- `draft` — draft ADRs (from backfill)
+- `deferred` — parked topics
+- `closed` — ruled out permanently
+- `all` — everything (default if no filter)
+
+**`--search <term>`** — case-insensitive substring match against problem slug,
+problem description, and recommendation text. Multiple terms are AND-matched.
+
+If both flags are provided, apply both (intersection).
+
+### Step 3 — Display
+
+```
+  <n> decisions found<  (filtered: status=<filter>, search="<term>")>
+
+  STATUS     SLUG                         DATE        SUMMARY
+  ────────   ──────────────────────────   ─────────   ───────────────────────
+  accepted   rate-limiting-strategy       2026-03-10  Token bucket with Redis
+  accepted   storage-engine-choice        2026-03-08  LSM tree (jlsm-core)
+  draft      secondary-index-model        2026-03-16  Separate LSM per index
+  deferred   cache-invalidation           2026-03-12  Resume: after v2 launch
+  closed     graphql-api                  2026-03-05  Ruled out: REST sufficient
+
+  ────────────────────────────────────────────────
+  Total: <n accepted> accepted · <n draft> draft · <n deferred> deferred · <n closed> closed
+
+  Details: /decisions review "<slug>"
+  Query:   /decisions "<question>"
+```
+
+If no decisions match the filter:
+```
+  No decisions found matching status=<filter><, search="<term>">.
+  Total in store: <n>
+```
+
+Sort order: accepted first (newest first), then draft, deferred, closed.
 
 ---
 

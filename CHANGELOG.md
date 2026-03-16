@@ -10,6 +10,7 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 ### Added
 - Est. Tokens and Actual Tokens columns in Stage Completion table in status.md
 - `/feature-resume` displays estimated vs actual token comparison with delta %
+- `/decisions list` — browse and filter all decisions by status and keyword
 
 ---
 

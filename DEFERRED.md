@@ -22,8 +22,7 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 - **Context7 / live docs in Domain Scout** — pull current framework docs via
   Context7 MCP. Opt-in via project-config.md flag.
 
-- **/decisions list** — browse and filter existing ADRs by status, date, or
-  keyword. See open questions in CONTEXT.md for priority rationale.
+- ~~/decisions list~~ — **done** (v0.2.4). Browse and filter by status/keyword.
 
 - **Project-level CONTEXT.md** — rolling-context pattern for projects *using*
   the kit. Different from ADRs — "things we've learned about this codebase."
