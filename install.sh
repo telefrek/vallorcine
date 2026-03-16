@@ -274,7 +274,7 @@ echo ""
 cat << 'CLAUDEMD'
 ## Feature Development
 `.feature/<slug>/` — on-demand only. Profile: `.feature/project-config.md`
-Quick: `/quick "<description>"` — Full: `/feature "<description>"`
+Quick: `/feature-quick "<description>"` — Full: `/feature "<description>"`
 Resume: `/feature-resume "<slug>"` — Status: `/feature-resume "<slug>" --status`
 Setup: `/feature-init` (first time only) — Entry point: `/vallorcine-help`
 
