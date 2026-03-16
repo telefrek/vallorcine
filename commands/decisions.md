@@ -12,6 +12,7 @@ Single entry point for all architecture decision operations.
 | `/decisions close "<problem>" [--reason <text>]` | Rule a topic out permanently |
 | `/decisions triage` | Review all deferred items and act on them |
 | `/decisions list [--status <filter>] [--search <term>]` | Browse and filter all decisions |
+| `/decisions explain "<slug>"` | Plain-language summary of a decision with KB context |
 | `/decisions backfill [<path>] [--limit N]` | Surface implicit decisions from archived features and source code |
 
 **Default (no subcommand):** if the first argument looks like a question rather
@@ -473,6 +474,88 @@ If no decisions match the filter:
 ```
 
 Sort order: accepted first (newest first), then draft, deferred, closed.
+
+---
+
+## decisions explain "<slug>" — plain-language summary
+
+Generates a readable summary of a decision with its supporting KB evidence.
+Useful for PR descriptions, onboarding, and team communication. Read-only.
+
+Display opening header:
+```
+───────────────────────────────────────────────
+🏛️  DECISIONS EXPLAIN · <slug>
+───────────────────────────────────────────────
+```
+
+If slug not found: "No decision found for '<slug>'. Run /decisions list to see all decisions."
+
+### Step 1 — Load
+
+Read in order:
+1. `.decisions/<slug>/adr.md` — the decision itself
+2. `.decisions/<slug>/constraints.md` — if it exists (what drove the decision)
+3. `.decisions/<slug>/evaluation.md` — if it exists (what was compared)
+
+For each KB link found in adr.md or evaluation.md:
+- Read only the `## Summary` or `## Key Parameters` section of the linked
+  `.kb/` file — not the full entry.
+
+### Step 2 — Generate summary
+
+Write a plain-language explanation structured as:
+
+```
+── <Problem Slug> ─────────────────────────────
+
+STATUS: <accepted | draft | deferred | closed>
+DATE:   <decision date>
+
+WHAT WE DECIDED
+<2-3 sentences in plain language. No jargon. Written for someone who has
+never seen the ADR. Lead with the conclusion.>
+
+WHY
+<2-3 sentences explaining the key constraints and tradeoffs that led here.
+Reference specific KB findings if they were influential.>
+
+<If alternatives were evaluated:>
+WHAT WE CONSIDERED
+  ✓ <chosen option> — <one-line reason it won>
+  ✗ <rejected option> — <one-line reason it lost>
+  ✗ <rejected option> — <one-line reason>
+
+<If assumptions or revision conditions exist:>
+ASSUMPTIONS
+  - <assumption that could invalidate this>
+  - <condition that should trigger a review>
+
+<If KB entries were referenced:>
+SUPPORTING RESEARCH
+  - .kb/<path> — <one-line relevance>
+  - .kb/<path> — <one-line relevance>
+
+<If status is draft:>
+NOTE: This is a draft — the rationale above has not been through formal
+deliberation. Run /decisions review "<slug>" to formalize.
+
+<If status is deferred:>
+NOTE: This topic is deferred. Resume condition: <condition or "not specified">.
+
+───────────────────────────────────────────────
+```
+
+### Step 3 — Offer next actions
+
+```
+  Copy this summary into a PR description or share with your team.
+
+  To revisit: /decisions review "<slug>"
+  To see all:  /decisions list
+```
+
+Stop. No files are written.
 
 ---
 

@@ -61,9 +61,7 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
   `/feature-plan`. Enables topology-aware status view in `/feature-resume
   --status`.
 
-- **/decisions explain** — `/decisions explain <slug>` generates plain-language
-  summary of an ADR with its supporting KB entries. Useful for PR descriptions
-  and onboarding.
+- ~~/decisions explain~~ — **done** (v0.2.4). Plain-language ADR summary with KB context.
 
 - **/feature-cleanup** — interactive walkthrough of existing `.feature/<slug>/`
   directories. For each: show last activity date and stage, ask user to keep,
