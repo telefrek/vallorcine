@@ -182,7 +182,7 @@ Based on the current stage and substage:
 | domains / in-progress (pending commissions) | See pending domains below |
 | domains / in-progress (all commissioned) | `/feature-domains "<slug>"` — verify commissions |
 | domains / complete | `/feature-plan "<slug>"` |
-| planning / in-progress | `/feature-plan "<slug>"` — will resume writing stubs |
+| planning / in-progress | `/feature-plan "<slug>"` — will check stub progress and re-launch subagent for missing work |
 | planning / complete | `/feature-test "<slug>"` |
 | testing / in-progress | `/feature-test "<slug>"` — will resume writing tests |
 | testing / complete (cycle N) | `/feature-implement "<slug>"` |

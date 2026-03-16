@@ -31,11 +31,19 @@ If "stop": display `Next: /feature-test "<slug>"` and stop.
 
 **If Planning stage is `in-progress`:**
 Display opening header, then:
-- Read work-plan.md if it exists (partial content may be present)
-- Say: "Planning was in progress — resuming. Checking what stubs were already written."
-- Check which stub files in the work plan already exist vs. are missing
-- Write only missing stubs; do not overwrite existing ones
-- Jump to Step 4 (write work-plan.md) if stubs are already complete
+- Say: "Planning was in progress — resuming."
+- If substage is `writing-stubs` or later:
+  - Read work-plan.md if it exists (may be partial or absent — the subagent may
+    have been interrupted)
+  - Check which stub files from the design already exist vs. are missing
+  - If all stubs present AND work-plan.md exists AND status is `complete`:
+    jump to Step 4 (hand off)
+  - Otherwise: re-launch the Step 3 subagent. Pass the full construct list but
+    note which stubs already exist so the subagent skips them (idempotent).
+    The subagent will write missing stubs AND write/rewrite work-plan.md.
+- If substage is before `writing-stubs` (e.g. `loading-context`, `surveying-codebase`,
+  `confirmed-design`): resume from the appropriate earlier step (re-run design
+  confirmation if needed, then proceed to Step 3 subagent)
 
 **If Planning stage is `not-started`:**
 - Verify `.feature/<slug>/domains.md` exists. If not: "Run /feature-domains first."
@@ -274,9 +282,41 @@ dependencies starts as `not-started` (ready to begin).
 
 ---
 
-## Step 3 — Write stubs
+## Step 3 — Write stubs and work plan (subagent)
 
-Update status.md substage → `writing-stubs`.
+Delegate stub creation and work-plan assembly to a subagent to keep file I/O
+out of the main conversation context. The subagent runs autonomously — no user
+interaction is needed for the mechanical writing phase.
+
+**Launch a subagent** with the following prompt, substituting the confirmed
+design data from Step 2:
+
+````
+You are a Work Planner Agent completing the mechanical writing phase for
+feature "<slug>".
+
+## Your task
+
+Write stub files and work-plan.md based on the confirmed design below, then
+update status and cycle-log.
+
+## Confirmed design
+
+Feature slug: <slug>
+Language: <language from project-config.md>
+
+Existing constructs:
+<paste the "Existing constructs to USE or EXTEND" list from Step 2>
+
+New constructs:
+<paste the "New constructs to CREATE" list from Step 2, including paths,
+signatures, dependencies, and governing ADR references>
+
+Work units: <"none" or paste the work unit assignments from Step 2b>
+
+## Step A — Write stubs
+
+Update `.feature/<slug>/status.md` substage → `writing-stubs`.
 
 For each new or extended construct, write the stub. Check whether the file
 already exists first — if it does and contains a stub for this construct,
@@ -317,11 +357,14 @@ func FunctionName(param Type) (ReturnType, error) {
 }
 ```
 
----
+## Step B — Write work-plan.md
 
-## Step 4 — Write work-plan.md
+Write `.feature/<slug>/work-plan.md` using the Work Plan Template from
+the feature-plan command. Include all sections: References, Existing Constructs,
+New Constructs, Stub Files Written, Contract Definitions, Work Units (if any),
+and Implementation Order.
 
-Write `.feature/<slug>/work-plan.md` (Work Plan Template below).
+## Step C — Update status and log
 
 Update status.md: Planning → `complete`, last checkpoint → "work-plan.md written,
 <n> stubs created".
@@ -338,13 +381,30 @@ Append `planned` entry to cycle-log.md:
 ```
 Update `.feature/CLAUDE.md`.
 
+## Step D — Return summary
+
+Return a structured summary:
+```
+Stubs written: <list of file paths>
+Stubs skipped (already existed): <list or "none">
+Work plan: .feature/<slug>/work-plan.md
+Constructs: <n> new, <n> extensions
+```
+````
+
+Wait for the subagent to return. Use the returned summary for the handoff
+display in Step 4.
+
 ---
 
-## Step 5 — Hand off
+## Step 4 — Hand off
 
 **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "planning"'`
 and capture the output as TOKEN_USAGE. Update the Stage Completion table: Planning
 row → Actual Tokens from TOKEN_USAGE.
+
+Use the subagent's returned summary (stubs written, stubs skipped, construct counts)
+for the display below. Do not re-read stub files — the subagent already confirmed them.
 
 Display:
 ```
@@ -353,13 +413,13 @@ Display:
   Tokens : <TOKEN_USAGE>
 ───────────────────────────────────────────────
 Work plan: .feature/<slug>/work-plan.md
-Stubs written: <list of files>
+Stubs written: <list from subagent summary>
 
-Review the stub contracts above — the Test Writer works from these contracts
-and changing them later requires re-running tests.
+Review the stub contracts in work-plan.md — the Test Writer works from these
+contracts and changing them later requires re-running tests.
 ```
 
-### Step 5a — Choose automation mode
+### Step 4a — Choose automation mode
 
 Ask the user how they want to run the TDD loop. This choice is recorded now and
 persists for the lifetime of this feature — it will not be asked again.
@@ -369,12 +429,12 @@ persists for the lifetime of this feature — it will not be asked again.
 Display:
 ```
 ── How would you like to run the TDD loop? ─────
-  autonomous  — independent units run their full test → implement → refactor
-               cycles in parallel. Checkpoints happen at batch boundaries.
+  auto    — independent units run their full test → implement → refactor
+            cycles in parallel. Checkpoints happen at batch boundaries.
 
-  manual      — I'll pause between batches and wait for your go-ahead.
+  manual  — I'll pause between batches and wait for your go-ahead.
 
-Type: autonomous  or  manual
+Type: auto  or  manual
 ```
 
 **When `execution_strategy` is `cost` (or not set):**
@@ -382,19 +442,19 @@ Type: autonomous  or  manual
 Display:
 ```
 ── How would you like to run the TDD loop? ─────
-  autonomous  — test → implement → refactor cycles run without stopping.
-               I'll pause if I find something that needs your input.
+  auto    — test → implement → refactor cycles run without stopping.
+            I'll pause if I find something that needs your input.
 
-  manual      — I'll stop after each stage and wait for your command.
+  manual  — I'll stop after each stage and wait for your command.
 
-Type: autonomous  or  manual
+Type: auto  or  manual
 ```
 
 Wait for input:
-- "autonomous": set `automation_mode: autonomous` in status.md
+- "auto" (or "autonomous"): set `automation_mode: autonomous` in status.md
 - "manual": set `automation_mode: manual` in status.md
 
-If autonomous, display:
+If auto, display:
 ```
 Running autonomously. Type stop at any time to pause.
 ──────────────────────────────────────────────────
@@ -406,7 +466,7 @@ Manual mode. I'll prompt you at each stage boundary.
 ──────────────────────────────────────────────────
 ```
 
-### Step 5b — Start test writing or coordinator
+### Step 4b — Start test writing or coordinator
 
 **If `execution_strategy` is `balanced` or `speed`:**
 
