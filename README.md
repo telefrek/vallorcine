@@ -203,4 +203,4 @@ pushes, and optionally creates a GitHub Release via the `gh` CLI.
 
 ## Version
 
-See `VERSION`. Current: 0.2.0
+See `VERSION`. Current: 0.2.1

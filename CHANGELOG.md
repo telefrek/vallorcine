@@ -5,6 +5,16 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.2.1] — 2026-03-16
+
+### Fixed
+- `upgrade.sh`: `gh release` commands failed when `.vallorcine-source` contained
+  an SSH URL (`git@github.com:owner/repo.git`). Added normalization to convert
+  both SSH and HTTPS URLs to `OWNER/REPO` format before passing to `gh`. Also
+  updated `.vallorcine-source` to write HTTPS URLs by default.
+
+---
+
 ## [0.2.0] — 2026-03-16
 
 ### Added
