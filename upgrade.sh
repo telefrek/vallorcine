@@ -78,6 +78,11 @@ if [[ $APPLY -eq 0 ]]; then
         echo -e "${RED}Error:${NC} repo URL not found in .vallorcine-source."
         exit 1
     fi
+
+    # Normalize SSH URLs to OWNER/REPO for gh CLI compatibility
+    # git@github.com:owner/repo.git → owner/repo
+    # https://github.com/owner/repo.git → owner/repo
+    GH_REPO="$(echo "$REPO_URL" | sed -E 's#^(git@github\.com:|https://github\.com/)##; s#\.git$##')"
 fi
 
 # ── Fetch / compare / download / exec (skipped when called with --apply) ──────
@@ -101,9 +106,9 @@ if command -v gh &>/dev/null && gh auth status &>/dev/null 2>&1; then
     echo "  Using gh CLI..."
 
     if [[ -n "$TARGET_VERSION" ]]; then
-        RELEASE_JSON="$(gh release view "$TARGET_VERSION" --repo "$REPO_URL" --json tagName,assets,body 2>/dev/null || echo "")"
+        RELEASE_JSON="$(gh release view "$TARGET_VERSION" --repo "$GH_REPO" --json tagName,assets,body 2>/dev/null || echo "")"
     else
-        RELEASE_JSON="$(gh release view --repo "$REPO_URL" --json tagName,assets,body 2>/dev/null || echo "")"
+        RELEASE_JSON="$(gh release view --repo "$GH_REPO" --json tagName,assets,body 2>/dev/null || echo "")"
     fi
 
     if [[ -n "$RELEASE_JSON" ]]; then
@@ -230,7 +235,7 @@ echo "── Downloading v${LATEST_VERSION} ────────────
 DOWNLOAD_OK=0
 if command -v gh &>/dev/null && gh auth status &>/dev/null 2>&1; then
     if gh release download "v${LATEST_VERSION}" \
-        --repo "$REPO_URL" \
+        --repo "$GH_REPO" \
         --pattern "*.zip" \
         --dir "$TMPDIR_UPGRADE" 2>/dev/null; then
         # gh may save with the original filename — find it
