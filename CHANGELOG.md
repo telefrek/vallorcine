@@ -5,37 +5,38 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
-## [unreleased]
+## [0.3.0] — 2026-03-16
 
 ### Added
-- Est. Tokens and Actual Tokens columns in Stage Completion table in status.md
-- `/feature-resume` displays estimated vs actual token comparison with delta %
+- Parallel work unit execution with `/feature-coordinate` batch coordinator
+- Execution strategy prompt (cost/balanced/speed) in `/feature-plan`
+- Per-unit file isolation (`units/WU-N/`) for parallel subagent safety
+- `/decisions backfill` — retroactive decision extraction from archived features and source structure
 - `/decisions list` — browse and filter all decisions by status and keyword
-- `/decisions explain "<slug>"` — plain-language summary of a decision with KB context
-- `/feature-cleanup` — interactive walkthrough of stale feature directories (keep/archive/delete)
-- `install.sh --diff` — show what would change between installed and package version without writing
-- `/feature-retro` — post-feature retrospective: scope divergence, assumption validation,
-  domain gap review, token accuracy, TDD efficiency. Auto-invokes `/architect`,
-  `/decisions review`, and `/research` for actionable findings.
-- Dependency topology view in `/feature-resume` — work units displayed in
-  dependency layers with `└─ depends on:` annotations, batch info for parallel mode,
-  and progress counter
-- `/decisions candidates` — review undocumented decisions discovered from session
-  transcripts. PostSessionEnd hook scans for decision-shaped language and stages
-  candidates for decide/draft/defer/dismiss. Notices surface at `/feature-domains`
-  and `/feature-resume`.
-- `/project-context` — manage team-shared codebase knowledge (add/cleanup/display).
-  Entries have 90-day default expiry, optional scope per module, and size cap.
-  Agents read active entries during scoping, domain analysis, and planning.
-- Refactor agent step 2g — documentation check ensures project docs stay current
-  when features add modules, change APIs, or alter patterns
+- `/decisions explain "<slug>"` — plain-language ADR summary with KB context
+- `/decisions candidates` — review decisions discovered from session transcripts
+- `/feature-retro` — post-feature retrospective (scope, assumptions, domains, tokens, TDD efficiency)
+- `/feature-cleanup` — interactive stale feature directory management
+- `/project-context` — team-shared codebase knowledge with 90-day expiry
+- `/vallorcine-help` answers plain-text questions about commands
+- `install.sh --diff` — preview changes without writing
+- Token estimate vs actual tracking in status.md Stage Completion table
+- Dependency topology view in `/feature-resume` with batch info
+- Refactor agent step 2g — documentation check
 
 ### Changed
+- Domain Scout auto-invokes `/architect` and `/research` as sub-agents inline
+- Domain Scout classification tightened: `resolved` requires actual ADR
+- Draft ADRs display as warnings in domain analysis, don't block
+- `/feature-resume` auto-invokes `/feature-domains` when scoping complete
 - Renamed `/quick` to `/feature-quick` for naming consistency
 - README restructured around four-concern model (knowledge, decisions, features, system)
 - DESIGN.md updated with four-concern architecture description
-- File manifest in DESIGN.md reorganised by concern
-- MANIFEST updated with all new commands
+
+### Fixed
+- `install.sh` auto-forces update on version mismatch (bootstrapping fix)
+- Standardized all prompts to "Type **yes**" pattern
+- `/release` push and changelog prompts use consistent format
 
 ---
 
