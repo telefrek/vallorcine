@@ -13,6 +13,10 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 - Per-unit file isolation (`units/WU-N/`) for parallel subagent safety
 - Parallel-aware display in `/feature-resume` with batch grouping
 - Per-unit change grouping in `/feature-pr` descriptions
+- `/decisions backfill` — retroactive decision extraction from archived features
+  and source structure. Surfaces implicit decisions for decide/draft/defer/dismiss.
+  Scoped by path, incremental (default 5 per session), dismissed items don't
+  resurface.
 
 ### Changed
 - `/feature-domains` now auto-invokes `/architect` and `/research` as sub-agents
@@ -22,6 +26,8 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
   in `.decisions/`, not the scout's own reasoning that something is "standard
   practice." Design choices without an existing ADR are classified as
   `pending-decision` and routed to the Architect Agent.
+- Draft ADRs (`status: draft`) display as warnings in domain analysis but do not
+  block — user's choice to proceed or formalize first.
 - `/feature-resume` auto-invokes `/feature-domains` when scoping is complete
   (previously required manual command entry)
 

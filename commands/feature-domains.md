@@ -85,10 +85,17 @@ For each pending domain:
 ### Classification rules
 
 **`resolved`** — an existing ADR explicitly covers this domain's decision.
-The ADR must actually exist in `.decisions/` with a confirmed decision. The
-Domain Scout's own reasoning that something is "well-understood" or "standard
-practice" does NOT count as resolution. If no ADR exists, the domain is not
-resolved.
+The ADR must actually exist in `.decisions/` with a confirmed decision (`status:
+accepted` or `status: confirmed`). The Domain Scout's own reasoning that
+something is "well-understood" or "standard practice" does NOT count as
+resolution. If no ADR exists, the domain is not resolved.
+
+**Draft ADRs** (`status: draft`) do NOT count as resolved. Display a warning:
+```
+  ⚠ DRAFT ADR    <domain> — .decisions/<slug>/adr.md (draft — not yet deliberated)
+```
+Classify the domain as `pending-decision`. The user can proceed (the draft
+provides context) or formalize first via `/decisions review "<slug>"`.
 
 **`pending-decision`** — any domain that involves a design choice, even if the
 answer seems obvious. Specifically:
@@ -121,6 +128,7 @@ Display:
 ```
 ── Domain coverage ─────────────────────────────
   ✓ RESOLVED          <domain> — ADR: .decisions/<slug>/adr.md
+  ⚠ DRAFT ADR         <domain> — .decisions/<slug>/adr.md (draft — not yet deliberated)
   ⚠ PENDING-RESEARCH  <domain> — no KB entry for <topic/category>
   ⚠ PENDING-DECISION  <domain> — no ADR for this design choice
 ```

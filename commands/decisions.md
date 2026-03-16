@@ -11,6 +11,7 @@ Single entry point for all architecture decision operations.
 | `/decisions defer "<problem>" [--until <condition>]` | Park a topic for later |
 | `/decisions close "<problem>" [--reason <text>]` | Rule a topic out permanently |
 | `/decisions triage` | Review all deferred items and act on them |
+| `/decisions backfill [<path>] [--limit N]` | Surface implicit decisions from archived features and source code |
 
 **Default (no subcommand):** if the first argument looks like a question rather
 than a subcommand name, treat it as `/decisions "<question>"`.
@@ -411,9 +412,234 @@ to `history.md` (same rule as `/architect` Step 7).
 
 ---
 
+## decisions backfill [<path>] [--limit N] — retroactive decision extraction
+
+Scans archived features and source structure to surface implicit architectural
+decisions that were never documented as ADRs. Presents candidates one at a time
+for the user to decide, draft, defer, or dismiss.
+
+Display opening header:
+```
+───────────────────────────────────────────────
+🏛️  DECISIONS BACKFILL
+───────────────────────────────────────────────
+```
+
+### Step 0 — Parse arguments
+
+- `<path>` (optional): scope the source scan to this module/package path.
+  Archived feature scan still runs (results are filtered to domains that
+  relate to constructs in the scoped path).
+- `--limit N` (optional, default 5): max candidates to present this session.
+
+### Step 1 — Load dismissed list
+
+Read `.decisions/.backfill-dismissed` if it exists. This file contains one
+candidate key per line (format: `<source>:<identifier>`) that the user has
+previously dismissed. These are filtered out of all results.
+
+Format:
+```
+# Dismissed backfill candidates — do not resurface
+archive:table-indices-and-queries:secondary-index-storage-model
+source:modules/jlsm-table:sealed-interface-predicate
+```
+
+### Step 2 — Scan for candidates
+
+Build a candidate list from two sources. Score and rank by signal strength.
+
+#### Source A — Archived feature domains (highest signal)
+
+Scan `.feature/_archive/*/domains.md` for each archived feature.
+
+For each domain entry in the file:
+- If `Governing ADR:` says "None required", "None needed", "None", or is absent
+  AND the domain's guidance section contains design rationale (not just "standard
+  pattern" or "well-understood")
+  → candidate.
+- If an ADR already exists in `.decisions/` that covers this domain → skip.
+
+Candidate key: `archive:<feature-slug>:<domain-name-slugified>`
+Signal: **high** — someone identified this as a domain worth analyzing and the
+decision was made implicitly.
+
+Extract from the archived domains.md:
+- Domain name
+- Guidance text (the rationale that was baked in without deliberation)
+- Feature it came from
+
+#### Source B — Source code structure (moderate signal)
+
+Scan the source tree (or scoped `<path>`) for structural patterns that imply
+architectural decisions. Read file names and structure, NOT full file contents.
+
+**What to scan for:**
+
+| Pattern | Signal | What to extract |
+|---------|--------|----------------|
+| Module boundaries (module-info.java, go.mod, package.json in subdirs) | high | Why is this a separate module? What does it own? |
+| Sealed interface/abstract class hierarchies with 3+ implementations | high | Why this extension model? What are the variants? |
+| Custom encoding/serialization (binary formats, custom codecs) | high | Why not a standard format? What tradeoffs? |
+| Dependency edges between internal modules | moderate | Why does A depend on B? |
+
+**What to NOT scan for:**
+- Framework/library choices (tooling, not architecture)
+- Naming conventions, test structure, formatting (linter territory)
+- Standard language patterns (builder pattern, factory, etc. unless project-specific)
+- Anything with an existing ADR in `.decisions/`
+
+Candidate key: `source:<path>:<pattern-description-slugified>`
+Signal: **moderate** — structural implication, may or may not reflect a deliberate choice.
+
+#### Filtering and ranking
+
+1. Remove candidates whose key appears in `.backfill-dismissed`
+2. Remove candidates that match an existing ADR in `.decisions/CLAUDE.md`
+3. Partition into: **new** candidates and **deferred** candidates (existing
+   stub ADRs with `status: deferred` that match a scanned pattern)
+4. Sort new candidates by signal strength (high before moderate)
+5. Append deferred candidates after all new candidates
+6. Take the first `--limit` items
+
+### Step 3 — Present candidates
+
+Display summary:
+```
+── Scan results ────────────────────────────────
+  Candidates found: <n total> (<n new>, <n deferred>)
+  Previously dismissed: <n filtered>
+  Showing: <limit> of <n>
+```
+
+Present each candidate one at a time:
+
+```
+── <i> of <limit> ─────────────────────────────
+  <Domain or pattern name>
+  Source: <"archived feature '<slug>'" | "source structure at <path>">
+  Signal: <high | moderate>
+
+  <2-3 sentences describing the implicit decision. For archived features,
+  quote the guidance text from domains.md. For source patterns, describe
+  what the structure implies.>
+
+  Type: decide · draft · defer · dismiss
+```
+
+Wait for user response.
+
+### Step 4 — Process each candidate
+
+**decide** → invoke `/architect "<decision problem>"` as a sub-agent immediately.
+The problem statement is derived from the candidate description. After architect
+completes, display result and continue to next candidate.
+
+**draft** → prompt:
+```
+Describe the rationale in a few sentences — why was this decision made?
+(Or type: skip  to leave the draft empty for someone else to fill in.)
+```
+
+Write a draft ADR to `.decisions/<slug>/adr.md`:
+```markdown
+---
+problem: "<slug>"
+date: "<YYYY-MM-DD>"
+version: 1
+status: "draft"
+source: "backfill"
+---
+
+# <Problem Slug> — Draft
+
+## Problem
+<derived from candidate description>
+
+## Decision (draft — not yet deliberated)
+<user's rationale, or "Not yet documented. Needs deliberation.">
+
+## Context
+<quoted guidance from archived feature, or source structure description>
+
+## Source
+<"Extracted from archived feature '<feature-slug>' domain analysis" |
+ "Identified from source structure at <path>">
+
+## Next Step
+Run `/decisions review "<slug>"` to formalize through deliberation.
+```
+
+Create `log.md` with a `backfill-draft` entry. Add a row to `.decisions/CLAUDE.md`
+in the Active section with status `draft`.
+
+Display:
+```
+  ✓ Draft written: .decisions/<slug>/adr.md
+    To formalize: /decisions review "<slug>"
+```
+
+**defer** → prompt:
+```
+Who should answer this? (name, role, or "unknown")
+Any additional context?  (or type: skip)
+```
+
+Write a deferred stub (same as `/decisions defer` format) with additional
+`source: "backfill"` frontmatter and `## Assigned To` section.
+
+Display:
+```
+  ✓ Deferred: .decisions/<slug>/adr.md
+    Assigned to: <who or "unassigned">
+```
+
+**dismiss** → append the candidate key to `.decisions/.backfill-dismissed`.
+Display:
+```
+  ✗ Dismissed — won't resurface.
+```
+
+### Step 5 — Summary
+
+```
+───────────────────────────────────────────────
+🏛️  DECISIONS BACKFILL complete
+  Decided:    <n>  (full architect deliberation)
+  Drafted:    <n>  (partial ADR, needs review)
+  Deferred:   <n>  (assigned for later)
+  Dismissed:  <n>  (won't resurface)
+  Remaining:  <n>  (run again to see more)
+───────────────────────────────────────────────
+```
+
+If remaining > 0:
+```
+  Run /decisions backfill again to see the next batch.
+```
+
+---
+
+## Draft ADR visibility rules
+
+Draft ADRs (created by backfill) have `status: draft` in their frontmatter.
+
+**Domain Scout behaviour:** when the Domain Scout finds a draft ADR that covers
+a domain, it displays a warning but does NOT block:
+```
+  ⚠ DRAFT ADR    <domain> — .decisions/<slug>/adr.md (draft — not yet deliberated)
+```
+The domain is classified as `pending-decision` (not `resolved`). The user can
+choose to proceed or formalize the draft first via `/decisions review`.
+
+**`/decisions triage` behaviour:** draft ADRs appear alongside deferred items.
+Same action options: evaluate, update, close, delete, skip.
+
+---
+
 ## Token hygiene note
 
-Deferred stubs are small (~300–500 tokens) and never auto-loaded. The main cost
-of a crowded Deferred section is the Architect seeing noise in the master index
-and potentially re-raising topics already set aside. Keep the Deferred list
-short by running `/decisions triage` periodically.
+Deferred and draft stubs are small (~300–500 tokens) and never auto-loaded.
+The main cost of a crowded Deferred section is the Architect seeing noise in
+the master index and potentially re-raising topics already set aside. Keep the
+Deferred list short by running `/decisions triage` periodically.
