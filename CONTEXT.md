@@ -22,40 +22,53 @@ state of the project — what's happening now and what's next.
 
 *Last updated: 2026-03-16*
 
-**Just released: v0.2.2** — parallel work units, architect auto-invocation, bug fixes.
+**Releases: v0.2.2 and v0.2.3.** Major session — shipped parallel work units,
+decision archaeology, four-concern architecture model, and many smaller features.
 
-**What shipped in v0.2.2:**
-- Parallel work unit execution with `/feature-coordinate` batch coordinator
-- Execution strategy prompt (cost/balanced/speed) in `/feature-plan`
-- Domain Scout now auto-invokes `/architect` and `/research` as sub-agents
-- Domain classification tightened: `resolved` requires an actual ADR, not scout reasoning
-- `install.sh` auto-forces update on version mismatch (bootstrapping fix)
-- Standardized "Type **yes**" prompts across all commands
-- `/feature-resume` auto-invokes `/feature-domains` on scoping complete
+**What shipped this session:**
+- v0.2.2: parallel work unit execution, execution strategy prompt, per-unit isolation
+- v0.2.3: `/decisions backfill`, domain scout auto-invokes architect/research,
+  classification fix, `/vallorcine-help` question answering, install bootstrapping fix
+- Post-v0.2.3 (unreleased): `/decisions list`, `/decisions explain`, `/decisions candidates`,
+  `/feature-cleanup`, `/feature-retro`, `/project-context`, `install.sh --diff`,
+  dependency topology in `/feature-resume`, refactor step 2g (documentation check),
+  `/quick` → `/feature-quick` rename, four-concern README/DESIGN restructure,
+  token estimate vs actual tracking in status.md
 
 **Where things stand:**
-v0.2.2 released and published to GitHub. Several post-release fixes pushed to main
-(not yet in a release). Active testing on jlsm project exposed domain classification
-and install bootstrapping issues — both fixed. `/decisions backfill` designed, captured
-in DEFERRED.md, ready to implement.
+All work committed and pushed to main. Not yet released — significant changes
+accumulated post-v0.2.3. Ready for v0.3.0 (or v0.2.4 depending on semver preference).
+Active testing on jlsm project. WIP.md cleared.
 
 ---
 
 ## Recent decisions
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
-*All decisions through v0.2.0 graduated to SETTLED.md on 2026-03-16.*
 
-- **Domain Scout must not self-resolve** — `resolved` requires an actual ADR in
-  `.decisions/`. Scout identifies domains and checks for existing coverage; it does
-  not make architectural decisions. Design choices without an ADR → `pending-decision`.
+- **Four-concern architecture model** (2026-03-16) — vallorcine organised around
+  Knowledge (/kb, /research), Decisions (/architect, /decisions), Features
+  (/feature-*), and System (/vallorcine-*, /project-context). README and DESIGN.md
+  restructured to match. Commands named by concern.
 
-- **Auto-invoke architect/research from domains** — Domain Scout launches sub-agents
-  inline when gaps are found. Default is action, skip requires explicit opt-out.
+- **/quick → /feature-quick rename** (2026-03-16) — aligns with feature-* naming
+  convention. All 12 files with references updated. Old name removed.
 
-- **install.sh auto-force on version mismatch** — detects installed version differs
-  from package version and sets FORCE=1 automatically. Fixes bootstrapping problem
-  where buggy upgrade.sh could never be patched.
+- **Refactor step 2g: documentation check** (2026-03-16) — refactor agent now
+  verifies project documentation stays current when features change modules, APIs,
+  or patterns. Added after 2f (integration tests).
+
+- **Draft ADRs warn but don't block** (2026-03-16) — Domain Scout classifies
+  draft ADRs as `pending-decision` with a warning. User can proceed or formalize
+  via `/decisions review`.
+
+- **Decision candidates from transcript scanning** (2026-03-16) — PostSessionEnd
+  hook stages candidates in `.decisions/.decision-candidates`. Notices surface at
+  `/feature-domains` and `/feature-resume`. `/decisions candidates` to review.
+
+- **PROJECT-CONTEXT.md for team knowledge** (2026-03-16) — committed file at
+  project root. 90-day expiry, scoped entries, 50-entry cap. `/project-context`
+  command (not `/context` — that's a Claude Code built-in).
 
 ---
 
@@ -63,19 +76,19 @@ in DEFERRED.md, ready to implement.
 
 *Live list — resolve into SETTLED.md or drop when addressed*
 
-- **/decisions command** — list/filter existing ADRs. Suggested early, never
-  built. Useful once a project accumulates many decisions. Confirmed gap vs
-  competitors. **Ranked: high priority.**
-
 - **KB coding agent** — third KB role that reads entries and implements against
   them. Would close the loop between research and implementation.
 
 - **Work unit split thresholds** — 15K crossover and 3.5K per-construct are
-  reasoned estimates, not measured. Real-world use will reveal if adjustment needed.
+  reasoned estimates, not measured. Token estimate vs actual tracking now in
+  status.md — real data will inform adjustments.
 
 - **install.sh --run-tests flag** — validation flag for fresh installs and
   upgrades. Would run scenario scripts against a temp repo to verify the
   installation works before using it on a real project.
+
+- **setup-vallorcine merge into feature-init** — both are one-time setup.
+  Could be a single command. Low priority, no user has complained.
 
 ---
 

@@ -212,6 +212,25 @@ never block.
 /kb checks entry age against configurable threshold (default 90 days).
 Offers inline /research for gaps or stale entries.
 
+## Domain Scout must not self-resolve (2026-03-16)
+
+`resolved` requires an actual ADR in `.decisions/`. The scout identifies domains
+and checks for existing coverage — it does not make architectural decisions.
+Design choices without an ADR → `pending-decision`. The scout's own reasoning
+that something is "well-understood" does not count as resolution.
+
+## Auto-invoke architect/research from domains (2026-03-16)
+
+Domain Scout launches `/architect` and `/research` as sub-agents inline when
+gaps are found. Default is action, skip requires explicit opt-out. Previously
+the scout just told the user to run the commands separately.
+
+## install.sh auto-force on version mismatch (2026-03-16)
+
+Detects installed version differs from package version and sets FORCE=1
+automatically. Fixes bootstrapping problem where buggy upgrade.sh could
+never be patched by either install or upgrade.
+
 ## Fail-forward upgrade policy (2026-03-14)
 
 Problem: upgrade.sh now removes stale files; a natural follow-on is rollback support.
