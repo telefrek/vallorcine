@@ -147,6 +147,10 @@ install_file "$SCRIPT_DIR/decisions/CLAUDE.md" "$TARGET/.decisions/CLAUDE.md"
 echo ""
 echo "── Scripts ──────────────────────────────────────"
 install_file "$SCRIPT_DIR/scripts/token-usage.sh" "$TARGET/.claude/scripts/token-usage.sh"
+install_file "$SCRIPT_DIR/scripts/version-check.sh" "$TARGET/.claude/scripts/version-check.sh"
+install_file "$SCRIPT_DIR/scripts/merge-driver-index.sh" "$TARGET/.claude/scripts/merge-driver-index.sh"
+install_file "$SCRIPT_DIR/scripts/ensure-merge-driver.sh" "$TARGET/.claude/scripts/ensure-merge-driver.sh"
+install_file "$SCRIPT_DIR/scripts/kb-freshness-check.sh" "$TARGET/.claude/scripts/kb-freshness-check.sh"
 
 # ── Upgrade script ───────────────────────────────────────────────────────────
 
@@ -154,6 +158,40 @@ echo ""
 echo "── Upgrade script ───────────────────────────────"
 install_file "$SCRIPT_DIR/upgrade.sh" "$TARGET/.claude/upgrade.sh"
 chmod +x "$TARGET/.claude/upgrade.sh" 2>/dev/null || true
+
+# ── Merge driver for index files ──────────────────────────────────────────────
+
+echo ""
+echo "── Merge driver ─────────────────────────────────"
+
+# Register the merge driver in the project's git config (local, not global)
+if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
+    DRIVER_PATH=".claude/scripts/merge-driver-index.sh"
+    git -C "$TARGET" config merge.vallorcine-index.name "vallorcine index merge (keep all rows)"
+    git -C "$TARGET" config merge.vallorcine-index.driver "bash $DRIVER_PATH %O %A %B"
+    echo -e "  ${GREEN}config${NC} merge.vallorcine-index.driver registered"
+else
+    echo -e "  ${YELLOW}skip${NC}  not a git repo — merge driver not registered"
+fi
+
+# Add .gitattributes entries if not already present
+GITATTRIBUTES="$TARGET/.gitattributes"
+MARKER="# vallorcine merge driver"
+
+if ! grep -qF "$MARKER" "$GITATTRIBUTES" 2>/dev/null; then
+    cat >> "$GITATTRIBUTES" << 'GITATTR'
+
+# vallorcine merge driver — scoped to managed index files only
+# Auto-resolves concurrent table row additions by keeping all rows.
+.kb/CLAUDE.md           merge=vallorcine-index
+.kb/*/CLAUDE.md         merge=vallorcine-index
+.kb/*/*/CLAUDE.md       merge=vallorcine-index
+.decisions/CLAUDE.md    merge=vallorcine-index
+GITATTR
+    echo -e "  ${GREEN}write${NC} .gitattributes  (merge driver entries)"
+else
+    echo -e "  ${YELLOW}skip${NC}  .gitattributes already has merge driver entries"
+fi
 
 # ── Write version stamp, manifest, and source file ───────────────────────────
 

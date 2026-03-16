@@ -16,6 +16,13 @@ its designated files. No agent may skip a stage or act outside its write authori
   /feature-resume "<slug>" --status  — human-readable session briefing and next-session agenda
   /feature-resume "<slug>" --share  — condensed standup/team format
 
+## Pre-flight checks
+Before starting any pipeline command, run these scripts and display any output:
+- `bash .claude/scripts/version-check.sh` — warns if branch is behind main
+- `bash .claude/scripts/ensure-merge-driver.sh` — registers index merge driver if missing
+- `bash .claude/scripts/kb-freshness-check.sh` — warns if KB/decisions are behind main
+All are advisory — never block on their output.
+
 ## Idempotency rule (CRITICAL)
 Every command MUST read status.md before doing any work.
 If the stage it would perform is already complete, report and stop.

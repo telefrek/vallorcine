@@ -20,9 +20,9 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-03-15*
+*Last updated: 2026-03-16*
 
-**Session goal:** Research and bug fixes — release/install safety, token tracking.
+**Session goal:** Continue — triage remaining research brief items.
 
 **Just completed (branch: wip/release-and-testing-fixes):**
 - `/release` now syncs README.md version line (was stale at 0.1.0 since initial release)
@@ -33,17 +33,18 @@ state of the project — what's happening now and what's next.
 - `tests/test-install.sh` — 9 smoke tests for install + upgrade (all passing)
 - `scripts/token-usage.sh` — per-phase token tracking via session JSONL, integrated into
   all 8 pipeline commands + `/feature-resume`. Gracefully degrades without jq.
+- COMPETITIVE.md updated with 7 new competitors from research brief (4 memory/knowledge,
+  3 workflow pipelines)
+- DEFERRED.md updated with 6 new feature ideas from research brief
+- 7 open questions from brief triaged: 1 already resolved (token tracking), 3 scoped to
+  deferred team features, 3 added to Open questions below
 
 **Where things stand:**
-Branch `wip/release-and-testing-fixes` has one commit, not yet PR'd or merged.
-Research brief from external session (`~/Code/vallorcine-agent-brief.md`) has been
-consumed and triaged into 6 work items — 2 done (bug fixes), 4 remaining (see below).
+Branch `wip/release-and-testing-fixes` has commits, not yet PR'd or merged.
+Research brief (`~/Code/vallorcine-agent-brief.md`) fully consumed — all items triaged.
 
-**Remaining from research brief (not yet started):**
-- Update COMPETITIVE.md with 6 new competitors from brief
-- Add 6 new feature ideas to DEFERRED.md
-- Triage 7 open questions from brief into CONTEXT.md
-- Research: team MANIFEST design and concurrency risks
+**Remaining:**
+- Research: team MANIFEST design and concurrency risks (deep design work)
 - Design: scenario test scripts for team features (blocked on MANIFEST research)
 
 ---
@@ -180,6 +181,10 @@ Filters `stop_reason != null` to avoid double-counting streaming progress update
 - **CONTEXT.md maintenance discipline** — `/save-work` now handles graduation
   and doc sync, but still depends on remembering to run it.
   Could /feature-complete prompt for `/save-work` automatically?
+
+- **install.sh --run-tests flag** — validation flag for fresh installs and
+  upgrades. Would run scenario scripts against a temp repo to verify the
+  installation works before using it on a real project.
 
 ---
 

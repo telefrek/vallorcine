@@ -57,18 +57,21 @@ assert_file_contains() {
     fi
 }
 
-cleanup_dirs=()
+TEST_BASE="/tmp/vallorcine/test-install"
+
 cleanup() {
-    for d in "${cleanup_dirs[@]}"; do
-        rm -rf "$d" 2>/dev/null || true
-    done
+    rm -rf "$TEST_BASE" 2>/dev/null || true
 }
 trap cleanup EXIT
 
+# Start clean
+cleanup
+mkdir -p "$TEST_BASE"
+
+test_count=0
 make_temp() {
-    local d
-    d="$(mktemp -d)"
-    cleanup_dirs+=("$d")
+    local d="$TEST_BASE/$((++test_count))"
+    mkdir -p "$d"
     echo "$d"
 }
 
@@ -197,7 +200,6 @@ dev_output="$(bash "$REPO_ROOT/install.sh" --dev 2>&1)"
 dev_target="$(echo "$dev_output" | grep -o '/tmp/[^ ]*' | head -1)"
 
 if [[ -n "$dev_target" && -d "$dev_target" ]]; then
-    cleanup_dirs+=("$dev_target")
     if [[ -f "$dev_target/.claude/commands/quick.md" ]]; then
         pass "--dev installs to temp dir ($dev_target)"
     else
