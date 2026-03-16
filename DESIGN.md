@@ -10,16 +10,33 @@ debugging unexpected agent behaviour, or evaluating whether to adopt it.
 
 A set of Claude Code slash commands, agent definitions, and rules that turn a
 project into a self-documenting, crash-recoverable, TDD-first development
-environment. Two subsystems:
+environment. Organised around four concerns:
 
-**TDD Pipeline** — a staged pipeline that takes a feature description through
+**Knowledge** — a pull-model knowledge base (`.kb/`) maintained by the Research
+Agent. Research findings accumulate across features and are queried on demand.
+The KB is independent of any particular feature or decision — it stores what
+the project knows.
+
+**Decisions** — an architecture decision store (`.decisions/`) maintained by the
+Architect Agent. Each decision goes through a deliberation loop with constraint
+profiling, candidate evaluation, and explicit confirmation. Decisions are the
+project's governance layer — they record not just what was chosen but why, what
+alternatives were rejected, and when to revisit.
+
+**Features** — a staged TDD pipeline that takes a feature description through
 scoping, domain analysis, work planning, test writing, implementation, refactor,
-and PR preparation. Each stage is a separate slash command backed by a named
-agent. State persists in `.feature/` files between sessions.
+PR preparation, and retrospective. Each stage is a separate slash command backed
+by a named agent. Features read from the knowledge and decisions layers during
+domain analysis and write back via retrospectives — creating a feedback loop
+that makes the project layer richer with every feature completed.
 
-**KB/Decisions** — a pull-model knowledge base (`.kb/`) and architecture
-decision store (`.decisions/`) maintained by a Research Agent and Architect
-Agent respectively. Both feed into the TDD pipeline via the Domain Scout stage.
+**System** — setup, upgrade, project context, and help. One-time configuration
+(`/feature-init`, `/setup-vallorcine`), ongoing maintenance (`/upgrade-vallorcine`,
+`/project-context`, `/feature-cleanup`), and entry point routing (`/vallorcine-help`).
+
+The knowledge and decisions layers are the durable assets. Features come and go,
+but KB entries, ADRs, and project context persist and compound. This is what makes
+the 5th feature on a project faster than the 1st.
 
 ---
 
@@ -503,24 +520,36 @@ vallorcine/
 ├── upgrade.sh                       ← downloaded into .claude/; applies new releases
 │
 ├── commands/                        ← slash commands (loaded on invocation only)
-│   ├── vallorcine-help.md           ← /vallorcine-help — entry point and router
+│   │
+│   │  Knowledge
+│   ├── kb.md                        ← /kb — query, lookup, create topics
+│   ├── research.md                  ← /research — KB research session
+│   │
+│   │  Decisions
+│   ├── architect.md                 ← /architect — architecture decision session
+│   ├── decisions.md                 ← /decisions — query, list, explain, review, backfill, candidates, triage, defer, close
+│   │
+│   │  Features
 │   ├── feature.md                   ← /feature — scoping interview
-│   ├── feature-init.md              ← /feature-init — project profile setup + branch prompt
-│   ├── feature-domains.md           ← /feature-domains — KB/ADR survey
-│   ├── feature-plan.md              ← /feature-plan — work plan + stubs + autonomous mode opt-in
+│   ├── feature-quick.md             ← /feature-quick — small changes, single session
+│   ├── feature-domains.md           ← /feature-domains — KB/ADR survey, auto-invokes architect/research
+│   ├── feature-plan.md              ← /feature-plan — work plan + stubs + execution strategy
+│   ├── feature-coordinate.md        ← /feature-coordinate — parallel batch coordinator
 │   ├── feature-test.md              ← /feature-test [--unit] — write failing tests
 │   ├── feature-implement.md         ← /feature-implement [--unit] — implement to green
-│   ├── feature-refactor.md          ← /feature-refactor [--unit] — quality review
+│   ├── feature-refactor.md          ← /feature-refactor [--unit] — quality review (2a-2g)
 │   ├── feature-pr.md                ← /feature-pr — PR draft + gh pr create
+│   ├── feature-retro.md             ← /feature-retro — post-feature retrospective
 │   ├── feature-complete.md          ← /feature-complete — post-merge archival
 │   ├── feature-resume.md            ← /feature-resume [--status] [--share] — crash recovery + briefing
-│   ├── quick.md                     ← /quick — small changes, single session
-│   ├── research.md                  ← /research — KB research session
-│   ├── architect.md                 ← /architect — architecture decision session
-│   ├── decisions.md                 ← /decisions — query, review, defer, close, triage
-│   ├── kb.md                        ← /kb — query, lookup, create topics
-│   ├── setup-vallorcine.md           ← /setup-vallorcine — initialise KB and decisions structure
-│   └── upgrade-vallorcine.md        ← /upgrade-vallorcine — check and apply kit updates
+│   ├── feature-cleanup.md           ← /feature-cleanup — review stale feature directories
+│   ├── feature-init.md              ← /feature-init — project profile setup + branch prompt
+│   │
+│   │  System
+│   ├── vallorcine-help.md           ← /vallorcine-help — entry point, router, question answering
+│   ├── setup-vallorcine.md          ← /setup-vallorcine — initialise KB and decisions structure
+│   ├── upgrade-vallorcine.md        ← /upgrade-vallorcine — check and apply kit updates
+│   └── project-context.md           ← /project-context — team-shared codebase knowledge
 │
 ├── agents/                          ← agent identity definitions
 │   ├── scoping-agent.md

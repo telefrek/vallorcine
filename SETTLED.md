@@ -89,7 +89,7 @@ research.md reads it first, offers to run /kb topic as sub-agent if missing.
 
 All kit-managed files carry managed-by notices. Manual edits bypass safety checks.
 
-## /quick complexity check
+## /feature-quick complexity check
 
 4 signal categories. 0-1: silent. 2-3: soft warning. 4+: hard redirect.
 

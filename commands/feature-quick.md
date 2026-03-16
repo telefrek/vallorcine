@@ -1,4 +1,4 @@
-# /quick "<description>"
+# /feature-quick "<description>"
 
 A lightweight entry point for small, well-understood changes that don't need
 scoping interviews, domain analysis, or work planning. Same TDD discipline as
@@ -80,32 +80,32 @@ codebase yet.
 
 ### Thresholds and responses
 
-**0–1 signals:** Proceed as /quick. Display your understanding and continue.
+**0–1 signals:** Proceed as /feature-quick. Display your understanding and continue.
 
 **2–3 signals:** Soft warning. Display the assessment and ask for confirmation:
 
 ```
 ⚡ QUICK · <quick-slug>
 ───────────────────────────────────────────────
-⚠️  This might be bigger than a /quick task.
+⚠️  This might be bigger than a /feature-quick task.
 
 Signals I noticed:
   · <signal 1>
   · <signal 2>
 
-/quick works best for focused, single-construct changes.
+/feature-quick works best for focused, single-construct changes.
 For this, /feature would give you: scoping confirmation, domain analysis,
 work planning with stub contracts, and crash recovery across sessions.
 
 Options:
-  1. Continue as /quick — I'll keep it tight and flag scope creep if I find it
+  1. Continue as /feature-quick — I'll keep it tight and flag scope creep if I find it
   2. Switch to /feature — run /feature "<description>" for the full pipeline
 
-  Type **yes**  to stay as /quick  ·  or: feature
+  Type **yes**  to stay as /feature-quick  ·  or: feature
 ───────────────────────────────────────────────
 ```
 
-If "yes": continue as /quick, note the signals in status.md and proceed with
+If "yes": continue as /feature-quick, note the signals in status.md and proceed with
 heightened scope vigilance (see Step 3).
 
 **4+ signals:** Hard redirect. The description is clearly feature-scale:
@@ -121,25 +121,25 @@ Signals I noticed:
   · <signal 3>
   · <signal 4>
 
-/quick is for single-construct, single-session changes. This description
+/feature-quick is for single-construct, single-session changes. This description
 suggests multiple constructs, multiple domains, or decisions that need
 scoping before writing code.
 
 Recommended: /feature "<description>"
 
-I can still run this as /quick if you're certain it's smaller than it sounds.
-  1  yes — continue as /quick (I understand the risk)
+I can still run this as /feature-quick if you're certain it's smaller than it sounds.
+  1  yes — continue as /feature-quick (I understand the risk)
   2  no — switch to /feature
   Type 1 or 2.
 ───────────────────────────────────────────────
 ```
 
-Only proceed as /quick if user types 1.
+Only proceed as /feature-quick if user types 1.
 Record forced override in status.md: `complexity_override: true`.
 
 ### After complexity check — understand the task
 
-**If proceeding as /quick after passing or confirming:**
+**If proceeding as /feature-quick after passing or confirming:**
 
 Read the description. Make a judgment call:
 
@@ -248,16 +248,16 @@ If the codebase scan reveals the change is larger than the description suggests:
 ```
 ⚠️  SCOPE CHECK · Quick → Feature
 ───────────────────────────────────────────────
-This looks bigger than a /quick task.
+This looks bigger than a /feature-quick task.
 I found: <what makes it larger — be specific>
 
 <If complexity_override: true in status.md:>
-Note: you already confirmed proceeding as /quick despite complexity signals.
+Note: you already confirmed proceeding as /feature-quick despite complexity signals.
 Flagging for visibility — continuing unless you say stop.
 
 <Otherwise:>
 Options:
-  1. Continue as /quick — I'll implement what you described and note the larger
+  1. Continue as /feature-quick — I'll implement what you described and note the larger
      context for later
   2. Upgrade to /feature — run /feature "<description>" for full pipeline support
 ```
@@ -330,7 +330,7 @@ If "yes": proceed to Step 6.
 Same checklist as /feature-refactor, same cycle limits (warn at 3, stop at 5),
 same missing-test escalation rules.
 
-For a /quick task the refactor is usually fast — most of the checklist will be
+For a /feature-quick task the refactor is usually fast — most of the checklist will be
 "nothing to do here" for a small change. Work through it anyway; security and
 missing-test checks are the ones most likely to find something even on small changes.
 

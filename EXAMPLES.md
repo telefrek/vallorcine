@@ -240,7 +240,7 @@ For small changes that don't need the full pipeline — a single construct,
 a bug fix, a config change:
 
 ```
-/quick "add isActive field to User model"
+/feature-quick "add isActive field to User model"
 ```
 
 The complexity check runs first. If the task is genuinely small (0-1

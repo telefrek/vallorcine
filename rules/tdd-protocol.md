@@ -4,7 +4,7 @@ Feature work follows a strict agent pipeline. Each agent reads and writes only
 its designated files. No agent may skip a stage or act outside its write authority.
 
 ## Entry points
-  /quick "<description>"   — small changes: test → implement → refactor, minimal setup
+  /feature-quick "<description>"   — small changes: test → implement → refactor, minimal setup
   /feature "<description>" — full pipeline for new functionality with design decisions
 
 ## Full pipeline order (sequential / cost mode)

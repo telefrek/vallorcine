@@ -42,7 +42,7 @@ command to run, then explain what it does and what the user can expect.
 
 **Starting and resuming work:**
 - `/feature "<description>"` — start a new feature (full pipeline: scoping → domains → plan → test → implement → refactor → PR)
-- `/quick "<description>"` — small, well-understood tasks (single session, no planning overhead)
+- `/feature-quick "<description>"` — small, well-understood tasks (single session, no planning overhead)
 - `/feature-resume "<slug>"` — see where a feature is and what to run next (crash recovery, session resume)
 - `/feature-resume "<slug>" --status` — detailed session briefing with next-session agenda
 - `/feature-resume "<slug>" --list` — list all active features with their current stage
@@ -190,7 +190,7 @@ so you can skip the full planning pipeline and go straight to tests.
 
 Here's your command:
 
-  /quick "<their description, cleaned up into one clear sentence>"
+  /feature-quick "<their description, cleaned up into one clear sentence>"
 
 What happens:
   1. I'll check the codebase briefly and confirm my understanding
@@ -266,7 +266,7 @@ If the description could go either way, lean toward the full pipeline and say so
 ```
 That could go either way. Here's how to decide:
 
-  Use /quick if:  you already know exactly what to build and it follows
+  Use /feature-quick if:  you already know exactly what to build and it follows
                   an existing pattern in the codebase
 
   Use /feature if: there are design decisions to make, the scope isn't
@@ -275,7 +275,7 @@ That could go either way. Here's how to decide:
 My lean: <quick / full pipeline> because <one sentence reason>.
 
 Your commands:
-  Quick:    /quick "<description>"
+  Quick:    /feature-quick "<description>"
   Full:     /feature "<description>"
 ```
 

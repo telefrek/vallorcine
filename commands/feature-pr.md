@@ -1,7 +1,7 @@
 # /feature-pr "<feature-slug>"
 
 Drafts a pull request title, description, and review checklist by reading the
-feature's working files. Works for both /feature and /quick slugs.
+feature's working files. Works for both /feature and /feature-quick slugs.
 
 Run this after /feature-refactor completes and before opening the PR.
 

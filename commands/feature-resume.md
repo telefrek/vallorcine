@@ -9,7 +9,7 @@ Use this after any interruption, crash, or context switch.
 - `--share` — condensed standup/team format (implies --status)
 - `--list` — list all active features with their current stage (ignores slug argument)
 
-Works for both `/feature` and `/quick` slugs.
+Works for both `/feature` and `/feature-quick` slugs.
 
 ---
 
@@ -32,7 +32,7 @@ If `--list` flag is set:
 ```
 
 Sort by last updated (most recent first).
-If no features exist, display: `No active features. Start one with /feature "<description>" or /quick "<description>"`
+If no features exist, display: `No active features. Start one with /feature "<description>" or /feature-quick "<description>"`
 
 Stop. Do not continue to other steps.
 

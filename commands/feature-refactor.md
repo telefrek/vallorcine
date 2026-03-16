@@ -75,7 +75,7 @@ Stop.
 - Say: "Refactor was in progress at: <substage>. Resuming from there."
 - Jump to the appropriate checklist item in this order:
   2a coding-standards → 2b duplication → 2c security → 2d performance →
-  2e missing-tests → 2f integration-tests → Step 4 final-lint
+  2e missing-tests → 2f integration-tests → 2g documentation → Step 4 final-lint
 
 **If Refactor is `not-started`:**
 - Verify cycle-log.md has an `implemented` entry for this cycle.
@@ -245,6 +245,49 @@ Manual check needed before merging: <path>
 ```
 
 If not found: skip silently and continue.
+
+### 2g — Documentation
+`status.md substage → "refactor: documentation"`
+`Display: ── Documentation ────────────────────────────`
+
+Check whether this feature added, renamed, or changed constructs that are
+covered by existing project documentation. Scan for:
+
+- **README.md** / **CONTRIBUTING.md** — do they reference modules, APIs, or
+  patterns that this feature changed?
+- **docs/ directory** (if it exists) — any files that describe the area this
+  feature touches?
+- **Module-level documentation** — package-info.java, module docstrings,
+  `__init__.py` module docs, Go package comments
+- **API documentation** — if the feature changed public API signatures that are
+  documented (OpenAPI specs, generated docs, etc.)
+- **Inline architecture notes** — README files in subdirectories that describe
+  the module's purpose or structure
+
+For each documentation file that references something this feature changed:
+
+1. Read the doc file
+2. Check whether the documentation is still accurate given the implementation
+3. If inaccurate or incomplete: update it to reflect the current state
+4. If a new module/package was created and the project has documentation
+   conventions (e.g., README per module): create the expected documentation
+
+**What NOT to update:**
+- Changelog entries (handled by `/feature-pr` and `/feature-retro`)
+- vallorcine's own working files (status.md, cycle-log.md, etc.)
+- Test documentation (tests are self-documenting)
+- Comments in code that were already addressed in 2a
+
+Display findings:
+```
+  Documentation updates:
+    ✓ README.md — updated API section for new <construct>
+    ✓ docs/architecture.md — added <module> description
+    · No documentation found for <new module> (no convention detected)
+```
+
+Run tests after changes (documentation changes should not break tests, but
+verify anyway).
 
 ---
 

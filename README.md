@@ -1,13 +1,19 @@
 # vallorcine
 
-A Claude Code workflow package. Two subsystems:
+A Claude Code workflow package built around four concerns:
 
-**TDD Pipeline** — scoping → domain analysis → work planning → test → implement → refactor → PR.
-Crash-recoverable, token-aware, one-question-at-a-time scoping interview.
+**Knowledge** — pull-model knowledge base. Research findings accumulate in `.kb/`
+and are queried on demand.
 
-**KB/Decisions** — pull-model knowledge base and architecture decision store.
-Research Agent writes findings to `.kb/`. Architect Agent writes ADRs to `.decisions/`.
-Both feed into the TDD pipeline's domain analysis stage.
+**Decisions** — architecture decision store. The Architect Agent deliberates
+tradeoffs and writes ADRs to `.decisions/`. Decisions compound across features.
+
+**Features** — TDD pipeline. Scoping → domain analysis → work planning → test →
+implement → refactor → PR → retrospective. Crash-recoverable, token-aware,
+with parallel work unit execution.
+
+**System** — setup, upgrade, project context, and help. One-time configuration
+and ongoing maintenance.
 
 ---
 
@@ -15,23 +21,32 @@ Both feed into the TDD pipeline's domain analysis stage.
 
 ```mermaid
 graph LR
-    subgraph TDD Pipeline
-        S["/feature<br>Scoping"] --> D["/feature-domains<br>Domain Scout"]
-        D --> P["/feature-plan<br>Work Planner"]
-        P --> T["/feature-test<br>Test Writer"]
-        T --> I["/feature-implement<br>Code Writer"]
-        I --> R["/feature-refactor<br>Refactor Agent"]
-        R -->|"next unit"| T
-        R --> PR["/feature-pr<br>PR Draft"]
+    subgraph Knowledge
+        RES["/research"] --> KB[(".kb/")]
+        KBQ["/kb"] -.->|"queries"| KB
     end
 
-    subgraph Knowledge Layer
-        RES["/research<br>Research Agent"] --> KB[(".kb/<br>Knowledge Base")]
-        ARC["/architect<br>Architect Agent"] --> DEC[(".decisions/<br>ADR Store")]
-        KB -.->|"feeds into"| D
-        DEC -.->|"feeds into"| D
+    subgraph Decisions
+        ARC["/architect"] --> DEC[(".decisions/")]
+        DECQ["/decisions"] -.->|"queries"| DEC
         KB -.->|"informs"| ARC
     end
+
+    subgraph Features
+        S["/feature"] --> D["/feature-domains"]
+        D --> P["/feature-plan"]
+        P --> T["/feature-test"]
+        T --> I["/feature-implement"]
+        I --> R["/feature-refactor"]
+        R -->|"next unit"| T
+        R --> PR["/feature-pr"]
+        PR --> RET["/feature-retro"]
+    end
+
+    KB -.->|"feeds into"| D
+    DEC -.->|"feeds into"| D
+    RET -.->|"writes back"| KB
+    RET -.->|"writes back"| DEC
 
     style S fill:#4a9eff,color:#fff
     style D fill:#4a9eff,color:#fff
@@ -40,17 +55,78 @@ graph LR
     style I fill:#22c55e,color:#fff
     style R fill:#22c55e,color:#fff
     style PR fill:#8b5cf6,color:#fff
+    style RET fill:#8b5cf6,color:#fff
     style RES fill:#f59e0b,color:#fff
     style ARC fill:#f59e0b,color:#fff
     style KB fill:#fbbf24,color:#000
     style DEC fill:#fbbf24,color:#000
+    style KBQ fill:#f59e0b,color:#fff
+    style DECQ fill:#f59e0b,color:#fff
 ```
 
-The TDD pipeline is staged and human-paced — each stage confirms before
-proceeding. The inner loop (test → implement → refactor) can run
-autonomously or with manual confirmation at each step. The knowledge layer
-is independent: research and decisions accumulate across features and are
-pulled in during domain analysis.
+The knowledge and decisions layers are independent — they accumulate across
+features and get richer over time. Features read from them during domain analysis
+and write back via retrospectives. The project layer gets more valuable with
+every feature completed.
+
+---
+
+## Commands by concern
+
+### Knowledge — research and query
+
+| Command | What it does |
+|---------|-------------|
+| `/kb "<question>"` | Query the knowledge base in plain language |
+| `/research <topic> <category> "<subject>"` | Run a research session, writes to `.kb/` |
+
+### Decisions — deliberation and governance
+
+| Command | What it does |
+|---------|-------------|
+| `/architect "<problem>"` | Full architecture decision session with deliberation |
+| `/decisions "<question>"` | Query existing decisions in plain language |
+| `/decisions list` | Browse and filter all decisions by status/keyword |
+| `/decisions explain "<slug>"` | Plain-language summary with KB context |
+| `/decisions review "<slug>"` | Revisit a confirmed decision |
+| `/decisions backfill` | Surface undocumented decisions from past work |
+| `/decisions candidates` | Review decisions discovered from session transcripts |
+| `/decisions triage` | Review all deferred/draft items |
+| `/decisions defer "<problem>"` | Park a topic for later |
+| `/decisions close "<problem>"` | Rule out permanently |
+
+### Features — TDD pipeline
+
+| Command | What it does |
+|---------|-------------|
+| `/feature "<description>"` | Start a new feature (full pipeline) |
+| `/feature-quick "<description>"` | Small task (single session, no planning) |
+| `/feature-resume "<slug>"` | Where am I? What do I run next? |
+| `/feature-resume "<slug>" --status` | Detailed session briefing |
+| `/feature-resume "<slug>" --list` | List all active features |
+| `/feature-domains "<slug>"` | Domain analysis, commissions research/architect |
+| `/feature-plan "<slug>"` | Work plan, stubs, execution strategy |
+| `/feature-coordinate "<slug>"` | Parallel batch coordinator |
+| `/feature-test "<slug>"` | Write failing tests from contracts |
+| `/feature-implement "<slug>"` | Implement until tests pass |
+| `/feature-refactor "<slug>"` | Quality review (7-item checklist) |
+| `/feature-pr "<slug>"` | Draft PR title, description, checklist |
+| `/feature-retro "<slug>"` | Post-feature retrospective |
+| `/feature-complete "<slug>"` | Archive after PR merges |
+| `/feature-cleanup` | Review stale feature directories |
+
+### System — setup and maintenance
+
+| Command | What it does |
+|---------|-------------|
+| `/vallorcine-help` | Entry point — routes you to the right command |
+| `/vallorcine-help "<question>"` | Answer questions about any command |
+| `/feature-init` | One-time project profile setup |
+| `/setup-vallorcine` | Initialise `.kb/` and `.decisions/` directories |
+| `/upgrade-vallorcine` | Check for and apply kit updates |
+| `/project-context add "<entry>"` | Add team-shared codebase knowledge |
+| `/project-context cleanup` | Review expired context entries |
+| `/project-context` | Display all active context entries |
 
 ---
 
@@ -68,36 +144,36 @@ Commands and agents are live immediately. No shell required.
 **Option B — shell installer (more control)**
 
 ```bash
-# Clone and install into a target project
 git clone https://github.com/telefrek/vallorcine.git
 bash vallorcine/install.sh /path/to/your/project
-
-# Or from within the repo
-bash install.sh /path/to/your/project
 ```
 
 Both options install the same commands, agents, and rules.
 The shell installer also installs `upgrade.sh` and the version stamp,
-enabling the `/upgrade-vallorcine` command. The plugin path uses native
-`/plugin marketplace update` for upgrades instead.
+enabling the `/upgrade-vallorcine` command.
 
 Then add the following block to your project's root `CLAUDE.md`:
 
 ```markdown
 ## Feature Development
 `.feature/<slug>/` — on-demand only. Profile: `.feature/project-config.md`
-Quick: `/quick "<description>"` — Full: `/feature "<description>"`
+Quick: `/feature-quick "<description>"` — Full: `/feature "<description>"`
 Resume: `/feature-resume "<slug>"` — Status: `/feature-resume "<slug>" --status`
 Setup: `/feature-init` (first time only) — Entry point: `/vallorcine-help`
 
 ## Knowledge Base & Decisions
 `.kb/<topic>/<category>/<subject>.md` and `.decisions/<slug>/adr.md` — on-demand only.
-Commands: `/research` `/architect` `/kb lookup` `/decisions review`
+Commands: `/research` `/architect` `/kb` `/decisions`
 Setup: `/setup-vallorcine` (first time only)
 ```
 
 Run `/feature-init` once to set up the project profile.
 Run `/setup-vallorcine` once to initialise the KB and decisions directories.
+
+**Preview changes before installing:**
+```bash
+bash install.sh --diff /path/to/your/project
+```
 
 ---
 
@@ -110,7 +186,7 @@ Run `/setup-vallorcine` once to initialise the KB and decisions directories.
 
 **Small task:**
 ```
-/quick "add isActive field to User"
+/feature-quick "add isActive field to User"
 ```
 
 **Not sure which to use:**
@@ -128,6 +204,11 @@ Run `/setup-vallorcine` once to initialise the KB and decisions directories.
 /architect "choose between HNSW and IVF-Flat for approximate nearest neighbour search"
 ```
 
+**Surface undocumented decisions from past work:**
+```
+/decisions backfill
+```
+
 ---
 
 ## Upgrading
@@ -141,10 +222,7 @@ Never touches your `.kb/`, `.decisions/`, or `.feature/` directories.
 
 **Manually (without Claude Code):**
 ```bash
-# Pull latest
 cd vallorcine && git pull
-
-# Re-install into your project
 bash install.sh /path/to/your/project
 ```
 
@@ -160,9 +238,9 @@ reviewing past decisions, crash recovery, and more.
 
 ## Architecture
 
-See [DESIGN.md](DESIGN.md) for the full design reference: the 9 core principles,
-token budget, agent write authority table, crash recovery model, KB/decisions
-hierarchy, work unit splitting, and extension points.
+See [DESIGN.md](DESIGN.md) for the full design reference: the four concerns
+model, 9 core principles, token budget, agent write authority table, crash
+recovery model, KB/decisions hierarchy, work unit splitting, and extension points.
 
 ## Development
 
@@ -175,32 +253,12 @@ If a session runs long and quality degrades, close early with `/save-work` and c
 ### Local testing
 
 ```bash
-# Install to a temp directory for testing (--dev flag)
 bash install.sh --dev
-
-# Opens Claude Code in the temp directory to test commands
-# Clean up when done: rm -rf /tmp/...  (path shown in output)
 ```
 
-**Warning:** Do not run `bash install.sh .` from the repo root — it would
-overwrite the source `.claude/commands/` files. The installer will detect
-this and block it with an error message.
-
-### Branch workflow
-
-- `main` — stable, versioned releases
-- `wip/<topic>` — work in progress, may be broken
-- PRs from `wip/` branches into `main` when a set of changes is stable
+**Warning:** Do not run `bash install.sh .` from the repo root — the installer
+will detect this and block it.
 
 ### Versioning
 
-Version is in `VERSION` (semver). To cut a release, use the dev-only `/release`
-command (in `.claude/commands/`, not installed to consumer projects). It bumps
-the version, drafts the CHANGELOG entry, builds the release zip, commits, tags,
-pushes, and optionally creates a GitHub Release via the `gh` CLI.
-
----
-
-## Version
-
-See `VERSION`. Current: 0.2.3
+Version is in `VERSION` (semver). Current: 0.2.3

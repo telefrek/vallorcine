@@ -262,7 +262,7 @@ sufficient.
 ```
 No problem. When you're ready:
   /feature "<describe what you want to build>"
-  /quick "<description>"  (for small, well-understood changes)
+  /feature-quick "<description>"  (for small, well-understood changes)
   /feature-resume "<slug>"  (to pick up an existing feature)
 ```
 

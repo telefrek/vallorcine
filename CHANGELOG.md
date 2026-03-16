@@ -27,6 +27,15 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 - `/project-context` — manage team-shared codebase knowledge (add/cleanup/display).
   Entries have 90-day default expiry, optional scope per module, and size cap.
   Agents read active entries during scoping, domain analysis, and planning.
+- Refactor agent step 2g — documentation check ensures project docs stay current
+  when features add modules, change APIs, or alter patterns
+
+### Changed
+- Renamed `/quick` to `/feature-quick` for naming consistency
+- README restructured around four-concern model (knowledge, decisions, features, system)
+- DESIGN.md updated with four-concern architecture description
+- File manifest in DESIGN.md reorganised by concern
+- MANIFEST updated with all new commands
 
 ---
 
@@ -194,7 +203,7 @@ Initial release. Two subsystems: TDD Pipeline and KB/Decisions.
 ### Added
 
 **TDD Pipeline**
-- `/vallorcine-help` — guided entry point, routes to /quick or /feature
+- `/vallorcine-help` — guided entry point, routes to /feature-quick or /feature
 - `/feature` — scoping agent with sequential one-question-at-a-time interview
 - `/feature-init` — project profile setup with inference from existing project files
 - `/feature-domains` — domain scout, commissions research and architect runs
@@ -206,7 +215,7 @@ Initial release. Two subsystems: TDD Pipeline and KB/Decisions.
 - `/feature-complete` — archive and cleanup
 - `/feature-resume` — crash recovery from status.md checkpoint
 - `/feature-resume --status` — pipeline status display with --share mode
-- `/quick` — lightweight single-construct path with complexity assessment
+- `/feature-quick` — lightweight single-construct path with complexity assessment
 - Escalation chain: Code Writer → Test Writer → Work Planner with 3-strike limits and re-entry logic
 - `cycle-log.md` tail-read rule — agents read last 30 lines by default, capping token cost
 
