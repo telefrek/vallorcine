@@ -211,7 +211,7 @@ Initial release. Two subsystems: TDD Pipeline and KB/Decisions.
 - `/feature-plan` — work planner with token-based work unit split analysis
 - `/feature-test` — test writer agent, TDD cycle management
 - `/feature-implement` — code writer agent
-- `/feature-refactor` — refactor agent with 6-category checklist
+- `/feature-refactor` — refactor agent with 8-category checklist (2a-2h)
 - `/feature-pr` — PR draft generator
 - `/feature-complete` — archive and cleanup
 - `/feature-resume` — crash recovery from status.md checkpoint

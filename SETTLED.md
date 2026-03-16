@@ -85,7 +85,7 @@ pre-filled command. Never does pipeline work itself.
 /kb topic command; .kb/CLAUDE.md Topic Map is authoritative live list.
 research.md reads it first, offers to run /kb topic as sub-agent if missing.
 
-## Agents own the files (principle 9)
+## Agents own the files (principle 10)
 
 All kit-managed files carry managed-by notices. Manual edits bypass safety checks.
 
@@ -244,3 +244,12 @@ files. Escape hatch: `bash .claude/upgrade.sh --version vX.Y.Z` pins to any
 released version. Noted in upgrade.sh summary output.
 Rejected: snapshot before upgrade (storage overhead, point-in-time problem);
 git-based restore (not all projects version .claude/).
+
+## setup-vallorcine and feature-init remain separate (2026-03-16)
+
+Originally considered merging both into a single command (both are one-time setup).
+Rejected after the four-concern architecture model made the boundary clear:
+/setup-vallorcine creates Knowledge + Decisions infrastructure (.kb/, .decisions/).
+/feature-init creates Features infrastructure (.feature/, project-config.md).
+A project may use KB/Decisions without the feature pipeline, or vice versa.
+Merging would force users of one concern to configure the other.

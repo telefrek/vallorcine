@@ -58,6 +58,17 @@ Active testing on jlsm project. WIP.md cleared.
   verifies project documentation stays current when features change modules, APIs,
   or patterns. Added after 2f (integration tests).
 
+- **Principle 1: bash and markdown only** (2026-03-16) — hard constraint, not
+  preference. No MCP servers, no hooks infrastructure, no package managers, no
+  external runtimes. First filter for new features. Dropped hooks-for-non-TDD and
+  Context7/live-docs from backlog as violations.
+
+- **Refactor step 2h: security review** (2026-03-16) — holistic security audit
+  after all other refactoring. Distinct from 2c (inline fixes): 2h assesses auth,
+  data handling, trust boundaries, dependencies, and threat surface delta. Findings
+  use HIGH/MEDIUM/LOW severity. Always pauses on findings. Flows into PR via
+  cycle-log.
+
 - **Draft ADRs warn but don't block** (2026-03-16) — Domain Scout classifies
   draft ADRs as `pending-decision` with a warning. User can proceed or formalize
   via `/decisions review`.
@@ -74,21 +85,55 @@ Active testing on jlsm project. WIP.md cleared.
 
 ## Open questions
 
-*Live list — resolve into SETTLED.md or drop when addressed*
+*Live list — resolve into SETTLED.md or drop when addressed.*
+*Prioritised: do next → do soon → do when needed → do when scale demands it.*
 
-- **KB coding agent** — third KB role that reads entries and implements against
-  them. Would close the loop between research and implementation.
+### Do next (low effort, real risk mitigation)
+
+- ~~Command name collision audit~~ — **done** (2026-03-16). Zero collisions found
+  across 22 commands vs 45 Claude Code built-ins. `feature-` prefix strategy works.
+
+- ~~ADR contradiction check~~ — **done** (2026-03-16). `scripts/adr-validate.sh`
+  scans for duplicate accepted slugs. Added to pre-flight checks. Regression test
+  at `tests/scenario-adr-contradiction.sh` (10 cases).
+
+### Do soon (medium effort, clear designs)
+
+- ~~`/decisions backfill`~~ — **updated** (2026-03-16). Added Step 0 size check:
+  projects over `backfill_file_threshold` (default 50, in project-config.md)
+  require explicit path. Spec in decisions.md and DEFERRED.md.
 
 - **Work unit split thresholds** — 15K crossover and 3.5K per-construct are
-  reasoned estimates, not measured. Token estimate vs actual tracking now in
-  status.md — real data will inform adjustments.
+  reasoned estimates, not measured. Token tracking is collecting actuals — needs
+  data review once enough features have run with tracking enabled.
 
-- **install.sh --run-tests flag** — validation flag for fresh installs and
-  upgrades. Would run scenario scripts against a temp repo to verify the
-  installation works before using it on a real project.
+### Do when needed (useful but workarounds exist)
 
-- **setup-vallorcine merge into feature-init** — both are one-time setup.
-  Could be a single command. Low priority, no user has complained.
+- **/feature-split** — split in-progress feature when scope expands. Workaround:
+  finish current feature, start a new one.
+
+- **HANDOFF.md convention** — `/save-work` mostly covers this. May just need
+  documentation rather than new code.
+
+- **KB coding agent** — third KB role that reads entries and implements against
+  them. Current workflow (read KB manually) works.
+
+### Do when scale demands it (team/scale features)
+
+- **KB `depends-on` field** — frontmatter field for structural staleness. P2/P3
+  tension with fan-out reads on dependency chains. Date-based staleness sufficient
+  for current scale.
+
+- **Team KB commands** — `/kb sync`, `/kb consolidate`, `/kb status`. Useful for
+  teams but vallorcine is primarily single-developer today.
+
+- **LSP integration** — README documentation of companion plugins. Nice-to-have.
+
+- **Pipeline observability** — velocity metrics, KB utilization tracking.
+  Premature until more projects use vallorcine.
+
+- **KB cross-referencing** — reverse mapping (decisions → KB). One-way exists.
+  Low urgency until KB is large enough to need it.
 
 ---
 
