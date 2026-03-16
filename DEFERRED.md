@@ -54,9 +54,7 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 
 - ~~Feature retrospectives~~ — **done** (v0.2.4). `/feature-retro` reviews scope, assumptions, domains, tokens, TDD efficiency.
 
-- **Dependency-aware work splitting** — `depends-on` field per work unit in
-  `/feature-plan`. Enables topology-aware status view in `/feature-resume
-  --status`.
+- ~~Dependency-aware work splitting~~ — **done** (v0.2.4). Topology view with dependency layers in `/feature-resume`.
 
 - ~~/decisions explain~~ — **done** (v0.2.4). Plain-language ADR summary with KB context.
 

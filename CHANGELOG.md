@@ -17,6 +17,9 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 - `/feature-retro` — post-feature retrospective: scope divergence, assumption validation,
   domain gap review, token accuracy, TDD efficiency. Auto-invokes `/architect`,
   `/decisions review`, and `/research` for actionable findings.
+- Dependency topology view in `/feature-resume` — work units displayed in
+  dependency layers with `└─ depends on:` annotations, batch info for parallel mode,
+  and progress counter
 
 ---
 

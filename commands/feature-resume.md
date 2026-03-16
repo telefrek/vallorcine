@@ -147,13 +147,17 @@ Work units:
     ○ WU-4: <name> — blocked (waiting on WU-2, WU-3)
 ```
 
-**Otherwise (sequential/cost mode):** display the work unit table as part of the
-resume output:
+**Otherwise (sequential/cost mode):** display the work unit table with dependency
+info as part of the resume output:
 ```
 Work units:
-  ✓ WU-1: <n> — complete
-  → WU-2: <n> — in-progress (implementing, cycle 1)   ← active
-  ○ WU-3: <n> — blocked (waiting on WU-2)
+  ✓ WU-1: <name> — complete
+  → WU-2: <name> — in-progress (implementing, cycle 1)   ← active
+    └─ depends on: WU-1
+  ○ WU-3: <name> — blocked (waiting on WU-2)
+    └─ depends on: WU-1, WU-2
+
+  Progress: <n complete> / <n total>
 ```
 
 The "Next command" line must include the `--unit` flag (sequential mode) or
@@ -272,9 +276,30 @@ WHAT THIS IS
 
 <If work units:>
 ── Work Units ─────────────────────────────────
-  ✓ WU-1: <name> — complete
-  → WU-2: <name> — implementing (cycle 1, 4/7 tests passing)
-  ○ WU-3: <name> — blocked (waiting on WU-2)
+  Read the Work Units table from status.md. For each unit, read the
+  Depends On column to build the dependency graph.
+
+  Display units grouped by dependency layer (topological order):
+
+  Layer 0 (no dependencies):
+    ✓ WU-1: <name> — complete
+    ✓ WU-4: <name> — complete
+
+  Layer 1 (depends on layer 0):
+    → WU-2: <name> — implementing (cycle 1, 4/7 tests passing)
+      └─ depends on: WU-1
+
+  Layer 2 (depends on layer 1):
+    ○ WU-3: <name> — blocked (waiting on WU-2)
+      └─ depends on: WU-1, WU-2
+
+  If execution_strategy is balanced or speed, also show batch info:
+    Batch 1 (complete): WU-1, WU-4
+    Batch 2 (in-progress): WU-2
+    Batch 3 (waiting): WU-3
+    Critical path: <n> sequential batches
+
+  Progress: <n complete> / <n total> units
   Est. remaining sessions: <n>
 
 ── What Was Done Last Session ─────────────────
