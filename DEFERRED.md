@@ -79,3 +79,43 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 - **ADR contradiction CI check** — scan `.decisions/CLAUDE.md` for duplicate
   question slugs with `accepted` status. Requires CI integration (GitHub Actions
   or pre-push hook). See "Known team issues" in DESIGN.md for details.
+
+- **`/decisions backfill` — retroactive decision extraction.** Scans archived
+  features and source structure to surface implicit architectural decisions that
+  were never documented as ADRs. Designed 2026-03-16. Full spec below.
+
+  **Command:** `/decisions backfill [<path>] [--limit N]`
+  - No args: scan archived features + source structure, top 5 by signal strength
+  - With path: scope to module/package, top 5
+  - `--limit N`: adjust batch size (default 5)
+  - Re-runnable: dismissed items recorded, don't resurface. Shows deferred items
+    after new candidates (deferred may now be answerable).
+
+  **Signal sources (ranked):**
+  1. Archived feature domains marked `resolved` with no ADR (highest signal)
+  2. Module/package boundaries — why does this exist as a separate unit?
+  3. Interface hierarchies — sealed types, strategy patterns, extension points
+  4. Encoding/serialization/storage choices — high cost to change
+  5. Dependency graph edges — why A depends on B but not C
+
+  **Filtered out (not surfaced):**
+  - Framework/library choices (tooling, not architecture)
+  - Naming, test structure, formatting (linter territory)
+  - Anything with an existing ADR in `.decisions/`
+
+  **Per-candidate actions:**
+  - **decide** → invoke `/architect` inline for full deliberation
+  - **draft** → user provides rationale in a few sentences, written as partial
+    ADR marked `status: draft`. Domain Scout warns on draft ADRs but does not
+    block — user's choice to proceed without formalizing.
+  - **defer** → prompt for who should answer + optional context. Written as stub
+    ADR marked `status: deferred`. Stays in `.decisions/`, local only (no
+    external system integration yet).
+  - **dismiss** → recorded in `.decisions/.backfill-dismissed` so it doesn't
+    resurface on re-scan.
+
+  **Key design decisions:**
+  - Conventions are out of scope — linters own that. Only ADR-weight items.
+  - Draft ADRs visible to Domain Scout as warnings, not blockers.
+  - Deferred ADRs are local `.decisions/` stubs, not GitHub issues.
+  - Incremental by design — 5 at a time, not an exhaustive dump.

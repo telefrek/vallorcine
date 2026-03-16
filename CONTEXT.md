@@ -22,20 +22,22 @@ state of the project — what's happening now and what's next.
 
 *Last updated: 2026-03-16*
 
-**Just released: v0.2.0** — team concurrency safety, scenario tests, KB staleness.
+**Just released: v0.2.2** — parallel work units, architect auto-invocation, bug fixes.
 
-**What shipped in v0.2.0:**
-- Pre-flight checks (version skew, merge driver auto-setup, KB freshness)
-- Index merge driver for `.kb/CLAUDE.md` and `.decisions/CLAUDE.md`
-- KB staleness detection with inline `/research` for gaps and stale entries
-- Per-phase token tracking via session JSONL
-- 62 tests across 7 test files (install + 6 scenario tests)
-- Research brief fully consumed — competitors, feature ideas, open questions triaged
-- Known team issues documented in DESIGN.md
+**What shipped in v0.2.2:**
+- Parallel work unit execution with `/feature-coordinate` batch coordinator
+- Execution strategy prompt (cost/balanced/speed) in `/feature-plan`
+- Domain Scout now auto-invokes `/architect` and `/research` as sub-agents
+- Domain classification tightened: `resolved` requires an actual ADR, not scout reasoning
+- `install.sh` auto-forces update on version mismatch (bootstrapping fix)
+- Standardized "Type **yes**" prompts across all commands
+- `/feature-resume` auto-invokes `/feature-domains` on scoping complete
 
 **Where things stand:**
-v0.2.0 released and published to GitHub. All prior work merged. Clean main branch.
-No active WIP branches.
+v0.2.2 released and published to GitHub. Several post-release fixes pushed to main
+(not yet in a release). Active testing on jlsm project exposed domain classification
+and install bootstrapping issues — both fixed. `/decisions backfill` designed, captured
+in DEFERRED.md, ready to implement.
 
 ---
 
@@ -43,6 +45,17 @@ No active WIP branches.
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 *All decisions through v0.2.0 graduated to SETTLED.md on 2026-03-16.*
+
+- **Domain Scout must not self-resolve** — `resolved` requires an actual ADR in
+  `.decisions/`. Scout identifies domains and checks for existing coverage; it does
+  not make architectural decisions. Design choices without an ADR → `pending-decision`.
+
+- **Auto-invoke architect/research from domains** — Domain Scout launches sub-agents
+  inline when gaps are found. Default is action, skip requires explicit opt-out.
+
+- **install.sh auto-force on version mismatch** — detects installed version differs
+  from package version and sets FORCE=1 automatically. Fixes bootstrapping problem
+  where buggy upgrade.sh could never be patched.
 
 ---
 
