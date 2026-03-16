@@ -1,6 +1,6 @@
 {
   "name": "vallorcine",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "TDD pipeline and KB/Decisions workflow system for Claude Code. Crash-recoverable feature pipeline with scoping, domain analysis, work planning, and TDD cycles. Pull-model knowledge base and architecture decision store.",
   "author": {
     "name": "vallorcine"

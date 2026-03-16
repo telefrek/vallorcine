@@ -5,6 +5,22 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.3.2] — 2026-03-16
+
+### Added
+- Cross-topic keyword scan in `/architect`, `/kb query`, and `/feature-domains`.
+  KB discovery now searches across all category indexes for tangentially related
+  entries, not just top-down navigation. Catches research in unexpected
+  topics/categories. ~1-2K token cost.
+
+### Fixed
+- `upgrade.sh` — removed python3 dependency for JSON parsing. Uses plain text
+  `gh` output and sed/grep for API responses. Principle 1 compliance.
+- `research.md` — hardcoded year range (2024/2025) replaced with relative
+  `<current_year - 1> OR <current_year>`.
+
+---
+
 ## [0.3.1] — 2026-03-16
 
 ### Added
