@@ -283,11 +283,13 @@ If remote exists, display:
 ```
 ── Push ─────────────────────────────────────────
 Remote: <remote URL>
-Pushing main + tag. Type: skip  to skip.
+Pushing main + tag.
+
+  Type **yes** to push · or: skip
 ```
 
 Wait for input. If "skip": show the manual push commands and stop.
-Otherwise: run immediately:
+If "yes": run immediately:
 
 ```bash
 git push origin main
@@ -312,11 +314,13 @@ If not authenticated: skip to summary with a note.
 If authenticated:
 ```
 ── GitHub Release ───────────────────────────────
-Creating GitHub Release with zip attached. Type: skip  to skip.
+Creating GitHub Release with zip attached.
+
+  Type **yes** to create · or: skip
 ```
 
 Wait for input. If "skip": display manual instructions and skip.
-Otherwise: run immediately:
+If "yes": run immediately:
 
 ```bash
 gh release create "v<NEW_VERSION>" \
