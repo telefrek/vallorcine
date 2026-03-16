@@ -116,16 +116,16 @@ ran normally, but handle it gracefully):
 Display:
 ```
 ── Automation mode was not set during planning ─
-  autonomous  — test → implement → refactor cycles run without stopping.
-               I'll pause if I find something that needs your input.
+  auto    — test → implement → refactor cycles run without stopping.
+            I'll pause if I find something that needs your input.
 
-  manual      — I'll stop after each stage and wait for your command.
+  manual  — I'll stop after each stage and wait for your command.
 
-Type: autonomous  or  manual
+Type: auto  or  manual
 ```
 
 Wait for input:
-- "autonomous": set `automation_mode: autonomous` in status.md
+- "auto" (or "autonomous"): set `automation_mode: autonomous` in status.md
 - "manual": set `automation_mode: manual` in status.md
 
 ---
