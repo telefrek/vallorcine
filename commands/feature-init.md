@@ -1,8 +1,13 @@
 # /feature-init
 
 Sets up the .feature/ directory and project configuration profile.
-Run once per project. Safe to re-run — updates config rather than overwriting.
+Run once per project on the main/shared branch before creating feature branches.
+Safe to re-run — updates config rather than overwriting.
 Also manages the .gitignore entries for .feature/ scratch directories.
+
+> **Important:** project-config.md is committed and shared. Running /feature-init
+> on separate branches with different answers causes merge conflicts. Run it once
+> on main, commit, then branch from there.
 
 ---
 
@@ -164,6 +169,9 @@ last_updated: "<YYYY-MM-DD>"
 
 ## Branch naming
 **Convention:** `<pattern using <slug> as placeholder, e.g. feature/<slug>  —  or "none">`
+
+## Knowledge Base
+**KB staleness threshold (days):** `90`
 ```
 
 ---

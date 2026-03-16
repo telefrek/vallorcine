@@ -12,6 +12,10 @@
 # In-flight work state for crash recovery — read by /ideate, cleared by /save-work
 WIP.md
 
+# ── Changelog staging ───────────────────────────────────────────────────────
+# Session changelog notes accumulated by /save-work, consumed by /release
+.changelog-staging.md
+
 # ── OS / editor ──────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

@@ -75,6 +75,12 @@ Display opening header:
 
 ---
 
+## Step 0b — Token tracking
+
+Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "refactor"'`
+
+---
+
 ## Step 1 — Load context
 
 Read:
@@ -321,6 +327,9 @@ Update `.feature/CLAUDE.md`.
 
 Read `automation_mode` from status.md.
 
+**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "refactor"'`
+and capture the output as TOKEN_USAGE.
+
 **If more work units remain (not the final unit):**
 
 — Autonomous:
@@ -362,7 +371,7 @@ Invoke `/feature-pr "<slug>"` immediately.
 ```
 ───────────────────────────────────────────────
 ✨ REFACTOR AGENT complete · <slug> · Cycle <n>
-⏱  Token estimate: ~<N>K
+  Tokens : <TOKEN_USAGE>
 ───────────────────────────────────────────────
 Refactor cycle <n> complete. <n> tests passing.
 Feature is ready for review.

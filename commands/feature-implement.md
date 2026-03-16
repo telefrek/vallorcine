@@ -99,6 +99,12 @@ Wait for input:
 
 ---
 
+## Step 0b — Token tracking
+
+Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "implementation"'`
+
+---
+
 ## Step 1 — Load context and baseline
 
 Read:
@@ -222,13 +228,16 @@ Update `.feature/CLAUDE.md`.
 
 Read `automation_mode` from status.md.
 
+**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "implementation"'`
+and capture the output as TOKEN_USAGE.
+
 **If `automation_mode: autonomous`:**
 
 Display the unit progress summary then chain immediately without prompting:
 ```
 ───────────────────────────────────────────────
 ⚙️  CODE WRITER complete · <slug> · Cycle <n><  · WU-<n>>
-⏱  Token estimate: ~<N>K
+  Tokens : <TOKEN_USAGE>
 ───────────────────────────────────────────────
 All tests passing. <n> constructs implemented.
 
@@ -252,10 +261,7 @@ Display:
 ```
 ───────────────────────────────────────────────
 ⚙️  CODE WRITER complete · <slug> · Cycle <n><  · WU-<n>>
-⏱  Token estimate: ~<N>K
-   Loaded: work-plan (unit) ~<N>K, <n> test files ~<N>K, <n> stub files ~<N>K
-           dependency interfaces ~<N>K
-   Wrote:  <n> implementation files ~<N>K
+  Tokens : <TOKEN_USAGE>
 ───────────────────────────────────────────────
 All tests passing. Cycle <n><  · WU-<n>>.
 <n> constructs implemented across <list of files>.

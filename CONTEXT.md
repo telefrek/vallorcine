@@ -20,21 +20,32 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-03-14*
+*Last updated: 2026-03-16*
 
-**Session goal:** Fix double version bump — `/release` was re-bumping VERSION even when
-`/save-work` had already bumped it.
+**Session goal:** Continue — triage remaining research brief items.
 
-**Just completed:**
-- Fixed `/release` Step 1: now checks `gh release list` for the latest GitHub release
-  tag before prompting for a bump. If VERSION is already ahead of the latest release,
-  skips the bump and uses the current VERSION as NEW_VERSION. Escape hatch "bump" lets
-  user override deliberately.
+**Just completed (branch: wip/release-and-testing-fixes):**
+- `/release` now syncs README.md version line (was stale at 0.1.0 since initial release)
+- `/save-work` no longer bumps VERSION — stages changelog notes in `.changelog-staging.md`
+  for `/release` to consume. Prevents multi-session version drift.
+- `install.sh --dev` uses temp dir instead of overwriting repo `.claude/`; safety guard
+  blocks `install.sh .` from repo root
+- `tests/test-install.sh` — 9 smoke tests for install + upgrade (all passing)
+- `scripts/token-usage.sh` — per-phase token tracking via session JSONL, integrated into
+  all 8 pipeline commands + `/feature-resume`. Gracefully degrades without jq.
+- COMPETITIVE.md updated with 7 new competitors from research brief (4 memory/knowledge,
+  3 workflow pipelines)
+- DEFERRED.md updated with 6 new feature ideas from research brief
+- 7 open questions from brief triaged: 1 already resolved (token tracking), 3 scoped to
+  deferred team features, 3 added to Open questions below
 
 **Where things stand:**
-PR #1 (wip/session-bugs-and-improvements → main) is still open. This fix is an
-additional commit on that branch. Next: review and merge PR #1, then continue
-feature work via branches. /decisions command is the highest-priority open item.
+Branch `wip/release-and-testing-fixes` has commits, not yet PR'd or merged.
+Research brief (`~/Code/vallorcine-agent-brief.md`) fully consumed — all items triaged.
+
+**Remaining:**
+- Research: team MANIFEST design and concurrency risks (deep design work)
+- Design: scenario test scripts for team features (blocked on MANIFEST research)
 
 ---
 
@@ -129,6 +140,28 @@ Now that v0.1.2 is a live release, all development happens on wip/<topic> branch
 and merges via PR. Direct commits to main are reserved for session context files
 (CONTEXT.md, WIP.md) and emergency patches only.
 
+### 2026-03-15 — VERSION only bumped by /release
+
+Problem: `/save-work` was bumping VERSION, causing drift across multi-session work.
+Decision: `/save-work` Step 3 now stages changelog notes in `.changelog-staging.md`
+(gitignored) instead of touching VERSION or CHANGELOG.md. `/release` reads staged
+notes as the base for release notes, then deletes the file. VERSION is single-owner.
+
+### 2026-03-15 — install.sh self-install safety guard
+
+Problem: `bash install.sh .` from repo root overwrites source `.claude/commands/`.
+`--dev` flag did the same thing. Decision: `--dev` now installs to `mktemp -d`.
+Added safety guard that detects repo root (checks for `install.sh` + `VERSION` at
+target) and blocks with an actionable error message.
+
+### 2026-03-15 — Per-phase token tracking via session JSONL
+
+`scripts/token-usage.sh` reads Claude Code session JSONL to track actual token
+consumption per pipeline phase. Shell-only, zero token cost (runs outside context).
+Requires jq — gracefully returns "unknown" without it. Integrated into all 8 pipeline
+commands (checkpoint at start, summary at completion banner) and `/feature-resume`.
+Filters `stop_reason != null` to avoid double-counting streaming progress updates.
+
 ---
 
 ## Open questions
@@ -148,6 +181,10 @@ and merges via PR. Direct commits to main are reserved for session context files
 - **CONTEXT.md maintenance discipline** — `/save-work` now handles graduation
   and doc sync, but still depends on remembering to run it.
   Could /feature-complete prompt for `/save-work` automatically?
+
+- **install.sh --run-tests flag** — validation flag for fresh installs and
+  upgrades. Would run scenario scripts against a temp repo to verify the
+  installation works before using it on a real project.
 
 ---
 

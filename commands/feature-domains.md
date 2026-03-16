@@ -48,6 +48,12 @@ Display opening header:
 
 ---
 
+## Step 0b — Token tracking
+
+Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "domains"'`
+
+---
+
 ## Step 1 — Extract domains from the brief
 
 Read `brief.md` in full. Identify distinct technical domains — areas where an
@@ -166,13 +172,14 @@ Update `.feature/CLAUDE.md` stage column.
 
 ## Step 5 — Hand off
 
+**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "domains"'`
+and capture the output as TOKEN_USAGE.
+
 Display:
 ```
 ───────────────────────────────────────────────
 🗺️  DOMAIN SCOUT complete · <slug>
-⏱  Token estimate: ~<N>K
-   Loaded: brief ~2K, KB index ~1K, decisions index ~1K<, ADR files ~2-4K each>
-   Wrote:  domains ~3K
+  Tokens : <TOKEN_USAGE>
 ───────────────────────────────────────────────
 Domain analysis written to .feature/<slug>/domains.md
 Resolved: <n> | Gaps noted: <n>

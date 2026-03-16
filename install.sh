@@ -5,7 +5,7 @@
 # Usage:
 #   bash install.sh                    # install into current directory
 #   bash install.sh /path/to/project   # install into target path
-#   bash install.sh --dev              # install into repo itself (for local testing)
+#   bash install.sh --dev              # install to a temp directory (for local testing)
 #
 # Options:
 #   FORCE_UPDATE=1 bash install.sh     # overwrite all existing files
@@ -28,7 +28,8 @@ for arg in "$@"; do
 done
 
 if [[ "$DEV_MODE" == "1" ]]; then
-    TARGET="$SCRIPT_DIR"
+    TARGET="$(mktemp -d)"
+    echo "Dev mode: installing to temp directory $TARGET"
 elif [[ -z "$TARGET" ]]; then
     TARGET="$(pwd)"
 fi
@@ -44,6 +45,25 @@ NC='\033[0m'
 
 skipped=0
 created=0
+
+# ── Safety guard: prevent installing into the vallorcine repo itself ─────────
+
+if [[ "$DEV_MODE" != "1" && -f "$TARGET/install.sh" && -f "$TARGET/VERSION" ]]; then
+    RESOLVED_TARGET="$(cd "$TARGET" && pwd)"
+    if [[ "$RESOLVED_TARGET" == "$SCRIPT_DIR" ]]; then
+        echo ""
+        echo -e "${YELLOW}⚠  Target directory is the vallorcine repo itself.${NC}"
+        echo "   This would overwrite source files in .claude/commands/."
+        echo ""
+        echo "   Use --dev for local testing (installs to a temp directory):"
+        echo "     bash install.sh --dev"
+        echo ""
+        echo "   Or specify a different target project:"
+        echo "     bash install.sh /path/to/your/project"
+        echo ""
+        exit 1
+    fi
+fi
 
 # ── Install helper ────────────────────────────────────────────────────────────
 
@@ -65,7 +85,7 @@ install_file() {
 
 echo ""
 if [[ "$DEV_MODE" == "1" ]]; then
-    echo -e "${BLUE}vallorcine v${VERSION} — dev mode (installing into repo root)${NC}"
+    echo -e "${BLUE}vallorcine v${VERSION} — dev mode (installing into temp directory)${NC}"
 else
     echo -e "${BLUE}vallorcine v${VERSION} — installing into: $TARGET${NC}"
 fi
@@ -122,12 +142,56 @@ echo ""
 echo "── Decisions seed files ─────────────────────────"
 install_file "$SCRIPT_DIR/decisions/CLAUDE.md" "$TARGET/.decisions/CLAUDE.md"
 
+# ── Scripts ───────────────────────────────────────────────────────────────────
+
+echo ""
+echo "── Scripts ──────────────────────────────────────"
+install_file "$SCRIPT_DIR/scripts/token-usage.sh" "$TARGET/.claude/scripts/token-usage.sh"
+install_file "$SCRIPT_DIR/scripts/version-check.sh" "$TARGET/.claude/scripts/version-check.sh"
+install_file "$SCRIPT_DIR/scripts/merge-driver-index.sh" "$TARGET/.claude/scripts/merge-driver-index.sh"
+install_file "$SCRIPT_DIR/scripts/ensure-merge-driver.sh" "$TARGET/.claude/scripts/ensure-merge-driver.sh"
+install_file "$SCRIPT_DIR/scripts/kb-freshness-check.sh" "$TARGET/.claude/scripts/kb-freshness-check.sh"
+
 # ── Upgrade script ───────────────────────────────────────────────────────────
 
 echo ""
 echo "── Upgrade script ───────────────────────────────"
 install_file "$SCRIPT_DIR/upgrade.sh" "$TARGET/.claude/upgrade.sh"
 chmod +x "$TARGET/.claude/upgrade.sh" 2>/dev/null || true
+
+# ── Merge driver for index files ──────────────────────────────────────────────
+
+echo ""
+echo "── Merge driver ─────────────────────────────────"
+
+# Register the merge driver in the project's git config (local, not global)
+if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
+    DRIVER_PATH=".claude/scripts/merge-driver-index.sh"
+    git -C "$TARGET" config merge.vallorcine-index.name "vallorcine index merge (keep all rows)"
+    git -C "$TARGET" config merge.vallorcine-index.driver "bash $DRIVER_PATH %O %A %B"
+    echo -e "  ${GREEN}config${NC} merge.vallorcine-index.driver registered"
+else
+    echo -e "  ${YELLOW}skip${NC}  not a git repo — merge driver not registered"
+fi
+
+# Add .gitattributes entries if not already present
+GITATTRIBUTES="$TARGET/.gitattributes"
+MARKER="# vallorcine merge driver"
+
+if ! grep -qF "$MARKER" "$GITATTRIBUTES" 2>/dev/null; then
+    cat >> "$GITATTRIBUTES" << 'GITATTR'
+
+# vallorcine merge driver — scoped to managed index files only
+# Auto-resolves concurrent table row additions by keeping all rows.
+.kb/CLAUDE.md           merge=vallorcine-index
+.kb/*/CLAUDE.md         merge=vallorcine-index
+.kb/*/*/CLAUDE.md       merge=vallorcine-index
+.decisions/CLAUDE.md    merge=vallorcine-index
+GITATTR
+    echo -e "  ${GREEN}write${NC} .gitattributes  (merge driver entries)"
+else
+    echo -e "  ${YELLOW}skip${NC}  .gitattributes already has merge driver entries"
+fi
 
 # ── Write version stamp, manifest, and source file ───────────────────────────
 
@@ -158,8 +222,9 @@ echo -e "${GREEN}Done.${NC}  v${VERSION}  ·  Created: $created  Skipped: $skipp
 
 if [[ "$DEV_MODE" == "1" ]]; then
     echo ""
-    echo -e "  Dev mode: commands live at .claude/ (gitignored)"
-    echo -e "  Test with Claude Code opened in: $TARGET"
+    echo -e "  Dev mode: installed to temp directory"
+    echo -e "  Test with Claude Code opened in: ${GREEN}$TARGET${NC}"
+    echo -e "  Clean up when done: rm -rf $TARGET"
     echo ""
     exit 0
 fi

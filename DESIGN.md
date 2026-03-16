@@ -448,6 +448,46 @@ files are consistently larger or smaller than the defaults.
 
 ---
 
+## Known team issues
+
+Vallorcine is designed for single-developer use. Team usage works but has known
+edge cases. Pre-flight checks (version skew, KB freshness, merge driver setup)
+run automatically at pipeline start and handle the most common issues.
+
+### Mitigated
+
+**Index merge conflicts** — `.kb/CLAUDE.md` and `.decisions/CLAUDE.md` are the
+narrow conflict surface when multiple developers add KB entries or decisions
+concurrently. A custom git merge driver (`merge-driver-index.sh`) auto-resolves
+these by keeping all rows from both sides. Registered automatically on first
+pipeline command via `ensure-merge-driver.sh`. Scoped via `.gitattributes` to
+only vallorcine-managed index files — never affects user code.
+
+**Stale KB reads** — `kb-freshness-check.sh` warns at pipeline start when the
+current branch's KB or decisions indexes are behind main. Advisory only.
+
+**Version skew** — `version-check.sh` warns when vallorcine version on the
+current branch differs from main.
+
+### Known but not yet mitigated
+
+**ADR contradiction** — two developers can independently accept conflicting ADRs
+for the same question. The merge driver ensures both rows land cleanly in the
+index, but does not detect the semantic conflict (two `accepted` answers to the
+same question). Fix requires a CI check or validation script that scans for
+duplicate accepted slugs. See DEFERRED.md.
+
+**Same feature slug on different branches** — `.feature/<slug>/` is gitignored,
+so two developers using the same slug have silently divergent local state with
+no merge signal. Low probability — avoid by convention: one developer per feature
+slug. Branch names include the slug, so `git branch --list` reveals collisions.
+
+**project-config.md overwrite** — running `/feature-init` on separate branches
+with different answers causes a merge conflict. Fix is convention: run
+`/feature-init` once on main before branching. Documented in `feature-init.md`.
+
+---
+
 ## File manifest
 
 ```
@@ -497,6 +537,22 @@ vallorcine/
 │   ├── kb-protocol.md               ← pull-model rules for KB and decisions
 │   ├── kb-research-agent.md         ← Research Agent identity
 │   └── kb-architect.md              ← Architect Agent identity
+│
+├── scripts/                         ← shell scripts (installed to .claude/scripts/)
+│   ├── token-usage.sh               ← per-phase token tracking via session JSONL
+│   ├── version-check.sh             ← warns if branch vallorcine version is behind main
+│   ├── kb-freshness-check.sh        ← warns if KB/decisions indexes are behind main
+│   ├── merge-driver-index.sh        ← git merge driver for CLAUDE.md index files
+│   └── ensure-merge-driver.sh       ← registers merge driver on first pipeline run
+│
+├── tests/                           ← test scripts (not installed)
+│   ├── test-install.sh              ← install + upgrade smoke tests
+│   ├── scenario-project-config-overwrite.sh
+│   ├── scenario-version-skew.sh
+│   ├── scenario-version-skew-warning.sh
+│   ├── scenario-index-merge-driver.sh
+│   ├── scenario-ensure-merge-driver.sh
+│   └── scenario-stale-kb.sh
 │
 ├── kb/                              ← seed KB structure
 │   ├── CLAUDE.md                    ← KB root index template
