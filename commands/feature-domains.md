@@ -80,11 +80,39 @@ here doesn't lose the domain list.
 For each pending domain:
 1. Read `.kb/CLAUDE.md` — check for relevant topic/category
 2. Read `.decisions/CLAUDE.md` — check for relevant ADR
-3. Classify:
-   - `resolved` — sufficient ADR and/or KB coverage exists
-   - `pending-research` — KB gap, research needed
-   - `pending-decision` — KB exists but no ADR for this decision
-   - `skipped` — user confirmed proceeding without coverage
+3. Classify using the rules below
+
+### Classification rules
+
+**`resolved`** — an existing ADR explicitly covers this domain's decision.
+The ADR must actually exist in `.decisions/` with a confirmed decision. The
+Domain Scout's own reasoning that something is "well-understood" or "standard
+practice" does NOT count as resolution. If no ADR exists, the domain is not
+resolved.
+
+**`pending-decision`** — any domain that involves a design choice, even if the
+answer seems obvious. Specifically:
+- A choice between approaches (storage model A vs B, API shape X vs Y)
+- A data model or schema design (table structure, index strategy, encoding)
+- An integration boundary (how modules compose, what depends on what)
+- A performance/correctness tradeoff
+- Any domain where the guidance section would contain design rationale
+
+The Domain Scout MUST NOT self-resolve these by reasoning about what the "right"
+answer is. That is the Architect Agent's job. The scout identifies domains and
+checks for existing coverage — it does not make architectural decisions.
+
+**`pending-research`** — KB gap exists and research is needed before a decision
+can be made (or the domain is purely informational with no decision component).
+
+**`skipped`** — user explicitly confirmed proceeding without coverage.
+
+### When in doubt: `pending-decision`
+
+If a domain could be `resolved` (because the answer seems obvious) or
+`pending-decision` (because no ADR exists), classify it as `pending-decision`.
+The Architect Agent's deliberation is cheap; an undocumented design assumption
+baked into the implementation is expensive to change later.
 
 Update the Domain Resolution Tracker in status.md immediately after classifying
 each domain (don't wait until all are done — crash safety).
@@ -94,7 +122,7 @@ Display:
 ── Domain coverage ─────────────────────────────
   ✓ RESOLVED          <domain> — ADR: .decisions/<slug>/adr.md
   ⚠ PENDING-RESEARCH  <domain> — no KB entry for <topic/category>
-  ⚠ PENDING-DECISION  <domain> — KB has <entry>, no ADR yet
+  ⚠ PENDING-DECISION  <domain> — no ADR for this design choice
 ```
 
 ---

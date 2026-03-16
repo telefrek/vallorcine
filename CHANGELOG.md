@@ -18,6 +18,10 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 - `/feature-domains` now auto-invokes `/architect` and `/research` as sub-agents
   when gaps are found, instead of deferring to manual user action. Default is to
   resolve decisions inline; user can skip with explicit opt-out.
+- Domain Scout classification rules tightened: `resolved` requires an actual ADR
+  in `.decisions/`, not the scout's own reasoning that something is "standard
+  practice." Design choices without an existing ADR are classified as
+  `pending-decision` and routed to the Architect Agent.
 - `/feature-resume` auto-invokes `/feature-domains` when scoping is complete
   (previously required manual command entry)
 
