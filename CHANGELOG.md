@@ -5,6 +5,41 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.4.1] — 2026-03-17
+
+### Added
+- Status line (`scripts/statusline.sh`) — shows feature slug, pipeline stage,
+  total tokens, and context window % with color-coded warnings (green/yellow/red)
+- Token tracking Stop hook (`scripts/token-stop-hook.sh`) — auto-detects stage
+  transitions and logs to `token-log.md` without any skill-level bash calls
+- `/uninstall-vallorcine` command + `scripts/uninstall.sh` — manifest-based
+  removal with safety guard, `--dry-run` preview, settings/git cleanup, self-delete
+- Domain scout KB empty check — offers research/continue/skip-research when KB
+  has zero topics, with `skip_all_research` flag to suppress per-domain prompts
+- Version display in `/vallorcine-help` headers (reads `.vallorcine-version`)
+- Plugin vs shell install path documentation in README with comparison table
+
+### Changed
+- Install registers Stop hook + status line in `settings.json` automatically
+- Uninstall cleans up token hook and status line from `settings.json`
+- Install auto-removes stale `.claude/commands/<name>.md` when matching skill exists
+
+### Removed
+- Tmux dashboard (`/dashboard` skill, `dashboard-state.sh`, `dashboard-stop-hook.sh`,
+  3 watcher scripts, `watchers/` directory) — retired in favor of status line + hooks
+- All dashboard bash blocks from 9 pipeline skill files
+- All `token_checkpoint` and `token_summary` bash blocks from 8 skill files
+- `commands/` directory — 23 stale pre-migration files deleted from repo
+- Dashboard test file (`test-dashboard.sh`, 14 tests)
+
+### Fixed
+- Unsafe `source` of state files — values now properly escaped with `printf '%q'`
+- Redundant `jq` forks in stop hook (5→1) and statusline (2→1)
+- Non-numeric guards on context percentage and token formatting
+- Migration cleanup for pre-0.4.0 upgraders (duplicate slash commands)
+
+---
+
 ## [0.4.0] — 2026-03-17
 
 ### Added
