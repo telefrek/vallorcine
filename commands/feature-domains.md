@@ -86,6 +86,9 @@ Example checklist during domain resolution:
 
 Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "domains"'`
 
+**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "domains"'`
+(silently — hint output is OK)
+
 ---
 
 ## Step 1 — Extract domains from the brief
@@ -296,6 +299,9 @@ Update `.feature/CLAUDE.md` stage column.
 **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "domains"'`
 and capture the output as TOKEN_USAGE. Update the Stage Completion table: Domains
 row → Actual Tokens from TOKEN_USAGE.
+
+**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "domains"'`
+(silently)
 
 Display:
 ```

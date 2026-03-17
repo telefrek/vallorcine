@@ -100,6 +100,9 @@ item's `activeForm` to reflect current work.
 
 Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "planning"'`
 
+**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "planning"'`
+(silently — hint output is OK)
+
 ---
 
 ## Step 1 — Load context
@@ -439,6 +442,9 @@ display in Step 4.
 **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "planning"'`
 and capture the output as TOKEN_USAGE. Update the Stage Completion table: Planning
 row → Actual Tokens from TOKEN_USAGE.
+
+**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "planning"'`
+(silently)
 
 Use the subagent's returned summary (stubs written, stubs skipped, construct counts)
 for the display below. Do not re-read stub files — the subagent already confirmed them.

@@ -39,6 +39,8 @@ brief.md, and initialises status.md as the restart checkpoint.
   substage `interviewing`
 - **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "scoping"'`
   (silently — no output to the user)
+- **Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_init "<slug>" && dashboard_stage_start "scoping"'`
+  (silently — hint output is OK, the rest is silent)
 
 Display opening header immediately:
 ```
@@ -212,6 +214,9 @@ Update `.feature/CLAUDE.md` Active Features table.
 **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "scoping"'`
 and capture the output as TOKEN_USAGE. Update the Stage Completion table: Scoping
 row → Actual Tokens from TOKEN_USAGE (extract the `<N>K in / <N>K out` values).
+
+**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "scoping"'`
+(silently)
 
 Display:
 ```

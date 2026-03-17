@@ -405,6 +405,7 @@ if [[ -f "$OLD_MANIFEST" && -f "$NEW_MANIFEST" ]]; then
             .claude/agents/*|\
             .claude/rules/*|\
             .claude/scripts/*|\
+            .claude/watchers/*|\
             .claude/upgrade.sh)
                 ;; # known kit prefix — safe to remove
             *)

@@ -28,6 +28,7 @@
 .claude/commands/setup-vallorcine.md
 .claude/commands/upgrade-vallorcine.md
 .claude/commands/vallorcine-help.md
+.claude/commands/dashboard.md
 .claude/agents/architect-agent.md
 .claude/agents/code-writer-agent.md
 .claude/agents/domain-scout-agent.md
@@ -47,4 +48,9 @@
 .claude/scripts/ensure-merge-driver.sh
 .claude/scripts/kb-freshness-check.sh
 .claude/scripts/adr-validate.sh
+.claude/scripts/dashboard-state.sh
+.claude/scripts/dashboard-stop-hook.sh
+.claude/watchers/vallorcine_theme.sh
+.claude/watchers/vallorcine_pipeline.sh
+.claude/watchers/vallorcine_stage-detail.sh
 .claude/upgrade.sh
