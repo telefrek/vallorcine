@@ -8,9 +8,12 @@ debugging unexpected agent behaviour, or evaluating whether to adopt it.
 
 ## What this is
 
-A set of Claude Code slash commands, agent definitions, and rules that turn a
-project into a self-documenting, crash-recoverable, TDD-first development
-environment. Organised around four concerns:
+A reliable engineering partner for Claude Code — persistent knowledge,
+structured decisions, TDD guardrails, and a conversational flow that enforces
+the process you want without the friction you don't. Each feature shipped makes
+the next one faster because the project's context compounds across sessions.
+
+Organised around four concerns:
 
 **Knowledge** — a pull-model knowledge base (`.kb/`) maintained by the Research
 Agent. Research findings accumulate across features and are queried on demand.
@@ -512,17 +515,17 @@ the pattern applies to any language with typed interfaces.
 
 ## Extension points
 
-**Adding a new pipeline stage** — create a command file in `.claude/commands/`
-following the idempotency pattern (read status.md first, check stage, update
-substage throughout), add write authority to `tdd-protocol.md`, add the stage
-to the status file template in `feature.md`.
+**Adding a new pipeline stage** — create a skill directory in `.claude/skills/`
+with a `SKILL.md` following the idempotency pattern (read status.md first, check
+stage, update substage throughout), add write authority to `tdd-protocol.md`, add
+the stage to the status file template in `feature/SKILL.md`.
 
 **Adding a new KB topic** — no structural change needed. The Research Agent
 creates topic directories on first use. Add the topic name to the approved
 topics table in `research.md` if it should be suggested by default.
 
 **Adding a new agent** — create an agent definition in `.claude/agents/`,
-a command file in `.claude/commands/`, and optionally a rule file in
+a skill directory in `.claude/skills/`, and optionally a rule file in
 `.claude/rules/` if the agent needs identity rules loaded every session.
 Keep the rule file under 30 lines — it is always loaded.
 
@@ -584,37 +587,38 @@ vallorcine/
 ├── install.sh                       ← installs to .claude/, .kb/, .decisions/
 ├── upgrade.sh                       ← downloaded into .claude/; applies new releases
 │
-├── commands/                        ← slash commands (loaded on invocation only)
+├── skills/                          ← slash commands as Claude Code skills
 │   │
 │   │  Knowledge
-│   ├── kb.md                        ← /kb — query, lookup, create topics
-│   ├── research.md                  ← /research — KB research session
+│   ├── kb/SKILL.md                  ← /kb — query, lookup, create topics
+│   ├── research/SKILL.md            ← /research — KB research session
 │   │
 │   │  Decisions
-│   ├── architect.md                 ← /architect — architecture decision session
-│   ├── decisions.md                 ← /decisions — query, list, explain, review, backfill, candidates, triage, defer, close
+│   ├── architect/SKILL.md           ← /architect — architecture decision session
+│   ├── decisions/SKILL.md           ← /decisions — query, list, explain, review, backfill, candidates, triage, defer, close
 │   │
 │   │  Features
-│   ├── feature.md                   ← /feature — scoping interview
-│   ├── feature-quick.md             ← /feature-quick — small changes, single session
-│   ├── feature-domains.md           ← /feature-domains — KB/ADR survey, auto-invokes architect/research
-│   ├── feature-plan.md              ← /feature-plan — work plan + stubs + execution strategy
-│   ├── feature-coordinate.md        ← /feature-coordinate — parallel batch coordinator
-│   ├── feature-test.md              ← /feature-test [--unit] — write failing tests
-│   ├── feature-implement.md         ← /feature-implement [--unit] — implement to green
-│   ├── feature-refactor.md          ← /feature-refactor [--unit] — quality review (2a-2h)
-│   ├── feature-pr.md                ← /feature-pr — PR draft + gh pr create
-│   ├── feature-retro.md             ← /feature-retro — post-feature retrospective
-│   ├── feature-complete.md          ← /feature-complete — post-merge archival
-│   ├── feature-resume.md            ← /feature-resume [--status] [--share] — crash recovery + briefing
-│   ├── feature-cleanup.md           ← /feature-cleanup — review stale feature directories
-│   ├── feature-init.md              ← /feature-init — project profile setup + branch prompt
+│   ├── feature/SKILL.md             ← /feature — scoping interview
+│   ├── feature-quick/SKILL.md       ← /feature-quick — small changes, single session
+│   ├── feature-domains/SKILL.md     ← /feature-domains — KB/ADR survey, auto-invokes architect/research
+│   ├── feature-plan/SKILL.md        ← /feature-plan — work plan + stubs + execution strategy
+│   ├── feature-coordinate/SKILL.md  ← /feature-coordinate — parallel batch coordinator
+│   ├── feature-test/SKILL.md        ← /feature-test [--unit] — write failing tests
+│   ├── feature-implement/SKILL.md   ← /feature-implement [--unit] — implement to green
+│   ├── feature-refactor/SKILL.md    ← /feature-refactor [--unit] — quality review (2a-2h)
+│   ├── feature-pr/SKILL.md          ← /feature-pr — PR draft + gh pr create
+│   ├── feature-retro/SKILL.md       ← /feature-retro — post-feature retrospective
+│   ├── feature-complete/SKILL.md    ← /feature-complete — post-merge archival
+│   ├── feature-resume/SKILL.md      ← /feature-resume [--status] [--share] — crash recovery + briefing
+│   ├── feature-cleanup/SKILL.md     ← /feature-cleanup — review stale feature directories
+│   ├── feature-init/SKILL.md        ← /feature-init — project profile setup + branch prompt
 │   │
 │   │  System
-│   ├── vallorcine-help.md           ← /vallorcine-help — entry point, router, question answering
-│   ├── setup-vallorcine.md          ← /setup-vallorcine — initialise KB and decisions structure
-│   ├── upgrade-vallorcine.md        ← /upgrade-vallorcine — check and apply kit updates
-│   └── project-context.md           ← /project-context — team-shared codebase knowledge
+│   ├── vallorcine-help/SKILL.md     ← /vallorcine-help — entry point, router, question answering
+│   ├── setup-vallorcine/SKILL.md    ← /setup-vallorcine — initialise KB and decisions structure
+│   ├── upgrade-vallorcine/SKILL.md  ← /upgrade-vallorcine — check and apply kit updates
+│   ├── project-context/SKILL.md     ← /project-context — team-shared codebase knowledge
+│   └── dashboard/SKILL.md           ← /dashboard — tmux dashboard (launch/off/on)
 │
 ├── agents/                          ← agent identity definitions
 │   ├── scoping-agent.md
@@ -638,10 +642,18 @@ vallorcine/
 │   ├── kb-freshness-check.sh        ← warns if KB/decisions indexes are behind main
 │   ├── merge-driver-index.sh        ← git merge driver for CLAUDE.md index files
 │   ├── ensure-merge-driver.sh       ← registers merge driver on first pipeline run
-│   └── adr-validate.sh             ← warns if contradictory accepted ADRs exist
+│   ├── adr-validate.sh              ← warns if contradictory accepted ADRs exist
+│   ├── dashboard-state.sh           ← dashboard state helper library (12 functions)
+│   └── dashboard-stop-hook.sh       ← Stop hook for live token counter
+│
+├── watchers/                        ← tmux dashboard watcher scripts
+│   ├── vallorcine_theme.sh          ← shared icon/color palette, token formatting
+│   ├── vallorcine_pipeline.sh       ← pipeline progress pane watcher
+│   └── vallorcine_stage-detail.sh   ← stage detail pane watcher
 │
 ├── tests/                           ← test scripts (not installed)
-│   ├── test-install.sh              ← install + upgrade smoke tests
+│   ├── test-install.sh              ← install + upgrade smoke tests (20 tests)
+│   ├── test-dashboard.sh            ← dashboard watcher + state tests (23 tests)
 │   ├── scenario-project-config-overwrite.sh
 │   ├── scenario-version-skew.sh
 │   ├── scenario-version-skew-warning.sh

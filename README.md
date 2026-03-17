@@ -1,19 +1,30 @@
 # vallorcine
 
-A Claude Code workflow package built around four concerns:
+**A reliable engineering partner for Claude Code that's easy to work with.**
 
-**Knowledge** — pull-model knowledge base. Research findings accumulate in `.kb/`
-and are queried on demand.
+vallorcine enforces the process you want without the friction you don't —
+persistent knowledge, structured decisions, TDD guardrails, and a conversational
+flow that just tells you what's next. Each feature you ship makes the next one
+faster because your project's context compounds, not its token cost.
 
-**Decisions** — architecture decision store. The Architect Agent deliberates
-tradeoffs and writes ADRs to `.decisions/`. Decisions compound across features.
+No dependencies. `bash install.sh` and go.
 
-**Features** — TDD pipeline. Scoping → domain analysis → work planning → test →
-implement → refactor → PR → retrospective. Crash-recoverable, token-aware,
-with parallel work unit execution.
+### Four concerns
 
-**System** — setup, upgrade, project context, and help. One-time configuration
-and ongoing maintenance.
+**Knowledge** — research findings accumulate in `.kb/` and are queried on demand.
+Your project learns once and remembers forever.
+
+**Decisions** — the Architect Agent deliberates tradeoffs and writes ADRs to
+`.decisions/`. Decisions compound across features — you don't re-debate settled
+questions.
+
+**Features** — TDD pipeline from scoping through PR, with crash recovery and
+parallel work unit execution. Claude follows the discipline so you can focus on
+directing the work, not policing it.
+
+**System** — setup, upgrade, live dashboard, and help. `/vallorcine-help` routes
+you to the right command. The tmux dashboard shows exactly what's happening so
+you stay in control.
 
 ---
 
@@ -64,10 +75,9 @@ graph LR
     style DECQ fill:#f59e0b,color:#fff
 ```
 
-The knowledge and decisions layers are independent — they accumulate across
-features and get richer over time. Features read from them during domain analysis
-and write back via retrospectives. The project layer gets more valuable with
-every feature completed.
+Knowledge and decisions accumulate across features and get richer over time.
+Features read from them during domain analysis and write back via retrospectives.
+This feedback loop is what makes the 5th feature on a project faster than the 1st.
 
 ---
 
@@ -127,6 +137,8 @@ every feature completed.
 | `/project-context add "<entry>"` | Add team-shared codebase knowledge |
 | `/project-context cleanup` | Review expired context entries |
 | `/project-context` | Display all active context entries |
+| `/dashboard` | Launch tmux dashboard (pipeline progress + stage detail) |
+| `/dashboard off` | Suppress dashboard hint |
 
 ---
 
