@@ -8,9 +8,12 @@ debugging unexpected agent behaviour, or evaluating whether to adopt it.
 
 ## What this is
 
-A set of Claude Code slash commands, agent definitions, and rules that turn a
-project into a self-documenting, crash-recoverable, TDD-first development
-environment. Organised around four concerns:
+A reliable engineering partner for Claude Code — persistent knowledge,
+structured decisions, TDD guardrails, and a conversational flow that enforces
+the process you want without the friction you don't. Each feature shipped makes
+the next one faster because the project's context compounds across sessions.
+
+Organised around four concerns:
 
 **Knowledge** — a pull-model knowledge base (`.kb/`) maintained by the Research
 Agent. Research findings accumulate across features and are queried on demand.

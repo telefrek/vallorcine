@@ -1,14 +1,14 @@
 {
   "name": "vallorcine",
   "version": "0.3.4",
-  "description": "TDD pipeline and KB/Decisions workflow system for Claude Code. Crash-recoverable feature pipeline with scoping, domain analysis, work planning, and TDD cycles. Pull-model knowledge base and architecture decision store.",
+  "description": "A reliable engineering partner for Claude Code. Persistent knowledge base, structured architecture decisions, crash-recoverable TDD pipeline, and live tmux dashboard. Sessions compound — each feature makes the next one faster.",
   "author": {
     "name": "vallorcine"
   },
   "license": "MIT",
   "keywords": ["tdd", "workflow", "knowledge-base", "decisions", "pipeline", "agents"],
   "components": {
-    "commands": ["commands/"],
+    "skills": ["skills/"],
     "agents": ["agents/"],
     "rules": ["rules/"]
   }
