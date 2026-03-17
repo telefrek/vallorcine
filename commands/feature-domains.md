@@ -48,6 +48,40 @@ Display opening header:
 
 ---
 
+## Step 0a — Progress tracking
+
+Use TodoWrite to show progress in the Claude Code UI (visible via Ctrl+T).
+Each TodoWrite call replaces the full list — always include all items.
+
+**Pipeline context:** Include the full feature lifecycle as top-level items.
+Mark earlier stages `completed`, current `in_progress`, later `pending`.
+
+**Per-domain granularity:** After extracting domains (Step 1), add an item for
+each domain. Update status as each is surveyed and resolved. Use `activeForm`
+to show what is happening (e.g., "Checking KB for rate-limiting coverage").
+
+Example checklist during domain resolution:
+```json
+[
+  {"id": "pipeline-scoping", "content": "Scoping", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-domains", "content": "Domain analysis", "status": "in_progress", "priority": "high",
+   "activeForm": "Resolving domain 2 of 3"},
+  {"id": "pipeline-planning", "content": "Work planning", "status": "pending", "priority": "medium"},
+  {"id": "pipeline-testing", "content": "Test writing", "status": "pending", "priority": "medium"},
+  {"id": "pipeline-implementation", "content": "Implementation", "status": "pending", "priority": "medium"},
+  {"id": "pipeline-refactor", "content": "Refactor & review", "status": "pending", "priority": "medium"},
+  {"id": "pipeline-pr", "content": "PR draft", "status": "pending", "priority": "medium"},
+  {"id": "domain-1", "content": "Rate limiting strategy", "status": "completed", "priority": "high"},
+  {"id": "domain-2", "content": "Token storage", "status": "in_progress", "priority": "high",
+   "activeForm": "Launching /architect for storage model decision"},
+  {"id": "domain-3", "content": "API boundary design", "status": "pending", "priority": "high"},
+  {"id": "write-domains", "content": "Write domains.md", "status": "pending", "priority": "medium"},
+  {"id": "handoff", "content": "Hand off to work planning", "status": "pending", "priority": "medium"}
+]
+```
+
+---
+
 ## Step 0b — Token tracking
 
 Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "domains"'`

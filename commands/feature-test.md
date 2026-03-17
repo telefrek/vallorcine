@@ -159,6 +159,47 @@ Display opening header:
 
 ---
 
+## Step 0a — Progress tracking
+
+**Skip TodoWrite if `execution_strategy` is `balanced` or `speed`.** In
+parallel mode, the coordinator owns TodoWrite — subagents must not call it
+or they will overwrite the coordinator's checklist.
+
+**In sequential/cost mode:** use TodoWrite to show progress in the Claude Code
+UI (visible via Ctrl+T). Each TodoWrite call replaces the full list — always
+include all items.
+
+**Pipeline context:** Include the full feature lifecycle as top-level items.
+Mark earlier stages `completed`, current `in_progress`, later `pending`.
+
+**Per-test granularity:** After the test plan is confirmed (Step 2), add an
+item for each test case from the plan. Update each to `in_progress` while
+writing and `completed` when done. Use `activeForm` to show which file is
+being written.
+
+Example checklist during test writing:
+```json
+[
+  {"id": "pipeline-scoping", "content": "Scoping", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-domains", "content": "Domain analysis", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-planning", "content": "Work planning", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-testing", "content": "Test writing", "status": "in_progress", "priority": "high",
+   "activeForm": "Writing test 3 of 8"},
+  {"id": "pipeline-implementation", "content": "Implementation", "status": "pending", "priority": "medium"},
+  {"id": "pipeline-refactor", "content": "Refactor & review", "status": "pending", "priority": "medium"},
+  {"id": "pipeline-pr", "content": "PR draft", "status": "pending", "priority": "medium"},
+  {"id": "test-1", "content": "test_returns_token_on_valid_input", "status": "completed", "priority": "high"},
+  {"id": "test-2", "content": "test_rejects_empty_input", "status": "completed", "priority": "high"},
+  {"id": "test-3", "content": "test_rate_limit_exceeded", "status": "in_progress", "priority": "high",
+   "activeForm": "Writing to tests/test_rate_limit.py"},
+  {"id": "test-4", "content": "test_concurrent_access", "status": "pending", "priority": "high"},
+  {"id": "verify-fail", "content": "Verify all tests fail (not-implemented)", "status": "pending", "priority": "high"},
+  {"id": "handoff", "content": "Hand off to implementation", "status": "pending", "priority": "medium"}
+]
+```
+
+---
+
 ## Step 0b — Token tracking
 
 Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "testing"'`

@@ -38,6 +38,33 @@ Stop. Do not continue to other steps.
 
 ---
 
+## Step 0a — Progress tracking
+
+Use TodoWrite to show progress in the Claude Code UI (visible via Ctrl+T).
+Each TodoWrite call replaces the full list — always include all items.
+
+After reading status.md (Step 1), build a pipeline-level checklist showing
+where the feature currently is. Mark stages based on status.md data.
+
+If auto-invoke triggers (Step 3), add the invoked command as a new item and
+let the invoked command take over TodoWrite from there.
+
+Example:
+```json
+[
+  {"id": "pipeline-scoping", "content": "Scoping", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-domains", "content": "Domain analysis", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-planning", "content": "Work planning", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-testing", "content": "Test writing", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-implementation", "content": "Implementation", "status": "in_progress", "priority": "high",
+   "activeForm": "Resuming — 3/5 tests passing"},
+  {"id": "pipeline-refactor", "content": "Refactor & review", "status": "pending", "priority": "medium"},
+  {"id": "pipeline-pr", "content": "PR draft", "status": "pending", "priority": "medium"}
+]
+```
+
+---
+
 ## Step 1 — Read status
 
 Check `.feature/<slug>/status.md`. If it does not exist:

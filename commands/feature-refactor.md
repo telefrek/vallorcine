@@ -93,6 +93,49 @@ Display opening header:
 
 ---
 
+## Step 0a — Progress tracking
+
+**Skip TodoWrite if `execution_strategy` is `balanced` or `speed`.** In
+parallel mode, the coordinator owns TodoWrite — subagents must not call it
+or they will overwrite the coordinator's checklist.
+
+**In sequential/cost mode:** use TodoWrite to show progress in the Claude Code
+UI (visible via Ctrl+T). Each TodoWrite call replaces the full list — always
+include all items.
+
+**Pipeline context:** Include the full feature lifecycle as top-level items.
+Mark earlier stages `completed`, current `in_progress`, later `pending`.
+
+**Per-check granularity:** Each refactor checklist item (2a–2h) gets its own
+TodoWrite item. Use `activeForm` to show what is being reviewed or fixed
+(e.g., "Fixing: unused import in src/rate.py").
+
+```json
+[
+  {"id": "pipeline-scoping", "content": "Scoping", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-domains", "content": "Domain analysis", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-planning", "content": "Work planning", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-testing", "content": "Test writing", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-implementation", "content": "Implementation", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-refactor", "content": "Refactor & review", "status": "in_progress", "priority": "high",
+   "activeForm": "2a — Coding standards"},
+  {"id": "pipeline-pr", "content": "PR draft", "status": "pending", "priority": "medium"},
+  {"id": "coding-standards", "content": "2a — Coding standards", "status": "in_progress", "priority": "medium",
+   "activeForm": "Fixing: unused import in src/rate.py"},
+  {"id": "duplication", "content": "2b — Duplication check", "status": "pending", "priority": "medium"},
+  {"id": "security", "content": "2c — Security fixes", "status": "pending", "priority": "high"},
+  {"id": "performance", "content": "2d — Performance review", "status": "pending", "priority": "medium"},
+  {"id": "missing-tests", "content": "2e — Missing test coverage", "status": "pending", "priority": "high"},
+  {"id": "integration", "content": "2f — Integration tests", "status": "pending", "priority": "medium"},
+  {"id": "documentation", "content": "2g — Documentation check", "status": "pending", "priority": "medium"},
+  {"id": "security-review", "content": "2h — Security review", "status": "pending", "priority": "high"},
+  {"id": "final-lint", "content": "Final lint and test run", "status": "pending", "priority": "medium"},
+  {"id": "handoff", "content": "Log and hand off", "status": "pending", "priority": "medium"}
+]
+```
+
+---
+
 ## Step 0b — Token tracking
 
 Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "refactor"'`
