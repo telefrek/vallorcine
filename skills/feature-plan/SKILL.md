@@ -1,3 +1,8 @@
+---
+description: "Produce a work plan and stub implementations from the brief and domain analysis"
+argument-hint: "<feature-slug>"
+---
+
 # /feature-plan "<feature-slug>"
 
 Reads the brief, domain analysis, and governing ADRs to produce a work plan

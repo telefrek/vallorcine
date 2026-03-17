@@ -1,3 +1,8 @@
+---
+description: "Analyse the feature brief to identify relevant KB topics and ADRs"
+argument-hint: "<feature-slug>"
+---
+
 # /feature-domains "<feature-slug>"
 
 Analyses the feature brief to identify relevant KB topics and ADRs.

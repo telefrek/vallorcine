@@ -1,3 +1,8 @@
+---
+description: "Draft a pull request title, description, and review checklist"
+argument-hint: "<feature-slug>"
+---
+
 # /feature-pr "<feature-slug>"
 
 Drafts a pull request title, description, and review checklist by reading the

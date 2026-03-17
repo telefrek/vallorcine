@@ -22,25 +22,23 @@ state of the project — what's happening now and what's next.
 
 *Last updated: 2026-03-17*
 
-**TodoWrite progress tracking and upgrade safety.** Added two-tier TodoWrite
-progress checklists across all TDD pipeline commands, plus crash recovery for
-`/ideate` and a safety guard for the upgrade stale file removal.
+**Tmux dashboard and skills migration.** Built a two-pane tmux dashboard for
+real-time pipeline visibility, then migrated all commands to Claude Code skills.
 
 **What shipped this session:**
-- TodoWrite progress tracking in 7 pipeline commands (plan, domains, coordinate,
-  test, implement, refactor, resume) — pipeline-level + stage-level granularity
-  with `activeForm` for real-time detail
-- Parallel mode: coordinator owns TodoWrite exclusively, polls per-unit status.md
-  to update activeForm on each work unit. Subagents skip TodoWrite.
-- `/ideate` Step 1.5: writes WIP.md immediately so crash recovery works
-- `upgrade.sh` safety guard: prefix allowlist prevents corrupted manifest from
-  deleting user files or project source code
-- `install.sh` fix: adr-validate.sh was in MANIFEST but not installed
-- Regression test (test 9): 5 assertions covering user file preservation
+- Two-pane tmux dashboard: pipeline progress (top-right) + stage detail (bottom-right)
+- `vallorcine_theme.sh`, `vallorcine_pipeline.sh`, `vallorcine_stage-detail.sh` watchers
+- `dashboard-state.sh` helper library (12 functions for agents to write state)
+- `dashboard-stop-hook.sh` Stop hook for live token counter mid-stage
+- `/dashboard` command (launch/off/on) with once-per-session hint at pipeline start
+- Dashboard calls integrated into all 7 pipeline commands
+- Skills migration: 23 commands → `.claude/skills/<name>/SKILL.md` with YAML frontmatter
+- All slash command names unchanged (`/feature`, `/research`, etc.)
+- 43 tests passing (20 install + 23 dashboard)
 
 **Where things stand:**
-All work committed on main (2 commits, not yet pushed). v0.3.3 is current
-release. WIP.md cleared.
+PR #11 open on `feat/tmux-dashboard-and-skills-migration` (2 commits). v0.3.4
+is current release.
 
 ---
 
@@ -48,19 +46,34 @@ release. WIP.md cleared.
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **TodoWrite two-tier progress tracking** (2026-03-17) — pipeline-level checklist
-  (scoping → PR) in every command, plus stage-level granularity (per-test,
-  per-construct, per-domain, per-refactor-check). Uses `activeForm` for real-time
-  detail. Coordinator owns TodoWrite in parallel mode; subagents skip it.
+- **Tmux dashboard: two panes, project-scoped state** (2026-03-17) — pipeline
+  progress + stage detail panes. State in `.claude/dashboard/` (gitignored).
+  Agents write state directly; Stop hook updates live token counter. Explicit
+  `/dashboard` launch, prompted once per session at first pipeline command.
 
-- **/ideate writes WIP.md immediately** (2026-03-17) — Step 1.5 added: after
-  determining session goal, write WIP.md before reading context. Prevents losing
-  session state on crash. Appends if WIP.md already has in-flight work.
+- **Dashboard toggle via `/dashboard off`** (2026-03-17) — `.nodashboard`
+  sentinel in `.claude/dashboard/` (developer-local, gitignored). `/dashboard on`
+  removes it.
 
-- **Upgrade safety guard: prefix allowlist** (2026-03-17) — stale file removal
-  only operates on known kit-managed prefixes (.claude/commands/, agents/, rules/,
-  scripts/, upgrade.sh). Non-kit paths in a corrupted manifest are skipped with a
-  warning. Regression test added.
+- **Token display: hybrid actuals + live counter** (2026-03-17) — stage-boundary
+  writes for per-stage actuals. Stop hook writes running total for active stage.
+  Estimates only shown when Work Planner provides real data — never guessed.
+
+- **Artifacts in stage detail, not just TDD** (2026-03-17) — `stage.json` has
+  `tasks` (agent actions) and `artifacts` (construct lifecycle). Artifacts track
+  status across all stages, not just testing.
+
+- **Skills migration** (2026-03-17) — all 23 commands moved from
+  `.claude/commands/*.md` to `.claude/skills/<name>/SKILL.md`. YAML frontmatter
+  (description, argument-hint). Slash command names unchanged. Positions kit for
+  Claude Code next-gen skill features.
+
+- **Watcher files prefixed `vallorcine_`** (2026-03-17) — prevents namespace
+  collisions if users have their own dashboard watchers for other tools.
+
+- **Never guess estimates** (2026-03-17) — if we don't have real data, show
+  "unknown" rather than made-up numbers. Applies to token budgets, progress bars,
+  and all forward-looking displays.
 
 ---
 
@@ -74,10 +87,6 @@ release. WIP.md cleared.
 - **Work unit split thresholds** — 15K crossover and 3.5K per-construct are
   reasoned estimates, not measured. Token tracking is collecting actuals — needs
   data review once enough features have run with tracking enabled.
-
-- ~~feature-resume PR auto-invoke~~ — **done** (2026-03-17). Fixed routing
-  table (refactor/complete → PR, not complete), added yes/stop prompts for
-  PR drafting and retrospective. Also added retro prompt to /feature-pr itself.
 
 ### Do when needed (useful but workarounds exist)
 

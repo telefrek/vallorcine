@@ -1,3 +1,8 @@
+---
+description: "Write failing tests from work-plan contracts and acceptance criteria"
+argument-hint: "<feature-slug> [--unit <WU-N>] [--add-missing] [--escalation]"
+---
+
 # /feature-test "<feature-slug>" [--unit <WU-N>] [--add-missing] [--escalation]
 
 Writes failing tests from work-plan contracts and brief acceptance criteria.

@@ -1,3 +1,8 @@
+---
+description: "Open a new feature session with scoping interview and brief"
+argument-hint: "<description>"
+---
+
 # /feature "<description>"
 
 Opens a new feature session. Interviews the user, confirms a brief, writes

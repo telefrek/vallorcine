@@ -128,12 +128,13 @@ if [[ -f "$INSTALLED_VERSION_FILE" ]]; then
     fi
 fi
 
-# ── Slash commands ────────────────────────────────────────────────────────────
+# ── Skills (slash commands) ───────────────────────────────────────────────────
 
 echo ""
-echo "── Slash commands ───────────────────────────────"
-for f in "$SCRIPT_DIR"/commands/*.md; do
-    install_file "$f" "$TARGET/.claude/commands/$(basename "$f")"
+echo "── Skills ───────────────────────────────────────"
+for d in "$SCRIPT_DIR"/skills/*/; do
+    skill_name="$(basename "$d")"
+    install_file "$d/SKILL.md" "$TARGET/.claude/skills/$skill_name/SKILL.md"
 done
 
 # ── Agent definitions ─────────────────────────────────────────────────────────
@@ -176,6 +177,16 @@ install_file "$SCRIPT_DIR/scripts/merge-driver-index.sh" "$TARGET/.claude/script
 install_file "$SCRIPT_DIR/scripts/ensure-merge-driver.sh" "$TARGET/.claude/scripts/ensure-merge-driver.sh"
 install_file "$SCRIPT_DIR/scripts/kb-freshness-check.sh" "$TARGET/.claude/scripts/kb-freshness-check.sh"
 install_file "$SCRIPT_DIR/scripts/adr-validate.sh" "$TARGET/.claude/scripts/adr-validate.sh"
+install_file "$SCRIPT_DIR/scripts/dashboard-state.sh" "$TARGET/.claude/scripts/dashboard-state.sh"
+install_file "$SCRIPT_DIR/scripts/dashboard-stop-hook.sh" "$TARGET/.claude/scripts/dashboard-stop-hook.sh"
+
+# ── Dashboard watchers ────────────────────────────────────────────────────────
+
+echo ""
+echo "── Dashboard watchers ───────────────────────────"
+for f in "$SCRIPT_DIR"/watchers/*.sh; do
+    install_file "$f" "$TARGET/.claude/watchers/$(basename "$f")"
+done
 
 # ── Upgrade script ───────────────────────────────────────────────────────────
 
@@ -216,6 +227,61 @@ GITATTR
     echo -e "  ${GREEN}write${NC} .gitattributes  (merge driver entries)"
 else
     echo -e "  ${YELLOW}skip${NC}  .gitattributes already has merge driver entries"
+fi
+
+# ── Dashboard Stop hook in settings.json ──────────────────────────────────────
+
+echo ""
+echo "── Dashboard hook ───────────────────────────────"
+
+SETTINGS_FILE="$TARGET/.claude/settings.json"
+HOOK_MARKER="dashboard-stop-hook.sh"
+
+if [[ "$DIFF_MODE" != "1" ]]; then
+    if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$HOOK_MARKER" "$SETTINGS_FILE" 2>/dev/null; then
+        echo -e "  ${YELLOW}skip${NC}  Stop hook already registered in settings.json"
+    else
+        # Create or merge into settings.json
+        if [[ -f "$SETTINGS_FILE" ]] && command -v jq &>/dev/null; then
+            # Merge hook into existing settings
+            jq '.hooks.Stop = ((.hooks.Stop // []) + [{
+                "hooks": [{
+                    "type": "command",
+                    "command": "cat > /dev/null; bash .claude/scripts/dashboard-stop-hook.sh"
+                }]
+            }])' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+            echo -e "  ${GREEN}merge${NC} Stop hook added to existing settings.json"
+        elif [[ ! -f "$SETTINGS_FILE" ]]; then
+            # Create new settings.json with just the hook
+            cat > "$SETTINGS_FILE" << 'HOOKJSON'
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat > /dev/null; bash .claude/scripts/dashboard-stop-hook.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+HOOKJSON
+            echo -e "  ${GREEN}write${NC} settings.json with Stop hook"
+        else
+            echo -e "  ${YELLOW}skip${NC}  settings.json exists but jq not available — add Stop hook manually"
+            echo "         See: .claude/scripts/dashboard-stop-hook.sh"
+        fi
+    fi
+else
+    if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$HOOK_MARKER" "$SETTINGS_FILE" 2>/dev/null; then
+        ((unchanged++)) || true
+    else
+        echo -e "  ${GREEN}new${NC}    Stop hook in settings.json"
+        ((changed++)) || true
+    fi
 fi
 
 # ── Diff mode exit ──────────────────────────────────────────────────────────

@@ -281,6 +281,25 @@ Notices surface at /feature-domains and /feature-resume.
 Committed file at project root. 90-day expiry, scoped entries, 50-entry cap.
 /project-context command (not /context — that's a Claude Code built-in).
 
+## TodoWrite two-tier progress tracking (2026-03-17)
+
+Pipeline-level checklist (scoping → PR) in every command, plus stage-level
+granularity (per-test, per-construct, per-domain, per-refactor-check). Uses
+`activeForm` for real-time detail. Coordinator owns TodoWrite in parallel
+mode; subagents skip it.
+
+## /ideate writes WIP.md immediately (2026-03-17)
+
+Step 1.5: after determining session goal, write WIP.md before reading context.
+Prevents losing session state on crash. Appends if WIP.md already has in-flight
+work.
+
+## Upgrade safety guard: prefix allowlist (2026-03-17)
+
+Stale file removal only operates on known kit-managed prefixes. Non-kit paths
+in a corrupted manifest are skipped with a warning. Regression test covers
+5 assertions for user file preservation.
+
 ## setup-vallorcine and feature-init remain separate (2026-03-16)
 
 Originally considered merging both into a single command (both are one-time setup).

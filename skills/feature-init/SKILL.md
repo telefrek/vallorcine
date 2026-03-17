@@ -1,3 +1,7 @@
+---
+description: "Set up the .feature/ directory and project configuration profile"
+---
+
 # /feature-init
 
 Sets up the .feature/ directory and project configuration profile.

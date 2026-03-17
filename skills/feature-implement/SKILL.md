@@ -1,3 +1,8 @@
+---
+description: "Implement stubs until all tests pass"
+argument-hint: "<feature-slug> [--unit <WU-N>]"
+---
+
 # /feature-implement "<feature-slug>" [--unit <WU-N>]
 
 Implements stubs until all tests pass. Idempotent — checks current test state

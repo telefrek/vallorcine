@@ -1,3 +1,8 @@
+---
+description: "Review and refactor implemented code with quality checklist"
+argument-hint: "<feature-slug> [--unit <WU-N>]"
+---
+
 # /feature-refactor "<feature-slug>" [--unit <WU-N>]
 
 Reviews and refactors implemented code. Tracks cycles, warns at cycle 3,
