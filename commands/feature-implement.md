@@ -130,6 +130,48 @@ Wait for input:
 
 ---
 
+## Step 0a — Progress tracking
+
+**Skip TodoWrite if `execution_strategy` is `balanced` or `speed`.** In
+parallel mode, the coordinator owns TodoWrite — subagents must not call it
+or they will overwrite the coordinator's checklist.
+
+**In sequential/cost mode:** use TodoWrite to show progress in the Claude Code
+UI (visible via Ctrl+T). Each TodoWrite call replaces the full list — always
+include all items.
+
+**Pipeline context:** Include the full feature lifecycle as top-level items.
+Mark earlier stages `completed`, current `in_progress`, later `pending`.
+
+**Per-construct granularity:** After loading context (Step 1), add an item for
+each construct from the work plan's implementation order. Use `activeForm` to
+show which file is being edited and test pass status.
+
+Example checklist during implementation:
+```json
+[
+  {"id": "pipeline-scoping", "content": "Scoping", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-domains", "content": "Domain analysis", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-planning", "content": "Work planning", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-testing", "content": "Test writing", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-implementation", "content": "Implementation", "status": "in_progress", "priority": "high",
+   "activeForm": "Implementing 2 of 4 constructs"},
+  {"id": "pipeline-refactor", "content": "Refactor & review", "status": "pending", "priority": "medium"},
+  {"id": "pipeline-pr", "content": "PR draft", "status": "pending", "priority": "medium"},
+  {"id": "impl-token-bucket", "content": "TokenBucket — src/rate.py", "status": "completed", "priority": "high"},
+  {"id": "impl-rate-middleware", "content": "RateLimitMiddleware — src/middleware.py", "status": "in_progress",
+   "priority": "high", "activeForm": "Editing src/middleware.py — 2/3 tests passing"},
+  {"id": "impl-config-loader", "content": "ConfigLoader — src/config.py", "status": "pending", "priority": "high"},
+  {"id": "verify", "content": "Final verification — all tests passing", "status": "pending", "priority": "high"},
+  {"id": "handoff", "content": "Hand off to refactor", "status": "pending", "priority": "medium"}
+]
+```
+
+Update the checklist after each construct's tests pass — mark the construct
+`completed` and move to the next.
+
+---
+
 ## Step 0b — Token tracking
 
 Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "implementation"'`

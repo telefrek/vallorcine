@@ -18,6 +18,29 @@ Wait for their response and use it as the session goal.
 
 ---
 
+## Step 1.5 — Write WIP.md immediately
+
+Before reading any context files, write `WIP.md` at the project root so the
+session goal survives a crash or context overflow:
+
+```markdown
+# WIP — <session goal>
+
+**Session goal:** <the goal from Step 1>
+**Status:** Starting — reading context.
+**Started:** <YYYY-MM-DD>
+
+## TODO
+
+- [ ] (to be filled in once session work begins)
+```
+
+If WIP.md already exists and contains in-flight work: do NOT overwrite it.
+Instead, append the new session goal under a `## New session` heading so
+both the old state and the new goal are preserved.
+
+---
+
 ## Step 2 — Read context
 
 Read these files in order:

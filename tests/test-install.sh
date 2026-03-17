@@ -323,6 +323,88 @@ else
     fail "upgrade should preserve command files"
 fi
 
+# ── Test 9: Upgrade stale removal preserves user files ──────────────
+
+echo ""
+echo "── Test 9: Upgrade stale removal preserves user files"
+
+STALE_TARGET="$(make_temp)"
+bash "$REPO_ROOT/install.sh" "$STALE_TARGET" >/dev/null 2>&1
+
+# 9a: User files in .claude/commands/ that are NOT in the manifest
+# should never be touched (stale removal only reads the manifest)
+echo "# my perf test skill" > "$STALE_TARGET/.claude/commands/perf-test.md"
+echo "# my custom skill" > "$STALE_TARGET/.claude/commands/my-custom-tool.md"
+
+stale_output="$(bash "$REPO_ROOT/upgrade.sh" \
+    --apply \
+    --kit-root "$REPO_ROOT" \
+    --project-root "$STALE_TARGET" \
+    --from-version "0.0.1" \
+    --to-version "$VERSION" 2>&1)"
+
+if [[ -f "$STALE_TARGET/.claude/commands/perf-test.md" ]]; then
+    pass "user command perf-test.md preserved (not in manifest)"
+else
+    fail "user command perf-test.md was deleted by upgrade"
+fi
+
+if [[ -f "$STALE_TARGET/.claude/commands/my-custom-tool.md" ]]; then
+    pass "user command my-custom-tool.md preserved (not in manifest)"
+else
+    fail "user command my-custom-tool.md was deleted by upgrade"
+fi
+
+# 9b: Non-kit paths in a corrupted manifest are refused by safety guard
+# (protects against manifest corruption or malformed entries)
+cat >> "$STALE_TARGET/.claude/.vallorcine-manifest" << 'MANIFEST'
+src/main.py
+README.md
+docs/api.md
+MANIFEST
+
+mkdir -p "$STALE_TARGET/src" "$STALE_TARGET/docs"
+echo "# source" > "$STALE_TARGET/src/main.py"
+echo "# readme" > "$STALE_TARGET/README.md"
+echo "# docs" > "$STALE_TARGET/docs/api.md"
+
+stale_output2="$(bash "$REPO_ROOT/upgrade.sh" \
+    --apply \
+    --kit-root "$REPO_ROOT" \
+    --project-root "$STALE_TARGET" \
+    --from-version "0.0.1" \
+    --to-version "$VERSION" 2>&1)"
+
+if echo "$stale_output2" | grep -q "not a known kit path"; then
+    pass "safety guard warns about non-kit paths in manifest"
+else
+    fail "safety guard should warn about non-kit paths" "no warning in output"
+fi
+
+if [[ -f "$STALE_TARGET/src/main.py" && -f "$STALE_TARGET/README.md" ]]; then
+    pass "non-kit files preserved despite corrupted manifest"
+else
+    fail "non-kit files were deleted" "safety guard did not protect them"
+fi
+
+# 9c: Legitimate stale kit files ARE removed
+# (old kit command no longer in the new kit → should be cleaned up)
+echo ".claude/commands/old-removed-command.md" >> "$STALE_TARGET/.claude/.vallorcine-manifest"
+echo "# this was removed from the kit" > "$STALE_TARGET/.claude/commands/old-removed-command.md"
+
+stale_output3="$(bash "$REPO_ROOT/upgrade.sh" \
+    --apply \
+    --kit-root "$REPO_ROOT" \
+    --project-root "$STALE_TARGET" \
+    --from-version "0.0.1" \
+    --to-version "$VERSION" 2>&1)"
+
+if [[ ! -f "$STALE_TARGET/.claude/commands/old-removed-command.md" ]]; then
+    pass "legitimate stale kit file removed during upgrade"
+else
+    fail "stale kit file should be removed" "old-removed-command.md still exists"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

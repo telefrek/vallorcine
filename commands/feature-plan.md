@@ -59,6 +59,43 @@ Display opening header:
 
 ---
 
+## Step 0a — Progress tracking
+
+Use TodoWrite to show progress in the Claude Code UI (visible via Ctrl+T).
+Each TodoWrite call replaces the full list — always include all items.
+
+**Pipeline context:** Include the full feature lifecycle as top-level items so
+the user sees where this stage fits in the overall flow. Mark earlier stages as
+`completed`, the current stage as `in_progress`, and later stages as `pending`.
+
+**Stage-level detail:** Within the current stage, add granular items for each
+piece of work. Use `activeForm` on in-progress items to show real-time detail
+(e.g., "Reading domains.md — checking ADR links").
+
+Example checklist at the start of planning:
+```json
+[
+  {"id": "pipeline-scoping", "content": "Scoping", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-domains", "content": "Domain analysis", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-planning", "content": "Work planning", "status": "in_progress", "priority": "high",
+   "activeForm": "Loading context files"},
+  {"id": "pipeline-testing", "content": "Test writing", "status": "pending", "priority": "medium"},
+  {"id": "pipeline-implementation", "content": "Implementation", "status": "pending", "priority": "medium"},
+  {"id": "pipeline-refactor", "content": "Refactor & review", "status": "pending", "priority": "medium"},
+  {"id": "pipeline-pr", "content": "PR draft", "status": "pending", "priority": "medium"},
+  {"id": "load-context", "content": "Load context and survey codebase", "status": "in_progress", "priority": "medium"},
+  {"id": "design", "content": "Design confirmation", "status": "pending", "priority": "high"},
+  {"id": "work-units", "content": "Work unit analysis", "status": "pending", "priority": "medium"},
+  {"id": "stubs", "content": "Write stubs and work plan", "status": "pending", "priority": "high"},
+  {"id": "handoff", "content": "Hand off to test writing", "status": "pending", "priority": "medium"}
+]
+```
+
+As the stage progresses, update both the stage-level items AND the pipeline
+item's `activeForm` to reflect current work.
+
+---
+
 ## Step 0b — Token tracking
 
 Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "planning"'`

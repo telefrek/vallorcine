@@ -38,6 +38,33 @@ Stop. Do not continue to other steps.
 
 ---
 
+## Step 0a — Progress tracking
+
+Use TodoWrite to show progress in the Claude Code UI (visible via Ctrl+T).
+Each TodoWrite call replaces the full list — always include all items.
+
+After reading status.md (Step 1), build a pipeline-level checklist showing
+where the feature currently is. Mark stages based on status.md data.
+
+If auto-invoke triggers (Step 3), add the invoked command as a new item and
+let the invoked command take over TodoWrite from there.
+
+Example:
+```json
+[
+  {"id": "pipeline-scoping", "content": "Scoping", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-domains", "content": "Domain analysis", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-planning", "content": "Work planning", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-testing", "content": "Test writing", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-implementation", "content": "Implementation", "status": "in_progress", "priority": "high",
+   "activeForm": "Resuming — 3/5 tests passing"},
+  {"id": "pipeline-refactor", "content": "Refactor & review", "status": "pending", "priority": "medium"},
+  {"id": "pipeline-pr", "content": "PR draft", "status": "pending", "priority": "medium"}
+]
+```
+
+---
+
 ## Step 1 — Read status
 
 Check `.feature/<slug>/status.md`. If it does not exist:
@@ -191,7 +218,9 @@ Based on the current stage and substage:
 | implementation / complete (cycle N) | `/feature-refactor "<slug>"` |
 | refactor / in-progress | `/feature-refactor "<slug>"` — will resume from checklist item |
 | refactor / escalated-missing-tests | `/feature-test "<slug>" --add-missing` |
-| refactor / complete | `/feature-complete "<slug>"` — when PR has merged |
+| refactor / complete | `/feature-pr "<slug>"` |
+| pr / created (no retro) | `/feature-retro "<slug>"` — retrospective while feature is fresh |
+| pr / created (retro done) | `/feature-complete "<slug>"` — when PR has merged |
 
 If `automation_mode: autonomous` and the feature is mid-implementation or
 mid-refactor: note this in the Next Step display:
@@ -228,6 +257,28 @@ NEXT STEP
   appropriate command as a sub-agent immediately. A crash should not break
   the autonomous loop — resuming after a crash is equivalent to re-entering
   the same stage that was interrupted.
+
+- If the next step resolves to `/feature-pr` (stage is `refactor/complete`):
+  ```
+  Feature is ready for PR.
+    Type **yes**  to draft the PR  ·  or: stop
+  ```
+  If "yes": invoke `/feature-pr "<slug>"` as a sub-agent immediately.
+  If "stop": display `Next: /feature-pr "<slug>"` and stop.
+
+- If the next step resolves to `/feature-retro` (stage is `pr/created` and
+  cycle-log.md has no `retro-complete` entry): prompt for retrospective.
+  ```
+  PR is open. A retrospective captures what worked and what didn't while
+  the feature is fresh — it writes back to the KB and decisions store.
+
+    Type **yes**  to run the retrospective  ·  or: skip
+  ```
+  If "yes": invoke `/feature-retro "<slug>"` as a sub-agent immediately.
+  If "skip": display `When the PR merges: /feature-complete "<slug>"` and stop.
+
+  If cycle-log.md already has a `retro-complete` entry: skip the retro prompt
+  and display `When the PR merges: /feature-complete "<slug>"` instead.
 
 For pending domain commissions, list each:
 ```

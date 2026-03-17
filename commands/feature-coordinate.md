@@ -30,6 +30,43 @@ Display opening header:
 
 ---
 
+## Step 0a — Progress tracking
+
+Use TodoWrite to show progress in the Claude Code UI (visible via Ctrl+T).
+Each TodoWrite call replaces the full list — always include all items.
+
+**The coordinator owns TodoWrite in parallel mode.** Subagents launched by the
+coordinator MUST NOT call TodoWrite — their writes would overwrite the
+coordinator's checklist since only one list exists at a time.
+
+Build the checklist dynamically from the Work Units table. Include pipeline
+context and one item per work unit. Use `activeForm` to show which stage each
+active unit is in.
+
+Example for 3 units mid-batch:
+```json
+[
+  {"id": "pipeline-scoping", "content": "Scoping", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-domains", "content": "Domain analysis", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-planning", "content": "Work planning", "status": "completed", "priority": "medium"},
+  {"id": "pipeline-parallel", "content": "Parallel execution", "status": "in_progress", "priority": "high",
+   "activeForm": "Batch 1 — 2 units running"},
+  {"id": "pipeline-pr", "content": "PR draft", "status": "pending", "priority": "medium"},
+  {"id": "wu-1", "content": "WU-1: Auth types", "status": "in_progress", "priority": "high",
+   "activeForm": "implementing — 4/6 tests passing"},
+  {"id": "wu-2", "content": "WU-2: Token store", "status": "in_progress", "priority": "high",
+   "activeForm": "writing tests"},
+  {"id": "wu-3", "content": "WU-3: Middleware", "status": "pending", "priority": "high"},
+  {"id": "merge", "content": "Merge logs and integration tests", "status": "pending", "priority": "medium"}
+]
+```
+
+Update unit items to `completed` as each subagent returns. The coordinator
+can update `activeForm` on in-progress units based on their per-unit status.md
+between batches.
+
+---
+
 ## Step 1 — Compute batch
 
 Read the Work Units table from status.md.
@@ -79,6 +116,22 @@ Subagents always chain internally (autonomous within a unit — even in manual m
 the manual checkpoint is at the batch boundary, not within units).
 
 Wait for all subagents to return.
+
+**While waiting:** periodically read each active unit's per-unit `status.md`
+(`units/WU-N/status.md`) to get the current stage and substage. Update the
+TodoWrite checklist with each unit's latest state in `activeForm`:
+
+```
+"activeForm": "<stage> — <substage>"
+```
+
+Examples:
+- `"testing — writing tests (3 of 5)"`
+- `"implementing — 4/6 tests passing"`
+- `"refactor — 2c security"`
+
+This gives the user visibility into what each parallel unit is doing without
+the subagents touching TodoWrite themselves.
 
 ---
 
