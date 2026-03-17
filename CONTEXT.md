@@ -20,25 +20,27 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-03-16*
+*Last updated: 2026-03-17*
 
-**Releases: v0.2.2 and v0.2.3.** Major session — shipped parallel work units,
-decision archaeology, four-concern architecture model, and many smaller features.
+**TodoWrite progress tracking and upgrade safety.** Added two-tier TodoWrite
+progress checklists across all TDD pipeline commands, plus crash recovery for
+`/ideate` and a safety guard for the upgrade stale file removal.
 
 **What shipped this session:**
-- v0.2.2: parallel work unit execution, execution strategy prompt, per-unit isolation
-- v0.2.3: `/decisions backfill`, domain scout auto-invokes architect/research,
-  classification fix, `/vallorcine-help` question answering, install bootstrapping fix
-- Post-v0.2.3 (unreleased): `/decisions list`, `/decisions explain`, `/decisions candidates`,
-  `/feature-cleanup`, `/feature-retro`, `/project-context`, `install.sh --diff`,
-  dependency topology in `/feature-resume`, refactor step 2g (documentation check),
-  `/quick` → `/feature-quick` rename, four-concern README/DESIGN restructure,
-  token estimate vs actual tracking in status.md
+- TodoWrite progress tracking in 7 pipeline commands (plan, domains, coordinate,
+  test, implement, refactor, resume) — pipeline-level + stage-level granularity
+  with `activeForm` for real-time detail
+- Parallel mode: coordinator owns TodoWrite exclusively, polls per-unit status.md
+  to update activeForm on each work unit. Subagents skip TodoWrite.
+- `/ideate` Step 1.5: writes WIP.md immediately so crash recovery works
+- `upgrade.sh` safety guard: prefix allowlist prevents corrupted manifest from
+  deleting user files or project source code
+- `install.sh` fix: adr-validate.sh was in MANIFEST but not installed
+- Regression test (test 9): 5 assertions covering user file preservation
 
 **Where things stand:**
-All work committed and pushed to main. Not yet released — significant changes
-accumulated post-v0.2.3. Ready for v0.3.0 (or v0.2.4 depending on semver preference).
-Active testing on jlsm project. WIP.md cleared.
+All work committed on main (2 commits, not yet pushed). v0.3.3 is current
+release. WIP.md cleared.
 
 ---
 
@@ -46,40 +48,19 @@ Active testing on jlsm project. WIP.md cleared.
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **Four-concern architecture model** (2026-03-16) — vallorcine organised around
-  Knowledge (/kb, /research), Decisions (/architect, /decisions), Features
-  (/feature-*), and System (/vallorcine-*, /project-context). README and DESIGN.md
-  restructured to match. Commands named by concern.
+- **TodoWrite two-tier progress tracking** (2026-03-17) — pipeline-level checklist
+  (scoping → PR) in every command, plus stage-level granularity (per-test,
+  per-construct, per-domain, per-refactor-check). Uses `activeForm` for real-time
+  detail. Coordinator owns TodoWrite in parallel mode; subagents skip it.
 
-- **/quick → /feature-quick rename** (2026-03-16) — aligns with feature-* naming
-  convention. All 12 files with references updated. Old name removed.
+- **/ideate writes WIP.md immediately** (2026-03-17) — Step 1.5 added: after
+  determining session goal, write WIP.md before reading context. Prevents losing
+  session state on crash. Appends if WIP.md already has in-flight work.
 
-- **Refactor step 2g: documentation check** (2026-03-16) — refactor agent now
-  verifies project documentation stays current when features change modules, APIs,
-  or patterns. Added after 2f (integration tests).
-
-- **Principle 1: bash and markdown only** (2026-03-16) — hard constraint, not
-  preference. No MCP servers, no hooks infrastructure, no package managers, no
-  external runtimes. First filter for new features. Dropped hooks-for-non-TDD and
-  Context7/live-docs from backlog as violations.
-
-- **Refactor step 2h: security review** (2026-03-16) — holistic security audit
-  after all other refactoring. Distinct from 2c (inline fixes): 2h assesses auth,
-  data handling, trust boundaries, dependencies, and threat surface delta. Findings
-  use HIGH/MEDIUM/LOW severity. Always pauses on findings. Flows into PR via
-  cycle-log.
-
-- **Draft ADRs warn but don't block** (2026-03-16) — Domain Scout classifies
-  draft ADRs as `pending-decision` with a warning. User can proceed or formalize
-  via `/decisions review`.
-
-- **Decision candidates from transcript scanning** (2026-03-16) — PostSessionEnd
-  hook stages candidates in `.decisions/.decision-candidates`. Notices surface at
-  `/feature-domains` and `/feature-resume`. `/decisions candidates` to review.
-
-- **PROJECT-CONTEXT.md for team knowledge** (2026-03-16) — committed file at
-  project root. 90-day expiry, scoped entries, 50-entry cap. `/project-context`
-  command (not `/context` — that's a Claude Code built-in).
+- **Upgrade safety guard: prefix allowlist** (2026-03-17) — stale file removal
+  only operates on known kit-managed prefixes (.claude/commands/, agents/, rules/,
+  scripts/, upgrade.sh). Non-kit paths in a corrupted manifest are skipped with a
+  warning. Regression test added.
 
 ---
 
@@ -88,24 +69,15 @@ Active testing on jlsm project. WIP.md cleared.
 *Live list — resolve into SETTLED.md or drop when addressed.*
 *Prioritised: do next → do soon → do when needed → do when scale demands it.*
 
-### Do next (low effort, real risk mitigation)
-
-- ~~Command name collision audit~~ — **done** (2026-03-16). Zero collisions found
-  across 22 commands vs 45 Claude Code built-ins. `feature-` prefix strategy works.
-
-- ~~ADR contradiction check~~ — **done** (2026-03-16). `scripts/adr-validate.sh`
-  scans for duplicate accepted slugs. Added to pre-flight checks. Regression test
-  at `tests/scenario-adr-contradiction.sh` (10 cases).
-
 ### Do soon (medium effort, clear designs)
-
-- ~~`/decisions backfill`~~ — **updated** (2026-03-16). Added Step 0 size check:
-  projects over `backfill_file_threshold` (default 50, in project-config.md)
-  require explicit path. Spec in decisions.md and DEFERRED.md.
 
 - **Work unit split thresholds** — 15K crossover and 3.5K per-construct are
   reasoned estimates, not measured. Token tracking is collecting actuals — needs
   data review once enough features have run with tracking enabled.
+
+- ~~feature-resume PR auto-invoke~~ — **done** (2026-03-17). Fixed routing
+  table (refactor/complete → PR, not complete), added yes/stop prompts for
+  PR drafting and retrospective. Also added retro prompt to /feature-pr itself.
 
 ### Do when needed (useful but workarounds exist)
 

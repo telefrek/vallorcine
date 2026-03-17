@@ -245,6 +245,42 @@ released version. Noted in upgrade.sh summary output.
 Rejected: snapshot before upgrade (storage overhead, point-in-time problem);
 git-based restore (not all projects version .claude/).
 
+## Four-concern architecture model (2026-03-16)
+
+vallorcine organised around Knowledge (/kb, /research), Decisions (/architect,
+/decisions), Features (/feature-*), and System (/vallorcine-*, /project-context).
+README and DESIGN.md restructured to match. Commands named by concern.
+
+## /quick → /feature-quick rename (2026-03-16)
+
+Aligns with feature-* naming convention. All 12 files with references updated.
+
+## Refactor steps 2g (documentation) and 2h (security review) (2026-03-16)
+
+2g: refactor agent verifies project docs stay current after feature changes.
+2h: holistic security audit — auth, data handling, trust boundaries, dependencies,
+threat surface delta. HIGH/MEDIUM/LOW severity. Always pauses on findings.
+
+## Principle 1 codified as hard constraint (2026-03-16)
+
+Bash and markdown only. No MCP servers, hooks infrastructure, package managers,
+or external runtimes. First filter for new features.
+
+## Draft ADRs warn but don't block (2026-03-16)
+
+Domain Scout classifies draft ADRs as pending-decision with a warning.
+User can proceed or formalize via /decisions review.
+
+## Decision candidates from transcript scanning (2026-03-16)
+
+PostSessionEnd hook stages candidates in .decisions/.decision-candidates.
+Notices surface at /feature-domains and /feature-resume.
+
+## PROJECT-CONTEXT.md for team knowledge (2026-03-16)
+
+Committed file at project root. 90-day expiry, scoped entries, 50-entry cap.
+/project-context command (not /context — that's a Claude Code built-in).
+
 ## setup-vallorcine and feature-init remain separate (2026-03-16)
 
 Originally considered merging both into a single command (both are one-time setup).

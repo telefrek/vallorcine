@@ -212,8 +212,17 @@ gh CLI not found or not authenticated. To create the PR manually:
 
 When the PR merges, run:
   /feature-complete "<slug>"
+
+── Retrospective ──────────────────────────────
+A retrospective captures what worked and what didn't while the feature is fresh.
+It writes back to the KB and decisions store — making the next feature better.
+
+  Type **yes**  to run /feature-retro now  ·  or: skip
+───────────────────────────────────────────────
 ```
-Stop.
+
+If "yes": invoke `/feature-retro "<slug>"` as a sub-agent immediately.
+If "skip": stop.
 
 **If `gh` is available:**
 
@@ -259,12 +268,19 @@ Display:
 ───────────────────────────────────────────────
 ✓ PR opened: <URL>
 ───────────────────────────────────────────────
-While the feature is fresh, consider running a retrospective:
-  /feature-retro "<slug>"
-
 When the PR merges:
   /feature-complete "<slug>"
+
+── Retrospective ──────────────────────────────
+A retrospective captures what worked and what didn't while the feature is fresh.
+It writes back to the KB and decisions store — making the next feature better.
+
+  Type **yes**  to run /feature-retro now  ·  or: skip
+───────────────────────────────────────────────
 ```
+
+If "yes": invoke `/feature-retro "<slug>"` as a sub-agent immediately.
+If "skip": stop.
 
 If `gh pr create` fails (e.g. branch not pushed, no remote): display the error
 and fall back to the manual instructions above. Do not retry automatically.
