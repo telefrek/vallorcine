@@ -260,6 +260,47 @@ files are loaded in Step 4.
 
 ---
 
+## Step 2d — Coverage gap check
+
+After presenting candidates, assess whether the KB has **direct** coverage for
+the decision at hand. "Direct" means a KB subject whose primary topic is the
+problem domain — not a tangential match from keyword scanning.
+
+**If no KB subject directly covers the decision topic** (only tangential or no
+matches), display:
+
+```
+── Coverage gap ────────────────────────────────
+No KB entry directly covers <decision topic>.
+Available coverage is tangential:
+  · <entry> — covers <what it covers>, not <what's needed>
+
+This is a significant architectural decision. Options:
+  1. research — run a targeted research session before evaluating
+     (I'll suggest a topic based on the constraints)
+  2. continue — evaluate with available knowledge
+     (tangential KB + general industry practice)
+  3. defer — park this decision until research is done separately
+
+For decisions with long-term consequences (data formats, storage layouts,
+encoding strategies), research is strongly recommended.
+```
+
+If **research**: identify the highest-value research subject for this decision,
+invoke `/research <topic> <category> "<subject>"` as a sub-agent. After research
+completes, re-run the KB survey (Step 2) to pick up the new entry.
+
+If **continue**: proceed to Step 3, noting the gap in the evaluation. The
+`evaluation.md` should flag which scores are based on general knowledge rather
+than KB-backed evidence.
+
+If **defer**: write a deferred ADR (same as Step 0D) with the coverage gap
+noted in "What Is Known So Far." Stop.
+
+**If the KB has direct coverage:** skip this step silently.
+
+---
+
 ## Step 3 — Commission missing research (if needed)
 
 For any candidate not in `.kb/`, write `research-brief.md` using the **Research Brief Template**.
