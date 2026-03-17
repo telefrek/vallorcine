@@ -22,8 +22,7 @@ state of the project — what's happening now and what's next.
 
 *Last updated: 2026-03-17*
 
-**Tmux dashboard and skills migration.** Built a two-pane tmux dashboard for
-real-time pipeline visibility, then migrated all commands to Claude Code skills.
+**Tmux dashboard, skills migration, project reframing, and v0.4.0 release.**
 
 **What shipped this session:**
 - Two-pane tmux dashboard: pipeline progress (top-right) + stage detail (bottom-right)
@@ -33,12 +32,15 @@ real-time pipeline visibility, then migrated all commands to Claude Code skills.
 - `/dashboard` command (launch/off/on) with once-per-session hint at pipeline start
 - Dashboard calls integrated into all 7 pipeline commands
 - Skills migration: 23 commands → `.claude/skills/<name>/SKILL.md` with YAML frontmatter
-- All slash command names unchanged (`/feature`, `/research`, etc.)
+- Project reframing: "A reliable engineering partner for Claude Code"
+- Tagline: "ship features that make the next one faster"
+- GitHub repo topics and description updated
 - 43 tests passing (20 install + 23 dashboard)
+- v0.4.0 released
 
 **Where things stand:**
-PR #11 open on `feat/tmux-dashboard-and-skills-migration` (2 commits). v0.3.4
-is current release.
+v0.4.0 released on main. Plugin install tested and working (`/vallorcine:` prefix).
+Next priority: dashboard intent surfacing (see "Do next" in Open questions).
 
 ---
 
@@ -75,12 +77,49 @@ is current release.
   "unknown" rather than made-up numbers. Applies to token budgets, progress bars,
   and all forward-looking displays.
 
+- **Project positioning: "reliable engineering partner"** (2026-03-17) — reframed
+  all descriptions away from mechanical feature lists. Lead with trust and ease of
+  use, not TDD pipeline internals. Tagline: "ship features that make the next one
+  faster."
+
+- **Dashboard is a feature pipeline tool** (2026-03-17) — research and architect
+  sessions are conversational and interactive. They don't need pipeline progress
+  panes. Dashboard shows idle/empty state gracefully for non-pipeline commands.
+  Intent surfacing (separate concern) benefits all commands.
+
+- **Always work from branches, merge via PR** (2026-03-17) — never commit directly
+  to main. Kebab-case branch names. Prompt for confirmation if user asks to bypass.
+
 ---
 
 ## Open questions
 
 *Live list — resolve into SETTLED.md or drop when addressed.*
 *Prioritised: do next → do soon → do when needed → do when scale demands it.*
+
+### Do next (high priority, clear direction)
+
+- **Dashboard: intent over mechanics** — the main terminal shows raw tool calls
+  (Read, Edit, Bash) but users care about *what Claude is doing and why*, not
+  which tools it called. Three complementary approaches identified:
+  1. **Status line context** — update Claude Code's status line with a short
+     intent string ("reading KB entry on HNSW", "evaluating candidate 2/3")
+  2. **Turn summaries in stage detail pane** — rolling "last 3 actions" feed
+     showing semantic descriptions, not tool names
+  3. **Intent-first stage.json writes** — agents write intent to `stage.json`
+     before each logical block of work, not just task completion status
+
+  The common thread: surface **intent**, not **mechanics**. Works across all
+  commands (feature pipeline, research, architect) since the problem is universal.
+  Dashboard is a feature pipeline tool for progress tracking, but intent surfacing
+  benefits every command.
+
+- **Version display** — need a way to confirm installed version. Could be in
+  `/vallorcine-help` header or a dedicated `/vallorcine:version` skill.
+
+- **Plugin install path documentation** — document `vallorcine:`-prefixed
+  commands from plugin install vs unprefixed from shell install. Both work,
+  need to explain the difference in README.
 
 ### Do soon (medium effort, clear designs)
 
