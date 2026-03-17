@@ -1,6 +1,6 @@
 {
   "name": "vallorcine",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "A reliable engineering partner for Claude Code. Persistent knowledge base, structured architecture decisions, and crash-recoverable TDD pipeline. Sessions compound — each feature makes the next one faster.",
   "author": {
     "name": "vallorcine"

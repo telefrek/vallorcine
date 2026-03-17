@@ -237,11 +237,13 @@ set `execution_strategy: cost` implicitly in status.md, skip the prompt.
   cost      — sequential execution. Splits only when a single session
               exceeds ~15K tokens.
 
-  balanced  — split at clean boundaries, independent units run in parallel.
+  balanced  — split at clean boundaries, independent units run in parallel
+              in batches. Wait for each batch before starting the next.
               Moderate token overhead.
 
   speed     — split at every clean boundary, maximum parallelism.
-              Fastest completion, highest token cost.
+              Units launch as soon as dependencies resolve — no batch waits.
+              Fastest wall-clock time, highest token cost.
 
 Type: cost, balanced, or speed
 ```
@@ -264,15 +266,24 @@ Record `execution_strategy: <choice>` in status.md and in the
 
 ### Dependency graph (balanced/speed only)
 
-After the Work Units table is confirmed, display:
+After the Work Units table is confirmed, compute the dependency graph and
+critical path. Display:
+
 ```
 ── Dependency graph ───────────────────────────
-  Batch 1: WU-1, WU-2  (parallel — no mutual deps)
-  Batch 2: WU-3         (depends on WU-1)
+  WU-1 ──┐
+          ├── WU-3
+  WU-2 ──┘
 
-  Critical path: <n> sequential batches
-  Estimated time: ~<n> sessions (vs ~<n> sequential)
+  Critical path: WU-1 → WU-3 (2 sequential stages)
+  Max parallelism: 2 units simultaneously
+  Speed mode: units launch on dependency resolution, no batch waits
+  Balanced mode: Batch 1 {WU-1, WU-2} → Batch 2 {WU-3}
 ```
+
+The critical path is the longest chain of dependent units — it determines the
+minimum wall-clock time regardless of how much parallelism is available. Display
+it so the user can see the theoretical minimum and compare against batch mode.
 
 ### Per-unit directory creation (balanced/speed only)
 

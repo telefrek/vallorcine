@@ -72,59 +72,88 @@ between batches.
 
 ---
 
-## Step 1 — Compute batch
+## Step 1 — Build dependency graph and display execution plan
 
-Read the Work Units table from status.md.
-
-Find all units where:
-- Status is `not-started` AND all `Depends On` units are `complete`
-
-**If none ready but some in-progress:**
-```
-🔀 COORDINATOR · <slug>
-───────────────────────────────────────────────
-Units are in progress — waiting for completion.
-Re-run /feature-coordinate "<slug>" when current batch finishes.
-```
-Stop.
+Read the Work Units table from status.md. Build the full dependency graph.
 
 **If all units are `complete`:** skip to Step 4 (merge + finalize).
 
-Group ready units as the current batch. Update `<!-- current_batch: -->` in
-status.md.
+Compute the **critical path** — the longest chain of dependent units. This
+determines the minimum wall-clock time regardless of parallelism.
 
-Display batch plan:
+Display the execution plan:
 ```
-── Batch <n> ──────────────────────────────────
+── Execution plan ─────────────────────────────
+Dependency graph:
+  WU-1 ──┐
+          ├── WU-3 ── WU-5
+  WU-2 ──┘
+  WU-4 (independent)
+
+Critical path: WU-1 → WU-3 → WU-5 (3 sequential stages)
+Max parallelism: 3 units (WU-1 + WU-2 + WU-4)
+
+Ready now:
+  → WU-1: <name>
+  → WU-2: <name>
+  → WU-4: <name>
+
+Waiting:
+  ○ WU-3: <name> (needs WU-1, WU-2)
+  ○ WU-5: <name> (needs WU-3)
+
 Previously completed:
-  ✓ WU-<n>: <name>
-
-Launching now (parallel):
-  → WU-<n>: <name>
-  → WU-<n>: <name>
-
-Remaining:
-  ○ WU-<n>: <name> (blocked on <deps>)
+  ✓ <any completed units>
 ```
+
+**In `speed` mode:** launch all ready units immediately — no batch grouping.
+As each unit completes, check if new units are unblocked and launch them in
+the same cycle. Units start as soon as their dependencies resolve, not when
+an entire batch finishes.
+
+**In `balanced` mode:** group ready units into batches as before, wait for
+the full batch, then launch the next. This is simpler and uses fewer parallel
+sub-agents.
 
 ---
 
-## Step 2 — Launch parallel subagents
+## Step 2 — Launch and monitor (speed mode)
 
-For each unit in the batch: invoke `/feature-test "<slug>" --unit WU-<n>` as a
-sub-agent.
+The coordinator runs a **completion-driven loop** instead of batch-wait:
 
-**All invocations in a single response** — Claude Code runs them in parallel.
+1. **Launch** all currently ready units as parallel sub-agents (invoke
+   `/feature-test "<slug>" --unit WU-<n>` for each). All invocations in a
+   single response — Claude Code runs them in parallel.
 
-Each subagent runs the full test → implement → refactor cycle for its unit.
-Subagents always chain internally (autonomous within a unit — even in manual mode,
-the manual checkpoint is at the batch boundary, not within units).
+2. **Monitor** — as each sub-agent returns:
+   a. Read its `units/WU-N/status.md` to check the result.
+   b. If refactor complete → mark `complete` in the feature-level Work Units table.
+   c. If escalation → handle immediately (see escalation handling below).
+   d. **Check for newly unblocked units** — scan the Work Units table for any
+      unit whose dependencies are now all `complete` and status is `not-started`.
+   e. If new units are ready → launch them immediately as sub-agents.
+      Display: `  → WU-<n>: <name> (unblocked by WU-<completed>)`
 
-Wait for all subagents to return.
+3. **Repeat** until all units are complete or blocked by escalations.
 
-**While waiting:** periodically read each active unit's per-unit `status.md`
-(`units/WU-N/status.md`) to get the current stage and substage. Update the
-TodoWrite checklist with each unit's latest state in `activeForm`:
+This means a unit deep in the dependency chain starts as soon as its last
+dependency finishes — it doesn't wait for unrelated units in an earlier "batch"
+to complete. For a graph like:
+
+```
+WU-1 (fast, 2 constructs) ──→ WU-3 ──→ WU-5
+WU-2 (slow, 6 constructs) ──↗
+WU-4 (independent)
+```
+
+Batch mode would run: {WU-1, WU-2, WU-4} → wait for all → {WU-3} → {WU-5}.
+Speed mode runs: {WU-1, WU-2, WU-4} → WU-1 finishes → can't start WU-3 yet
+(needs WU-2) → WU-4 finishes → WU-2 finishes → immediately start WU-3 →
+WU-3 finishes → immediately start WU-5. If WU-3 only depended on WU-1, it
+would start as soon as WU-1 finishes without waiting for WU-2.
+
+**While sub-agents are running:** update the TodoWrite checklist with each
+unit's latest state by reading per-unit `status.md`:
 
 ```
 "activeForm": "<stage> — <substage>"
@@ -135,21 +164,30 @@ Examples:
 - `"implementing — 4/6 tests passing"`
 - `"refactor — 2c security"`
 
-This gives the user visibility into what each parallel unit is doing without
-the subagents touching TodoWrite themselves.
+---
+
+## Step 2b — Launch and monitor (balanced mode)
+
+Balanced mode uses the simpler batch approach:
+
+1. **Compute batch** — find all units where status is `not-started` AND all
+   dependencies are `complete`. Group as the current batch.
+2. **Launch** all batch units as parallel sub-agents.
+3. **Wait** for all sub-agents in the batch to return.
+4. **Check results** — mark completed units, handle escalations.
+5. **Loop** — go back to step 1 for the next batch.
+
+This is the same behaviour as before — predictable batch boundaries with
+clear checkpoints between batches.
 
 ---
 
-## Step 3 — Batch completion
+## Step 3 — Escalation handling
 
-Read each unit's `units/WU-N/status.md` to check results.
+When any unit hits an escalation (from sub-agent return or status.md check):
 
-For each unit:
-- If refactor complete → mark `complete` in feature-level Work Units table in status.md
-
-If any unit hit an escalation:
 ```
-── Batch <n> escalation ───────────────────────
+── Escalation ────────────────────────────────
   WU-<n>: <escalation details from unit status>
 
 How would you like to proceed?
@@ -157,23 +195,28 @@ How would you like to proceed?
   skip   — mark as failed, continue with dependent units blocked
   stop   — pause for manual intervention
 ```
-Wait for user input.
+Wait for user input. In speed mode, other running sub-agents continue while
+waiting — the escalation only blocks the failed unit and its dependents.
 
-If all succeeded:
+## Step 3b — Completion display
+
+When all units are complete (or between batches in balanced mode):
+
 ```
-── Batch <n> complete ─────────────────────────
+── Progress ──────────────────────────────────
   ✓ WU-<n>: <name> — <n> tests, <n> constructs
   ✓ WU-<n>: <name> — <n> tests, <n> constructs
+  → WU-<n>: <name> — in progress
+  ○ WU-<n>: <name> — waiting on <deps>
 ```
 
-- If `automation_mode: autonomous`: loop back to Step 1 for next batch.
-- If `automation_mode: manual`:
+- If `automation_mode: autonomous` and units remain: continue the loop.
+- If `automation_mode: manual` and units remain:
   ```
-  Next batch ready.
+  More units ready.
     Type **yes**  ·  or: stop
   ```
-  If "yes": loop back to Step 1.
-  If "stop": display `Next: /feature-coordinate "<slug>"` and stop.
+  If "yes": continue. If "stop": display resume command and stop.
 
 ---
 

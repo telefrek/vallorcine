@@ -5,6 +5,18 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.4.4] — 2026-03-17
+
+### Changed
+- Speed mode coordinator uses completion-driven loop instead of batch-wait.
+  Units launch as soon as their dependencies resolve — no waiting for unrelated
+  units in the same batch to finish. Minimizes wall-clock time on the critical path.
+- Balanced mode retains batch-wait behaviour for predictable checkpoints.
+- Dependency graph display now shows critical path and max parallelism.
+- Architect prompts user on KB coverage gaps before evaluating decisions.
+
+---
+
 ## [0.4.3] — 2026-03-17
 
 ### Fixed
