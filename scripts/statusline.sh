@@ -3,12 +3,26 @@
 # Displays feature pipeline stage, per-stage token usage, and context % in Claude Code's status line.
 # Also detects stage transitions and logs per-stage token usage to token-log.md.
 #
-# Installed to .claude/scripts/statusline.sh
-# Configured via settings.json: "statusLine": { "type": "command", "command": "bash .claude/scripts/statusline.sh" }
+# HOW IT WORKS:
+# Claude Code fires this script after each assistant message AND between tool
+# calls within a response. Each pipeline agent updates status.md as its first
+# action (idempotency pre-flight). This script reads the actual Stage from
+# status.md — not from .token-state (which only updates when the Stop hook
+# fires). This means stage transitions are detected in real-time even during
+# chained sub-agent execution where the Stop hook never runs.
+#
+# On stage transition: logs the completed stage's context tokens to token-log.md
+# and resets the baseline for the new stage. Per-stage tokens are derived from
+# context_window.used_percentage * context_window_size (from session JSON).
+#
+# State files:
+#   .claude/.token-state          — feature_dir (written by Stop hook on cold start)
+#   .claude/.statusline-baseline  — baseline_stage, baseline_ctx_tokens (written here)
+#   .feature/<slug>/token-log.md  — per-stage token log (appended here)
 #
 # Performance: <10ms typical (reads 2-3 small files + stdin JSON).
 # Stage transition path adds one file write (~6 times per feature).
-# Zero token cost — runs locally by Claude Code after each assistant message.
+# Zero token cost — runs locally by Claude Code.
 
 input=$(cat)
 

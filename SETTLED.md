@@ -385,10 +385,43 @@ total). Three performance paths: no-op ~1ms, active same-stage ~5ms, transition
 
 ## Status line for pipeline visibility (2026-03-17)
 
-`scripts/statusline.sh` shows feature slug, pipeline stage, total tokens, and
-context window % with color-coded warnings (green/yellow/red). Reads `.token-state`
-+ session JSON. No cost display — subscription model makes dollar amounts misleading.
-Replaces tmux dashboard for pipeline position awareness.
+`scripts/statusline.sh` shows feature slug, pipeline stage, substage, per-stage
+context tokens, and context window % with color-coded warnings. Replaces tmux
+dashboard for pipeline position awareness.
+
+**Key design insight: the status line is both display and tracker.** Claude Code
+fires the status line script after each assistant message AND between tool calls
+within a response. Each pipeline agent updates `status.md` as its first action
+(idempotency pre-flight). This means `status.md` reflects the current stage
+*before* the status line fires — even during chained sub-agent execution where
+the Stop hook never gets a chance to run.
+
+The status line exploits this by reading the actual `**Stage:**` field from
+`status.md` on every fire, comparing it against a cached baseline in
+`.claude/.statusline-baseline`. When the stage changes:
+1. Log the completed stage's context token usage to `token-log.md`
+2. Reset the baseline for the new stage
+3. Display the new stage with tokens at 0
+
+**Why this works during chained sub-agents:** When `/feature` invokes
+`/feature-domains` as a sub-agent, which invokes `/feature-plan`, etc., the
+Stop hook never fires (it requires Claude to fully stop). But the status line
+fires between tool calls within the response. Each agent updates `status.md`
+before doing its work. So the status line sees: scoping → domains → planning →
+testing → implementation → refactor — all within one continuous response.
+
+**Per-stage tokens** are derived from `context_window.used_percentage ×
+context_window.context_window_size` (from Claude Code's session JSON). The
+delta from the baseline gives "tokens consumed by this stage." This is context
+tokens (what's in the window), not cumulative API tokens.
+
+**Three state files:**
+- `.claude/.token-state` — written by Stop hook on cold start, read by status
+  line for `feature_dir`. Not updated during chained execution.
+- `.claude/.statusline-baseline` — written by status line on stage transitions.
+  Contains `baseline_stage`, `baseline_ctx_tokens`, `baseline_timestamp`.
+- `.feature/<slug>/token-log.md` — append-only log of per-stage token usage.
+  Written by status line on transitions, read by `/feature-resume --status`.
 
 ## Plugin vs shell install path documentation (2026-03-17)
 
