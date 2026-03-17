@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # vallorcine status line script
-# Displays feature pipeline stage, token usage, and context % in Claude Code's status line.
+# Displays feature pipeline stage, per-stage token usage, and context % in Claude Code's status line.
 #
 # Installed to .claude/scripts/statusline.sh
 # Configured via settings.json: "statusLine": { "type": "command", "command": "bash .claude/scripts/statusline.sh" }
 #
-# Performance: <10ms typical. Reads 1-2 small files + stdin JSON.
+# Performance: <10ms typical. Reads 2-3 small files + stdin JSON.
 # Zero token cost — runs locally by Claude Code after each assistant message.
 
 input=$(cat)
@@ -15,8 +15,8 @@ input=$(cat)
 context_pct=""
 total_tokens=""
 if command -v jq &>/dev/null; then
-    read -r context_pct total_tokens < <(
-        echo "$input" | jq -r '[(.context_window.used_percentage // empty), (.context_window.total_input_tokens // empty)] | @tsv' 2>/dev/null
+    read -r context_pct ctx_size < <(
+        echo "$input" | jq -r '[(.context_window.used_percentage // empty), (.context_window.context_window_size // empty)] | @tsv' 2>/dev/null
     )
 fi
 
@@ -24,7 +24,7 @@ fi
 
 fmt_tokens() {
     local n="$1"
-    [[ -n "$n" && "$n" != "null" ]] || return
+    [[ "$n" =~ ^[0-9]+$ ]] || return
     if [[ "$n" -ge 1000000 ]]; then
         local whole=$(( n / 1000000 ))
         local frac=$(( (n % 1000000) / 100000 ))
@@ -41,6 +41,8 @@ fmt_tokens() {
 # ── Read pipeline state ──────────────────────────────────────────────────────
 
 stage_display=""
+stage_tokens=""
+BASELINE_FILE=".claude/.statusline-baseline"
 
 # Try .token-state first (lightweight, single file)
 if [[ -f .claude/.token-state ]]; then
@@ -62,36 +64,102 @@ if [[ -f .claude/.token-state ]]; then
         esac
 
         if [[ "$is_terminal" == "0" ]]; then
-            # Build stage display
+            # Build stage display with substage detail
+            sub=""
             case "$cached_stage" in
-                scoping)        stage_display="$slug · scoping" ;;
-                domains)        stage_display="$slug · domains" ;;
-                planning)       stage_display="$slug · planning" ;;
-                testing)        stage_display="$slug · testing" ;;
-                implementation) stage_display="$slug · implementing" ;;
+                scoping)
+                    case "$substage" in
+                        interviewing)     sub="interviewing" ;;
+                        confirming-brief) sub="confirming brief" ;;
+                        complete)         sub="complete" ;;
+                    esac
+                    stage_display="$slug · scoping${sub:+ · $sub}" ;;
+                domains)
+                    stage_display="$slug · domains${substage:+ · $substage}" ;;
+                planning)
+                    case "$substage" in
+                        loading-context)    sub="loading context" ;;
+                        surveying-codebase) sub="surveying code" ;;
+                        confirmed-design)   sub="design confirmed" ;;
+                        writing-stubs)      sub="writing stubs" ;;
+                        contract-revised)   sub="contract revised" ;;
+                    esac
+                    stage_display="$slug · planning${sub:+ · $sub}" ;;
+                testing)
+                    case "$substage" in
+                        planning)             sub="planning tests" ;;
+                        confirming-plan)      sub="confirming plan" ;;
+                        writing-tests)        sub="writing tests" ;;
+                        verifying-failures)   sub="verifying failures" ;;
+                        *verified*failing*)   sub="tests verified" ;;
+                        escalation*)          sub="escalation" ;;
+                    esac
+                    stage_display="$slug · testing${sub:+ · $sub}" ;;
+                implementation)
+                    case "$substage" in
+                        loading-context)    sub="loading context" ;;
+                        implementing)       sub="implementing" ;;
+                        implemented:*)      sub="${substage#implemented: }" ;;
+                        *all*tests*passing) sub="all passing" ;;
+                        escalat*)           sub="escalation" ;;
+                    esac
+                    stage_display="$slug · implementing${sub:+ · $sub}" ;;
                 refactor)
-                    # Show refactor substep if available (2a-2h)
-                    if [[ "$substage" =~ ^2[a-h] ]]; then
-                        case "$substage" in
-                            2a*) stage_display="$slug · refactor · naming" ;;
-                            2b*) stage_display="$slug · refactor · dead code" ;;
-                            2c*) stage_display="$slug · refactor · structure" ;;
-                            2d*) stage_display="$slug · refactor · DRY" ;;
-                            2e*) stage_display="$slug · refactor · missing tests" ;;
-                            2f*) stage_display="$slug · refactor · integration" ;;
-                            2g*) stage_display="$slug · refactor · docs" ;;
-                            2h*) stage_display="$slug · refactor · security" ;;
-                            *)   stage_display="$slug · refactor" ;;
-                        esac
-                    else
-                        stage_display="$slug · refactor"
-                    fi
-                    ;;
-                pr)             stage_display="$slug · PR draft" ;;
-                *)              stage_display="$slug · $cached_stage" ;;
+                    case "$substage" in
+                        loading-context)        sub="loading context" ;;
+                        refactor:*coding*)      sub="coding standards" ;;
+                        refactor:*duplication*) sub="DRY" ;;
+                        refactor:*security)     sub="security" ;;
+                        refactor:*performance*) sub="performance" ;;
+                        refactor:*missing*)     sub="missing tests" ;;
+                        refactor:*integration*) sub="integration" ;;
+                        refactor:*documentation*) sub="docs" ;;
+                        refactor:*security-review*) sub="security review" ;;
+                        refactor:*final-lint*)  sub="final lint" ;;
+                        *refactor*complete*)    sub="complete" ;;
+                        escalat*)               sub="escalation" ;;
+                        cycle-5*)               sub="cycle limit" ;;
+                    esac
+                    stage_display="$slug · refactor${sub:+ · $sub}" ;;
+                pr)
+                    case "$substage" in
+                        pr-draft-written) sub="draft ready" ;;
+                    esac
+                    stage_display="$slug · PR draft${sub:+ · $sub}" ;;
+                *)
+                    stage_display="$slug · $cached_stage" ;;
             esac
+
+            # ── Per-stage token tracking via context % baseline ────────
+            # Derive current tokens from used_percentage * context_window_size
+            if [[ "$ctx_size" =~ ^[0-9]+$ && -n "$context_pct" ]]; then
+                # Compute current tokens in context (integer math: pct * size / 100)
+                # Use awk for floating point since context_pct can be "24.5"
+                current_ctx_tokens=$(awk "BEGIN { printf \"%d\", $context_pct * $ctx_size / 100 }")
+
+                baseline_stage=""
+                baseline_ctx_tokens=""
+                [[ -f "$BASELINE_FILE" ]] && source "$BASELINE_FILE" 2>/dev/null
+
+                if [[ "$baseline_stage" != "$cached_stage" || ! "$baseline_ctx_tokens" =~ ^[0-9]+$ ]]; then
+                    # Stage changed or no baseline — set new baseline
+                    baseline_ctx_tokens="$current_ctx_tokens"
+                    printf 'baseline_stage=%q\nbaseline_ctx_tokens=%s\n' \
+                        "$cached_stage" "$current_ctx_tokens" > "$BASELINE_FILE"
+                fi
+
+                stage_used=$(( current_ctx_tokens - baseline_ctx_tokens ))
+                [[ "$stage_used" -lt 0 ]] && stage_used=0
+                stage_tokens=$(fmt_tokens "$stage_used")
+            fi
+        else
+            # Terminal state — clean up baseline
+            rm -f "$BASELINE_FILE"
         fi
     fi
+else
+    # No active feature — clean up baseline if stale
+    rm -f "$BASELINE_FILE"
 fi
 
 # ── Build output line ────────────────────────────────────────────────────────
@@ -102,10 +170,9 @@ if [[ -n "$stage_display" ]]; then
     parts+=("\033[36m$stage_display\033[0m")
 fi
 
-# Show total tokens consumed
-tokens_fmt=$(fmt_tokens "$total_tokens")
-if [[ -n "$tokens_fmt" ]]; then
-    parts+=("${tokens_fmt} tokens")
+# Show per-stage tokens if available
+if [[ -n "$stage_tokens" ]]; then
+    parts+=("${stage_tokens} tokens")
 fi
 
 if [[ -n "$context_pct" ]]; then
