@@ -5,6 +5,34 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.4.0] — 2026-03-17
+
+### Added
+- Tmux dashboard with two panes: pipeline progress and stage detail
+- `vallorcine_theme.sh` — shared icon/color palette for dashboard
+- `vallorcine_pipeline.sh` — pipeline pane watcher (7 stages, token spend, alerts, progress bar)
+- `vallorcine_stage-detail.sh` — stage detail pane watcher (tasks, artifacts, timestamp, interrupt hint)
+- `dashboard-state.sh` — 12-function helper library for agents to write dashboard state
+- `dashboard-stop-hook.sh` — Stop hook for live token counter during active stages
+- `/dashboard` command (launch/off/on) with once-per-session tmux hint
+- Dashboard state calls in all 7 pipeline commands (stage start + complete)
+- `.claude/dashboard/` gitignore entry in `/feature-init`
+- `test-dashboard.sh` — 23 tests for watchers, state helpers, install, and pipeline integration
+
+### Changed
+- Migrated all 23 slash commands from `.claude/commands/*.md` to `.claude/skills/<name>/SKILL.md`
+- Added YAML frontmatter (description, argument-hint) to all skills
+- `install.sh` installs skills instead of commands
+- MANIFEST updated to `.claude/skills/` paths
+- Upgrade safety guard includes `.claude/skills/*` and `.claude/watchers/*` prefixes
+- Old `.claude/commands/*` files cleaned up on upgrade via stale removal
+- Watcher files prefixed with `vallorcine_` to avoid namespace collisions
+- Reframed project descriptions: "A reliable engineering partner for Claude Code"
+- Updated README, DESIGN.md, marketplace.json, plugin.json with new positioning
+- Added `/dashboard` to System commands table in README
+
+---
+
 ## [0.3.4] — 2026-03-17
 
 ### Added

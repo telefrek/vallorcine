@@ -273,4 +273,4 @@ will detect this and block it.
 
 ### Versioning
 
-Version is in `VERSION` (semver). Current: 0.3.4
+Version is in `VERSION` (semver). Current: 0.4.0
