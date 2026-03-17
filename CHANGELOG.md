@@ -5,6 +5,17 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.4.2] — 2026-03-17
+
+### Fixed
+- Status line per-stage token tracking now uses context window delta
+  (`used_percentage * context_window_size`) instead of `total_input_tokens`
+  which barely changed between status line fires
+- Added substage display for all pipeline stages (scoping, planning, testing,
+  implementation, refactor, PR) — not just refactor
+
+---
+
 ## [0.4.1] — 2026-03-17
 
 ### Added
