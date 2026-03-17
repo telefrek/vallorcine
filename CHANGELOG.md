@@ -5,6 +5,33 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.3.4] — 2026-03-17
+
+### Added
+- TodoWrite two-tier progress checklists across all TDD pipeline commands
+  (feature-plan, feature-domains, feature-coordinate, feature-test,
+  feature-implement, feature-refactor, feature-resume)
+- Pipeline-level progress (scoping → PR) visible in every command
+- Stage-level granularity: per-test, per-construct, per-domain, per-refactor-check
+- `activeForm` for real-time detail on in-progress items
+- Parallel mode: coordinator owns TodoWrite, polls per-unit status.md
+- `/ideate` Step 1.5: writes WIP.md immediately for crash recovery
+- Upgrade safety guard: prefix allowlist for stale file removal
+- Regression test for upgrade safety (test 9, 5 assertions)
+- Delegate stub creation and work-plan assembly to subagent for context isolation
+- Architect auto-resumes paused feature after decision is confirmed
+
+### Changed
+- `/feature-pr` now prompts for `/feature-retro` after PR creation (yes/skip)
+- `/feature-resume` offers "Type **yes**" prompt for PR drafting and retrospective
+
+### Fixed
+- `install.sh` missing `adr-validate.sh` (was in MANIFEST but not installed)
+- `/feature-resume` mapped `refactor/complete` to `/feature-complete` instead
+  of `/feature-pr` — now correctly routes through PR drafting first
+
+---
+
 ## [0.3.3] — 2026-03-16
 
 ### Added
