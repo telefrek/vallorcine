@@ -300,6 +300,48 @@ Stale file removal only operates on known kit-managed prefixes. Non-kit paths
 in a corrupted manifest are skipped with a warning. Regression test covers
 5 assertions for user file preservation.
 
+## Tmux dashboard: two panes, project-scoped state (2026-03-17)
+
+Pipeline progress + stage detail panes. State in `.claude/dashboard/` (gitignored).
+Agents write state directly; Stop hook updates live token counter. Explicit
+`/dashboard` launch, prompted once per session at first pipeline command.
+Toggle via `/dashboard off` (`.nodashboard` sentinel). Token display: hybrid
+actuals + live counter — estimates only shown when Work Planner provides real data.
+Stage detail includes tasks (agent actions) and artifacts (construct lifecycle).
+
+## Skills migration (2026-03-17)
+
+All 23 commands moved from `.claude/commands/*.md` to `.claude/skills/<name>/SKILL.md`.
+YAML frontmatter (description, argument-hint). Slash command names unchanged.
+`commands/` directory deleted from repo. Install auto-removes stale command files
+when matching skills exist.
+
+## Watcher files prefixed `vallorcine_` (2026-03-17)
+
+Prevents namespace collisions if users have their own dashboard watchers.
+
+## Project positioning: "reliable engineering partner" (2026-03-17)
+
+Reframed all descriptions away from mechanical feature lists. Lead with trust
+and ease of use, not TDD pipeline internals. Tagline: "ship features that make
+the next one faster."
+
+## Dashboard is a feature pipeline tool (2026-03-17)
+
+Research and architect sessions are conversational and interactive — no pipeline
+progress panes needed. Dashboard shows idle/empty state gracefully. Intent
+surfacing (separate concern) benefits all commands.
+
+## Always work from branches, merge via PR (2026-03-17)
+
+Never commit directly to main. Kebab-case branch names. Prompt for confirmation
+if user asks to bypass.
+
+## Never guess estimates (2026-03-17)
+
+If we don't have real data, show "unknown" rather than made-up numbers. Applies
+to token budgets, progress bars, and all forward-looking displays.
+
 ## setup-vallorcine and feature-init remain separate (2026-03-16)
 
 Originally considered merging both into a single command (both are one-time setup).
