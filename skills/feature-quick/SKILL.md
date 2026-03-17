@@ -48,7 +48,13 @@ Proceed to Step 1.
 
 ---
 
-## Step 0b — Token tracking
+## Step 0b — Dashboard init
+
+**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_init "<quick-slug>"'`
+
+---
+
+## Step 0c — Token tracking
 
 Run silently: `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_checkpoint ".feature/q-<quick-slug>" "quick"'`
 
