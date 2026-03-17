@@ -135,7 +135,22 @@ echo "── Skills ────────────────────
 for d in "$SCRIPT_DIR"/skills/*/; do
     skill_name="$(basename "$d")"
     install_file "$d/SKILL.md" "$TARGET/.claude/skills/$skill_name/SKILL.md"
+
+    # Clean up pre-migration command file if it exists (commands/ → skills/ migration)
+    old_cmd="$TARGET/.claude/commands/$skill_name.md"
+    if [[ -f "$old_cmd" && "$DIFF_MODE" != "1" ]]; then
+        rm "$old_cmd"
+        echo -e "  ${YELLOW}migrate${NC} removed stale .claude/commands/$skill_name.md"
+    fi
 done
+
+# Remove empty commands/ directory after migration cleanup
+if [[ -d "$TARGET/.claude/commands" && "$DIFF_MODE" != "1" ]]; then
+    if [[ -z "$(ls -A "$TARGET/.claude/commands" 2>/dev/null)" ]]; then
+        rmdir "$TARGET/.claude/commands"
+        echo -e "  ${YELLOW}migrate${NC} removed empty .claude/commands/"
+    fi
+fi
 
 # ── Agent definitions ─────────────────────────────────────────────────────────
 
@@ -179,6 +194,7 @@ install_file "$SCRIPT_DIR/scripts/kb-freshness-check.sh" "$TARGET/.claude/script
 install_file "$SCRIPT_DIR/scripts/adr-validate.sh" "$TARGET/.claude/scripts/adr-validate.sh"
 install_file "$SCRIPT_DIR/scripts/dashboard-state.sh" "$TARGET/.claude/scripts/dashboard-state.sh"
 install_file "$SCRIPT_DIR/scripts/dashboard-stop-hook.sh" "$TARGET/.claude/scripts/dashboard-stop-hook.sh"
+install_file "$SCRIPT_DIR/scripts/uninstall.sh" "$TARGET/.claude/scripts/uninstall.sh"
 
 # ── Dashboard watchers ────────────────────────────────────────────────────────
 
@@ -194,6 +210,7 @@ echo ""
 echo "── Upgrade script ───────────────────────────────"
 install_file "$SCRIPT_DIR/upgrade.sh" "$TARGET/.claude/upgrade.sh"
 chmod +x "$TARGET/.claude/upgrade.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/uninstall.sh" 2>/dev/null || true
 
 # ── Merge driver for index files ──────────────────────────────────────────────
 

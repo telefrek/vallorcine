@@ -323,6 +323,20 @@ else
     fail "upgrade should preserve skill files"
 fi
 
+# Verify watchers are installed by upgrade
+if [[ -f "$UPGRADE_TARGET/.claude/watchers/vallorcine_theme.sh" ]]; then
+    pass "upgrade installs watcher files"
+else
+    fail "upgrade should install watcher files" ".claude/watchers/ missing after upgrade"
+fi
+
+if [[ -f "$UPGRADE_TARGET/.claude/watchers/vallorcine_pipeline.sh" ]] \
+   && [[ -f "$UPGRADE_TARGET/.claude/watchers/vallorcine_stage-detail.sh" ]]; then
+    pass "upgrade installs all dashboard watcher scripts"
+else
+    fail "upgrade should install all dashboard watcher scripts"
+fi
+
 # ── Test 9: Upgrade stale removal preserves user files ──────────────
 
 echo ""
@@ -333,6 +347,7 @@ bash "$REPO_ROOT/install.sh" "$STALE_TARGET" >/dev/null 2>&1
 
 # 9a: User files in .claude/commands/ that are NOT in the manifest
 # should never be touched (stale removal only reads the manifest)
+mkdir -p "$STALE_TARGET/.claude/commands"
 echo "# my perf test skill" > "$STALE_TARGET/.claude/commands/perf-test.md"
 echo "# my custom skill" > "$STALE_TARGET/.claude/commands/my-custom-tool.md"
 
@@ -403,6 +418,237 @@ if [[ ! -f "$STALE_TARGET/.claude/commands/old-removed-command.md" ]]; then
     pass "legitimate stale kit file removed during upgrade"
 else
     fail "stale kit file should be removed" "old-removed-command.md still exists"
+fi
+
+# ── Test 9d: Install migrates stale commands/ to skills/ ──────────────────────
+
+echo ""
+echo "── Test 9d: Install migrates stale commands/ to skills/"
+
+MIGRATE_TARGET="$(make_temp)"
+cd "$MIGRATE_TARGET" && git init -q && cd "$REPO_ROOT"
+
+# Simulate a pre-migration install with commands/ files
+mkdir -p "$MIGRATE_TARGET/.claude/commands"
+echo "# old dashboard" > "$MIGRATE_TARGET/.claude/commands/dashboard.md"
+echo "# old feature-quick" > "$MIGRATE_TARGET/.claude/commands/feature-quick.md"
+echo "# old architect" > "$MIGRATE_TARGET/.claude/commands/architect.md"
+echo "# user custom tool" > "$MIGRATE_TARGET/.claude/commands/my-custom-tool.md"
+
+bash "$REPO_ROOT/install.sh" "$MIGRATE_TARGET" >/dev/null 2>&1
+
+# Kit commands that now have skills should be removed
+if [[ ! -f "$MIGRATE_TARGET/.claude/commands/dashboard.md" \
+   && ! -f "$MIGRATE_TARGET/.claude/commands/feature-quick.md" \
+   && ! -f "$MIGRATE_TARGET/.claude/commands/architect.md" ]]; then
+    pass "install removes stale pre-migration command files"
+else
+    fail "install should remove stale command files that are now skills"
+fi
+
+# User commands that don't match a skill should be preserved
+if [[ -f "$MIGRATE_TARGET/.claude/commands/my-custom-tool.md" ]]; then
+    pass "install preserves user command files not matching skills"
+else
+    fail "install should preserve user commands that don't match skills"
+fi
+
+# ── Test 10: Uninstall removes kit files ──────────────────────────────────────
+
+echo ""
+echo "── Test 10: Uninstall removes kit files"
+
+UNINSTALL_TARGET="$(make_temp)"
+cd "$UNINSTALL_TARGET" && git init -q && cd "$REPO_ROOT"
+bash "$REPO_ROOT/install.sh" "$UNINSTALL_TARGET" >/dev/null 2>&1
+
+# Verify files exist before uninstall
+if [[ -f "$UNINSTALL_TARGET/.claude/skills/feature-quick/SKILL.md" ]]; then
+    :
+else
+    fail "pre-uninstall: kit files should exist"
+fi
+
+# Run uninstall
+uninstall_output="$(bash "$UNINSTALL_TARGET/.claude/scripts/uninstall.sh" --yes 2>&1)"
+
+# Check manifest files are gone
+if [[ ! -f "$UNINSTALL_TARGET/.claude/skills/feature-quick/SKILL.md" \
+   && ! -f "$UNINSTALL_TARGET/.claude/agents/architect-agent.md" \
+   && ! -f "$UNINSTALL_TARGET/.claude/rules/kb-protocol.md" \
+   && ! -f "$UNINSTALL_TARGET/.claude/scripts/token-usage.sh" \
+   && ! -f "$UNINSTALL_TARGET/.claude/upgrade.sh" ]]; then
+    pass "uninstall removes kit files"
+else
+    fail "uninstall should remove all kit files"
+fi
+
+# Check metadata is gone
+if [[ ! -f "$UNINSTALL_TARGET/.claude/.vallorcine-version" \
+   && ! -f "$UNINSTALL_TARGET/.claude/.vallorcine-manifest" \
+   && ! -f "$UNINSTALL_TARGET/.claude/.vallorcine-source" ]]; then
+    pass "uninstall removes metadata files"
+else
+    fail "uninstall should remove metadata files"
+fi
+
+# Self-delete: uninstall.sh should be gone too
+if [[ ! -f "$UNINSTALL_TARGET/.claude/scripts/uninstall.sh" ]]; then
+    pass "uninstall script self-deletes"
+else
+    fail "uninstall script should self-delete"
+fi
+
+# ── Test 11: Uninstall preserves user data ────────────────────────────────────
+
+echo ""
+echo "── Test 11: Uninstall preserves user data"
+
+PRESERVE_TARGET="$(make_temp)"
+cd "$PRESERVE_TARGET" && git init -q && cd "$REPO_ROOT"
+bash "$REPO_ROOT/install.sh" "$PRESERVE_TARGET" >/dev/null 2>&1
+
+# Create user data
+mkdir -p "$PRESERVE_TARGET/.kb/apis/rest"
+echo "# REST API" > "$PRESERVE_TARGET/.kb/apis/rest/endpoints.md"
+mkdir -p "$PRESERVE_TARGET/.decisions/use-postgres"
+echo "# Use Postgres" > "$PRESERVE_TARGET/.decisions/use-postgres/adr.md"
+mkdir -p "$PRESERVE_TARGET/.feature/add-auth"
+echo "# Auth feature" > "$PRESERVE_TARGET/.feature/add-auth/plan.md"
+echo "# Project Context" > "$PRESERVE_TARGET/PROJECT-CONTEXT.md"
+
+bash "$PRESERVE_TARGET/.claude/scripts/uninstall.sh" --yes >/dev/null 2>&1
+
+if [[ -f "$PRESERVE_TARGET/.kb/apis/rest/endpoints.md" ]]; then
+    pass "uninstall preserves .kb/ user data"
+else
+    fail "uninstall should preserve .kb/"
+fi
+
+if [[ -f "$PRESERVE_TARGET/.decisions/use-postgres/adr.md" ]]; then
+    pass "uninstall preserves .decisions/ user data"
+else
+    fail "uninstall should preserve .decisions/"
+fi
+
+if [[ -f "$PRESERVE_TARGET/.feature/add-auth/plan.md" ]]; then
+    pass "uninstall preserves .feature/ user data"
+else
+    fail "uninstall should preserve .feature/"
+fi
+
+if [[ -f "$PRESERVE_TARGET/PROJECT-CONTEXT.md" ]]; then
+    pass "uninstall preserves PROJECT-CONTEXT.md"
+else
+    fail "uninstall should preserve PROJECT-CONTEXT.md"
+fi
+
+# ── Test 12: --dry-run makes no changes ───────────────────────────────────────
+
+echo ""
+echo "── Test 12: Uninstall --dry-run makes no changes"
+
+DRYRUN_TARGET="$(make_temp)"
+cd "$DRYRUN_TARGET" && git init -q && cd "$REPO_ROOT"
+bash "$REPO_ROOT/install.sh" "$DRYRUN_TARGET" >/dev/null 2>&1
+
+# Run dry-run
+bash "$DRYRUN_TARGET/.claude/scripts/uninstall.sh" --dry-run >/dev/null 2>&1
+
+# All files should still exist
+if [[ -f "$DRYRUN_TARGET/.claude/skills/feature-quick/SKILL.md" \
+   && -f "$DRYRUN_TARGET/.claude/agents/architect-agent.md" \
+   && -f "$DRYRUN_TARGET/.claude/.vallorcine-version" \
+   && -f "$DRYRUN_TARGET/.claude/scripts/uninstall.sh" ]]; then
+    pass "--dry-run makes no changes"
+else
+    fail "--dry-run should not remove any files"
+fi
+
+# ── Test 13: Uninstall safety guard blocks repo root ──────────────────────────
+
+echo ""
+echo "── Test 13: Uninstall safety guard blocks repo root"
+
+# Create a fake "vallorcine repo" with install.sh, VERSION, MANIFEST at root
+# and place the uninstall script at .claude/scripts/ so PROJECT_ROOT resolves to root
+GUARD_DIR="/tmp/vallorcine/test-guard-$$"
+mkdir -p "$GUARD_DIR/.claude/scripts"
+cp "$REPO_ROOT/scripts/uninstall.sh" "$GUARD_DIR/.claude/scripts/uninstall.sh"
+touch "$GUARD_DIR/install.sh" "$GUARD_DIR/VERSION" "$GUARD_DIR/MANIFEST"
+
+guard_output="$(bash "$GUARD_DIR/.claude/scripts/uninstall.sh" 2>&1 || true)"
+rm -rf "$GUARD_DIR"
+
+if echo "$guard_output" | grep -q "vallorcine source repository"; then
+    pass "uninstall safety guard blocks repo root"
+else
+    fail "uninstall safety guard should block repo root" "output: $guard_output"
+fi
+
+# ── Test 14: Uninstall cleans git config + .gitattributes ─────────────────────
+
+echo ""
+echo "── Test 14: Uninstall cleans git config + .gitattributes"
+
+GITCLEAN_TARGET="$(make_temp)"
+cd "$GITCLEAN_TARGET" && git init -q && cd "$REPO_ROOT"
+bash "$REPO_ROOT/install.sh" "$GITCLEAN_TARGET" >/dev/null 2>&1
+
+# Verify git config was set by install
+if git -C "$GITCLEAN_TARGET" config --get merge.vallorcine-index.name >/dev/null 2>&1; then
+    :
+else
+    fail "pre-uninstall: merge driver should be configured"
+fi
+
+bash "$GITCLEAN_TARGET/.claude/scripts/uninstall.sh" --yes >/dev/null 2>&1
+
+# Check git config is cleaned
+if ! git -C "$GITCLEAN_TARGET" config --get merge.vallorcine-index.name >/dev/null 2>&1; then
+    pass "uninstall removes git merge driver config"
+else
+    fail "uninstall should remove merge driver config"
+fi
+
+# Check .gitattributes is cleaned
+if [[ -f "$GITCLEAN_TARGET/.gitattributes" ]]; then
+    if ! grep -qF "vallorcine" "$GITCLEAN_TARGET/.gitattributes" 2>/dev/null; then
+        pass "uninstall cleans .gitattributes"
+    else
+        fail "uninstall should remove vallorcine entries from .gitattributes"
+    fi
+else
+    pass "uninstall cleans .gitattributes (file removed — was empty)"
+fi
+
+# ── Test 15: Uninstall cleans settings.json hook ──────────────────────────────
+
+echo ""
+echo "── Test 15: Uninstall cleans settings.json Stop hook"
+
+HOOKCLEAN_TARGET="$(make_temp)"
+cd "$HOOKCLEAN_TARGET" && git init -q && cd "$REPO_ROOT"
+bash "$REPO_ROOT/install.sh" "$HOOKCLEAN_TARGET" >/dev/null 2>&1
+
+# Verify hook was set by install
+if grep -qF "dashboard-stop-hook.sh" "$HOOKCLEAN_TARGET/.claude/settings.json" 2>/dev/null; then
+    :
+else
+    fail "pre-uninstall: Stop hook should be in settings.json"
+fi
+
+bash "$HOOKCLEAN_TARGET/.claude/scripts/uninstall.sh" --yes >/dev/null 2>&1
+
+# Check settings.json no longer has the hook
+if [[ -f "$HOOKCLEAN_TARGET/.claude/settings.json" ]]; then
+    if ! grep -qF "dashboard-stop-hook.sh" "$HOOKCLEAN_TARGET/.claude/settings.json" 2>/dev/null; then
+        pass "uninstall removes Stop hook from settings.json"
+    else
+        fail "uninstall should remove Stop hook from settings.json"
+    fi
+else
+    pass "uninstall removes Stop hook (settings.json removed — was empty)"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────────────

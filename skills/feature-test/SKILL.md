@@ -207,9 +207,9 @@ Example checklist during test writing:
 
 ## Step 0b — Token tracking
 
-Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "testing"'`
+Run silently: `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "testing"'`
 
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "testing"'`
+**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "testing"'`
 (silently — hint output is OK)
 
 ---
@@ -445,11 +445,11 @@ Update `.feature/CLAUDE.md`.
 
 Read `automation_mode` from status.md.
 
-**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "testing"'`
+**Token tracking:** run `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "testing"'`
 and capture the output as TOKEN_USAGE. Update the Stage Completion table: Testing
 row → Actual Tokens from TOKEN_USAGE.
 
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "testing"'`
+**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "testing"'`
 (silently)
 
 **If `automation_mode: autonomous`:**

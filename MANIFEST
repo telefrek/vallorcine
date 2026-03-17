@@ -27,6 +27,7 @@
 .claude/skills/project-context/SKILL.md
 .claude/skills/research/SKILL.md
 .claude/skills/setup-vallorcine/SKILL.md
+.claude/skills/uninstall-vallorcine/SKILL.md
 .claude/skills/upgrade-vallorcine/SKILL.md
 .claude/skills/vallorcine-help/SKILL.md
 .claude/agents/architect-agent.md
@@ -50,6 +51,7 @@
 .claude/scripts/adr-validate.sh
 .claude/scripts/dashboard-state.sh
 .claude/scripts/dashboard-stop-hook.sh
+.claude/scripts/uninstall.sh
 .claude/watchers/vallorcine_theme.sh
 .claude/watchers/vallorcine_pipeline.sh
 .claude/watchers/vallorcine_stage-detail.sh

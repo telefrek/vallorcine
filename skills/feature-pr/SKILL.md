@@ -48,9 +48,9 @@ Display opening header:
 
 ## Step 0b — Token tracking
 
-Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "pr-draft"'`
+Run silently: `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "pr-draft"'`
 
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "pr"'`
+**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "pr"'`
 (silently — hint output is OK)
 
 ---
@@ -200,10 +200,10 @@ Append `pr-drafted` entry to cycle-log.md:
 
 ## Step 5 — Create the PR
 
-**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "pr-draft"'`
+**Token tracking:** run `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "pr-draft"'`
 and capture the output as TOKEN_USAGE.
 
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "pr"'`
+**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "pr"'`
 (silently)
 
 Check if `gh` CLI is available: run `gh auth status` silently.

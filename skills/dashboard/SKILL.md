@@ -2,7 +2,7 @@
 description: "Launch, enable, or disable the vallorcine tmux dashboard"
 ---
 
-# /dashboard — Live development dashboard
+# /dashboard
 
 Launch, enable, or disable the vallorcine tmux dashboard.
 
@@ -33,19 +33,33 @@ Launch, enable, or disable the vallorcine tmux dashboard.
    fi
    ```
 
-3. **Create state directory**:
+3. **Check watchers exist** — verify the watcher scripts are installed:
+   ```bash
+   if [[ ! -f .claude/watchers/vallorcine_pipeline.sh ]] || [[ ! -f .claude/watchers/vallorcine_stage-detail.sh ]]; then
+     echo "Dashboard watcher scripts not found."
+     echo ""
+     echo "This happens when vallorcine was installed as a plugin or upgraded"
+     echo "from a version before v0.4.0. To install the missing files, run:"
+     echo "  bash install.sh <project-path>"
+     echo "or upgrade with: /upgrade-vallorcine"
+     echo ""
+     # STOP here — do not proceed
+   fi
+   ```
+
+4. **Create state directory**:
    ```bash
    mkdir -p .claude/dashboard
    ```
 
-4. **Launch two panes** — split right for pipeline, then split that pane for stage detail:
+5. **Launch two panes** — split right for pipeline, then split that pane for stage detail:
    ```bash
    PROJECT_ROOT="$(pwd)"
    tmux split-window -h -l 40 -t '{last}' "printf '\\033]2;vallorcine-pipeline\\033\\\\'; bash .claude/watchers/vallorcine_pipeline.sh \"$PROJECT_ROOT\""
    tmux split-window -v -t '{right}' -l 50% "printf '\\033]2;vallorcine-stage\\033\\\\'; bash .claude/watchers/vallorcine_stage-detail.sh \"$PROJECT_ROOT\""
    ```
 
-5. **Confirm**:
+6. **Confirm**:
    ```
    Dashboard launched. Two panes: pipeline (top-right), stage detail (bottom-right).
    ```

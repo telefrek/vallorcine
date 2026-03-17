@@ -42,9 +42,9 @@ brief.md, and initialises status.md as the restart checkpoint.
 - Create `.feature/<slug>/` directory
 - Write initial `status.md` (see Status File Template below) with stage `scoping`,
   substage `interviewing`
-- **Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "scoping"'`
+- **Token tracking:** run `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "scoping"'`
   (silently — no output to the user)
-- **Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_init "<slug>" && dashboard_stage_start "scoping"'`
+- **Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_init "<slug>" && dashboard_stage_start "scoping"'`
   (silently — hint output is OK, the rest is silent)
 
 Display opening header immediately:
@@ -216,11 +216,11 @@ Update `.feature/CLAUDE.md` Active Features table.
 
 ## Step 5 — Hand off
 
-**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "scoping"'`
+**Token tracking:** run `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "scoping"'`
 and capture the output as TOKEN_USAGE. Update the Stage Completion table: Scoping
 row → Actual Tokens from TOKEN_USAGE (extract the `<N>K in / <N>K out` values).
 
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "scoping"'`
+**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "scoping"'`
 (silently)
 
 Display:

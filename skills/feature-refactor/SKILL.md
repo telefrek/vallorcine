@@ -143,9 +143,9 @@ TodoWrite item. Use `activeForm` to show what is being reviewed or fixed
 
 ## Step 0b — Token tracking
 
-Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "refactor"'`
+Run silently: `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "refactor"'`
 
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "refactor"'`
+**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "refactor"'`
 (silently — hint output is OK)
 
 ---
@@ -527,11 +527,11 @@ Update `.feature/CLAUDE.md`.
 
 Read `automation_mode` from status.md.
 
-**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "refactor"'`
+**Token tracking:** run `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "refactor"'`
 and capture the output as TOKEN_USAGE. Update the Stage Completion table: Refactor
 row → Actual Tokens from TOKEN_USAGE.
 
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "refactor"'`
+**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "refactor"'`
 (silently)
 
 **If `execution_strategy` is `balanced` or `speed` (parallel mode):**

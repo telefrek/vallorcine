@@ -103,9 +103,9 @@ item's `activeForm` to reflect current work.
 
 ## Step 0b — Token tracking
 
-Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "planning"'`
+Run silently: `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "planning"'`
 
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "planning"'`
+**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "planning"'`
 (silently — hint output is OK)
 
 ---
@@ -444,11 +444,11 @@ display in Step 4.
 
 ## Step 4 — Hand off
 
-**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "planning"'`
+**Token tracking:** run `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "planning"'`
 and capture the output as TOKEN_USAGE. Update the Stage Completion table: Planning
 row → Actual Tokens from TOKEN_USAGE.
 
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "planning"'`
+**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "planning"'`
 (silently)
 
 Use the subagent's returned summary (stubs written, stubs skipped, construct counts)

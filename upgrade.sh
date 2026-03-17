@@ -332,9 +332,11 @@ apply_file() {
 }
 
 # Kit-managed files — always overwrite
-echo "  Updating commands..."
-for f in "$KIT_ROOT_APPLY"/commands/*.md; do
-    [[ -f "$f" ]] && apply_file "$f" "$PROJECT_ROOT/.claude/commands/$(basename "$f")"
+echo "  Updating skills..."
+for d in "$KIT_ROOT_APPLY"/skills/*/; do
+    [[ -d "$d" ]] || continue
+    skill_name="$(basename "$d")"
+    [[ -f "$d/SKILL.md" ]] && apply_file "$d/SKILL.md" "$PROJECT_ROOT/.claude/skills/$skill_name/SKILL.md"
 done
 
 echo "  Updating agents..."
@@ -350,6 +352,11 @@ done
 echo "  Updating scripts..."
 for f in "$KIT_ROOT_APPLY"/scripts/*.sh; do
     [[ -f "$f" ]] && apply_file "$f" "$PROJECT_ROOT/.claude/scripts/$(basename "$f")"
+done
+
+echo "  Updating watchers..."
+for f in "$KIT_ROOT_APPLY"/watchers/*.sh; do
+    [[ -f "$f" ]] && apply_file "$f" "$PROJECT_ROOT/.claude/watchers/$(basename "$f")"
 done
 
 echo "  Updating upgrade.sh..."
