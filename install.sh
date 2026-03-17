@@ -175,6 +175,7 @@ install_file "$SCRIPT_DIR/scripts/version-check.sh" "$TARGET/.claude/scripts/ver
 install_file "$SCRIPT_DIR/scripts/merge-driver-index.sh" "$TARGET/.claude/scripts/merge-driver-index.sh"
 install_file "$SCRIPT_DIR/scripts/ensure-merge-driver.sh" "$TARGET/.claude/scripts/ensure-merge-driver.sh"
 install_file "$SCRIPT_DIR/scripts/kb-freshness-check.sh" "$TARGET/.claude/scripts/kb-freshness-check.sh"
+install_file "$SCRIPT_DIR/scripts/adr-validate.sh" "$TARGET/.claude/scripts/adr-validate.sh"
 
 # ── Upgrade script ───────────────────────────────────────────────────────────
 

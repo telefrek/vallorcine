@@ -396,6 +396,24 @@ if [[ -f "$OLD_MANIFEST" && -f "$NEW_MANIFEST" ]]; then
     while IFS= read -r rel_path; do
         # Skip comment lines and blank lines
         [[ "$rel_path" =~ ^#.*$ || -z "$rel_path" ]] && continue
+
+        # Safety: only remove files under known kit-managed prefixes.
+        # This prevents a corrupted or malformed manifest from deleting
+        # user files, other plugins' commands, or project source code.
+        case "$rel_path" in
+            .claude/commands/*|\
+            .claude/agents/*|\
+            .claude/rules/*|\
+            .claude/scripts/*|\
+            .claude/upgrade.sh)
+                ;; # known kit prefix — safe to remove
+            *)
+                echo -e "  ${YELLOW}skip${NC}  $rel_path  (not a known kit path — refusing to remove)"
+                ((skipped_user++)) || true
+                continue
+                ;;
+        esac
+
         # If the path is not in the new manifest, it was removed from the kit
         if ! grep -qF "$rel_path" "$NEW_MANIFEST" 2>/dev/null; then
             target_file="$PROJECT_ROOT/$rel_path"
