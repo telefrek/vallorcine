@@ -402,6 +402,7 @@ if [[ -f "$OLD_MANIFEST" && -f "$NEW_MANIFEST" ]]; then
         # user files, other plugins' commands, or project source code.
         case "$rel_path" in
             .claude/commands/*|\
+            .claude/skills/*|\
             .claude/agents/*|\
             .claude/rules/*|\
             .claude/scripts/*|\

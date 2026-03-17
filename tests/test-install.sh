@@ -169,12 +169,12 @@ echo ""
 echo "── Test 5: FORCE_UPDATE=1 overwrites existing"
 
 # Modify a file to detect overwrite
-echo "# modified" >> "$TARGET/.claude/commands/feature-quick.md"
+echo "# modified" >> "$TARGET/.claude/skills/feature-quick/SKILL.md"
 output3="$(FORCE_UPDATE=1 bash "$REPO_ROOT/install.sh" "$TARGET" 2>&1)"
 write_count3="$(echo "$output3" | grep -c "write" || true)"
 
 # Check the modified file was overwritten (no longer has our marker)
-if ! grep -q "^# modified$" "$TARGET/.claude/commands/feature-quick.md" 2>/dev/null; then
+if ! grep -q "^# modified$" "$TARGET/.claude/skills/feature-quick/SKILL.md" 2>/dev/null; then
     pass "FORCE_UPDATE overwrites modified files"
 else
     fail "FORCE_UPDATE should overwrite" "file still has modification marker"
@@ -189,7 +189,7 @@ MISMATCH_TARGET="$(make_temp)"
 bash "$REPO_ROOT/install.sh" "$MISMATCH_TARGET" >/dev/null 2>&1
 
 # Plant a marker in a kit file to detect overwrite
-echo "# old-version-marker" >> "$MISMATCH_TARGET/.claude/commands/feature-quick.md"
+echo "# old-version-marker" >> "$MISMATCH_TARGET/.claude/skills/feature-quick/SKILL.md"
 
 # Fake an older version stamp so install.sh sees a mismatch
 echo "0.0.1" > "$MISMATCH_TARGET/.claude/.vallorcine-version"
@@ -197,7 +197,7 @@ echo "0.0.1" > "$MISMATCH_TARGET/.claude/.vallorcine-version"
 # Re-install WITHOUT FORCE_UPDATE — version mismatch should auto-force
 mismatch_output="$(bash "$REPO_ROOT/install.sh" "$MISMATCH_TARGET" 2>&1)"
 
-if ! grep -q "^# old-version-marker$" "$MISMATCH_TARGET/.claude/commands/feature-quick.md" 2>/dev/null; then
+if ! grep -q "^# old-version-marker$" "$MISMATCH_TARGET/.claude/skills/feature-quick/SKILL.md" 2>/dev/null; then
     pass "version mismatch overwrites kit files without FORCE_UPDATE"
 else
     fail "version mismatch should auto-force overwrite" "file still has old marker"
@@ -245,10 +245,10 @@ dev_output="$(bash "$REPO_ROOT/install.sh" --dev 2>&1)"
 dev_target="$(echo "$dev_output" | grep -o '/tmp/[^ ]*' | head -1)"
 
 if [[ -n "$dev_target" && -d "$dev_target" ]]; then
-    if [[ -f "$dev_target/.claude/commands/feature-quick.md" ]]; then
+    if [[ -f "$dev_target/.claude/skills/feature-quick/SKILL.md" ]]; then
         pass "--dev installs to temp dir ($dev_target)"
     else
-        fail "--dev should install files" "commands not found in $dev_target"
+        fail "--dev should install files" "skills not found in $dev_target"
     fi
 else
     fail "--dev should use temp dir" "could not find temp path in output"
@@ -263,20 +263,20 @@ DIFF_TARGET="$(make_temp)"
 bash "$REPO_ROOT/install.sh" "$DIFF_TARGET" >/dev/null 2>&1
 
 # Modify a file so diff has something to report
-echo "# modified" >> "$DIFF_TARGET/.claude/commands/feature-quick.md"
+echo "# modified" >> "$DIFF_TARGET/.claude/skills/feature-quick/SKILL.md"
 
 # Run diff mode
 diff_output="$(bash "$REPO_ROOT/install.sh" --diff "$DIFF_TARGET" 2>&1)"
 
 # Should show "changed" for the modified file
-if echo "$diff_output" | grep -q "changed.*feature-quick.md"; then
+if echo "$diff_output" | grep -q "changed.*feature-quick/SKILL.md"; then
     pass "--diff detects changed files"
 else
     fail "--diff should detect changed files" "output did not contain 'changed'"
 fi
 
 # Should NOT have written the file (still has our marker)
-if grep -q "^# modified$" "$DIFF_TARGET/.claude/commands/feature-quick.md" 2>/dev/null; then
+if grep -q "^# modified$" "$DIFF_TARGET/.claude/skills/feature-quick/SKILL.md" 2>/dev/null; then
     pass "--diff does not write files"
 else
     fail "--diff should not modify files" "file was modified"
@@ -317,10 +317,10 @@ else
 fi
 
 # Verify upgraded files are present
-if [[ -f "$UPGRADE_TARGET/.claude/commands/feature-quick.md" ]]; then
-    pass "upgrade preserves command files"
+if [[ -f "$UPGRADE_TARGET/.claude/skills/feature-quick/SKILL.md" ]]; then
+    pass "upgrade preserves skill files"
 else
-    fail "upgrade should preserve command files"
+    fail "upgrade should preserve skill files"
 fi
 
 # ── Test 9: Upgrade stale removal preserves user files ──────────────

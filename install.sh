@@ -128,12 +128,13 @@ if [[ -f "$INSTALLED_VERSION_FILE" ]]; then
     fi
 fi
 
-# ── Slash commands ────────────────────────────────────────────────────────────
+# ── Skills (slash commands) ───────────────────────────────────────────────────
 
 echo ""
-echo "── Slash commands ───────────────────────────────"
-for f in "$SCRIPT_DIR"/commands/*.md; do
-    install_file "$f" "$TARGET/.claude/commands/$(basename "$f")"
+echo "── Skills ───────────────────────────────────────"
+for d in "$SCRIPT_DIR"/skills/*/; do
+    skill_name="$(basename "$d")"
+    install_file "$d/SKILL.md" "$TARGET/.claude/skills/$skill_name/SKILL.md"
 done
 
 # ── Agent definitions ─────────────────────────────────────────────────────────

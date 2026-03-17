@@ -70,7 +70,7 @@ bash "$REPO_ROOT/install.sh" "$T1" >/dev/null 2>&1
 if [[ -f "$T1/.claude/watchers/vallorcine_theme.sh" ]] \
    && [[ -f "$T1/.claude/watchers/vallorcine_pipeline.sh" ]] \
    && [[ -f "$T1/.claude/watchers/vallorcine_stage-detail.sh" ]] \
-   && [[ -f "$T1/.claude/commands/dashboard.md" ]]; then
+   && [[ -f "$T1/.claude/skills/dashboard/SKILL.md" ]]; then
     pass "All dashboard files installed"
 else
     fail "Missing dashboard files"
@@ -241,7 +241,7 @@ fi
 echo "Test 9: MANIFEST includes watcher and dashboard entries"
 manifest="$REPO_ROOT/MANIFEST"
 missing=0
-for entry in ".claude/watchers/vallorcine_theme.sh" ".claude/watchers/vallorcine_pipeline.sh" ".claude/watchers/vallorcine_stage-detail.sh" ".claude/commands/dashboard.md"; do
+for entry in ".claude/watchers/vallorcine_theme.sh" ".claude/watchers/vallorcine_pipeline.sh" ".claude/watchers/vallorcine_stage-detail.sh" ".claude/skills/dashboard/SKILL.md"; do
     if ! grep -qF "$entry" "$manifest"; then
         fail "MANIFEST missing: $entry"
         missing=1
@@ -373,13 +373,13 @@ fi
 
 echo "Test 13: Pipeline commands include dashboard calls"
 missing=0
-for cmd in feature.md feature-domains.md feature-plan.md feature-test.md feature-implement.md feature-refactor.md feature-pr.md; do
-    if ! grep -q "dashboard_stage_start\|dashboard_init" "$REPO_ROOT/commands/$cmd" 2>/dev/null; then
-        fail "Missing dashboard_stage_start in $cmd"
+for skill in feature feature-domains feature-plan feature-test feature-implement feature-refactor feature-pr; do
+    if ! grep -q "dashboard_stage_start\|dashboard_init" "$REPO_ROOT/skills/$skill/SKILL.md" 2>/dev/null; then
+        fail "Missing dashboard_stage_start in $skill"
         missing=1
     fi
-    if ! grep -q "dashboard_stage_complete" "$REPO_ROOT/commands/$cmd" 2>/dev/null; then
-        fail "Missing dashboard_stage_complete in $cmd"
+    if ! grep -q "dashboard_stage_complete" "$REPO_ROOT/skills/$skill/SKILL.md" 2>/dev/null; then
+        fail "Missing dashboard_stage_complete in $skill"
         missing=1
     fi
 done
@@ -390,7 +390,7 @@ fi
 # ── Test 14: feature-init.md includes .claude/dashboard/ in gitignore ────────
 
 echo "Test 14: feature-init.md gitignore includes dashboard"
-if grep -qF ".claude/dashboard/" "$REPO_ROOT/commands/feature-init.md"; then
+if grep -qF ".claude/dashboard/" "$REPO_ROOT/skills/feature-init/SKILL.md"; then
     pass "feature-init.md adds .claude/dashboard/ to .gitignore"
 else
     fail "feature-init.md missing .claude/dashboard/ gitignore entry"
