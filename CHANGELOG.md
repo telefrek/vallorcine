@@ -5,6 +5,16 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.4.3] — 2026-03-17
+
+### Fixed
+- Status line now detects stage transitions during chained sub-agent execution
+  by reading actual stage from `status.md` instead of relying on Stop hook
+- Per-stage token usage logged to `token-log.md` automatically on stage
+  transitions, even when stages chain without returning to the user
+
+---
+
 ## [0.4.2] — 2026-03-17
 
 ### Fixed

@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # vallorcine status line script
 # Displays feature pipeline stage, per-stage token usage, and context % in Claude Code's status line.
+# Also detects stage transitions and logs per-stage token usage to token-log.md.
 #
 # Installed to .claude/scripts/statusline.sh
 # Configured via settings.json: "statusLine": { "type": "command", "command": "bash .claude/scripts/statusline.sh" }
 #
-# Performance: <10ms typical. Reads 2-3 small files + stdin JSON.
+# Performance: <10ms typical (reads 2-3 small files + stdin JSON).
+# Stage transition path adds one file write (~6 times per feature).
 # Zero token cost — runs locally by Claude Code after each assistant message.
 
 input=$(cat)
@@ -13,7 +15,7 @@ input=$(cat)
 # ── Extract session info from stdin JSON ─────────────────────────────────────
 
 context_pct=""
-total_tokens=""
+ctx_size=""
 if command -v jq &>/dev/null; then
     read -r context_pct ctx_size < <(
         echo "$input" | jq -r '[(.context_window.used_percentage // empty), (.context_window.context_window_size // empty)] | @tsv' 2>/dev/null
@@ -38,35 +40,47 @@ fmt_tokens() {
     fi
 }
 
+# ── Compute current context tokens ───────────────────────────────────────────
+
+current_ctx_tokens=""
+if [[ "$ctx_size" =~ ^[0-9]+$ && -n "$context_pct" ]]; then
+    current_ctx_tokens=$(awk "BEGIN { printf \"%d\", $context_pct * $ctx_size / 100 }")
+fi
+
 # ── Read pipeline state ──────────────────────────────────────────────────────
 
 stage_display=""
 stage_tokens=""
 BASELINE_FILE=".claude/.statusline-baseline"
 
-# Try .token-state first (lightweight, single file)
 if [[ -f .claude/.token-state ]]; then
     feature_dir=""
     cached_stage=""
     source .claude/.token-state 2>/dev/null
 
-    if [[ -n "$feature_dir" && -n "$cached_stage" && -f "$feature_dir/status.md" ]]; then
+    if [[ -n "$feature_dir" && -f "$feature_dir/status.md" ]]; then
         slug=$(basename "$feature_dir")
 
-        # Get substage for finer detail
+        # Read ACTUAL stage from status.md (not cached_stage from .token-state)
+        # This detects transitions during chained sub-agent execution
+        actual_stage=$(grep -m1 '^\*\*Stage:\*\*' "$feature_dir/status.md" 2>/dev/null \
+            | sed 's/\*\*Stage:\*\* *//' | tr -d '[:space:]')
         substage=$(grep -m1 '^\*\*Substage:\*\*' "$feature_dir/status.md" 2>/dev/null \
             | sed 's/\*\*Substage:\*\* *//' | tr -d '[:space:]')
 
+        # Use actual stage for display (falls back to cached if status.md unreadable)
+        current_stage="${actual_stage:-$cached_stage}"
+
         # Terminal states — feature is done, don't show stale stage
         is_terminal=0
-        case "$cached_stage/$substage" in
+        case "$current_stage/$substage" in
             pr/created|pr/complete) is_terminal=1 ;;
         esac
 
         if [[ "$is_terminal" == "0" ]]; then
             # Build stage display with substage detail
             sub=""
-            case "$cached_stage" in
+            case "$current_stage" in
                 scoping)
                     case "$substage" in
                         interviewing)     sub="interviewing" ;;
@@ -127,25 +141,48 @@ if [[ -f .claude/.token-state ]]; then
                     esac
                     stage_display="$slug · PR draft${sub:+ · $sub}" ;;
                 *)
-                    stage_display="$slug · $cached_stage" ;;
+                    stage_display="$slug · $current_stage" ;;
             esac
 
-            # ── Per-stage token tracking via context % baseline ────────
-            # Derive current tokens from used_percentage * context_window_size
-            if [[ "$ctx_size" =~ ^[0-9]+$ && -n "$context_pct" ]]; then
-                # Compute current tokens in context (integer math: pct * size / 100)
-                # Use awk for floating point since context_pct can be "24.5"
-                current_ctx_tokens=$(awk "BEGIN { printf \"%d\", $context_pct * $ctx_size / 100 }")
-
+            # ── Per-stage token tracking via context % baseline ──────────
+            if [[ "$current_ctx_tokens" =~ ^[0-9]+$ ]]; then
                 baseline_stage=""
                 baseline_ctx_tokens=""
+                baseline_timestamp=""
                 [[ -f "$BASELINE_FILE" ]] && source "$BASELINE_FILE" 2>/dev/null
 
-                if [[ "$baseline_stage" != "$cached_stage" || ! "$baseline_ctx_tokens" =~ ^[0-9]+$ ]]; then
-                    # Stage changed or no baseline — set new baseline
+                if [[ "$baseline_stage" != "$current_stage" ]]; then
+                    # ── Stage transition detected ────────────────────────
+                    # Log the completed stage's token usage
+                    if [[ -n "$baseline_stage" && "$baseline_ctx_tokens" =~ ^[0-9]+$ ]]; then
+                        completed_tokens=$(( current_ctx_tokens - baseline_ctx_tokens ))
+                        [[ "$completed_tokens" -lt 0 ]] && completed_tokens=0
+
+                        log_file="$feature_dir/token-log.md"
+                        if [[ ! -f "$log_file" ]]; then
+                            cat > "$log_file" <<'HEADER'
+# Token Usage Log
+
+| Phase | Context Tokens | Started | Ended |
+|-------|---------------|---------|-------|
+HEADER
+                        fi
+
+                        echo "| $baseline_stage | $completed_tokens | ${baseline_timestamp:-unknown} | $(date -u +%Y-%m-%dT%H:%M:%SZ) |" >> "$log_file"
+                    fi
+
+                    # Set new baseline for the new stage
+                    printf 'baseline_stage=%q\nbaseline_ctx_tokens=%s\nbaseline_timestamp=%s\n' \
+                        "$current_stage" "$current_ctx_tokens" \
+                        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$BASELINE_FILE"
                     baseline_ctx_tokens="$current_ctx_tokens"
-                    printf 'baseline_stage=%q\nbaseline_ctx_tokens=%s\n' \
-                        "$cached_stage" "$current_ctx_tokens" > "$BASELINE_FILE"
+
+                elif [[ ! "$baseline_ctx_tokens" =~ ^[0-9]+$ ]]; then
+                    # No valid baseline — initialize
+                    printf 'baseline_stage=%q\nbaseline_ctx_tokens=%s\nbaseline_timestamp=%s\n' \
+                        "$current_stage" "$current_ctx_tokens" \
+                        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$BASELINE_FILE"
+                    baseline_ctx_tokens="$current_ctx_tokens"
                 fi
 
                 stage_used=$(( current_ctx_tokens - baseline_ctx_tokens ))
