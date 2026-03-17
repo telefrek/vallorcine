@@ -42,11 +42,6 @@ brief.md, and initialises status.md as the restart checkpoint.
 - Create `.feature/<slug>/` directory
 - Write initial `status.md` (see Status File Template below) with stage `scoping`,
   substage `interviewing`
-- **Token tracking:** run `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "scoping"'`
-  (silently — no output to the user)
-- **Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_init "<slug>" && dashboard_stage_start "scoping"'`
-  (silently — hint output is OK, the rest is silent)
-
 Display opening header immediately:
 ```
 ───────────────────────────────────────────────
@@ -216,13 +211,6 @@ Update `.feature/CLAUDE.md` Active Features table.
 
 ## Step 5 — Hand off
 
-**Token tracking:** run `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "scoping"'`
-and capture the output as TOKEN_USAGE. Update the Stage Completion table: Scoping
-row → Actual Tokens from TOKEN_USAGE (extract the `<N>K in / <N>K out` values).
-
-**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "scoping"'`
-(silently)
-
 Display:
 ```
 ───────────────────────────────────────────────
@@ -294,13 +282,10 @@ load for this stage, derived from the construct count and file sizes. Format:
 - Implementation: work-plan section (~2K) + test files (~3K) + stubs (~1K)
 - Refactor: project-config (~1K) + work-plan (~2K) + impl files + test files
 
-**Actual Tokens** — written at stage completion. Captured from the `token_summary`
-shell output. Format: `<N>K in / <N>K out` (e.g., `12K in / 8K out`). If
-`token_summary` returns "unknown", write `unknown`.
-
-When each stage completes and calls `token_summary`, also update the Stage
-Completion row for that stage with the actual token values. The estimate is
-written when the stage begins (or when the work unit analysis calculates load).
+**Actual Tokens** — written automatically by the token tracking Stop hook when
+a stage transition is detected. The hook reads the session transcript and logs
+usage to `token-log.md`. Format: `<N>K in / <N>K out` (e.g., `12K in / 8K out`).
+Agents do not need to run any bash commands for token tracking.
 
 ```markdown
 ---

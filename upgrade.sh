@@ -354,11 +354,6 @@ for f in "$KIT_ROOT_APPLY"/scripts/*.sh; do
     [[ -f "$f" ]] && apply_file "$f" "$PROJECT_ROOT/.claude/scripts/$(basename "$f")"
 done
 
-echo "  Updating watchers..."
-for f in "$KIT_ROOT_APPLY"/watchers/*.sh; do
-    [[ -f "$f" ]] && apply_file "$f" "$PROJECT_ROOT/.claude/watchers/$(basename "$f")"
-done
-
 echo "  Updating upgrade.sh..."
 apply_file "$KIT_ROOT_APPLY/upgrade.sh" "$PROJECT_ROOT/.claude/upgrade.sh"
 chmod +x "$PROJECT_ROOT/.claude/upgrade.sh"

@@ -177,13 +177,6 @@ Update the checklist after each construct's tests pass — mark the construct
 
 ---
 
-## Step 0b — Token tracking
-
-Run silently: `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "implementation"'`
-
-**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "implementation"'`
-(silently — hint output is OK)
-
 ---
 
 ## Step 1 — Load context and baseline
@@ -314,13 +307,6 @@ If work units are defined:
 Update `.feature/CLAUDE.md`.
 
 Read `automation_mode` from status.md.
-
-**Token tracking:** run `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "implementation"'`
-and capture the output as TOKEN_USAGE. Update the Stage Completion table:
-Implementation row → Actual Tokens from TOKEN_USAGE.
-
-**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "implementation"'`
-(silently)
 
 **If `automation_mode: autonomous`:**
 

@@ -192,17 +192,9 @@ install_file "$SCRIPT_DIR/scripts/merge-driver-index.sh" "$TARGET/.claude/script
 install_file "$SCRIPT_DIR/scripts/ensure-merge-driver.sh" "$TARGET/.claude/scripts/ensure-merge-driver.sh"
 install_file "$SCRIPT_DIR/scripts/kb-freshness-check.sh" "$TARGET/.claude/scripts/kb-freshness-check.sh"
 install_file "$SCRIPT_DIR/scripts/adr-validate.sh" "$TARGET/.claude/scripts/adr-validate.sh"
-install_file "$SCRIPT_DIR/scripts/dashboard-state.sh" "$TARGET/.claude/scripts/dashboard-state.sh"
-install_file "$SCRIPT_DIR/scripts/dashboard-stop-hook.sh" "$TARGET/.claude/scripts/dashboard-stop-hook.sh"
+install_file "$SCRIPT_DIR/scripts/token-stop-hook.sh" "$TARGET/.claude/scripts/token-stop-hook.sh"
+install_file "$SCRIPT_DIR/scripts/statusline.sh" "$TARGET/.claude/scripts/statusline.sh"
 install_file "$SCRIPT_DIR/scripts/uninstall.sh" "$TARGET/.claude/scripts/uninstall.sh"
-
-# ── Dashboard watchers ────────────────────────────────────────────────────────
-
-echo ""
-echo "── Dashboard watchers ───────────────────────────"
-for f in "$SCRIPT_DIR"/watchers/*.sh; do
-    install_file "$f" "$TARGET/.claude/watchers/$(basename "$f")"
-done
 
 # ── Upgrade script ───────────────────────────────────────────────────────────
 
@@ -246,30 +238,29 @@ else
     echo -e "  ${YELLOW}skip${NC}  .gitattributes already has merge driver entries"
 fi
 
-# ── Dashboard Stop hook in settings.json ──────────────────────────────────────
+# ── Token tracking Stop hook in settings.json ─────────────────────────────────
 
 echo ""
-echo "── Dashboard hook ───────────────────────────────"
+echo "── Token tracking hook ──────────────────────────"
 
 SETTINGS_FILE="$TARGET/.claude/settings.json"
-HOOK_MARKER="dashboard-stop-hook.sh"
+HOOK_MARKER="token-stop-hook.sh"
+STATUSLINE_MARKER="statusline.sh"
 
 if [[ "$DIFF_MODE" != "1" ]]; then
+    # ── Stop hook for token tracking ──────────────────────────────────────
     if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$HOOK_MARKER" "$SETTINGS_FILE" 2>/dev/null; then
-        echo -e "  ${YELLOW}skip${NC}  Stop hook already registered in settings.json"
+        echo -e "  ${YELLOW}skip${NC}  Stop hook already registered"
     else
-        # Create or merge into settings.json
         if [[ -f "$SETTINGS_FILE" ]] && command -v jq &>/dev/null; then
-            # Merge hook into existing settings
             jq '.hooks.Stop = ((.hooks.Stop // []) + [{
                 "hooks": [{
                     "type": "command",
-                    "command": "cat > /dev/null; bash .claude/scripts/dashboard-stop-hook.sh"
+                    "command": "bash .claude/scripts/token-stop-hook.sh"
                 }]
             }])' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            echo -e "  ${GREEN}merge${NC} Stop hook added to existing settings.json"
+            echo -e "  ${GREEN}merge${NC} Stop hook added to settings.json"
         elif [[ ! -f "$SETTINGS_FILE" ]]; then
-            # Create new settings.json with just the hook
             cat > "$SETTINGS_FILE" << 'HOOKJSON'
 {
   "hooks": {
@@ -278,7 +269,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
         "hooks": [
           {
             "type": "command",
-            "command": "cat > /dev/null; bash .claude/scripts/dashboard-stop-hook.sh"
+            "command": "bash .claude/scripts/token-stop-hook.sh"
           }
         ]
       }
@@ -288,15 +279,27 @@ if [[ "$DIFF_MODE" != "1" ]]; then
 HOOKJSON
             echo -e "  ${GREEN}write${NC} settings.json with Stop hook"
         else
-            echo -e "  ${YELLOW}skip${NC}  settings.json exists but jq not available — add Stop hook manually"
-            echo "         See: .claude/scripts/dashboard-stop-hook.sh"
+            echo -e "  ${YELLOW}skip${NC}  settings.json exists but jq not available — add hooks manually"
         fi
+    fi
+
+    # ── Status line ───────────────────────────────────────────────────────
+    if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$STATUSLINE_MARKER" "$SETTINGS_FILE" 2>/dev/null; then
+        echo -e "  ${YELLOW}skip${NC}  Status line already configured"
+    elif [[ -f "$SETTINGS_FILE" ]] && command -v jq &>/dev/null; then
+        jq '.statusLine = {
+            "type": "command",
+            "command": "bash .claude/scripts/statusline.sh"
+        }' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+        echo -e "  ${GREEN}merge${NC} Status line added to settings.json"
+    elif [[ -f "$SETTINGS_FILE" ]]; then
+        echo -e "  ${YELLOW}skip${NC}  settings.json exists but jq not available — add statusLine manually"
     fi
 else
     if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$HOOK_MARKER" "$SETTINGS_FILE" 2>/dev/null; then
         ((unchanged++)) || true
     else
-        echo -e "  ${GREEN}new${NC}    Stop hook in settings.json"
+        echo -e "  ${GREEN}new${NC}    Stop hook + status line in settings.json"
         ((changed++)) || true
     fi
 fi

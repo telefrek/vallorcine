@@ -180,42 +180,23 @@ remove_file "$PROJECT_ROOT/.claude/.vallorcine-version" ".claude/.vallorcine-ver
 remove_file "$PROJECT_ROOT/.claude/.vallorcine-manifest" ".claude/.vallorcine-manifest"
 remove_file "$PROJECT_ROOT/.claude/.vallorcine-source" ".claude/.vallorcine-source"
 
-# ── Step 4: Remove dashboard state ──────────────────────────────────────────
-
-echo ""
-echo "── Dashboard state ──────────────────────────────"
-
-if [[ -d "$PROJECT_ROOT/.claude/dashboard" ]]; then
-    if [[ "$DRY_RUN" == "1" ]]; then
-        echo -e "  ${RED}remove${NC} .claude/dashboard/ (entire directory)"
-        removed_dash=$(find "$PROJECT_ROOT/.claude/dashboard" -type f | wc -l)
-        ((removed += removed_dash)) || true
-    else
-        rm -rf "$PROJECT_ROOT/.claude/dashboard"
-        echo -e "  ${RED}remove${NC} .claude/dashboard/ (entire directory)"
-    fi
-else
-    echo -e "  ${YELLOW}skip${NC}  .claude/dashboard/ (not found)"
-fi
-
-# ── Step 5: Clean settings.json Stop hook ────────────────────────────────────
+# ── Step 4: Clean settings.json Stop hook ────────────────────────────────────
 
 echo ""
 echo "── Settings.json ──────────────────────────────────"
 
 SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
-HOOK_MARKER="dashboard-stop-hook.sh"
+HOOK_MARKER="token-stop-hook.sh"
 
 if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$HOOK_MARKER" "$SETTINGS_FILE" 2>/dev/null; then
     if [[ "$DRY_RUN" == "1" ]]; then
         echo -e "  ${RED}clean${NC}  settings.json (remove Stop hook containing $HOOK_MARKER)"
     else
         if command -v jq &>/dev/null; then
-            # Use jq to remove the Stop hook entry containing our marker
             jq '
                 if .hooks.Stop then
                     .hooks.Stop |= map(
-                        select(.hooks | any(.command | contains("dashboard-stop-hook.sh")) | not)
+                        select(.hooks | any(.command | contains("token-stop-hook.sh")) | not)
                     ) |
                     if .hooks.Stop == [] then del(.hooks.Stop) else . end |
                     if .hooks == {} then del(.hooks) else . end
@@ -224,7 +205,6 @@ if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$HOOK_MARKER" "$SETTINGS_FILE" 2>/dev/
             ' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
             echo -e "  ${RED}clean${NC}  settings.json (Stop hook removed via jq)"
         else
-            # Fallback: grep -v to remove lines containing the marker
             grep -v "$HOOK_MARKER" "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
             echo -e "  ${RED}clean${NC}  settings.json (Stop hook removed via grep)"
         fi
@@ -233,7 +213,23 @@ else
     echo -e "  ${YELLOW}skip${NC}  settings.json (no vallorcine hook found)"
 fi
 
-# ── Step 6: Clean git config ────────────────────────────────────────────────
+# Clean statusLine config
+STATUSLINE_MARKER="statusline.sh"
+if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$STATUSLINE_MARKER" "$SETTINGS_FILE" 2>/dev/null; then
+    if [[ "$DRY_RUN" == "1" ]]; then
+        echo -e "  ${RED}clean${NC}  settings.json (remove statusLine)"
+    else
+        if command -v jq &>/dev/null; then
+            jq 'del(.statusLine)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+            echo -e "  ${RED}clean${NC}  settings.json (statusLine removed)"
+        fi
+    fi
+fi
+
+# Clean token state file
+remove_file "$PROJECT_ROOT/.claude/.token-state" ".claude/.token-state"
+
+# ── Step 5: Clean git config ────────────────────────────────────────────────
 
 echo ""
 echo "── Git config ─────────────────────────────────────"
@@ -255,6 +251,16 @@ if git -C "$PROJECT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
     fi
 else
     echo -e "  ${YELLOW}skip${NC}  not a git repo"
+fi
+
+# Clean up dashboard state directory if it exists (legacy from pre-0.5.0)
+if [[ -d "$PROJECT_ROOT/.claude/dashboard" ]]; then
+    if [[ "$DRY_RUN" == "1" ]]; then
+        echo -e "  ${RED}remove${NC} .claude/dashboard/ (legacy directory)"
+    else
+        rm -rf "$PROJECT_ROOT/.claude/dashboard"
+        echo -e "  ${RED}remove${NC} .claude/dashboard/ (legacy directory)"
+    fi
 fi
 
 # ── Step 7: Clean .gitattributes ─────────────────────────────────────────────

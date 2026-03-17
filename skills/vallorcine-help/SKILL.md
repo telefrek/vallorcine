@@ -33,12 +33,13 @@ If no argument provided: continue to Step 1.
 
 ## Step Q — Answer questions about vallorcine
 
-Display:
+Read `.claude/.vallorcine-version` if it exists. Display:
 ```
 ───────────────────────────────────────────────
-🚀 HELP
+🚀 HELP · vallorcine v<version>
 ───────────────────────────────────────────────
 ```
+If the version file doesn't exist, omit the version suffix.
 
 Answer the question using the command reference below. Lead with the specific
 command to run, then explain what it does and what the user can expect.
@@ -111,12 +112,13 @@ Read silently before saying anything:
 
 ## Step 2 — Check initialisation
 
-Display opening header:
+Read `.claude/.vallorcine-version` if it exists. Display opening header:
 ```
 ───────────────────────────────────────────────
-🚀 START
+🚀 START · vallorcine v<version>
 ───────────────────────────────────────────────
 ```
+If the version file doesn't exist, omit the version suffix.
 
 If `.feature/project-config.md` does NOT exist:
 

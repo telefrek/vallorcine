@@ -300,14 +300,29 @@ Stale file removal only operates on known kit-managed prefixes. Non-kit paths
 in a corrupted manifest are skipped with a warning. Regression test covers
 5 assertions for user file preservation.
 
-## Tmux dashboard: two panes, project-scoped state (2026-03-17)
+## Tmux dashboard: tried and retired (2026-03-17)
 
-Pipeline progress + stage detail panes. State in `.claude/dashboard/` (gitignored).
-Agents write state directly; Stop hook updates live token counter. Explicit
-`/dashboard` launch, prompted once per session at first pipeline command.
-Toggle via `/dashboard off` (`.nodashboard` sentinel). Token display: hybrid
-actuals + live counter — estimates only shown when Work Planner provides real data.
-Stage detail includes tasks (agent actions) and artifacts (construct lifecycle).
+Built a tmux-based dashboard with pipeline progress + stage detail panes. State
+in `.claude/dashboard/`, watchers polling `stage.json`, agents writing state via
+`dashboard-state.sh` bash calls.
+
+**Why it failed:**
+- Every dashboard state update required a bash command that the user had to approve
+  — added friction and token cost for a side effect, not the main work
+- Dashboard instructions in skill files are markdown hints that sub-agents skip —
+  unreliable by design
+- Tmux panes compete with the main interaction for screen real estate; at narrow
+  widths the pipeline pane crushed to 1 char wide
+- Watchers flickered (1s poll fallback without inotifywait)
+- If you're not in tmux, 100% of the dashboard cost is pure waste
+- Fundamentally: building a UI layer on top of a CLI tool fights the medium
+
+**What replaced it:** Claude Code's native task system for pipeline position,
+status line for lightweight activity signals. Zero infrastructure, zero approval
+cost, works everywhere.
+
+**Lesson:** Principle 1 (bash and markdown only) extends to UX — don't build
+custom UI when the host tool already has the right primitives.
 
 ## Skills migration (2026-03-17)
 
@@ -350,3 +365,34 @@ Rejected after the four-concern architecture model made the boundary clear:
 /feature-init creates Features infrastructure (.feature/, project-config.md).
 A project may use KB/Decisions without the feature pipeline, or vice versa.
 Merging would force users of one concern to configure the other.
+
+## Command naming review — no collisions, no renames (2026-03-17)
+
+Reviewed all 23 commands against 60+ Claude Code built-ins. Zero hard collisions.
+Soft risk: `/kb`, `/research`, `/architect`, `/decisions` are generic names that
+another plugin could claim. Plugin install path already namespaces these as
+`vallorcine:kb` etc. Shell install keeps short names for usability. Not worth
+renaming — the plugin path solves the multi-plugin case, and short names are a
+feature for single-plugin projects.
+
+## Hook-based token tracking replaces skill-level bash calls (2026-03-17)
+
+Stop hook (`token-stop-hook.sh`) auto-detects stage transitions by comparing
+`.claude/.token-state` against `status.md`. Logs to `token-log.md` automatically.
+All `token_checkpoint` and `token_summary` bash blocks removed from skills (16
+total). Three performance paths: no-op ~1ms, active same-stage ~5ms, transition
+~200ms.
+
+## Status line for pipeline visibility (2026-03-17)
+
+`scripts/statusline.sh` shows feature slug, pipeline stage, total tokens, and
+context window % with color-coded warnings (green/yellow/red). Reads `.token-state`
++ session JSON. No cost display — subscription model makes dollar amounts misleading.
+Replaces tmux dashboard for pipeline position awareness.
+
+## Plugin vs shell install path documentation (2026-03-17)
+
+README documents both paths with comparison table: plugin gets `vallorcine:`
+prefix, shell gets unprefixed short names. Plugin path doesn't auto-configure
+hooks/status line (manual settings.json addition documented). Shell path
+auto-configures everything via install.sh.

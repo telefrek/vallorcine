@@ -43,17 +43,7 @@ Stop. Do not continue to other steps.
 
 ---
 
-## Step 0a — Dashboard init
-
-**Dashboard:** run `bash -c '[[ -f .claude/scripts/dashboard-state.sh ]] && source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_init "<slug>"'`
-
-This seeds the dashboard with the feature name so the pipeline and stage detail
-panes have context. Stage-level commands (`/feature-domains`, `/feature-plan`, etc.)
-handle `dashboard_stage_start` and `dashboard_stage_complete` themselves.
-
----
-
-## Step 0b — Progress tracking
+## Step 0a — Progress tracking
 
 Use TodoWrite to show progress in the Claude Code UI (visible via Ctrl+T).
 Each TodoWrite call replaces the full list — always include all items.

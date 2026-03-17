@@ -323,20 +323,6 @@ else
     fail "upgrade should preserve skill files"
 fi
 
-# Verify watchers are installed by upgrade
-if [[ -f "$UPGRADE_TARGET/.claude/watchers/vallorcine_theme.sh" ]]; then
-    pass "upgrade installs watcher files"
-else
-    fail "upgrade should install watcher files" ".claude/watchers/ missing after upgrade"
-fi
-
-if [[ -f "$UPGRADE_TARGET/.claude/watchers/vallorcine_pipeline.sh" ]] \
-   && [[ -f "$UPGRADE_TARGET/.claude/watchers/vallorcine_stage-detail.sh" ]]; then
-    pass "upgrade installs all dashboard watcher scripts"
-else
-    fail "upgrade should install all dashboard watcher scripts"
-fi
-
 # ── Test 9: Upgrade stale removal preserves user files ──────────────
 
 echo ""
@@ -430,7 +416,7 @@ cd "$MIGRATE_TARGET" && git init -q && cd "$REPO_ROOT"
 
 # Simulate a pre-migration install with commands/ files
 mkdir -p "$MIGRATE_TARGET/.claude/commands"
-echo "# old dashboard" > "$MIGRATE_TARGET/.claude/commands/dashboard.md"
+echo "# old research" > "$MIGRATE_TARGET/.claude/commands/research.md"
 echo "# old feature-quick" > "$MIGRATE_TARGET/.claude/commands/feature-quick.md"
 echo "# old architect" > "$MIGRATE_TARGET/.claude/commands/architect.md"
 echo "# user custom tool" > "$MIGRATE_TARGET/.claude/commands/my-custom-tool.md"
@@ -438,7 +424,7 @@ echo "# user custom tool" > "$MIGRATE_TARGET/.claude/commands/my-custom-tool.md"
 bash "$REPO_ROOT/install.sh" "$MIGRATE_TARGET" >/dev/null 2>&1
 
 # Kit commands that now have skills should be removed
-if [[ ! -f "$MIGRATE_TARGET/.claude/commands/dashboard.md" \
+if [[ ! -f "$MIGRATE_TARGET/.claude/commands/research.md" \
    && ! -f "$MIGRATE_TARGET/.claude/commands/feature-quick.md" \
    && ! -f "$MIGRATE_TARGET/.claude/commands/architect.md" ]]; then
     pass "install removes stale pre-migration command files"
@@ -620,35 +606,6 @@ if [[ -f "$GITCLEAN_TARGET/.gitattributes" ]]; then
     fi
 else
     pass "uninstall cleans .gitattributes (file removed — was empty)"
-fi
-
-# ── Test 15: Uninstall cleans settings.json hook ──────────────────────────────
-
-echo ""
-echo "── Test 15: Uninstall cleans settings.json Stop hook"
-
-HOOKCLEAN_TARGET="$(make_temp)"
-cd "$HOOKCLEAN_TARGET" && git init -q && cd "$REPO_ROOT"
-bash "$REPO_ROOT/install.sh" "$HOOKCLEAN_TARGET" >/dev/null 2>&1
-
-# Verify hook was set by install
-if grep -qF "dashboard-stop-hook.sh" "$HOOKCLEAN_TARGET/.claude/settings.json" 2>/dev/null; then
-    :
-else
-    fail "pre-uninstall: Stop hook should be in settings.json"
-fi
-
-bash "$HOOKCLEAN_TARGET/.claude/scripts/uninstall.sh" --yes >/dev/null 2>&1
-
-# Check settings.json no longer has the hook
-if [[ -f "$HOOKCLEAN_TARGET/.claude/settings.json" ]]; then
-    if ! grep -qF "dashboard-stop-hook.sh" "$HOOKCLEAN_TARGET/.claude/settings.json" 2>/dev/null; then
-        pass "uninstall removes Stop hook from settings.json"
-    else
-        fail "uninstall should remove Stop hook from settings.json"
-    fi
-else
-    pass "uninstall removes Stop hook (settings.json removed — was empty)"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────────────

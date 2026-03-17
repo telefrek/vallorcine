@@ -7,7 +7,6 @@
 # and should never be auto-removed by an upgrade.
 
 .claude/skills/architect/SKILL.md
-.claude/skills/dashboard/SKILL.md
 .claude/skills/decisions/SKILL.md
 .claude/skills/feature/SKILL.md
 .claude/skills/feature-cleanup/SKILL.md
@@ -49,10 +48,7 @@
 .claude/scripts/ensure-merge-driver.sh
 .claude/scripts/kb-freshness-check.sh
 .claude/scripts/adr-validate.sh
-.claude/scripts/dashboard-state.sh
-.claude/scripts/dashboard-stop-hook.sh
+.claude/scripts/token-stop-hook.sh
+.claude/scripts/statusline.sh
 .claude/scripts/uninstall.sh
-.claude/watchers/vallorcine_theme.sh
-.claude/watchers/vallorcine_pipeline.sh
-.claude/watchers/vallorcine_stage-detail.sh
 .claude/upgrade.sh

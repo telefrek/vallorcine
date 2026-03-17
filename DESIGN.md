@@ -618,7 +618,6 @@ vallorcine/
 │   ├── setup-vallorcine/SKILL.md    ← /setup-vallorcine — initialise KB and decisions structure
 │   ├── upgrade-vallorcine/SKILL.md  ← /upgrade-vallorcine — check and apply kit updates
 │   ├── project-context/SKILL.md     ← /project-context — team-shared codebase knowledge
-│   └── dashboard/SKILL.md           ← /dashboard — tmux dashboard (launch/off/on)
 │
 ├── agents/                          ← agent identity definitions
 │   ├── scoping-agent.md
@@ -643,17 +642,11 @@ vallorcine/
 │   ├── merge-driver-index.sh        ← git merge driver for CLAUDE.md index files
 │   ├── ensure-merge-driver.sh       ← registers merge driver on first pipeline run
 │   ├── adr-validate.sh              ← warns if contradictory accepted ADRs exist
-│   ├── dashboard-state.sh           ← dashboard state helper library (12 functions)
-│   └── dashboard-stop-hook.sh       ← Stop hook for live token counter
-│
-├── watchers/                        ← tmux dashboard watcher scripts
-│   ├── vallorcine_theme.sh          ← shared icon/color palette, token formatting
-│   ├── vallorcine_pipeline.sh       ← pipeline progress pane watcher
-│   └── vallorcine_stage-detail.sh   ← stage detail pane watcher
+│   ├── token-stop-hook.sh          ← Stop hook for automatic token tracking
+│   └── statusline.sh              ← status line showing pipeline stage + cost
 │
 ├── tests/                           ← test scripts (not installed)
 │   ├── test-install.sh              ← install + upgrade smoke tests (20 tests)
-│   ├── test-dashboard.sh            ← dashboard watcher + state tests (23 tests)
 │   ├── scenario-project-config-overwrite.sh
 │   ├── scenario-version-skew.sh
 │   ├── scenario-version-skew-warning.sh
