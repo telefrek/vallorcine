@@ -205,13 +205,6 @@ Example checklist during test writing:
 
 ---
 
-## Step 0b — Token tracking
-
-Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "testing"'`
-
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "testing"'`
-(silently — hint output is OK)
-
 ---
 
 ## Step 1 — Load context
@@ -444,13 +437,6 @@ Update `.feature/CLAUDE.md`.
 ## Step 6 — Hand off
 
 Read `automation_mode` from status.md.
-
-**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "testing"'`
-and capture the output as TOKEN_USAGE. Update the Stage Completion table: Testing
-row → Actual Tokens from TOKEN_USAGE.
-
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "testing"'`
-(silently)
 
 **If `automation_mode: autonomous`:**
 

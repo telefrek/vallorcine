@@ -87,12 +87,44 @@ Example checklist during domain resolution:
 
 ---
 
-## Step 0b — Token tracking
+---
 
-Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "domains"'`
+## Step 0b — KB empty check
 
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "domains"'`
-(silently — hint output is OK)
+Read `.kb/CLAUDE.md`. If the Topic Map table has zero data rows (no topics
+registered), the KB is completely empty. Display:
+
+```
+── Knowledge base ─────────────────────────────
+Your KB is empty — no topics or research entries yet.
+
+Domain analysis will identify areas where research or decisions are needed,
+but starting with an empty KB means every domain will likely trigger a
+research session.
+
+Options:
+  1. research — start a targeted research session first (I'll suggest a topic
+     based on the brief)
+  2. continue — proceed to domain analysis (research offered per-domain as gaps
+     are found)
+  3. skip-research — proceed and rely on your domain knowledge (gaps noted but
+     no research sessions launched)
+```
+
+If **research**: read `brief.md`, identify the single highest-value research
+topic for this feature (the domain most likely to affect multiple design
+choices), and invoke `/research <topic> <category> "<subject>"` as a sub-agent.
+After research completes, continue to Step 1.
+
+If **continue**: proceed to Step 1 normally. Per-domain research offers in
+Step 3 will still fire.
+
+If **skip-research**: set a flag `skip_all_research=true` in status.md under
+the Domain Resolution Tracker section. Step 3 will classify research gaps as
+`gap-noted` instead of offering `/research` per-domain. The user's local
+domain knowledge is sufficient — gaps are documented but don't block progress.
+
+If the KB has at least one topic: skip this step silently.
 
 ---
 
@@ -195,6 +227,15 @@ Process each pending domain in order. For each one, resolve it before moving
 to the next — don't batch commissions and leave them for the user.
 
 ### If research is missing
+
+**If `skip_all_research=true` in status.md:** mark the domain as `gap-noted` in
+the Domain Resolution Tracker and domains.md. Do not offer `/research`. Display:
+```
+  ℹ GAP-NOTED  <domain> — no KB entry (research skipped per user preference)
+```
+Continue to the next domain.
+
+**Otherwise:**
 
 Write the commission to status.md immediately (before the work is done):
 Update Domain Resolution Tracker: status → `pending-research`, commissioned → today's date.
@@ -300,13 +341,6 @@ Update `.feature/CLAUDE.md` stage column.
 ---
 
 ## Step 5 — Hand off
-
-**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "domains"'`
-and capture the output as TOKEN_USAGE. Update the Stage Completion table: Domains
-row → Actual Tokens from TOKEN_USAGE.
-
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "domains"'`
-(silently)
 
 Display:
 ```

@@ -22,9 +22,8 @@ questions.
 parallel work unit execution. Claude follows the discipline so you can focus on
 directing the work, not policing it.
 
-**System** — setup, upgrade, live dashboard, and help. `/vallorcine-help` routes
-you to the right command. The tmux dashboard shows exactly what's happening so
-you stay in control.
+**System** — setup, upgrade, and help. `/vallorcine-help` routes you to the
+right command.
 
 ---
 
@@ -137,18 +136,17 @@ This feedback loop is what makes the 5th feature on a project faster than the 1s
 | `/project-context add "<entry>"` | Add team-shared codebase knowledge |
 | `/project-context cleanup` | Review expired context entries |
 | `/project-context` | Display all active context entries |
-| `/dashboard` | Launch tmux dashboard (pipeline progress + stage detail) |
-| `/dashboard off` | Suppress dashboard hint |
 
 ---
 
 ## Install
 
+Two install paths. Same commands, agents, and rules either way.
+
 **Option A — Claude Code plugin (recommended)**
 
 ```
-/plugin marketplace add telefrek/vallorcine
-/plugin install vallorcine
+/install telefrek/vallorcine
 ```
 
 Commands and agents are live immediately. No shell required.
@@ -160,11 +158,39 @@ git clone https://github.com/telefrek/vallorcine.git
 bash vallorcine/install.sh /path/to/your/project
 ```
 
-Both options install the same commands, agents, and rules.
-The shell installer also installs `upgrade.sh` and the version stamp,
-enabling the `/upgrade-vallorcine` command.
+### Differences between install paths
 
-Then add the following block to your project's root `CLAUDE.md`:
+| | Plugin | Shell |
+|---|--------|-------|
+| **Command names** | `vallorcine:` prefix (e.g. `/vallorcine:feature`) | Unprefixed (e.g. `/feature`) |
+| **Upgrade** | `/plugin update vallorcine` | `/upgrade-vallorcine` or `bash install.sh` |
+| **Status line + hooks** | Not configured (add manually to `.claude/settings.json`) | Auto-configured by installer |
+| **Uninstall** | `/plugin remove vallorcine` | `/uninstall-vallorcine` |
+| **Files installed** | Skills, agents, rules only | Skills, agents, rules + scripts, upgrade.sh, version stamp, manifest |
+
+**Plugin prefix:** When installed as a plugin, all commands get a `vallorcine:`
+namespace prefix. `/feature` becomes `/vallorcine:feature`, `/kb` becomes
+`/vallorcine:kb`, etc. This prevents collisions with other plugins or your own
+custom commands. Tab completion works with the prefix.
+
+**Shell unprefixed:** When installed via `bash install.sh`, commands use their
+short names (`/feature`, `/kb`, `/architect`). This is simpler if vallorcine is
+the only plugin on the project.
+
+**Both paths work together.** If you install via plugin and later want hooks/status
+line, add to your project's `.claude/settings.json`:
+```json
+{
+  "hooks": {
+    "Stop": [{ "hooks": [{ "type": "command", "command": "bash .claude/scripts/token-stop-hook.sh" }] }]
+  },
+  "statusLine": { "type": "command", "command": "bash .claude/scripts/statusline.sh" }
+}
+```
+
+### Post-install setup
+
+Add the following block to your project's root `CLAUDE.md`:
 
 ```markdown
 ## Feature Development

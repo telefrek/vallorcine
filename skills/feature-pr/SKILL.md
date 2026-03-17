@@ -46,13 +46,6 @@ Display opening header:
 ───────────────────────────────────────────────
 ```
 
-## Step 0b — Token tracking
-
-Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/<slug>" "pr-draft"'`
-
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_hint && dashboard_stage_start "pr"'`
-(silently — hint output is OK)
-
 ---
 
 ## Step 1 — Load context
@@ -199,12 +192,6 @@ Append `pr-drafted` entry to cycle-log.md:
 ---
 
 ## Step 5 — Create the PR
-
-**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/<slug>" "pr-draft"'`
-and capture the output as TOKEN_USAGE.
-
-**Dashboard:** run `bash -c 'source .claude/scripts/dashboard-state.sh && dashboard_stage_complete "pr"'`
-(silently)
 
 Check if `gh` CLI is available: run `gh auth status` silently.
 

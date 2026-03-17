@@ -22,25 +22,28 @@ state of the project — what's happening now and what's next.
 
 *Last updated: 2026-03-17*
 
-**Tmux dashboard, skills migration, project reframing, and v0.4.0 release.**
+**Dashboard redesign — retired tmux, added status line + hook-based token tracking.**
 
 **What shipped this session:**
-- Two-pane tmux dashboard: pipeline progress (top-right) + stage detail (bottom-right)
-- `vallorcine_theme.sh`, `vallorcine_pipeline.sh`, `vallorcine_stage-detail.sh` watchers
-- `dashboard-state.sh` helper library (12 functions for agents to write state)
-- `dashboard-stop-hook.sh` Stop hook for live token counter mid-stage
-- `/dashboard` command (launch/off/on) with once-per-session hint at pipeline start
-- Dashboard calls integrated into all 7 pipeline commands
-- Skills migration: 23 commands → `.claude/skills/<name>/SKILL.md` with YAML frontmatter
-- Project reframing: "A reliable engineering partner for Claude Code"
-- Tagline: "ship features that make the next one faster"
-- GitHub repo topics and description updated
-- 43 tests passing (20 install + 23 dashboard)
-- v0.4.0 released
+- **Tmux dashboard retired** — deleted skill, 2 scripts, 3 watchers, 14 tests.
+  Removed all dashboard bash blocks from 9 skill files. Documented as "tried and
+  retired" in SETTLED.md with clear rationale.
+- **Hook-based token tracking** — `scripts/token-stop-hook.sh` auto-detects stage
+  transitions by comparing `.token-state` against `status.md`. Logs to `token-log.md`
+  automatically. Removed 16 `token_checkpoint`/`token_summary` bash blocks from skills.
+- **Status line** — `scripts/statusline.sh` shows feature slug, pipeline stage,
+  total tokens, and context window % with color-coded warnings. Registered via
+  `settings.json` statusLine config. Works without tmux.
+- **Domain scout KB empty check** — when KB has zero topics, offers research/continue/
+  skip-research before per-domain analysis. `skip_all_research` flag carries forward.
+- **Version display** — `/vallorcine-help` headers now show installed version.
+- **33 install tests passing** (removed 3 dashboard-specific tests, all others green).
+- Tested end-to-end: fresh install on jlsm with status line + token hook working.
 
 **Where things stand:**
-v0.4.0 released on main. Plugin install tested and working (`/vallorcine:` prefix).
-Next priority: dashboard intent surfacing (see "Do next" in Open questions).
+PR #13 still open (previous session's work). This session's changes are on
+`feat/cleanup-uninstall` branch. Status line confirmed working on jlsm — shows
+`slug · stage · tokens · ctx %`. Next: plugin install path docs, then release.
 
 ---
 
@@ -48,47 +51,25 @@ Next priority: dashboard intent surfacing (see "Do next" in Open questions).
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **Tmux dashboard: two panes, project-scoped state** (2026-03-17) — pipeline
-  progress + stage detail panes. State in `.claude/dashboard/` (gitignored).
-  Agents write state directly; Stop hook updates live token counter. Explicit
-  `/dashboard` launch, prompted once per session at first pipeline command.
+- **Tmux dashboard retired** (2026-03-17) — tmux panes fought the medium: bash
+  side-effect calls were unreliable (sub-agents skip them), panes consumed screen
+  space, and the whole approach required tmux. Replaced with native Claude Code
+  primitives (status line + hooks) that work everywhere.
 
-- **Dashboard toggle via `/dashboard off`** (2026-03-17) — `.nodashboard`
-  sentinel in `.claude/dashboard/` (developer-local, gitignored). `/dashboard on`
-  removes it.
+- **Hook-based token tracking** (2026-03-17) — Stop hook detects stage transitions
+  by comparing cached stage vs `status.md`. No skill-level bash calls needed.
+  Three paths: no-op (~1ms), active same stage (~5ms), transition (~200ms).
 
-- **Token display: hybrid actuals + live counter** (2026-03-17) — stage-boundary
-  writes for per-stage actuals. Stop hook writes running total for active stage.
-  Estimates only shown when Work Planner provides real data — never guessed.
+- **Status line for pipeline visibility** (2026-03-17) — shows slug · stage ·
+  tokens · context %. Reads `.token-state` + session JSON. Fires after each
+  response automatically. No cost display (subscription model makes it misleading).
 
-- **Artifacts in stage detail, not just TDD** (2026-03-17) — `stage.json` has
-  `tasks` (agent actions) and `artifacts` (construct lifecycle). Artifacts track
-  status across all stages, not just testing.
+- **Domain scout KB empty check** (2026-03-17) — offers research/continue/skip
+  when KB has zero topics. `skip_all_research` flag prevents repeated per-domain
+  prompts when user wants to rely on local domain knowledge.
 
-- **Skills migration** (2026-03-17) — all 23 commands moved from
-  `.claude/commands/*.md` to `.claude/skills/<name>/SKILL.md`. YAML frontmatter
-  (description, argument-hint). Slash command names unchanged. Positions kit for
-  Claude Code next-gen skill features.
-
-- **Watcher files prefixed `vallorcine_`** (2026-03-17) — prevents namespace
-  collisions if users have their own dashboard watchers for other tools.
-
-- **Never guess estimates** (2026-03-17) — if we don't have real data, show
-  "unknown" rather than made-up numbers. Applies to token budgets, progress bars,
-  and all forward-looking displays.
-
-- **Project positioning: "reliable engineering partner"** (2026-03-17) — reframed
-  all descriptions away from mechanical feature lists. Lead with trust and ease of
-  use, not TDD pipeline internals. Tagline: "ship features that make the next one
-  faster."
-
-- **Dashboard is a feature pipeline tool** (2026-03-17) — research and architect
-  sessions are conversational and interactive. They don't need pipeline progress
-  panes. Dashboard shows idle/empty state gracefully for non-pipeline commands.
-  Intent surfacing (separate concern) benefits all commands.
-
-- **Always work from branches, merge via PR** (2026-03-17) — never commit directly
-  to main. Kebab-case branch names. Prompt for confirmation if user asks to bypass.
+- **Version in /vallorcine-help headers** (2026-03-17) — reads
+  `.claude/.vallorcine-version`. Shows `🚀 HELP · vallorcine v0.4.0`.
 
 ---
 
@@ -99,27 +80,7 @@ Next priority: dashboard intent surfacing (see "Do next" in Open questions).
 
 ### Do next (high priority, clear direction)
 
-- **Dashboard: intent over mechanics** — the main terminal shows raw tool calls
-  (Read, Edit, Bash) but users care about *what Claude is doing and why*, not
-  which tools it called. Three complementary approaches identified:
-  1. **Status line context** — update Claude Code's status line with a short
-     intent string ("reading KB entry on HNSW", "evaluating candidate 2/3")
-  2. **Turn summaries in stage detail pane** — rolling "last 3 actions" feed
-     showing semantic descriptions, not tool names
-  3. **Intent-first stage.json writes** — agents write intent to `stage.json`
-     before each logical block of work, not just task completion status
-
-  The common thread: surface **intent**, not **mechanics**. Works across all
-  commands (feature pipeline, research, architect) since the problem is universal.
-  Dashboard is a feature pipeline tool for progress tracking, but intent surfacing
-  benefits every command.
-
-- **Version display** — need a way to confirm installed version. Could be in
-  `/vallorcine-help` header or a dedicated `/vallorcine:version` skill.
-
-- **Plugin install path documentation** — document `vallorcine:`-prefixed
-  commands from plugin install vs unprefixed from shell install. Both work,
-  need to explain the difference in README.
+- (none — current items resolved, promote from lower tiers or DEFERRED.md)
 
 ### Do soon (medium effort, clear designs)
 

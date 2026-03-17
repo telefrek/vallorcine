@@ -226,14 +226,11 @@ Append:
 # Explicitly track the project config and index
 !.feature/project-config.md
 !.feature/CLAUDE.md
-
-# vallorcine dashboard — local state, not source-controlled
-.claude/dashboard/
 ```
 
 Tell the user:
 ```
-.gitignore updated — feature working directories and dashboard state will not be committed.
+.gitignore updated — feature working directories will not be committed.
 .feature/project-config.md and .feature/CLAUDE.md remain tracked.
 ```
 

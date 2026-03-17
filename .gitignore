@@ -1,9 +1,8 @@
 # ── Local test install ───────────────────────────────────────────────────────
 # When you run install.sh . from the repo root to test locally,
 # these directories are created. They are NOT part of the source.
-# Ignore .claude/ contents (local test install) but keep commands/ committed
+# Ignore .claude/ contents (local test install) but keep rules/ committed
 .claude/*
-!.claude/commands/
 !.claude/rules/
 .feature/
 .kb/

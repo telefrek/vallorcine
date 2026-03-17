@@ -48,10 +48,6 @@ Proceed to Step 1.
 
 ---
 
-## Step 0b — Token tracking
-
-Run silently: `bash -c 'source .claude/scripts/token-usage.sh && token_checkpoint ".feature/q-<quick-slug>" "quick"'`
-
 ---
 
 ## Step 1 — Complexity assessment (ALWAYS FIRST, before any other work)
@@ -351,8 +347,6 @@ Update `.feature/CLAUDE.md` — move to Completed / Archived if the change is
 committed and no further work is planned. Or leave in Active if it is part of
 a larger piece of work still in progress.
 
-**Token tracking:** run `bash -c 'source .claude/scripts/token-usage.sh && token_summary ".feature/q-<quick-slug>" "quick"'`
-and capture the output as TOKEN_USAGE.
 
 Display:
 ```

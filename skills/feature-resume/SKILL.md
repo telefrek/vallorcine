@@ -135,7 +135,7 @@ TOKEN USAGE (from Stage Completion table in status.md)
   Only show for completed stages with both values present.
 
   If token-log.md also exists, additionally run:
-  `bash -c 'source .claude/scripts/token-usage.sh && token_report ".feature/<slug>"'`
+  `bash -c '[[ -f .claude/scripts/token-usage.sh ]] && source .claude/scripts/token-usage.sh && token_report ".feature/<slug>"'`
   and display below the comparison table.
 
 DOMAIN STATUS (if domains stage was reached)
