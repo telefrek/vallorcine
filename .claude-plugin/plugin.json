@@ -3,9 +3,11 @@
   "version": "0.5.2",
   "description": "A reliable engineering partner for Claude Code. Persistent knowledge base, structured architecture decisions, crash-recoverable TDD pipeline, and codebase curation. Sessions compound — each feature makes the next one faster, and curation keeps the knowledge honest over time.",
   "author": {
-    "name": "vallorcine"
+    "name": "Telefrek"
   },
   "license": "MIT",
+  "repository": "https://github.com/telefrek/vallorcine",
+  "homepage": "https://github.com/telefrek/vallorcine",
   "keywords": ["tdd", "workflow", "knowledge-base", "decisions", "pipeline", "agents", "curation", "code-quality"],
   "components": {
     "skills": ["skills/"],

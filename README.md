@@ -164,7 +164,7 @@ or features create implicit dependencies. This feedback loop is what makes the
 
 ## Install
 
-Two install paths. Same commands, agents, and rules either way.
+Three install paths. Same commands, agents, and rules either way.
 
 **Option A — Claude Code plugin (recommended)**
 
@@ -173,6 +173,15 @@ Two install paths. Same commands, agents, and rules either way.
 ```
 
 Commands and agents are live immediately. No shell required.
+
+**Option A2 — via the vallorcine marketplace**
+
+```
+/plugin marketplace add telefrek/vallorcine
+/plugin install vallorcine
+```
+
+Useful if you want to pin to the self-hosted marketplace for update control.
 
 **Option B — shell installer (more control)**
 

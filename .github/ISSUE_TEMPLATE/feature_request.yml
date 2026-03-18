@@ -1,0 +1,53 @@
+name: Feature Request
+description: Suggest a new capability or improvement
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: concern
+    attributes:
+      label: Which concern does this relate to?
+      options:
+        - Features (TDD pipeline)
+        - Knowledge (/kb, /research)
+        - Decisions (/architect, /decisions)
+        - Curation (/curate)
+        - System (install, upgrade, help)
+        - New concern / cross-cutting
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the workflow pain point or gap you're experiencing.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would you expect this to work? Which command(s) would be involved?
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds
+      description: How are you currently working around this? Are there other approaches?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: principle-check
+    attributes:
+      label: Does this require external dependencies?
+      description: "Vallorcine uses bash and markdown only (design principle 1). Features requiring runtimes, MCP servers, or package managers are out of scope."
+      options:
+        - "No — bash and markdown only"
+        - "Yes — requires external tooling"
+        - "Not sure"
+    validations:
+      required: true

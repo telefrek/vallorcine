@@ -1,0 +1,84 @@
+name: Bug Report
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: concern
+    attributes:
+      label: Which concern is affected?
+      options:
+        - Features (TDD pipeline)
+        - Knowledge (/kb, /research)
+        - Decisions (/architect, /decisions)
+        - Curation (/curate)
+        - System (install, upgrade, help)
+        - Unknown
+    validations:
+      required: true
+
+  - type: input
+    id: command
+    attributes:
+      label: Command
+      description: Which slash command were you running? (e.g. /feature-test, /research)
+      placeholder: /feature-implement
+    validations:
+      required: false
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Install method
+      options:
+        - Plugin (/install telefrek/vallorcine)
+        - Shell (bash install.sh)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Vallorcine version
+      description: Check VERSION file or run /upgrade-vallorcine
+      placeholder: "0.5.2"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem. Include the error message or unexpected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to trigger the bug.
+      value: |
+        1. Run `...`
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: |
+        Any of these help with triage:
+        - Contents of `.feature/<slug>/status.md` (if pipeline bug)
+        - Relevant section of `cycle-log.md`
+        - OS, shell, Claude Code version
+    validations:
+      required: false
