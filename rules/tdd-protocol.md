@@ -3,22 +3,6 @@
 Feature work follows a strict agent pipeline. Each agent reads and writes only
 its designated files. No agent may skip a stage or act outside its write authority.
 
-## User-facing vs kit-internal commands
-
-**User-facing commands** — available to developers using vallorcine on their projects:
-  /feature, /feature-quick, /feature-domains, /feature-plan, /feature-test,
-  /feature-implement, /feature-refactor, /feature-pr, /feature-retro,
-  /feature-complete, /feature-cleanup, /feature-resume, /feature-coordinate,
-  /feature-init, /kb, /research, /architect, /decisions, /project-context,
-  /vallorcine-help, /setup-vallorcine, /upgrade-vallorcine, /uninstall-vallorcine
-
-**Kit-internal commands** — only available when developing the vallorcine kit itself:
-  /ideate, /save-work, /release
-
-When designing features, discussing workflows, or writing documentation, ONLY
-reference user-facing commands. Kit-internal commands do not exist for end users
-and must never appear in skills, README, or user-facing output.
-
 ## Entry points
   /feature-quick "<description>"   — small changes: test → implement → refactor, minimal setup
   /feature "<description>" — full pipeline for new functionality with design decisions
