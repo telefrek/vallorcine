@@ -5,6 +5,25 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.5.2] — 2026-03-18
+
+### Fixed
+- **Token actuals in status.md** — stop hook now updates the Actual Tokens column
+  in the Stage Completion table on stage transitions. Previously always showed "—".
+- **Feature finalization moved to `/feature-pr`** — archive manifest, `.feature/CLAUDE.md`
+  update, and knowledge/decisions file commits now happen before PR creation (Step 5),
+  not post-merge in `/feature-complete`. Prevents uncommitted feature artifacts from
+  being lost or leaking into the next feature's PR.
+- **PR Step 0.5 separates feature vs upgrade changes** — `.decisions/` files
+  (CLAUDE.md, history.md) correctly identified as feature-produced. `.claude/` files
+  flagged as upgrade artifacts with recommendation to commit separately.
+
+### Changed
+- `/feature-complete` stripped to post-merge directory move only. No more data
+  operations that could be skipped or forgotten.
+
+---
+
 ## [0.5.1] — 2026-03-18
 
 ### Added
