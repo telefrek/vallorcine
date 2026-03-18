@@ -165,6 +165,30 @@ Move the feature row from Active Features to Completed / Archived:
 
 ---
 
+## Step 6.5 — Commit the index update
+
+`.feature/CLAUDE.md` is one of the few `.feature/` files that is committed to
+git (not gitignored). The row move from Active to Completed needs to be committed
+so it doesn't linger as a stray change picked up by the next feature's PR.
+
+```bash
+git add .feature/CLAUDE.md
+git commit -m "chore: archive feature <slug>"
+```
+
+If other `.decisions/` or `.kb/` files are also uncommitted (e.g., index updates
+from the retrospective), include them:
+
+```bash
+git add .feature/CLAUDE.md .decisions/CLAUDE.md .decisions/history.md .kb/CLAUDE.md
+git commit -m "chore: archive feature <slug>"
+```
+
+Only add files that are actually modified — check `git status --short` first.
+If the commit fails (e.g., nothing to commit), continue silently.
+
+---
+
 ## Step 7 — Report
 
 ```

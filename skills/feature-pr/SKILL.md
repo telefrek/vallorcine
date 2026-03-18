@@ -60,9 +60,38 @@ session interruptions.
 Run `git status --short` and check for untracked or modified files in:
 
 1. **`.kb/`** — KB entries created during `/feature-domains` or `/feature-retro`
-2. **`.decisions/`** — ADRs created during `/feature-domains` or `/feature-retro`
+2. **`.decisions/`** — ADRs, index updates, and history.md from `/feature-domains`
+   or `/feature-retro`. This includes `CLAUDE.md` (active decisions index) and
+   `history.md` (archived rows) — both are updated by the architect agent during
+   domain analysis. These are feature-produced, not upgrade artifacts.
 3. **Source files** listed in `work-plan.md` (if it exists)
 4. **Test files** listed in `work-plan.md` or referenced in `cycle-log.md`
+
+### Separating feature changes from upgrade changes
+
+If `.claude/` files are also modified (skills, scripts, settings, manifest),
+those are likely from a vallorcine upgrade, not the feature pipeline. Present
+them separately:
+
+```
+── Pre-PR check ────────────────────────────────
+I found uncommitted changes in two categories:
+
+Feature-produced (should be in this PR):
+  ? .decisions/compression-codec-api-design/adr.md
+  M .decisions/CLAUDE.md
+  M .decisions/history.md
+  ? .kb/systems/lsm-index-patterns/index-scan-patterns.md
+  M src/storage/block.go
+
+Vallorcine upgrade (separate commit recommended):
+  M .claude/skills/research/SKILL.md
+  M .claude/settings.json
+  M .claude/.vallorcine-manifest
+```
+
+Recommend committing upgrade changes first (`chore: upgrade vallorcine to vX.X.X`)
+before staging feature changes. This keeps the feature PR clean.
 
 Filter out:
 - `.feature/` — gitignored working files, not committed
