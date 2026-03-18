@@ -227,6 +227,30 @@ If --add-missing: load only the missing test cases from cycle-log.md.
 
 Update status.md substage → `confirming-plan`.
 
+### Coverage checklist (internal — apply before presenting the plan)
+
+Before presenting the test plan, systematically check each construct against
+these categories. The refactor agent (step 2e) will check these exact categories
+later — gaps found there trigger an escalation cycle. Catching them here is
+much cheaper.
+
+For each construct in the work plan:
+
+| Category | What to test | Common gaps |
+|----------|-------------|-------------|
+| **Happy path** | Normal operation with valid inputs | Rarely missed |
+| **Error conditions** | Every error case in the brief + contract | Missing: errors not in brief but implied by types |
+| **Boundary values** | Empty/zero, single element, max capacity, null/nil | Most commonly missed — add at least one per construct |
+| **State transitions** | Invalid state (e.g., use after close, double init) | Missed when construct has lifecycle |
+| **Concurrency** | Thread safety, ordering dependencies, race conditions | Only if construct is shared/concurrent — skip if single-threaded |
+| **Type boundaries** | Overflow, underflow, precision loss, encoding limits | Missed for numeric types, byte buffers, serialization |
+
+**The most commonly missed category is boundary values.** For every construct,
+ask: "what happens at empty, at one, and at max?" If the answer isn't obvious
+from the contract, write a test for it.
+
+### Present the plan
+
 Display:
 ```
 ── Test plan ───────────────────────────────────
@@ -238,10 +262,16 @@ Happy path
 Error and edge cases
   N. test_<name> — <scenario>
   ...
+Boundary values
+  N. test_<name> — <scenario>
+  ...
 ───────────────────────────────────────────────
 Does this cover the acceptance criteria? Any to add or remove?
 ───────────────────────────────────────────────
 ```
+
+The plan MUST include a "Boundary values" section. If no boundary tests are
+applicable (rare), state why explicitly.
 
 Wait for confirmation. Update status.md substage → `writing-tests` after confirm.
 
@@ -259,6 +289,9 @@ Rules:
 - Public interface only — no reaching into implementation details
 - Mocks/fakes for all external dependencies
 - Every test: arrange / act / assert clearly separated
+- Every construct MUST have at least one boundary value test (empty, zero,
+  max, null/nil, single element) — the refactor agent checks for these
+  and will escalate if missing
 
 Update status.md substage → `verifying-failures` after writing.
 
