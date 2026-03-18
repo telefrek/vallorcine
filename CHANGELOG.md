@@ -5,6 +5,38 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.5.0] — 2026-03-18
+
+### Added
+- `/curate` command — codebase quality review with correlation engine
+  - 8 scan analyses: churn, co-change, artifact correlation, orphaned areas,
+    KB staleness, ADR revisit, test-source drift, backfill candidates
+  - Numbered pick list for conversational triage
+  - Loop behavior: always returns to remaining items after each action
+  - Incremental scanning (delta from last-scanned SHA)
+  - Scale safety: 500-commit cap, 3-month default window
+- `index-verify.sh` — self-healing index verification for crash recovery
+- Pre-PR commit verification — `/feature-pr` scans for untracked KB/ADR files
+- `/upgrade-vallorcine` auto-commit — kit changes committed as standalone `chore:`
+  commit, stashes in-flight staged changes
+- Runtime file gitignore — installer adds runtime files to user's `.gitignore`
+- Script permissions — installer pre-approves vallorcine scripts in `settings.json`
+- `files:` and `applies_to:` frontmatter fields on ADR and KB templates
+- Construct analysis derives structural tests from stub interfaces
+- Coverage checklist added to test writer to reduce refactor escalations
+- 36 new tests (24 curate scan + 12 index verify)
+
+### Changed
+- Architecture model expanded from four concerns to five (added Curation)
+- `/decisions backfill` consolidated into `/curate` as a scan analysis
+- Documentation updated: DESIGN.md, README.md, plugin/marketplace descriptions
+
+### Fixed
+- Seed files no longer overwritten by FORCE_UPDATE or version mismatch auto-force
+- `/feature-complete` now checks for untracked `.kb/` and `.decisions/` files
+
+---
+
 ## [0.4.4] — 2026-03-17
 
 ### Changed
