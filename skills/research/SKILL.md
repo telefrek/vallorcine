@@ -138,6 +138,10 @@ Display: `── Writing KB entries ──────────────�
 - Filename: kebab-case of the subject name (e.g. `hnsw.md`, `ivf-flat.md`)
 - Keep under 200 lines; if longer, extract to `<subject>-detail.md` and add `@./<subject>-detail.md` at the bottom
 - If file already exists: append `## Updates YYYY-MM-DD` section — NEVER overwrite
+- Populate `applies_to:` frontmatter with source file paths this research is
+  relevant to (if known from the research context, commissioning ADR, or feature
+  work). Leave empty if no specific files are known — `/curate` will help
+  populate this over time as correlations are discovered.
 
 Use the Subject File Template below.
 
@@ -180,6 +184,7 @@ complexity:
   space: "<e.g. O(n * M)>"
 research_status: "<active | mature | stable | deprecated>"
 last_researched: "<YYYY-MM-DD>"
+applies_to: []
 sources:
   - url: "<URL>"
     title: "<title>"

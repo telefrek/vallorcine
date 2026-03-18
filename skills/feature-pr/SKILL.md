@@ -48,6 +48,62 @@ Display opening header:
 
 ---
 
+## Step 0.5 — Pre-PR commit verification
+
+Before drafting, check for uncommitted files that should be part of this PR.
+These are files created by the pipeline (research, architect, test writer,
+code writer) that may not have been staged — especially after crashes or
+session interruptions.
+
+### Scan for uncommitted files
+
+Run `git status --short` and check for untracked or modified files in:
+
+1. **`.kb/`** — KB entries created during `/feature-domains` or `/feature-retro`
+2. **`.decisions/`** — ADRs created during `/feature-domains` or `/feature-retro`
+3. **Source files** listed in `work-plan.md` (if it exists)
+4. **Test files** listed in `work-plan.md` or referenced in `cycle-log.md`
+
+Filter out:
+- `.feature/` — gitignored working files, not committed
+- `.curate/` — gitignored runtime files
+- Files already staged
+
+### If uncommitted files found
+
+```
+── Pre-PR check ────────────────────────────────
+I found files created during this feature's pipeline that haven't been
+committed yet:
+
+Knowledge & decisions:
+  ? .decisions/session-storage/adr.md
+  ? .decisions/session-storage/constraints.md
+  ? .decisions/session-storage/evaluation.md
+  ? .decisions/session-storage/log.md
+  ? .kb/systems/payments/stripe-integration.md
+
+Source & tests:
+  M src/auth/session.ts
+  ? tests/auth/test-session.ts
+
+These should be included in your PR. Want me to stage them?
+  yes  — stage all listed files
+  pick — let me choose which to stage
+  skip — proceed without staging (I'll handle it manually)
+```
+
+**If "yes":** run `git add` for all listed files. Report what was staged.
+**If "pick":** present numbered list, user picks by number. Stage selected.
+**If "skip":** proceed to Step 1. Note in the PR description that uncommitted
+files were detected (so the reviewer knows to check).
+
+### If no uncommitted files found
+
+Proceed silently to Step 1. No message needed.
+
+---
+
 ## Step 1 — Load context
 
 Read in order:

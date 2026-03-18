@@ -1,7 +1,7 @@
 {
   "name": "vallorcine",
   "metadata": {
-    "description": "A reliable engineering partner for Claude Code — persistent knowledge, structured decisions, and TDD guardrails that compound across sessions",
+    "description": "A reliable engineering partner for Claude Code — persistent knowledge, structured decisions, TDD guardrails, and codebase curation that compounds across sessions",
     "url": "https://github.com/telefrek/vallorcine"
   },
   "owner": {
@@ -11,9 +11,9 @@
     {
       "name": "vallorcine",
       "source": "./",
-      "description": "Turns Claude Code into a reliable engineering partner. Crash-recoverable TDD pipeline, pull-model knowledge base, and architecture decision store. Your project learns across sessions — each feature makes the next one faster.",
+      "description": "Turns Claude Code into a reliable engineering partner. Crash-recoverable TDD pipeline, pull-model knowledge base, architecture decision store, and codebase curation that detects stale decisions, knowledge gaps, and implicit dependencies. Your project learns across sessions — each feature makes the next one faster, and curation keeps the knowledge honest.",
       "version": "0.4.4",
-      "keywords": ["tdd", "workflow", "knowledge-base", "decisions", "pipeline"]
+      "keywords": ["tdd", "workflow", "knowledge-base", "decisions", "pipeline", "curation", "code-quality"]
     }
   ]
 }

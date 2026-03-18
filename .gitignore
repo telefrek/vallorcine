@@ -5,6 +5,7 @@
 .claude/*
 !.claude/rules/
 .feature/
+.curate/
 .kb/
 .decisions/
 

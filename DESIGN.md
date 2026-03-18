@@ -13,7 +13,7 @@ structured decisions, TDD guardrails, and a conversational flow that enforces
 the process you want without the friction you don't. Each feature shipped makes
 the next one faster because the project's context compounds across sessions.
 
-Organised around four concerns:
+Organised around five concerns:
 
 **Knowledge** — a pull-model knowledge base (`.kb/`) maintained by the Research
 Agent. Research findings accumulate across features and are queried on demand.
@@ -33,13 +33,21 @@ by a named agent. Features read from the knowledge and decisions layers during
 domain analysis and write back via retrospectives — creating a feedback loop
 that makes the project layer richer with every feature completed.
 
+**Curation** — a correlation engine (`.curate/`) that combines vallorcine's
+structured history with git data to find things that individual features,
+decisions, and research sessions couldn't see because they each had a narrower
+scope. Detects ADR drift, stale research, implicit dependencies between features,
+and orphaned areas with no structured knowledge. `/curate` surfaces findings
+conversationally and routes to existing commands for resolution.
+
 **System** — setup, upgrade, project context, and help. One-time configuration
 (`/feature-init`, `/setup-vallorcine`), ongoing maintenance (`/upgrade-vallorcine`,
 `/project-context`, `/feature-cleanup`), and entry point routing (`/vallorcine-help`).
 
 The knowledge and decisions layers are the durable assets. Features come and go,
-but KB entries, ADRs, and project context persist and compound. This is what makes
-the 5th feature on a project faster than the 1st.
+but KB entries, ADRs, and project context persist and compound. Curation closes
+the loop — it detects when those assets need updating based on how the codebase
+has evolved. This is what makes the 5th feature on a project faster than the 1st.
 
 ---
 
@@ -469,6 +477,87 @@ category → subject). Neither direction loads more than the navigation path.
 files never link back to `.decisions/` — knowledge is independent of any
 particular decision that uses it.
 
+### The curation layer
+
+```
+.curate/
+  curation-state.md    ← last-scanned SHA + review log (mutable)
+  scan-summary.md      ← latest scan output (gitignored, regenerated each run)
+```
+
+`.curate/` is gitignored — curation state is per-developer, not shared.
+The artifacts it routes you to (KB entries, ADRs) are the committed assets.
+
+Curation is a **correlation engine**, not a data store. It combines three
+signal sources to find things no single source reveals:
+
+1. **Vallorcine artifacts** — feature briefs, domains.md, work plans, ADRs,
+   KB entries, test files. High-quality, structured, trustworthy.
+2. **Git history** — churn hotspots, co-change patterns, commit timeline.
+   Medium-quality, noisy but useful for change patterns.
+3. **Derived correlations** — the actual value. ADR constrained area changed
+   → flag for re-evaluation. KB entry aged while covered area churned → stale
+   research. Features designed independently but touching shared files → implicit
+   dependency risk.
+
+The scanning cost is paid by bash (`curate-scan.sh`), not Claude. The script
+produces a bounded summary (~50-80 lines) that Claude reads and correlates.
+Token cost for a curation session: summary file + specific artifacts Claude
+decides to deep-read based on findings.
+
+```mermaid
+graph TD
+    GIT["Git History<br>churn, co-change, timeline"]
+    SCAN["curate-scan.sh<br>(bash — zero token cost)"]
+    SUM["scan-summary.md<br>(~50-80 lines)"]
+
+    GIT --> SCAN
+    SCAN --> SUM
+
+    KB[".kb/ entries"]
+    ADR[".decisions/ ADRs"]
+    FEAT[".feature/_archive/"]
+
+    SUM --> CORR["Claude correlates<br>four value buckets"]
+    KB -.->|"applies_to: files"| CORR
+    ADR -.->|"files: constrained"| CORR
+    FEAT -.->|"domains.md files"| CORR
+
+    CORR --> FIND["Prioritised findings<br>conversational triage"]
+    FIND -->|"ADR drift"| ARC["/architect"]
+    FIND -->|"stale KB"| RES["/research"]
+    FIND -->|"orphaned area"| RES
+    FIND -->|"implicit deps"| EXPLORE["in-session exploration"]
+
+    style SCAN fill:#6b7280,color:#fff
+    style SUM fill:#fbbf24,color:#000
+    style CORR fill:#4a9eff,color:#fff
+    style FIND fill:#22c55e,color:#fff
+    style ARC fill:#f59e0b,color:#fff
+    style RES fill:#f59e0b,color:#fff
+    style EXPLORE fill:#8b5cf6,color:#fff
+```
+
+**Four value buckets:**
+
+| Bucket | Signal | Routes to |
+|--------|--------|-----------|
+| ADR drift | Code diverging from a decision | `/architect` review |
+| KB + hindsight | Stale research + implementation evolution | `/research` refresh |
+| Implicit dependencies | Cross-feature gaps in shared files | In-session exploration |
+| Orphaned areas | High-churn with no KB/ADR coverage | `/research` or `/architect` |
+
+**Artifact enrichment** enables grep-based correlation:
+- ADR `adr.md` has a `files:` frontmatter field listing constrained files
+- KB subject files have an `applies_to:` field for relevant file paths
+- Feature archive `domains.md` already has file lists
+- `curate-scan.sh` greps these fields against changed files — fast, bounded
+
+**Scale safety:**
+- Default scan: 3 months or 500 commits (whichever is smaller)
+- Incremental: after first run, only scans delta from last-scanned SHA
+- Large commits (50+ files) excluded from co-change analysis
+
 ---
 
 ## Token budget at a glance
@@ -487,6 +576,8 @@ particular decision that uses it.
 | Test files (per unit) | Code Writer | ~2,000–3,000 |
 | Stub files (per unit) | Code Writer | ~1,000–2,000 |
 | `cycle-log.md` | Status, Resume commands | ~1,000 per cycle entry |
+| `.curate/scan-summary.md` | `/curate` | ~1,000–2,000 |
+| Correlated artifacts (per item) | `/curate` deep-read | ~2,000–4,000 |
 
 Session start (always paid): ~2,000 tokens, fixed forever.
 A typical Code Writer session (single work unit): 6,000–10,000 tokens.
@@ -613,6 +704,9 @@ vallorcine/
 │   ├── feature-cleanup/SKILL.md     ← /feature-cleanup — review stale feature directories
 │   ├── feature-init/SKILL.md        ← /feature-init — project profile setup + branch prompt
 │   │
+│   │  Curation
+│   ├── curate/SKILL.md              ← /curate — codebase quality review, correlation engine
+│   │
 │   │  System
 │   ├── vallorcine-help/SKILL.md     ← /vallorcine-help — entry point, router, question answering
 │   ├── setup-vallorcine/SKILL.md    ← /setup-vallorcine — initialise KB and decisions structure
@@ -642,18 +736,22 @@ vallorcine/
 │   ├── merge-driver-index.sh        ← git merge driver for CLAUDE.md index files
 │   ├── ensure-merge-driver.sh       ← registers merge driver on first pipeline run
 │   ├── adr-validate.sh              ← warns if contradictory accepted ADRs exist
+│   ├── curate-scan.sh              ← curation scanner (8 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill)
+│   ├── index-verify.sh            ← self-healing index verification for crash recovery
 │   ├── token-stop-hook.sh          ← Stop hook for automatic token tracking
 │   └── statusline.sh              ← status line showing pipeline stage + cost
 │
 ├── tests/                           ← test scripts (not installed)
-│   ├── test-install.sh              ← install + upgrade smoke tests (20 tests)
+│   ├── test-install.sh              ← install + upgrade smoke tests (33 tests)
 │   ├── scenario-project-config-overwrite.sh
 │   ├── scenario-version-skew.sh
 │   ├── scenario-version-skew-warning.sh
 │   ├── scenario-index-merge-driver.sh
 │   ├── scenario-ensure-merge-driver.sh
 │   ├── scenario-stale-kb.sh
-│   └── scenario-adr-contradiction.sh
+│   ├── scenario-adr-contradiction.sh
+│   ├── scenario-curate-scan.sh
+│   └── scenario-index-verify.sh
 │
 ├── kb/                              ← seed KB structure
 │   ├── CLAUDE.md                    ← KB root index template

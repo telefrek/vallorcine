@@ -6,7 +6,15 @@ Start or continue a vallorcine development session.
 
 ## Step 1 — Determine session goal
 
-If `$ARGUMENTS` is non-empty, use it as the session goal verbatim.
+If `$ARGUMENTS` is "continue" (case-insensitive): check if `WIP.md` exists.
+- If WIP.md exists: the session goal is to continue the in-progress work
+  described there. Skip Step 1.5 entirely (WIP.md already has the state).
+  Proceed to Step 2.
+- If WIP.md does not exist: tell the user "No WIP.md found — nothing to
+  continue." Then ask for a session goal as if `$ARGUMENTS` were empty.
+
+If `$ARGUMENTS` is non-empty (and not "continue"), use it as the session goal
+verbatim.
 
 If `$ARGUMENTS` is empty, ask the user:
 
@@ -70,6 +78,11 @@ If WIP.md was found, also mention:
 - What was in progress
 - What's done vs remaining
 - Which files have uncommitted changes
+
+If this is a `continue` session and WIP.md has an "In Progress" section with
+open questions: surface those questions directly. The user left off mid-discussion
+and wants to pick up exactly where they stopped — lead with the pending question,
+not a summary of what they already know.
 
 Then state the session goal clearly:
 

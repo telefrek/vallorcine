@@ -56,8 +56,9 @@ and are NOT in the MANIFEST.
   /feature, /feature-quick, /feature-domains, /feature-plan, /feature-test,
   /feature-implement, /feature-refactor, /feature-pr, /feature-retro,
   /feature-complete, /feature-cleanup, /feature-resume, /feature-coordinate,
-  /feature-init, /kb, /research, /architect, /decisions, /project-context,
-  /vallorcine-help, /setup-vallorcine, /upgrade-vallorcine, /uninstall-vallorcine
+  /feature-init, /kb, /research, /architect, /decisions, /curate,
+  /project-context, /vallorcine-help, /setup-vallorcine, /upgrade-vallorcine,
+  /uninstall-vallorcine
 
 **Kit-internal commands** — only exist in this repo:
   /ideate, /save-work, /release

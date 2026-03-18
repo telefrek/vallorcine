@@ -70,19 +70,33 @@ Record the response in the archive manifest.
 
 ---
 
-## Step 3 — Verify source and tests are committed
+## Step 3 — Verify source, tests, and knowledge files are committed
 
-Check git status for the implementation and test files listed in work-plan.md.
+Check git status for:
+1. **Implementation and test files** listed in work-plan.md
+2. **KB entries** — untracked files in `.kb/` (created by `/research` during domains or retro)
+3. **Decision records** — untracked files in `.decisions/` (created by `/architect` during domains or retro)
+
 If any are untracked or have uncommitted changes:
 ```
 ⚠ The following files have uncommitted changes:
-  <list>
+
+Source & tests:
+  <list from work-plan.md>
+
+Knowledge & decisions:
+  <list from .kb/ and .decisions/>
 
 Archive them anyway? Their content will be lost from git history if you proceed
 without committing.
   Type **yes**  to archive anyway  ·  or: stop
 ```
 Wait for response.
+
+Note: `.kb/` and `.decisions/` files are created by subagents during domain
+analysis and retrospectives. They are meant to be committed as part of the
+project's knowledge layer. If they show as untracked here, they were likely
+missed during the PR — this is a safety net.
 
 ---
 

@@ -9,7 +9,7 @@ faster because your project's context compounds, not its token cost.
 
 No dependencies. `bash install.sh` and go.
 
-### Four concerns
+### Five concerns
 
 **Knowledge** — research findings accumulate in `.kb/` and are queried on demand.
 Your project learns once and remembers forever.
@@ -21,6 +21,11 @@ questions.
 **Features** — TDD pipeline from scoping through PR, with crash recovery and
 parallel work unit execution. Claude follows the discipline so you can focus on
 directing the work, not policing it.
+
+**Curation** — `/curate` scans your codebase for quality signals: decisions that
+no longer match the code, research that's gone stale, implicit dependencies
+between features, and areas with no structured knowledge. It connects the dots
+that individual features and decisions can't see on their own.
 
 **System** — setup, upgrade, and help. `/vallorcine-help` routes you to the
 right command.
@@ -58,6 +63,14 @@ graph LR
     RET -.->|"writes back"| KB
     RET -.->|"writes back"| DEC
 
+    subgraph Curation
+        CUR["/curate"] -.->|"reviews"| KB
+        CUR -.->|"reviews"| DEC
+        CUR -.->|"scans"| GIT["git history"]
+    end
+
+    style CUR fill:#ef4444,color:#fff
+    style GIT fill:#6b7280,color:#fff
     style S fill:#4a9eff,color:#fff
     style D fill:#4a9eff,color:#fff
     style P fill:#4a9eff,color:#fff
@@ -76,7 +89,9 @@ graph LR
 
 Knowledge and decisions accumulate across features and get richer over time.
 Features read from them during domain analysis and write back via retrospectives.
-This feedback loop is what makes the 5th feature on a project faster than the 1st.
+Curation closes the loop — it detects when decisions drift, research goes stale,
+or features create implicit dependencies. This feedback loop is what makes the
+5th feature on a project faster than the 1st.
 
 ---
 
@@ -123,6 +138,14 @@ This feedback loop is what makes the 5th feature on a project faster than the 1s
 | `/feature-retro "<slug>"` | Post-feature retrospective |
 | `/feature-complete "<slug>"` | Archive after PR merges |
 | `/feature-cleanup` | Review stale feature directories |
+
+### Curation — codebase quality over time
+
+| Command | What it does |
+|---------|-------------|
+| `/curate` | Review quality signals — stale decisions, knowledge gaps, implicit dependencies |
+| `/curate --init` | First-time scan on an existing codebase |
+| `/curate --deeper` | Scan 6 months of history instead of default 3 |
 
 ### System — setup and maintenance
 
@@ -203,6 +226,10 @@ Setup: `/feature-init` (first time only) — Entry point: `/vallorcine-help`
 `.kb/<topic>/<category>/<subject>.md` and `.decisions/<slug>/adr.md` — on-demand only.
 Commands: `/research` `/architect` `/kb` `/decisions`
 Setup: `/setup-vallorcine` (first time only)
+
+## Codebase Quality
+`/curate` — review quality signals, find stale decisions, knowledge gaps, and implicit dependencies.
+`/curate --init` — first-time scan on existing codebase.
 ```
 
 Run `/feature-init` once to set up the project profile.
@@ -247,6 +274,16 @@ bash install.sh --diff /path/to/your/project
 /decisions backfill
 ```
 
+**Review codebase quality (first time on a project):**
+```
+/curate --init
+```
+
+**Regular curation check (incremental, fast):**
+```
+/curate
+```
+
 ---
 
 ## Upgrading
@@ -276,9 +313,10 @@ reviewing past decisions, crash recovery, and more.
 
 ## Architecture
 
-See [DESIGN.md](DESIGN.md) for the full design reference: the four concerns
+See [DESIGN.md](DESIGN.md) for the full design reference: the five concerns
 model, 10 core principles, token budget, agent write authority table, crash
-recovery model, KB/decisions hierarchy, work unit splitting, and extension points.
+recovery model, KB/decisions hierarchy, curation architecture, work unit
+splitting, and extension points.
 
 ## Development
 
