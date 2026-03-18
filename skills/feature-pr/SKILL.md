@@ -35,7 +35,7 @@ Draft: .feature/<slug>/pr-draft.md
   Type **yes**  to proceed to PR creation  ·  or: regenerate
 ```
 If "regenerate": proceed to regenerate the draft.
-If "yes": skip to Step 5 — PR creation (attempt to create the PR from the existing draft).
+If "yes": skip to Step 6 — PR creation (attempt to create the PR from the existing draft).
 
 ---
 
@@ -276,7 +276,80 @@ Append `pr-drafted` entry to cycle-log.md:
 
 ---
 
-## Step 5 — Create the PR
+## Step 5 — Finalize feature records
+
+Before creating the PR, finalize the feature's knowledge and index records so
+they are included in the PR. This work used to happen post-merge in
+`/feature-complete`, but leaving it until after the PR risks losing information
+— users may not run the cleanup step, or the uncommitted changes get ignored.
+
+### 5a — Write archive manifest
+
+Write `.feature/<slug>/ARCHIVE.md`:
+
+```markdown
+---
+feature: "<slug>"
+archived: "<YYYY-MM-DD>"
+---
+
+# Archive Manifest — <slug>
+
+## Feature Summary
+<Summary from brief.md>
+
+## What Was Built
+<Bullet list of constructs from work-plan.md>
+
+## Files Created / Modified
+<From work-plan.md and cycle-log.md>
+
+## TDD Summary
+- Cycles completed: <n>
+- Tests written: <n>
+- Missing tests found during refactor: <total across all cycles>
+
+## Decisions Made
+<Links to ADRs created or used — these remain in .decisions/, this is just a reference>
+
+## KB Entries Used
+<Links to KB entries — these remain in .kb/>
+```
+
+### 5b — Update .feature/CLAUDE.md
+
+Move the feature row from Active Features to Completed / Archived:
+
+```
+| <feature> | <slug> | <YYYY-MM-DD> | .feature/_archive/<slug>/ |
+```
+
+### 5c — Commit feature records
+
+Stage and commit all feature-produced files that aren't yet committed:
+
+```bash
+git add .feature/CLAUDE.md
+```
+
+Also check for and include any uncommitted `.decisions/` and `.kb/` files
+(indexes, history, ADRs, KB entries created during this feature's pipeline):
+
+```bash
+# Only add files that are actually modified or untracked
+git add .decisions/CLAUDE.md .decisions/history.md .kb/CLAUDE.md 2>/dev/null
+# Add any ADR directories created for this feature
+git add .decisions/*/adr.md .decisions/*/constraints.md .decisions/*/evaluation.md .decisions/*/log.md 2>/dev/null
+# Add any KB entries created for this feature
+git add .kb/ 2>/dev/null
+git commit -m "chore: finalize <slug> — archive manifest, index updates, knowledge files"
+```
+
+If nothing to commit (all already staged), continue silently.
+
+---
+
+## Step 6 — Create the PR
 
 Check if `gh` CLI is available: run `gh auth status` silently.
 
