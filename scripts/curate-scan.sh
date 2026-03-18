@@ -213,6 +213,138 @@ if [[ -d ".feature/_archive" ]]; then
     done < "$TMPDIR_SCAN/changed-files.txt"
 fi
 
+# ── Analysis 3b: ADR Pressure ────────────────────────────────────────────────
+# Aggregate ADR artifact hits by slug to detect decisions under concentrated
+# change. When multiple files constrained by the same ADR change, the decision
+# may need re-evaluation.
+#
+# DESIGN NOTE: File references are found via grep of ADR body text + files:
+# frontmatter, not just the structured files: field. This is intentionally
+# broad — a file mentioned in rationale or constraints is a signal even if not
+# formally constrained. If this proves too noisy in practice, restrict to
+# files: frontmatter only. Track user feedback on false positive rate.
+
+TEST_PATTERN='(test[_/]|_test\.|\.test\.|Test\.|tests/|spec[_/]|_spec\.|\.spec\.)'
+
+> "$TMPDIR_SCAN/adr-pressure.txt"
+> "$TMPDIR_SCAN/adr-gravity.txt"
+> "$TMPDIR_SCAN/hub-files.txt"
+
+if [[ -d ".decisions" ]] && [[ -s "$TMPDIR_SCAN/artifact-hits.txt" ]]; then
+
+    # Extract slug|changed_file pairs from ADR artifact hits
+    grep '^ADR|' "$TMPDIR_SCAN/artifact-hits.txt" 2>/dev/null \
+        | awk -F'|' '{
+            split($2, parts, "/")
+            slug = parts[2]
+            print slug "|" $3
+        }' | sort -u > "$TMPDIR_SCAN/adr-slug-files.txt" 2>/dev/null || true
+
+    # --- Pressure: count unique changed files per ADR slug ---
+    cut -d'|' -f1 "$TMPDIR_SCAN/adr-slug-files.txt" \
+        | sort | uniq -c | sort -rn \
+        | awk '$1 >= 2 {print $2 "|" $1}' > "$TMPDIR_SCAN/adr-pressure-counts.txt" 2>/dev/null || true
+
+    while IFS='|' read -r slug changed; do
+        # Count total file references in this ADR (all references, not just changed)
+        total=0
+        for adr_f in .decisions/"$slug"/adr.md .decisions/"$slug"/constraints.md; do
+            [[ -f "$adr_f" ]] || continue
+            t=$(grep -oE '[a-zA-Z0-9_./+-]+/[a-zA-Z0-9_.+-]+\.[a-zA-Z0-9]+' "$adr_f" 2>/dev/null \
+                | sort -u | wc -l)
+            total=$((total + t))
+        done
+        # Floor: total can't be less than changed
+        [[ "$total" -ge "$changed" ]] || total="$changed"
+        pct=$(( (changed * 100) / total ))
+        echo "PRESSURE|$slug|$changed|$total|$pct" >> "$TMPDIR_SCAN/adr-pressure.txt"
+    done < "$TMPDIR_SCAN/adr-pressure-counts.txt"
+
+    sort -t'|' -k5 -rn "$TMPDIR_SCAN/adr-pressure.txt" -o "$TMPDIR_SCAN/adr-pressure.txt" 2>/dev/null || true
+
+    # ── Analysis 3c: ADR Gravity ─────────────────────────────────────────────
+    # Cross-reference co-change pairs with ADR constrained files. If one file
+    # in a pair is ADR-constrained and the other isn't, the unconstrained file
+    # is gravitationally linked — it may belong in the ADR's scope.
+    # Test files are excluded on the unconstrained side (they co-change with
+    # everything and inflate every relationship).
+
+    > "$TMPDIR_SCAN/adr-gravity-raw.txt"
+
+    if [[ -s "$TMPDIR_SCAN/co-change.txt" ]] && [[ -s "$TMPDIR_SCAN/adr-slug-files.txt" ]]; then
+        # Build set of ADR-constrained changed files
+        cut -d'|' -f2 "$TMPDIR_SCAN/adr-slug-files.txt" | sort -u > "$TMPDIR_SCAN/adr-constrained-set.txt"
+
+        while IFS= read -r line; do
+            count="$(echo "$line" | awk '{print $1}')"
+            pair="$(echo "$line" | awk '{$1=""; print $0}' | sed 's/^ //')"
+            file_a="$(echo "$pair" | cut -d'|' -f1)"
+            file_b="$(echo "$pair" | cut -d'|' -f2)"
+
+            a_constrained=0
+            grep -qxF "$file_a" "$TMPDIR_SCAN/adr-constrained-set.txt" 2>/dev/null && a_constrained=1
+            b_constrained=0
+            grep -qxF "$file_b" "$TMPDIR_SCAN/adr-constrained-set.txt" 2>/dev/null && b_constrained=1
+
+            # Case: A constrained, B not — B is the gravity signal
+            if [[ "$a_constrained" -gt 0 && "$b_constrained" -eq 0 ]]; then
+                if ! echo "$file_b" | grep -qE "$TEST_PATTERN"; then
+                    awk -F'|' -v f="$file_a" '$2 == f {print $1}' "$TMPDIR_SCAN/adr-slug-files.txt" \
+                        | while IFS= read -r slug; do
+                            echo "$slug|$file_b|$file_a|$count"
+                        done >> "$TMPDIR_SCAN/adr-gravity-raw.txt"
+                fi
+            fi
+
+            # Case: B constrained, A not — A is the gravity signal
+            if [[ "$b_constrained" -gt 0 && "$a_constrained" -eq 0 ]]; then
+                if ! echo "$file_a" | grep -qE "$TEST_PATTERN"; then
+                    awk -F'|' -v f="$file_b" '$2 == f {print $1}' "$TMPDIR_SCAN/adr-slug-files.txt" \
+                        | while IFS= read -r slug; do
+                            echo "$slug|$file_a|$file_b|$count"
+                        done >> "$TMPDIR_SCAN/adr-gravity-raw.txt"
+                fi
+            fi
+        done < "$TMPDIR_SCAN/co-change.txt"
+    fi
+
+    # ── Analysis 3d: Classify gravity → signals vs hub files ─────────────────
+    # Hub files (3+ ADRs) are fragility/test-coverage concerns, not attributed
+    # to any single ADR. High gravity on a single ADR (5+ unconstrained files)
+    # suggests a boundary/isolation problem worth architect review.
+
+    if [[ -s "$TMPDIR_SCAN/adr-gravity-raw.txt" ]]; then
+        # Count distinct ADR slugs per unconstrained file
+        awk -F'|' '{print $1 "|" $2}' "$TMPDIR_SCAN/adr-gravity-raw.txt" \
+            | sort -u \
+            | cut -d'|' -f2 | sort | uniq -c | sort -rn \
+            > "$TMPDIR_SCAN/gravity-adr-counts.txt"
+
+        # Hub files: unconstrained files co-changing with 3+ ADRs
+        awk '$1 >= 3' "$TMPDIR_SCAN/gravity-adr-counts.txt" \
+            | while read -r adr_count uncon_file; do
+                slugs=$(awk -F'|' -v f="$uncon_file" '$2 == f {print $1}' "$TMPDIR_SCAN/adr-gravity-raw.txt" \
+                    | sort -u | tr '\n' ',' | sed 's/,$//')
+                echo "HUB|$uncon_file|$adr_count|$slugs" >> "$TMPDIR_SCAN/hub-files.txt"
+            done
+
+        # Build set of hub files for filtering
+        awk '$1 >= 3 {$1=""; print $0}' "$TMPDIR_SCAN/gravity-adr-counts.txt" \
+            | sed 's/^ //' > "$TMPDIR_SCAN/hub-set.txt" 2>/dev/null || true
+
+        # Gravity signals: non-hub unconstrained files
+        while IFS='|' read -r slug uncon_file constrained co_count; do
+            if ! grep -qxF "$uncon_file" "$TMPDIR_SCAN/hub-set.txt" 2>/dev/null; then
+                echo "GRAVITY|$slug|$uncon_file|$constrained|$co_count"
+            fi
+        done < "$TMPDIR_SCAN/adr-gravity-raw.txt" \
+            | sort -u >> "$TMPDIR_SCAN/adr-gravity.txt"
+
+        sort -t'|' -k5 -rn "$TMPDIR_SCAN/adr-gravity.txt" -o "$TMPDIR_SCAN/adr-gravity.txt" 2>/dev/null || true
+        sort -t'|' -k3 -rn "$TMPDIR_SCAN/hub-files.txt" -o "$TMPDIR_SCAN/hub-files.txt" 2>/dev/null || true
+    fi
+fi
+
 # ── Analysis 4: Identify orphaned files (high churn, no artifact coverage) ───
 
 > "$TMPDIR_SCAN/orphaned.txt"
@@ -411,6 +543,45 @@ if [[ -s "$TMPDIR_SCAN/artifact-hits.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+# ADR Pressure
+if [[ -s "$TMPDIR_SCAN/adr-pressure.txt" ]]; then
+    echo "## ADR Pressure" >> "$SUMMARY_FILE"
+    echo "Decisions with concentrated file changes (2+ constrained files changed):" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| ADR | Changed | Total | Pressure |" >> "$SUMMARY_FILE"
+    echo "|-----|---------|-------|----------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ slug changed total pct; do
+        echo "| $slug | $changed | $total | ${pct}% |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/adr-pressure.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+# ADR Gravity
+if [[ -s "$TMPDIR_SCAN/adr-gravity.txt" ]]; then
+    echo "## ADR Gravity" >> "$SUMMARY_FILE"
+    echo "Files co-changing with ADR-constrained files but not in the ADR's scope:" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| ADR | Unconstrained File | Co-changes With | Count |" >> "$SUMMARY_FILE"
+    echo "|-----|-------------------|-----------------|-------|" >> "$SUMMARY_FILE"
+    head -20 "$TMPDIR_SCAN/adr-gravity.txt" | while IFS='|' read -r _ slug uncon constrained co_count; do
+        echo "| $slug | $uncon | $constrained | $co_count |" >> "$SUMMARY_FILE"
+    done
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+# Hub Files
+if [[ -s "$TMPDIR_SCAN/hub-files.txt" ]]; then
+    echo "## Hub Files" >> "$SUMMARY_FILE"
+    echo "Files co-changing with 3+ ADRs' constrained files (fragility/test-coverage concern):" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| File | ADR Count | ADRs |" >> "$SUMMARY_FILE"
+    echo "|------|-----------|------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ file adr_count slugs; do
+        echo "| $file | $adr_count | $slugs |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/hub-files.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
 # Orphaned high-churn files
 if [[ -s "$TMPDIR_SCAN/orphaned.txt" ]]; then
     echo "## Orphaned Areas (no KB/ADR/feature coverage)" >> "$SUMMARY_FILE"
@@ -485,6 +656,9 @@ echo "Summary written to: $SUMMARY_FILE"
 echo "  Churn hotspots: $(wc -l < "$TMPDIR_SCAN/churn.txt" 2>/dev/null || echo 0)"
 echo "  Co-change clusters: $(wc -l < "$TMPDIR_SCAN/co-change.txt" 2>/dev/null || echo 0)"
 echo "  Artifact correlations: $(wc -l < "$TMPDIR_SCAN/artifact-hits.txt" 2>/dev/null || echo 0)"
+echo "  ADR pressure: $(wc -l < "$TMPDIR_SCAN/adr-pressure.txt" 2>/dev/null || echo 0)"
+echo "  ADR gravity signals: $(wc -l < "$TMPDIR_SCAN/adr-gravity.txt" 2>/dev/null || echo 0)"
+echo "  Hub files: $(wc -l < "$TMPDIR_SCAN/hub-files.txt" 2>/dev/null || echo 0)"
 echo "  Orphaned areas: $(wc -l < "$TMPDIR_SCAN/orphaned.txt" 2>/dev/null || echo 0)"
 echo "  Stale KB entries: $(wc -l < "$TMPDIR_SCAN/stale-kb.txt" 2>/dev/null || echo 0)"
 echo "  ADRs to revisit: $(wc -l < "$TMPDIR_SCAN/adr-revisit.txt" 2>/dev/null || echo 0)"

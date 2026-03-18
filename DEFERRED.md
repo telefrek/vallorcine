@@ -50,67 +50,13 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 - **KB cross-referencing** — reverse mapping from decisions to KB entries. One-way
   (KB → decisions) exists in `/kb query`. Low urgency until KB is large enough.
 
-- **`/decisions backfill` — retroactive decision extraction.** Scans source
-  structure to surface implicit architectural decisions that were never documented
-  as ADRs. Designed 2026-03-16, revised 2026-03-16. Full spec below.
-
-  **Command:** `/decisions backfill [<path>] [--limit N]`
-  - With path: scan specified module/package, top 5 by signal strength
-  - No path: allowed only if project is under `backfill_file_threshold` (default
-    50 source files, configurable in project-config.md). Over threshold: require
-    explicit path — display available top-level modules with file counts.
-  - `--limit N`: adjust batch size (default 5)
-  - Re-runnable: dismissed items recorded in `.decisions/.backfill-dismissed`,
-    don't resurface.
-
-  **Step 0 — Size check (zero token cost):**
-  Read `project-config.md` for source directory and language. Run bash `find`
-  to count source files by extension. Compare against `backfill_file_threshold`.
-
-  If over threshold and no path provided:
-  ```
-  This project has ~320 source files. To keep scan costs predictable,
-  specify a path to scope the backfill:
-
-    /decisions backfill src/core
-    /decisions backfill src/api
-
-  Available top-level modules:
-    src/core/      (42 files)
-    src/api/       (38 files)
-    src/auth/      (15 files)
-    ...
-  ```
-
-  **Signal sources (ranked):**
-  1. Archived feature domains marked `resolved` with no ADR (highest signal)
-  2. Module/package boundaries — why does this exist as a separate unit?
-  3. Interface hierarchies — sealed types, strategy patterns, extension points
-  4. Encoding/serialization/storage choices — high cost to change
-  5. Dependency graph edges — why A depends on B but not C
-
-  **Filtered out (not surfaced):**
-  - Framework/library choices (tooling, not architecture)
-  - Naming, test structure, formatting (linter territory)
-  - Anything with an existing ADR in `.decisions/`
-
-  **Per-candidate actions:**
-  - **decide** → invoke `/architect` inline for full deliberation
-  - **draft** → user provides rationale in a few sentences, written as partial
-    ADR marked `status: draft`. Domain Scout warns on draft ADRs but does not
-    block — user's choice to proceed without formalizing.
-  - **defer** → prompt for who should answer + optional context. Written as stub
-    ADR marked `status: deferred`. Stays in `.decisions/`, local only (no
-    external system integration yet).
-  - **dismiss** → recorded in `.decisions/.backfill-dismissed` so it doesn't
-    resurface on re-scan.
-
-  **Key design decisions:**
-  - Conventions are out of scope — linters own that. Only ADR-weight items.
-  - Draft ADRs visible to Domain Scout as warnings, not blockers.
-  - Deferred ADRs are local `.decisions/` stubs, not GitHub issues.
-  - Path-scoped, not incremental — user controls scope per invocation.
-  - File count threshold in project-config.md (default 50) gates full-project scan.
+- ~~`/decisions backfill`~~ — **subsumed by `/curate`** (2026-03-18). Curation's
+  analysis 8 (backfill candidates) + analysis 3b-3d (ADR pressure/gravity/hubs)
+  cover all five signal sources. Archived feature domains (source 1) are scanned
+  directly. Module boundaries, interface hierarchies, encoding choices, and
+  dependency edges (sources 2-5) are detected via ADR gravity — files that
+  co-change with ADR-constrained files but aren't in the ADR's scope. High
+  gravity signals isolation problems that route to `/architect`.
 
 ---
 
