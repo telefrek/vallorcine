@@ -5,6 +5,39 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.5.3] — 2026-03-18
+
+### Fixed
+
+- **Token tracking** — stop hook now logs the final stage's tokens before
+  cleaning up on terminal states (pr/created). Previously, refactor and
+  sometimes implementation showed "—" in the token summary.
+- **Statusline log pollution** — statusline no longer writes 4-column
+  context-token rows to token-log.md. Token logging is now exclusively
+  handled by the stop hook (transcript-based, more accurate).
+- **Terminal double-logging guard** — hook firing twice after reaching
+  terminal state no longer creates duplicate entries.
+
+### Added
+
+- **Claude Code GitHub Actions** — `@claude` mention support in issues
+  and PR comments, plus automated code review on every PR.
+- **GitHub issue templates** — structured bug report and feature request
+  forms mapped to vallorcine's five concerns.
+- **14 token tracking regression tests** — stage transitions, terminal
+  handling, statusline isolation, cold start, and log format consistency.
+
+### Changed
+
+- **COMPETITIVE.md** — full rewrite with three-tier framing, 15+
+  competitors profiled, head-to-head comparison table, and confirmed
+  gaps analysis.
+- **Plugin metadata** — author updated to Telefrek, added repository
+  and homepage fields.
+- **README** — added self-hosted marketplace install option.
+
+---
+
 ## [0.5.2] — 2026-03-18
 
 ### Fixed
