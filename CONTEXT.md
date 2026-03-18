@@ -80,7 +80,27 @@ PR #13 still open (previous session's work). This session's changes are on
 
 ### Do next (high priority, clear direction)
 
-- (none — current items resolved, promote from lower tiers or DEFERRED.md)
+- **Codebase curation command** — a new user-facing command for reviewing code
+  health over time. Code isn't written once and ignored — tests go stale, KB
+  entries age, ADRs need revisiting, conventions drift. Key design constraints:
+  - **Incremental, not full scan.** Must use git delta from last review to bound
+    token cost. Three tiers: delta review (~2-5K), module review (~10-15K),
+    full audit (rare, explicit).
+  - **Health tracking file** (`.feature/health.md`) records last review commit,
+    per-module status, and associated KB/ADR links. Updated by `/feature-complete`,
+    read by the curation command. Prerequisite for incremental scanning.
+  - **Stability vs volatility** — the interesting zone is "stable but adjacent to
+    volatile." A module unchanged for 6 months whose dependencies were rewritten
+    is where bugs hide. Git history provides the signal.
+  - **User-facing** — this is for project developers, not vallorcine's own dev
+    workflow. Must integrate with existing commands (`/feature-complete` updates
+    health, curation command reads it).
+  - **What it reviews:** tests (source changed but tests didn't), KB entries
+    (past staleness threshold), ADRs (revisit conditions met, constraints changed),
+    code conventions (new patterns adopted elsewhere).
+  - Open: command name (`/curate`, `/health`, `/review`), how it presents
+    findings (prioritized list → route to `/research`, `/architect`, `/feature-quick`),
+    and whether module-level reviews should be a subcommand or separate.
 
 ### Do soon (medium effort, clear designs)
 
