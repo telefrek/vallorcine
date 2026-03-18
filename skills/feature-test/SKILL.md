@@ -223,6 +223,39 @@ If --add-missing: load only the missing test cases from cycle-log.md.
 
 ---
 
+## Step 1b — Construct analysis (derive tests from interfaces)
+
+Read the stub files for each construct in the work plan. The stubs define
+the public interface — method signatures, parameter types, return types, and
+any `throws`/`raises` declarations. Derive structural test cases that the
+brief and acceptance criteria don't mention but the interface implies.
+
+**For each construct, scan its stub for these patterns:**
+
+| Interface pattern | What it implies | Test to derive |
+|---|---|---|
+| **Paired methods** (encode/decode, serialize/deserialize, write/read, open/close, add/remove) | Round-trip: operation then inverse preserves data | `test_<X>_then_<Y>_is_identity` |
+| **Closeable / AutoCloseable / resource lifecycle** | Cleanup on all paths, use-after-close safety | `test_close_releases_resources`, `test_use_after_close_throws` |
+| **Mutable state** (add, put, insert, update, delete on a collection/store) | Interaction: sequences of mutations produce expected state | `test_add_then_remove_restores_original`, `test_multiple_adds_accumulate` |
+| **Iterator / stream / cursor** | Exhaustion, empty iteration, concurrent modification | `test_empty_iteration`, `test_iterator_exhaustion` |
+| **Factory / builder** | Invalid configuration, required fields, build order | `test_build_without_required_field_throws` |
+| **Comparable / ordering** | Symmetry, transitivity, consistency with equals | `test_ordering_symmetry`, `test_ordering_transitivity` |
+| **Numeric parameters** (capacity, size, count, limit, offset) | Zero, negative, overflow | `test_zero_capacity`, `test_negative_throws` |
+| **Byte buffers / arrays** | Empty, single byte, exact capacity, overflow | `test_empty_buffer`, `test_buffer_at_capacity` |
+| **Type hierarchies** (sealed types, enum switches, visitor patterns) | All variants handled | One test per variant/subtype |
+
+**How to apply:** For each pattern found, add 1-2 test cases to the plan.
+These are structural tests — they test properties of the interface, not
+specific business scenarios. They go in a "Structural" section of the test
+plan alongside the existing Happy path, Error, and Boundary sections.
+
+**Do NOT over-generate.** Only add tests for patterns actually present in the
+stubs. A construct with no paired methods gets no round-trip tests. The goal
+is to catch the 3-5 tests the refactor agent would flag, not to double the
+test count.
+
+---
+
 ## Step 2 — Write the test plan (in chat first)
 
 Update status.md substage → `confirming-plan`.
@@ -265,13 +298,17 @@ Error and edge cases
 Boundary values
   N. test_<name> — <scenario>
   ...
+Structural (from interface analysis)
+  N. test_<name> — <scenario> — pattern: <round-trip | lifecycle | interaction | ...>
+  ...
 ───────────────────────────────────────────────
 Does this cover the acceptance criteria? Any to add or remove?
 ───────────────────────────────────────────────
 ```
 
-The plan MUST include a "Boundary values" section. If no boundary tests are
-applicable (rare), state why explicitly.
+The plan MUST include "Boundary values" and "Structural" sections. If either has
+no applicable tests (rare), state why explicitly. The structural section should
+list which interface patterns were checked and found not applicable.
 
 Wait for confirmation. Update status.md substage → `writing-tests` after confirm.
 
