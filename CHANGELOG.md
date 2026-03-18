@@ -5,6 +5,32 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.5.1] — 2026-03-18
+
+### Added
+- **Research signal recognition in scoping** — uncertainty patterns ("I don't know",
+  "not sure") captured as Research Commissions in the feature brief. Domain scout
+  auto-commissions `/research` for each.
+- **ADR Pressure** — `/curate` detects decisions with 2+ constrained files actively
+  changing, reports pressure percentage for re-evaluation.
+- **ADR Gravity** — `/curate` detects unconstrained files co-changing with
+  ADR-constrained files, revealing implicit relationships. High gravity (5+ files)
+  flags isolation problems for `/architect` boundary review.
+- **Hub Files** — `/curate` flags files co-changing with 3+ ADRs' constrained areas
+  as fragility/test-coverage concerns. Test files excluded from gravity signals.
+- **Research fetch discipline** — research agent moves on after ~30s on hung fetches,
+  3 sources sufficient, no retries in same session.
+
+### Fixed
+- `grep -cxF` under `set -e` produced dual output breaking gravity detection in
+  curate-scan.sh.
+
+### Changed
+- `/decisions backfill` subsumed by `/curate` — analyses 3b-3d + analysis 8 cover
+  all backfill signal sources.
+
+---
+
 ## [0.5.0] — 2026-03-18
 
 ### Added
