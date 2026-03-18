@@ -168,19 +168,65 @@ for f in "$SCRIPT_DIR"/rules/*.md; do
     install_file "$f" "$TARGET/.claude/rules/$(basename "$f")"
 done
 
-# ── KB seed files ─────────────────────────────────────────────────────────────
+# ── KB seed files (never overwrite — these are user-populated data) ───────────
+#
+# FORCE_UPDATE must not overwrite seed files. Users populate these indexes
+# with research and decisions. Overwriting with empty seeds destroys data.
+# Only write if the file does not exist (first install).
 
 echo ""
 echo "── KB seed files ────────────────────────────────"
-install_file "$SCRIPT_DIR/kb/CLAUDE.md"                              "$TARGET/.kb/CLAUDE.md"
-install_file "$SCRIPT_DIR/kb/_refs/complexity-notation.md"           "$TARGET/.kb/_refs/complexity-notation.md"
-install_file "$SCRIPT_DIR/kb/_refs/benchmarking-methodology.md"      "$TARGET/.kb/_refs/benchmarking-methodology.md"
 
-# ── Decisions seed files ──────────────────────────────────────────────────────
+_install_seed() {
+    local src="$1"
+    local dst="$2"
+    mkdir -p "$(dirname "$dst")"
+
+    if [[ "$DIFF_MODE" == "1" ]]; then
+        if [[ ! -f "$dst" ]]; then
+            echo -e "  ${GREEN}new${NC}    $dst"
+            ((changed++)) || true
+        else
+            ((unchanged++)) || true
+        fi
+        return
+    fi
+
+    if [[ -f "$dst" ]]; then
+        echo -e "  ${YELLOW}skip${NC}  $dst  (user data — never overwritten)"
+        ((skipped++)) || true
+    else
+        cp "$src" "$dst"
+        echo -e "  ${GREEN}write${NC} $dst"
+        ((created++)) || true
+    fi
+}
+
+_install_seed "$SCRIPT_DIR/kb/CLAUDE.md"                              "$TARGET/.kb/CLAUDE.md"
+_install_seed "$SCRIPT_DIR/kb/_refs/complexity-notation.md"           "$TARGET/.kb/_refs/complexity-notation.md"
+_install_seed "$SCRIPT_DIR/kb/_refs/benchmarking-methodology.md"      "$TARGET/.kb/_refs/benchmarking-methodology.md"
+
+# ── Decisions seed files (never overwrite — same as KB) ──────────────────────
 
 echo ""
 echo "── Decisions seed files ─────────────────────────"
-install_file "$SCRIPT_DIR/decisions/CLAUDE.md" "$TARGET/.decisions/CLAUDE.md"
+_install_seed "$SCRIPT_DIR/decisions/CLAUDE.md" "$TARGET/.decisions/CLAUDE.md"
+
+# ── Curation directory ────────────────────────────────────────────────────
+
+echo ""
+echo "── Curation ─────────────────────────────────"
+if [[ "$DIFF_MODE" != "1" ]]; then
+    mkdir -p "$TARGET/.curate"
+    echo -e "  ${GREEN}ready${NC} .curate/ directory"
+else
+    if [[ ! -d "$TARGET/.curate" ]]; then
+        echo -e "  ${GREEN}new${NC}    .curate/"
+        ((changed++)) || true
+    else
+        ((unchanged++)) || true
+    fi
+fi
 
 # ── Scripts ───────────────────────────────────────────────────────────────────
 
@@ -193,6 +239,8 @@ install_file "$SCRIPT_DIR/scripts/ensure-merge-driver.sh" "$TARGET/.claude/scrip
 install_file "$SCRIPT_DIR/scripts/kb-freshness-check.sh" "$TARGET/.claude/scripts/kb-freshness-check.sh"
 install_file "$SCRIPT_DIR/scripts/adr-validate.sh" "$TARGET/.claude/scripts/adr-validate.sh"
 install_file "$SCRIPT_DIR/scripts/token-stop-hook.sh" "$TARGET/.claude/scripts/token-stop-hook.sh"
+install_file "$SCRIPT_DIR/scripts/curate-scan.sh" "$TARGET/.claude/scripts/curate-scan.sh"
+install_file "$SCRIPT_DIR/scripts/index-verify.sh" "$TARGET/.claude/scripts/index-verify.sh"
 install_file "$SCRIPT_DIR/scripts/statusline.sh" "$TARGET/.claude/scripts/statusline.sh"
 install_file "$SCRIPT_DIR/scripts/uninstall.sh" "$TARGET/.claude/scripts/uninstall.sh"
 
@@ -263,6 +311,16 @@ if [[ "$DIFF_MODE" != "1" ]]; then
         elif [[ ! -f "$SETTINGS_FILE" ]]; then
             cat > "$SETTINGS_FILE" << 'HOOKJSON'
 {
+  "permissions": {
+    "allow": [
+      "Bash(bash .claude/scripts/curate-scan.sh:*)",
+      "Bash(bash .claude/scripts/kb-freshness-check.sh:*)",
+      "Bash(bash .claude/scripts/version-check.sh:*)",
+      "Bash(bash .claude/scripts/ensure-merge-driver.sh:*)",
+      "Bash(bash .claude/scripts/adr-validate.sh:*)",
+      "Bash(bash .claude/scripts/index-verify.sh:*)"
+    ]
+  },
   "hooks": {
     "Stop": [
       {
@@ -295,12 +353,62 @@ HOOKJSON
     elif [[ -f "$SETTINGS_FILE" ]]; then
         echo -e "  ${YELLOW}skip${NC}  settings.json exists but jq not available — add statusLine manually"
     fi
+
+    # ── Script permissions (explicit per-script, not wildcard) ─────────
+    SCRIPT_PERM_MARKER="curate-scan.sh"
+    if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$SCRIPT_PERM_MARKER" "$SETTINGS_FILE" 2>/dev/null; then
+        echo -e "  ${YELLOW}skip${NC}  Script permissions already configured"
+    elif [[ -f "$SETTINGS_FILE" ]] && command -v jq &>/dev/null; then
+        jq '.permissions.allow = ((.permissions.allow // []) + [
+            "Bash(bash .claude/scripts/curate-scan.sh:*)",
+            "Bash(bash .claude/scripts/kb-freshness-check.sh:*)",
+            "Bash(bash .claude/scripts/version-check.sh:*)",
+            "Bash(bash .claude/scripts/ensure-merge-driver.sh:*)",
+            "Bash(bash .claude/scripts/adr-validate.sh:*)",
+            "Bash(bash .claude/scripts/index-verify.sh:*)"
+        ] | unique)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+        echo -e "  ${GREEN}merge${NC} Script permissions added to settings.json"
+    elif [[ -f "$SETTINGS_FILE" ]]; then
+        echo -e "  ${YELLOW}skip${NC}  settings.json exists but jq not available — add permissions manually"
+    fi
 else
     if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$HOOK_MARKER" "$SETTINGS_FILE" 2>/dev/null; then
         ((unchanged++)) || true
     else
         echo -e "  ${GREEN}new${NC}    Stop hook + status line in settings.json"
         ((changed++)) || true
+    fi
+fi
+
+# ── Gitignore for runtime files ───────────────────────────────────────────────
+
+echo ""
+echo "── Gitignore (runtime files) ────────────────────"
+
+GITIGNORE="$TARGET/.gitignore"
+IGNORE_MARKER="# vallorcine runtime files"
+
+if [[ "$DIFF_MODE" != "1" ]]; then
+    if ! grep -qF "$IGNORE_MARKER" "$GITIGNORE" 2>/dev/null; then
+        cat >> "$GITIGNORE" << 'GITIGNOREBLOCK'
+
+# vallorcine runtime files — generated at runtime, not committed
+.claude/.statusline-baseline
+.claude/.token-state
+.claude/.token-checkpoint
+.feature/
+.curate/
+GITIGNOREBLOCK
+        echo -e "  ${GREEN}write${NC} .gitignore  (runtime file entries)"
+    else
+        echo -e "  ${YELLOW}skip${NC}  .gitignore already has runtime file entries"
+    fi
+else
+    if ! grep -qF "$IGNORE_MARKER" "$GITIGNORE" 2>/dev/null; then
+        echo -e "  ${GREEN}new${NC}    .gitignore runtime file entries"
+        ((changed++)) || true
+    else
+        ((unchanged++)) || true
     fi
 fi
 
@@ -369,5 +477,9 @@ Setup: `/feature-init` (first time only) — Entry point: `/vallorcine-help`
 `.kb/<topic>/<category>/<subject>.md` and `.decisions/<slug>/adr.md` — on-demand only.
 Commands: `/research` `/architect` `/kb lookup` `/decisions review`
 Setup: `/setup-vallorcine` (first time only)
+
+## Codebase Quality
+`/curate` — review quality signals, find stale decisions, knowledge gaps, and implicit dependencies.
+`/curate --init` — first-time scan on existing codebase.
 CLAUDEMD
 echo ""

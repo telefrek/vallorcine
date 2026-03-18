@@ -20,30 +20,42 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-03-17*
+*Last updated: 2026-03-18*
 
-**Dashboard redesign — retired tmux, added status line + hook-based token tracking.**
+**Codebase curation — designed, built, dogfooded, and polished `/curate`.**
 
 **What shipped this session:**
-- **Tmux dashboard retired** — deleted skill, 2 scripts, 3 watchers, 14 tests.
-  Removed all dashboard bash blocks from 9 skill files. Documented as "tried and
-  retired" in SETTLED.md with clear rationale.
-- **Hook-based token tracking** — `scripts/token-stop-hook.sh` auto-detects stage
-  transitions by comparing `.token-state` against `status.md`. Logs to `token-log.md`
-  automatically. Removed 16 `token_checkpoint`/`token_summary` bash blocks from skills.
-- **Status line** — `scripts/statusline.sh` shows feature slug, pipeline stage,
-  total tokens, and context window % with color-coded warnings. Registered via
-  `settings.json` statusLine config. Works without tmux.
-- **Domain scout KB empty check** — when KB has zero topics, offers research/continue/
-  skip-research before per-domain analysis. `skip_all_research` flag carries forward.
-- **Version display** — `/vallorcine-help` headers now show installed version.
-- **33 install tests passing** (removed 3 dashboard-specific tests, all others green).
-- Tested end-to-end: fresh install on jlsm with status line + token hook working.
+- **`/curate` command** — correlation engine that combines vallorcine's structured
+  history with git data to find stale decisions, knowledge gaps, implicit dependencies,
+  test-source drift, and orphaned areas. Bash scan script + Claude correlation +
+  conversational numbered pick list for triage.
+- **`curate-scan.sh`** — 8 analyses: churn hotspots, co-change clusters, artifact
+  correlation, orphaned areas, KB staleness, ADR revisit conditions, test-source
+  drift, and backfill candidates from archived features.
+- **`index-verify.sh`** — self-healing index verification. Detects and repairs
+  missing rows in `.kb/CLAUDE.md` and `.decisions/CLAUDE.md` after crashes.
+  Called automatically by `/curate` before scanning.
+- **Pre-PR commit verification** — `/feature-pr` Step 0.5 scans for untracked
+  `.kb/`, `.decisions/`, source, and test files before drafting. Offers to stage them.
+- **`/upgrade-vallorcine` auto-commit** — upgrades now commit kit changes immediately
+  as `chore: upgrade vallorcine to vX.X.X`. Stashes in-flight staged changes first.
+- **Seed file protection** — `install.sh` never overwrites user-populated KB/decisions
+  indexes, even with `FORCE_UPDATE=1` or version mismatch auto-force.
+- **Runtime file gitignore** — installer adds `.statusline-baseline`, `.token-state`,
+  `.token-checkpoint`, `.feature/`, `.curate/` to user's `.gitignore`.
+- **Script permissions** — installer pre-approves vallorcine scripts in `settings.json`
+  (explicit per-script, not wildcard).
+- **73 tests passing** (37 install + 24 curate scan + 12 index verify).
+- **Dogfooded on JLSM** — found and fixed: empty root indexes (crash recovery gap),
+  orphaned KB/ADR files after pipeline, curation loop not returning to pick list.
+- **Documentation** — DESIGN.md (five concerns, curation architecture, mermaid diagram),
+  README.md (five concerns, commands table, usage examples), plugin/marketplace
+  descriptions, COMPETITIVE.md positioning, GitHub repo description and topics.
 
 **Where things stand:**
-PR #13 still open (previous session's work). This session's changes are on
-`feat/cleanup-uninstall` branch. Status line confirmed working on jlsm — shows
-`slug · stage · tokens · ctx %`. Next: plugin install path docs, then release.
+All work on main branch (uncommitted). Ready to cut a PR and release. Dogfood on
+JLSM confirmed working end-to-end: `--init` scan → numbered findings → fix items
+→ clean rescan.
 
 ---
 
@@ -51,25 +63,42 @@ PR #13 still open (previous session's work). This session's changes are on
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **Tmux dashboard retired** (2026-03-17) — tmux panes fought the medium: bash
-  side-effect calls were unreliable (sub-agents skip them), panes consumed screen
-  space, and the whole approach required tmux. Replaced with native Claude Code
-  primitives (status line + hooks) that work everywhere.
+- **Curation as correlation engine** (2026-03-18) — dropped the "concern graph"
+  abstraction in favor of correlating git history against existing artifacts.
+  Four value buckets: ADR drift, KB+hindsight, implicit dependencies, orphaned
+  areas. Business objectives can't be inferred from git history — focus on
+  structural quality signals.
 
-- **Hook-based token tracking** (2026-03-17) — Stop hook detects stage transitions
-  by comparing cached stage vs `status.md`. No skill-level bash calls needed.
-  Three paths: no-op (~1ms), active same stage (~5ms), transition (~200ms).
+- **`.curate/` namespace** (2026-03-18) — own directory like `.kb/` and `.decisions/`.
+  Gitignored (per-developer state). `curation-state.md` for scan state + review log.
 
-- **Status line for pipeline visibility** (2026-03-17) — shows slug · stage ·
-  tokens · context %. Reads `.token-state` + session JSON. Fires after each
-  response automatically. No cost display (subscription model makes it misleading).
+- **Numbered pick list for curation findings** (2026-03-18) — each finding gets a
+  number, description, and action. User picks by number instead of free text.
+  Loop: after completing an item, re-present remaining items. "done" exits.
 
-- **Domain scout KB empty check** (2026-03-17) — offers research/continue/skip
-  when KB has zero topics. `skip_all_research` flag prevents repeated per-domain
-  prompts when user wants to rely on local domain knowledge.
+- **Seed files never overwritten** (2026-03-18) — `install.sh` uses `_install_seed`
+  for KB/decisions indexes. Ignores FORCE_UPDATE. Found via dogfood: every force
+  install was wiping JLSM's populated indexes with empty templates.
 
-- **Version in /vallorcine-help headers** (2026-03-17) — reads
-  `.claude/.vallorcine-version`. Shows `🚀 HELP · vallorcine v0.4.0`.
+- **Index self-healing** (2026-03-18) — `index-verify.sh` checks directory contents
+  against index rows. Repairs missing entries from crash-interrupted bottom-up
+  updates. Called by `/curate` before scanning.
+
+- **Pre-PR commit verification** (2026-03-18) — `/feature-pr` Step 0.5 scans for
+  untracked `.kb/` and `.decisions/` files. Catches orphaned knowledge files from
+  crash-interrupted domain analysis or retrospectives.
+
+- **Upgrade auto-commit** (2026-03-18) — `/upgrade-vallorcine` commits kit changes
+  as a standalone `chore:` commit. Stashes in-flight staged changes. Prevents kit
+  updates from leaking into feature PRs.
+
+- **Backfill consolidated into curate** (2026-03-18) — `/curate` scans archived
+  feature domains for implicit decisions. Single entry point instead of separate
+  `/decisions backfill`. Help routing updated.
+
+- **Explicit script permissions** (2026-03-18) — per-script permission entries in
+  `settings.json`, not wildcard. Prevents arbitrary scripts in `.claude/scripts/`
+  from auto-executing.
 
 ---
 
@@ -80,27 +109,9 @@ PR #13 still open (previous session's work). This session's changes are on
 
 ### Do next (high priority, clear direction)
 
-- **Codebase curation command** — a new user-facing command for reviewing code
-  health over time. Code isn't written once and ignored — tests go stale, KB
-  entries age, ADRs need revisiting, conventions drift. Key design constraints:
-  - **Incremental, not full scan.** Must use git delta from last review to bound
-    token cost. Three tiers: delta review (~2-5K), module review (~10-15K),
-    full audit (rare, explicit).
-  - **Health tracking file** (`.feature/health.md`) records last review commit,
-    per-module status, and associated KB/ADR links. Updated by `/feature-complete`,
-    read by the curation command. Prerequisite for incremental scanning.
-  - **Stability vs volatility** — the interesting zone is "stable but adjacent to
-    volatile." A module unchanged for 6 months whose dependencies were rewritten
-    is where bugs hide. Git history provides the signal.
-  - **User-facing** — this is for project developers, not vallorcine's own dev
-    workflow. Must integrate with existing commands (`/feature-complete` updates
-    health, curation command reads it).
-  - **What it reviews:** tests (source changed but tests didn't), KB entries
-    (past staleness threshold), ADRs (revisit conditions met, constraints changed),
-    code conventions (new patterns adopted elsewhere).
-  - Open: command name (`/curate`, `/health`, `/review`), how it presents
-    findings (prioritized list → route to `/research`, `/architect`, `/feature-quick`),
-    and whether module-level reviews should be a subcommand or separate.
+- **Large repo curation testing** — `/curate` dogfooded on JLSM (19 commits).
+  Needs testing on a larger repo (1000+ commits, 30+ contributors) to validate
+  the 500-commit cap and co-change analysis performance in bash.
 
 ### Do soon (medium effort, clear designs)
 

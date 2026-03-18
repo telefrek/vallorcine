@@ -224,6 +224,76 @@ else
     fail "version stamp should match current" "got: $MISMATCH_STAMP"
 fi
 
+# ── Test 5c: FORCE_UPDATE never overwrites user-populated seed files ──────────
+
+echo ""
+echo "── Test 5c: FORCE_UPDATE preserves user-populated KB and decisions indexes"
+
+SEED_TARGET="$(make_temp)"
+bash "$REPO_ROOT/install.sh" "$SEED_TARGET" >/dev/null 2>&1
+
+# Simulate user-populated indexes (research and architect added rows)
+cat > "$SEED_TARGET/.kb/CLAUDE.md" << 'SEEDKB'
+# Knowledge Base — Root Index
+
+## Topic Map
+
+| Topic | Path | Categories | Files | Last Updated |
+|-------|------|------------|-------|--------------|
+| algorithms | .kb/algorithms/ | 2 | 5 | 2026-03-17 |
+
+## Recently Added (last 10)
+| Date | Topic | Category | Subject |
+|------|-------|----------|---------|
+| 2026-03-17 | algorithms | vector-indexing | hnsw |
+SEEDKB
+
+cat > "$SEED_TARGET/.decisions/CLAUDE.md" << 'SEEDDEC'
+# Architecture Decisions — Master Index
+
+## Active Decisions
+
+| Problem | Slug | Date | Status | Recommendation |
+|---------|------|------|--------|----------------|
+
+## Recently Accepted (last 5)
+
+| Problem | Slug | Accepted | Recommendation |
+|---------|------|----------|----------------|
+| Vector search | vector-search | 2026-03-17 | HNSW |
+SEEDDEC
+
+# Force install — should NOT overwrite the populated indexes
+FORCE_UPDATE=1 bash "$REPO_ROOT/install.sh" "$SEED_TARGET" >/dev/null 2>&1
+
+if grep -q "algorithms" "$SEED_TARGET/.kb/CLAUDE.md" 2>/dev/null; then
+    pass "FORCE_UPDATE preserves user-populated .kb/CLAUDE.md"
+else
+    fail "FORCE_UPDATE overwrote .kb/CLAUDE.md with empty seed template"
+fi
+
+if grep -q "vector-search" "$SEED_TARGET/.decisions/CLAUDE.md" 2>/dev/null; then
+    pass "FORCE_UPDATE preserves user-populated .decisions/CLAUDE.md"
+else
+    fail "FORCE_UPDATE overwrote .decisions/CLAUDE.md with empty seed template"
+fi
+
+# Also test version mismatch path (triggers auto-force)
+echo "0.0.1" > "$SEED_TARGET/.claude/.vallorcine-version"
+bash "$REPO_ROOT/install.sh" "$SEED_TARGET" >/dev/null 2>&1
+
+if grep -q "algorithms" "$SEED_TARGET/.kb/CLAUDE.md" 2>/dev/null; then
+    pass "version mismatch auto-force preserves .kb/CLAUDE.md"
+else
+    fail "version mismatch auto-force overwrote .kb/CLAUDE.md"
+fi
+
+if grep -q "vector-search" "$SEED_TARGET/.decisions/CLAUDE.md" 2>/dev/null; then
+    pass "version mismatch auto-force preserves .decisions/CLAUDE.md"
+else
+    fail "version mismatch auto-force overwrote .decisions/CLAUDE.md"
+fi
+
 # ── Test 6: Safety guard blocks repo-root install ───────────────────────────
 
 echo ""

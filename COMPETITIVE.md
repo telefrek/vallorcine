@@ -3,7 +3,7 @@
 Market positioning and ecosystem context for prioritisation decisions.
 Updated during marketplace research sessions, not every development session.
 
-*Last updated: 2026-03-16*
+*Last updated: 2026-03-18*
 
 ---
 
@@ -49,6 +49,28 @@ blunt context loading, no ADR concept. Passive and unstructured.
 - KB↔pipeline integration (unique)
 - Deliberation loop on ADRs (unique)
 - Sequential scoping interview (unique)
+- Codebase curation — cross-session quality review (unique)
+
+### Curation as differentiator
+
+No competitor has a continuous improvement layer. The competitive landscape
+splits into two categories, and both miss the same thing:
+
+**Workflow tools** (Superpowers, Deep Trilogy, feature-dev) are session-scoped.
+They help you build features, then forget. Decisions made during one feature
+are invisible to the next. Research done once is never revisited.
+
+**Memory tools** (claude-mem, memsearch) capture passively but never *review*
+what they captured. Knowledge accumulates but never gets curated — stale
+research sits alongside current research with no signal.
+
+Vallorcine's curation layer closes the loop: features compound the knowledge,
+`/curate` keeps it honest. Stale decisions get flagged for re-evaluation,
+research gets refreshed with hindsight, gaps between independently-designed
+features get found, and orphaned areas get identified for backfill.
+
+This is the "your codebase gets smarter over time" story — not just during
+active feature work, but between features too.
 
 ---
 

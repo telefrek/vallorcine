@@ -429,3 +429,37 @@ README documents both paths with comparison table: plugin gets `vallorcine:`
 prefix, shell gets unprefixed short names. Plugin path doesn't auto-configure
 hooks/status line (manual settings.json addition documented). Shell path
 auto-configures everything via install.sh.
+
+## Domain scout KB empty check (2026-03-17)
+
+Offers research/continue/skip when KB has zero topics. `skip_all_research`
+flag prevents repeated per-domain prompts when user wants to rely on local
+domain knowledge.
+
+## Version display in /vallorcine-help (2026-03-17)
+
+Reads `.claude/.vallorcine-version`. Shows version in opening headers.
+
+## Five-concern architecture model (2026-03-18)
+
+Expanded from four concerns to five: Knowledge, Decisions, Features, Curation,
+System. Curation is a correlation engine (`/curate`) that combines vallorcine's
+structured history with git data to find things individual features, decisions,
+and research sessions couldn't see. Four value buckets: ADR drift, KB+hindsight
+review, implicit dependencies, orphaned areas.
+
+## Curation is a correlation engine, not a concern graph (2026-03-18)
+
+Original design built a persistent "concern graph" tracking semantic areas.
+Dropped because: business objectives can't be inferred from git history, the
+concern abstraction was doing double duty (code + business), and without business
+intent "concerns" are just "files that change together" which git tracks natively.
+Reframed as correlating existing signals (vallorcine artifacts + git history) to
+find cross-cutting issues.
+
+## Seed files never force-overwritten (2026-03-18)
+
+`install.sh` uses `_install_seed()` for `.kb/CLAUDE.md` and `.decisions/CLAUDE.md`.
+Always skips if file exists, regardless of FORCE_UPDATE or version mismatch auto-force.
+Found via dogfood: every force install was wiping JLSM's populated indexes with
+empty seed templates. Regression test covers both paths.
