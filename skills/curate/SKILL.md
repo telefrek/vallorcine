@@ -10,10 +10,13 @@ to find things that individual features, decisions, and research sessions
 couldn't see because they each had a narrower scope.
 
 **What it finds:**
-1. ADR drift — code diverging from architectural decisions
-2. Stale KB — research that may have better approaches now given what's been built
-3. Implicit dependencies — gaps between independently-designed features
-4. Orphaned areas — high-churn files with no structured knowledge behind them
+1. ADR pressure — decisions under concentrated change (scope being actively modified)
+2. ADR gravity — files implicitly related to decisions but not in their scope
+3. Hub files — shared dependencies across 3+ decisions (fragility/test concerns)
+4. ADR drift — code diverging from architectural decisions
+5. Stale KB — research that may have better approaches now given what's been built
+6. Implicit dependencies — gaps between independently-designed features
+7. Orphaned areas — high-churn files with no structured knowledge behind them
 
 **Flags:**
 - `--init` — first-time scan (ignores last-scanned SHA, good for new installs)
@@ -85,11 +88,32 @@ Also read (if they exist):
 
 ### 2a — ADR drift detection
 
-For each entry in "Artifact Correlations" where Type is ADR:
-1. Read the referenced ADR file
-2. Compare the ADR's stated approach against the changed files
+**ADR Pressure** (from "ADR Pressure" in scan summary):
+1. ADRs with 2+ constrained files changed in the scan window
+2. Higher pressure % = more of the decision's scope is actively changing
+3. Read the ADR and assess: is the code evolving within the decision, or away from it?
+4. High pressure (>60%) → strong signal for re-evaluation
+
+**ADR Gravity** (from "ADR Gravity" in scan summary):
+1. Files that co-change with ADR-constrained files but aren't in the ADR's scope
+2. These are implicit relationships — the decision's influence is wider than documented
+3. Assess: should these files be added to the ADR's `files:` field, or is the
+   co-change coincidental?
+4. High gravity (5+ unconstrained files for one ADR) → potential **isolation problem**.
+   The decision may have drawn the boundary in the wrong place. Flag for `/architect`
+   review with framing: "This decision's actual dependency footprint is larger than
+   its documented scope — worth re-evaluating the boundary."
+
+**Hub Files** (from "Hub Files" in scan summary):
+1. Files co-changing with 3+ ADRs' constrained areas
+2. These are fragility points — changes here ripple across multiple decisions
+3. Flag as test coverage concerns: "This file is a shared dependency across
+   <N> architectural decisions. Worth ensuring test coverage is solid."
+
+**Flat artifact correlations** (from "Artifact Correlations" where Type is ADR):
+1. Individual ADR file references not captured by pressure (single-file changes)
+2. Read the referenced ADR, compare stated approach against changed files
 3. Check if "Conditions for Revision" have been met by recent changes
-4. Flag if code appears to be diverging from the decision
 
 ### 2b — KB + hindsight review
 
@@ -181,16 +205,26 @@ I scanned <N> commits since last review and found <N> items:
   1. <Index/integrity issue> — <what's broken and impact>
      → I'll fix this now (no confirmation needed, it's bookkeeping)
 
-  2. <ADR slug> — <what changed and why the decision may not fit>
+  2. <ADR slug> — <N>% pressure (<M> of <T> constrained files changed)
+     → I'll compare the current code against this decision
+
+  3. <ADR slug> — <N> unconstrained files co-changing with its scope
+     → This decision's boundary may not match the actual dependencies.
+       I'll review the isolation.
+
+  4. <Hub file> — shared across <N> decisions (<slugs>)
+     → I'll check test coverage for this shared dependency
+
+  5. <ADR slug> — <what changed and why the decision may not fit>
      → I'll re-evaluate this decision against the current codebase
 
-  3. <KB entry> — last researched <date>, <what's changed since>
+  6. <KB entry> — last researched <date>, <what's changed since>
      → I'll refresh this research with current implementation context
 
-  4. <Shared files> — touched by <feature A> and <feature B>, no cross-coverage
+  7. <Shared files> — touched by <feature A> and <feature B>, no cross-coverage
      → I'll explore the interaction and flag anything missed
 
-  5. <Orphaned files> — <N> commits, no KB or decision coverage
+  8. <Orphaned files> — <N> commits, no KB or decision coverage
      → I'll research this area so future work has context
 
 Pick a number to start, or:
@@ -248,6 +282,28 @@ Execute the action for that item:
 
 **Index/integrity fixes:** Fix directly — rebuild indexes, clean up stale
 entries. These are bookkeeping and don't need architectural judgment.
+
+**ADR pressure:** Read the ADR file, then compare the decision's stated approach
+against the changed constrained files. Present a summary: "This decision
+constrains <N> files and <M> have changed. Here's what shifted: <brief
+description>." Offer: "Want me to run a full re-evaluation via /architect?"
+
+**ADR gravity (low, <5 files):** Read the ADR and the unconstrained files.
+Assess whether the relationship is meaningful or coincidental. If meaningful:
+"These files appear to be implicitly part of this decision's scope. Want me
+to add them to the ADR's files: field?" If coincidental: note and move on.
+
+**ADR gravity (high, 5+ files) — isolation concern:** This is a boundary
+problem, not just missing file tags. Invoke `/architect "<ADR-slug> boundary
+review"`. Provide context: "This decision's actual dependency footprint is
+significantly wider than documented — <N> unconstrained files co-change with
+its scope. The boundary may need redrawing."
+
+**Hub files:** Read the hub file and the ADRs it's connected to. Assess test
+coverage: does the file have tests that cover its interaction with each
+decision's constrained area? Flag gaps. This is not an `/architect` issue —
+it's a test coverage concern. Present: "This file is shared across <N>
+decisions. Current test coverage: <assessment>."
 
 **ADR drift:** Invoke `/architect "<problem>"` as a review session.
 Provide context: "This was originally decided on <date> because <reason>. The

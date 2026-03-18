@@ -14,6 +14,12 @@
 # - Handles incremental scanning (picks up new commits)
 # - Respects --window flag
 # - Handles non-git directories gracefully
+# - Detects ADR pressure (2+ constrained files changed)
+# - Detects ADR gravity (unconstrained files co-changing with ADR scope)
+# - Excludes test files from gravity signals
+# - Detects hub files (co-changing with 3+ ADRs)
+# - Separates hub files from gravity signals
+# - Calculates pressure percentage
 #
 # Run from repo root: bash tests/scenario-curate-scan.sh
 
@@ -404,10 +410,180 @@ else
     fail "scan should complete with large commit filter" "got: $output"
 fi
 
-# ── Test 15: .curate directory auto-created ──────────────────────────────────
+# ── Test 15: ADR Pressure ────────────────────────────────────────────────────
 
 echo ""
-echo "── Test 15: .curate directory auto-created"
+echo "── Test 15: ADR Pressure"
+
+# session-storage ADR constrains session.ts and middleware.ts — both changed
+cd "$PROJECT" && bash .claude/scripts/curate-scan.sh --init >/dev/null 2>&1
+
+if grep -q "ADR Pressure" "$PROJECT/.curate/scan-summary.md"; then
+    pass "ADR Pressure section present"
+else
+    fail "ADR Pressure section should appear (session-storage has 2+ changed files)"
+fi
+
+if grep -q "session-storage" "$PROJECT/.curate/scan-summary.md" | head -1 && \
+   sed -n '/## ADR Pressure/,/^## /p' "$PROJECT/.curate/scan-summary.md" | grep -q "session-storage"; then
+    pass "session-storage ADR appears in pressure table"
+else
+    fail "session-storage should be under pressure (both constrained files changed)"
+fi
+
+# ── Test 16: ADR Gravity ────────────────────────────────────────────────────
+
+echo ""
+echo "── Test 16: ADR Gravity"
+
+# lib/db.ts co-changes with src/auth/session.ts (4 commits together)
+# session.ts is constrained by session-storage ADR, db.ts is not
+# → db.ts should be a gravity signal for session-storage
+
+gravity_section="$(sed -n '/## ADR Gravity/,/^## /p' "$PROJECT/.curate/scan-summary.md")"
+if [[ -n "$gravity_section" ]]; then
+    pass "ADR Gravity section present"
+else
+    fail "ADR Gravity section should appear (db.ts co-changes with ADR-constrained session.ts)"
+fi
+
+if echo "$gravity_section" | grep -q "db.ts"; then
+    pass "db.ts identified as gravity signal for session-storage"
+else
+    fail "db.ts should be gravitationally linked to session-storage ADR"
+fi
+
+# ── Test 17: Test files excluded from gravity ───────────────────────────────
+
+echo ""
+echo "── Test 17: Test files excluded from gravity"
+
+# Create a test file that co-changes with auth files
+mkdir -p "$PROJECT/tests"
+for i in $(seq 1 4); do
+    echo "// test change $i" >> "$PROJECT/tests/session.test.ts"
+    echo "// paired $i" >> "$PROJECT/src/auth/session.ts"
+    git -C "$PROJECT" add -A
+    git -C "$PROJECT" commit -m "test + session $i" >/dev/null 2>&1
+done
+
+cd "$PROJECT" && bash .claude/scripts/curate-scan.sh --init >/dev/null 2>&1
+
+gravity_section="$(sed -n '/## ADR Gravity/,/^## /p' "$PROJECT/.curate/scan-summary.md")"
+if echo "$gravity_section" | grep -q "session.test.ts"; then
+    fail "test files should be excluded from gravity (unconstrained side)"
+else
+    pass "test files correctly excluded from gravity signals"
+fi
+
+# ── Test 18: Hub file detection ─────────────────────────────────────────────
+
+echo ""
+echo "── Test 18: Hub file detection"
+
+# Create two more ADRs constraining different files
+mkdir -p "$PROJECT/.decisions/billing-model"
+cat > "$PROJECT/.decisions/billing-model/adr.md" << 'EOF'
+---
+problem: "billing-model"
+date: "2026-03-01"
+status: "confirmed"
+---
+
+# ADR — Billing Model
+
+## Files Constrained by This Decision
+- src/billing/stripe.ts
+
+## Decision
+Use Stripe for payments.
+EOF
+
+mkdir -p "$PROJECT/.decisions/db-connection"
+cat > "$PROJECT/.decisions/db-connection/adr.md" << 'EOF'
+---
+problem: "db-connection"
+date: "2026-03-01"
+status: "confirmed"
+---
+
+# ADR — DB Connection
+
+## Files Constrained by This Decision
+- lib/db.ts
+
+## Decision
+Use connection pooling.
+EOF
+
+git -C "$PROJECT" add -A
+git -C "$PROJECT" commit -m "add billing and db ADRs" >/dev/null 2>&1
+
+# Create a shared config file that co-changes with files from all 3 ADRs
+echo "config = {}" > "$PROJECT/src/config.ts"
+git -C "$PROJECT" add -A
+git -C "$PROJECT" commit -m "add config" >/dev/null 2>&1
+
+for i in $(seq 1 4); do
+    echo "// config $i" >> "$PROJECT/src/config.ts"
+    echo "// auth cfg $i" >> "$PROJECT/src/auth/session.ts"
+    git -C "$PROJECT" add -A
+    git -C "$PROJECT" commit -m "config + auth $i" >/dev/null 2>&1
+done
+
+for i in $(seq 1 4); do
+    echo "// config billing $i" >> "$PROJECT/src/config.ts"
+    echo "// billing cfg $i" >> "$PROJECT/src/billing/stripe.ts"
+    git -C "$PROJECT" add -A
+    git -C "$PROJECT" commit -m "config + billing $i" >/dev/null 2>&1
+done
+
+for i in $(seq 1 4); do
+    echo "// config db $i" >> "$PROJECT/src/config.ts"
+    echo "// db cfg $i" >> "$PROJECT/lib/db.ts"
+    git -C "$PROJECT" add -A
+    git -C "$PROJECT" commit -m "config + db $i" >/dev/null 2>&1
+done
+
+cd "$PROJECT" && bash .claude/scripts/curate-scan.sh --init >/dev/null 2>&1
+
+if grep -q "Hub Files" "$PROJECT/.curate/scan-summary.md"; then
+    pass "Hub Files section present"
+else
+    fail "Hub Files section should appear (config.ts co-changes with 3 ADRs' files)"
+fi
+
+hub_section="$(sed -n '/## Hub Files/,/^## /p' "$PROJECT/.curate/scan-summary.md")"
+if echo "$hub_section" | grep -q "config.ts"; then
+    pass "config.ts identified as hub file"
+else
+    fail "config.ts should be a hub file (co-changes with 3+ ADRs' constrained files)"
+fi
+
+# Hub file should NOT appear in gravity section
+gravity_section="$(sed -n '/## ADR Gravity/,/^## /p' "$PROJECT/.curate/scan-summary.md")"
+if echo "$gravity_section" | grep -q "config.ts"; then
+    fail "hub files should not appear in gravity (they're separated)"
+else
+    pass "hub file correctly excluded from gravity signals"
+fi
+
+# ── Test 19: Pressure percentage ────────────────────────────────────────────
+
+echo ""
+echo "── Test 19: Pressure percentage calculation"
+
+pressure_section="$(sed -n '/## ADR Pressure/,/^## /p' "$PROJECT/.curate/scan-summary.md")"
+if echo "$pressure_section" | grep -q "%"; then
+    pass "pressure percentage is calculated"
+else
+    fail "pressure table should include percentage"
+fi
+
+# ── Test 20: .curate directory auto-created ──────────────────────────────────
+
+echo ""
+echo "── Test 20: .curate directory auto-created"
 
 FRESH="$TEST_BASE/fresh"
 git init --initial-branch=main "$FRESH" >/dev/null 2>&1

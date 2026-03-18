@@ -128,6 +128,20 @@ For each subject:
 4. Fetch full content from top 3–5 authoritative sources
 5. Record every URL with title and access date — these go in the sources frontmatter
 
+### Fetch discipline
+
+Fetches can hang indefinitely on slow or unresponsive sources. Rules:
+- **Never block on a single fetch.** If a fetch hasn't returned within ~30
+  seconds, move on. The research can proceed with the sources that did respond.
+- **Prefer smaller pages.** Arxiv HTML versions, GitHub wiki pages, and
+  documentation sites are usually fast. Avoid fetching large PDFs, full
+  repository archives, or pages that require JavaScript rendering.
+- **3 sources is enough.** Don't fetch 5 sources if 3 gave you what you need.
+  Each additional fetch is a timeout risk for diminishing return.
+- **If a fetch fails or times out:** note the URL in the subject file's sources
+  as `(not fetched — timeout/error)` so future research knows to try again or
+  use a different source. Do not retry in the same session.
+
 ---
 
 ## Step 3 — Write subject files
