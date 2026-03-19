@@ -53,5 +53,15 @@
 .claude/scripts/curate-scan.sh
 .claude/scripts/index-verify.sh
 .claude/scripts/statusline.sh
+.claude/scripts/statusline.py
+.claude/scripts/statusline.js
+.claude/scripts/statusline-wrapper.sh
+.claude/scripts/token-stop-hook.py
+.claude/scripts/token-stop-hook.js
+.claude/scripts/token-hook-wrapper.sh
+.claude/scripts/subagent-hook.sh
+.claude/scripts/subagent-hook.py
+.claude/scripts/subagent-hook.js
+.claude/scripts/subagent-hook-wrapper.sh
 .claude/scripts/uninstall.sh
 .claude/upgrade.sh

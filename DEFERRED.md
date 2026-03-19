@@ -52,16 +52,21 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
   because the domain analysis labelled it as deferred, but the pragmatic
   decision created a public API surface worth documenting.
 
-- **Subagent UI staleness** — two user-visible feedback mechanisms go stale
-  during delegated work unit execution:
+- **Subagent UI staleness (partial)** — two user-visible feedback mechanisms
+  go stale during delegated work unit execution:
   1. **TodoWrite** — task lists created inside subagents don't bubble up to
      the parent's task list. Progress checklists are invisible to the user.
-  2. **Status line** — stuck on the last stage seen before the subagent
-     launched. Stage transitions inside the agent update status.md but never
-     trigger the stop hook (no Stop events fire between subagent tool calls).
-  Both are Claude Code platform limitations. The coordinator correctly tracks
-  progress via unit status.md files — the data is right, the display is stale.
-  No workaround without autonomous polling (violates principle 9).
+     Still a Claude Code platform limitation.
+  2. ~~**Status line**~~ — **addressed** (v0.5.4). SubagentStart/SubagentStop
+     hooks now write `.claude/.subagent-state`; the status line reads it to
+     show which subagent is active. Enhanced implementations (Python/Node.js)
+     provide native JSON parsing with bash fallback.
+
+- **Vallorcine version tracking for showcase** — showcase articles should display
+  which vallorcine version was used. JSONL logs capture the Claude Code CLI version
+  but not vallorcine's. Need to write a version stamp during sessions (e.g., to
+  status.md, a `.vallorcine-version` file, or a dedicated JSONL entry) so the
+  tokenizer can extract it.
 
 - **Pipeline observability** — velocity metrics (time/tokens per stage across
   features), KB utilization (which entries get read), pipeline trends. Token

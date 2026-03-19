@@ -20,42 +20,40 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-03-18*
+*Last updated: 2026-03-19*
 
-**Codebase curation — designed, built, dogfooded, and polished `/curate`.**
+**Showcase tools — 3-stage pipeline for turning JSONL session logs into narrative articles.**
 
 **What shipped this session:**
-- **`/curate` command** — correlation engine that combines vallorcine's structured
-  history with git data to find stale decisions, knowledge gaps, implicit dependencies,
-  test-source drift, and orphaned areas. Bash scan script + Claude correlation +
-  conversational numbered pick list for triage.
-- **`curate-scan.sh`** — 8 analyses: churn hotspots, co-change clusters, artifact
-  correlation, orphaned areas, KB staleness, ADR revisit conditions, test-source
-  drift, and backfill candidates from archived features.
-- **`index-verify.sh`** — self-healing index verification. Detects and repairs
-  missing rows in `.kb/CLAUDE.md` and `.decisions/CLAUDE.md` after crashes.
-  Called automatically by `/curate` before scanning.
-- **Pre-PR commit verification** — `/feature-pr` Step 0.5 scans for untracked
-  `.kb/`, `.decisions/`, source, and test files before drafting. Offers to stage them.
-- **`/upgrade-vallorcine` auto-commit** — upgrades now commit kit changes immediately
-  as `chore: upgrade vallorcine to vX.X.X`. Stashes in-flight staged changes first.
-- **Seed file protection** — `install.sh` never overwrites user-populated KB/decisions
-  indexes, even with `FORCE_UPDATE=1` or version mismatch auto-force.
-- **Runtime file gitignore** — installer adds `.statusline-baseline`, `.token-state`,
-  `.token-checkpoint`, `.feature/`, `.curate/` to user's `.gitignore`.
-- **Script permissions** — installer pre-approves vallorcine scripts in `settings.json`
-  (explicit per-script, not wildcard).
-- **73 tests passing** (37 install + 24 curate scan + 12 index verify).
-- **Dogfooded on JLSM** — found and fixed: empty root indexes (crash recovery gap),
-  orphaned KB/ADR files after pipeline, curation loop not returning to pick list.
-- **Documentation** — DESIGN.md (five concerns, curation architecture, mermaid diagram),
-  README.md (five concerns, commands table, usage examples), plugin/marketplace
-  descriptions, COMPETITIVE.md positioning, GitHub repo description and topics.
+- **`tools/showcase/render_narrative.py`** — stage 3 renderer producing polished
+  markdown from Story ASTs. HTML-styled conversation blocks with speaker colors
+  (blue=vallorcine, green=user), Mermaid gantt with Discovery/Execution/Delivery
+  sections and work unit sub-bars, progressive disclosure (prominent content inline,
+  background collapsed), shields.io badges, retro checklist parsing, phase breakdown
+  table with token percentages and anchor links.
+- **Parser hardening (parse.py)** — duration now excludes user wait time, crash gaps,
+  crashed subagent limbo, and subagent internal idle (permission prompts). Terminal
+  stages (retro/complete) correctly reset feature tracking. Subagent idle keyed by
+  tool_use_id instead of description.
+- **Tokenizer hardening (tokenizer.py)** — streaming via `iter_jsonl` generator (O(1)
+  memory per line), subagent user wait detection, description override from parent's
+  Agent tool call, model backfill from assistant messages, CLI version capture, token
+  usage deduplication, boundary-aware slug matching, corrupt meta file handling.
+- **Model updates (model.py)** — streaming `TokenStream.save()`, `cli_version` field
+  on Story, `_usage_dict()` replacing `asdict()`.
+- **Performance review** — 6 optimizations: streaming tokenizer, literal interest
+  detection, lazy meta index, streaming serialization, boundary-aware slug matching,
+  token usage deduplication.
+- **Code review** — Python expert reviewed all 4 files for correctness, performance,
+  and resource constraints. 7 issues found and fixed.
+- **33-bug test plan** — `TEST_PLAN.md` documents all bugs with reproduction steps.
+- **Validated on 3 real JLSM features** — encrypt-memory-data (2 sessions, 1h 27m),
+  table-partitioning (4 sessions, 1h 24m), float16-vector-support (4 sessions, 39m).
 
 **Where things stand:**
-All work on main branch (uncommitted). Ready to cut a PR and release. Dogfood on
-JLSM confirmed working end-to-end: `--init` scan → numbered findings → fix items
-→ clean rescan.
+All work committed on `feat/showcase-tools` branch. Ready for PR. Deferred items:
+interactive snippet player, diagnostic output mode, README sample snippets,
+vallorcine version tracking.
 
 ---
 
@@ -63,42 +61,37 @@ JLSM confirmed working end-to-end: `--init` scan → numbered findings → fix i
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **Curation as correlation engine** (2026-03-18) — dropped the "concern graph"
-  abstraction in favor of correlating git history against existing artifacts.
-  Four value buckets: ADR drift, KB+hindsight, implicit dependencies, orphaned
-  areas. Business objectives can't be inferred from git history — focus on
-  structural quality signals.
+- **Build our own from JSONL logs** (2026-03-19) — asciinema dropped (marker injection
+  has subagent visibility problems). Built a translator that produces narrative
+  markdown from the rich structured JSONL data Claude Code already writes.
 
-- **`.curate/` namespace** (2026-03-18) — own directory like `.kb/` and `.decisions/`.
-  Gitignored (per-developer state). `curation-state.md` for scan state + review log.
+- **3-stage pipeline** (2026-03-19) — tokenizer (JSONL→tokens), parser (tokens→AST),
+  renderers (AST→output). File-based intermediates between stages for crash recovery
+  and debuggability. Each stage has a single concern.
 
-- **Numbered pick list for curation findings** (2026-03-18) — each finding gets a
-  number, description, and action. User picks by number instead of free text.
-  Loop: after completing an item, re-present remaining items. "done" exits.
+- **HTML inline styles over GitHub alerts** (2026-03-19) — `[!NOTE]`/`[!TIP]` etc.
+  are GitHub-specific and render as raw text in most markdown clients. HTML `<div>`
+  with inline styles works universally. Color scheme: blue=vallorcine, green=user,
+  amber=warning, red=crash.
 
-- **Seed files never overwritten** (2026-03-18) — `install.sh` uses `_install_seed`
-  for KB/decisions indexes. Ignores FORCE_UPDATE. Found via dogfood: every force
-  install was wiping JLSM's populated indexes with empty templates.
+- **Duration = active work time only** (2026-03-19) — phase durations subtract user
+  wait time (assistant→user gaps), crash gaps, crashed subagent limbo, and subagent
+  internal idle (permission prompts). A 15h wall-clock feature shows as 1h 27m of
+  vallorcine active work.
 
-- **Index self-healing** (2026-03-18) — `index-verify.sh` checks directory contents
-  against index rows. Repairs missing entries from crash-interrupted bottom-up
-  updates. Called by `/curate` before scanning.
+- **Terminal stages reset feature tracking** (2026-03-19) — retro and complete are
+  pipeline terminal stages. They're included in the story but reset `in_feature`
+  so subsequent commands from a different feature don't bleed through.
 
-- **Pre-PR commit verification** (2026-03-18) — `/feature-pr` Step 0.5 scans for
-  untracked `.kb/` and `.decisions/` files. Catches orphaned knowledge files from
-  crash-interrupted domain analysis or retrospectives.
+- **Gantt sections by work type** (2026-03-19) — Discovery/Execution/Delivery
+  sections in the Mermaid gantt show the shape of work. Crash boundaries shown
+  via alerts in the body instead. Work units rendered as sub-bars under
+  coordination phases.
 
-- **Upgrade auto-commit** (2026-03-18) — `/upgrade-vallorcine` commits kit changes
-  as a standalone `chore:` commit. Stashes in-flight staged changes. Prevents kit
-  updates from leaking into feature PRs.
-
-- **Backfill consolidated into curate** (2026-03-18) — `/curate` scans archived
-  feature domains for implicit decisions. Single entry point instead of separate
-  `/decisions backfill`. Help routing updated.
-
-- **Explicit script permissions** (2026-03-18) — per-script permission entries in
-  `settings.json`, not wildcard. Prevents arbitrary scripts in `.claude/scripts/`
-  from auto-executing.
+- **Progressive disclosure for background narration** (2026-03-19) — prominent
+  content (conversations, escalations, research/architect cards) shown inline.
+  Internal narration (prose, file writes, test results) collapsed into a single
+  expandable "Show N steps" block per phase.
 
 ---
 

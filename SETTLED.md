@@ -75,6 +75,33 @@ a direct expression of this principle.
 Architect: deliberation loop before adr.md. Scoping: brief confirmation before
 brief.md. Cheapest place to catch mistakes.
 
+## Curation as correlation engine (2026-03-18)
+
+Dropped the "concern graph" abstraction in favor of correlating git history
+against existing artifacts. Four value buckets: ADR drift, KB+hindsight,
+implicit dependencies, orphaned areas. Business objectives can't be inferred
+from git history — focus on structural quality signals.
+
+## Curation namespace and state (2026-03-18)
+
+`.curate/` directory (gitignored, per-developer state). `curation-state.md`
+for scan state + review log. Numbered pick list for findings — user picks by
+number, loop re-presents remaining items, "done" exits. Backfill consolidated
+into `/curate` as single entry point.
+
+## Seed files and index self-healing (2026-03-18)
+
+`install.sh` never overwrites user-populated KB/decisions indexes, even with
+FORCE_UPDATE. `index-verify.sh` checks directory contents against index rows,
+repairs missing entries from crash-interrupted bottom-up updates. Called by
+`/curate` before scanning.
+
+## Pre-PR verification and upgrade auto-commit (2026-03-18)
+
+`/feature-pr` Step 0.5 scans for untracked `.kb/` and `.decisions/` files.
+`/upgrade-vallorcine` commits kit changes as standalone `chore:` commit with
+stash/restore. Explicit per-script permissions in `settings.json`.
+
 ## Agents are routers, not autonomy machines
 
 /vallorcine-help is the clearest example: reads context, asks one question, hands a
@@ -261,10 +288,25 @@ Aligns with feature-* naming convention. All 12 files with references updated.
 2h: holistic security audit — auth, data handling, trust boundaries, dependencies,
 threat surface delta. HIGH/MEDIUM/LOW severity. Always pauses on findings.
 
-## Principle 1 codified as hard constraint (2026-03-16)
+## Principle 1 evolved: bash-first, zero required dependencies (2026-03-19)
 
-Bash and markdown only. No MCP servers, hooks infrastructure, package managers,
-or external runtimes. First filter for new features.
+Originally "bash and markdown only" as a hard constraint (2026-03-16). Relaxed
+to allow enhanced implementations in Python and JavaScript under strict rules:
+no feature may exist only in Python/JS, both runtimes must be supported if
+either is, detection and degradation must be automatic. Bash remains the
+reference implementation for every feature.
+
+Two justifications clear the bar: (1) platform constraints — bash cannot access
+the data (e.g., Claude Code SDK hooks expose subagent activity that shell hooks
+cannot see), (2) practical constraints — bash implementation would be too
+degraded to serve its purpose (e.g., processing hundreds of MB of JSONL through
+tokenization and AST construction). The third-party tool test is the tiebreaker:
+if the alternative is "download this external tool," ship it in the kit with
+graceful degradation instead.
+
+Previous entry preserved the spirit — zero adoption friction — but blocked
+useful tooling that could ship as part of the kit rather than requiring external
+dependencies.
 
 ## Draft ADRs warn but don't block (2026-03-16)
 

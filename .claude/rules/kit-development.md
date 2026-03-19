@@ -61,7 +61,7 @@ and are NOT in the MANIFEST.
   /uninstall-vallorcine
 
 **Kit-internal commands** — only exist in this repo:
-  /ideate, /save-work, /release
+  /ideate, /save-work, /release, /script-dev
 
 When designing features, discussing workflows, or writing documentation, ONLY
 reference user-facing commands. Kit-internal commands must never appear in

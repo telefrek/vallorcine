@@ -56,14 +56,14 @@ has evolved. This is what makes the 5th feature on a project faster than the 1st
 Ordered by priority. When principles conflict, higher-numbered principles yield
 to lower-numbered ones. Each principle notes what breaks if it is violated.
 
-### 1. Bash and markdown only — no external dependencies
+### 1. Bash-first, zero required dependencies
 
-The entire kit runs on two things every developer already has: a shell that can
-run bash, and text files. No package managers, no runtimes, no compiled tools,
-no MCP servers, no platform-specific hooks infrastructure, no database, no
-network services.
+No feature in the kit may require Python, Node.js, or any other runtime beyond
+bash and markdown. A developer with Claude Code and a terminal can run
+vallorcine on any project in any language immediately — this guarantee is
+non-negotiable.
 
-This is a hard constraint, not a preference:
+The core kit is bash and markdown:
 - `install.sh` is a bash script that copies markdown files
 - Commands are markdown prompt files read by Claude Code
 - Agents are markdown identity definitions
@@ -71,18 +71,52 @@ This is a hard constraint, not a preference:
 - Scripts are bash — `token-usage.sh`, `version-check.sh`, etc.
 - State is markdown files — `status.md`, `cycle-log.md`, `CLAUDE.md` indexes
 
-The constraint eliminates an entire class of adoption friction: no `npm install`,
-no Python virtualenv, no Docker container, no CI pipeline dependency. A developer
-with Claude Code and a terminal can run vallorcine on any project in any language
-immediately.
+**Enhanced implementations** in Python and JavaScript are permitted when bash
+cannot fully serve the user — but only under strict rules:
 
-When evaluating new features, this is the first filter: if it requires anything
-beyond bash and markdown, it does not belong in the kit. Features that would
-benefit from external tooling (coverage gating, LSP integration, live docs) are
-documented as recommended companions, not bundled dependencies.
+1. **No feature may exist only in Python or JavaScript.** Every capability must
+   have a bash implementation or a safe fallback that preserves the feature's
+   core value. The bash version is the reference implementation.
+2. **Enhanced versions must be provided in both Python and JavaScript.** The kit
+   does not pick winners among user ecosystems. If one gets an upgrade, both do.
+3. **Detection and degradation must be automatic.** If a runtime is available,
+   use it silently. If not, fall back silently. No install prompts, no error
+   messages, no degraded-experience warnings.
 
-**If violated:** the kit gains an installation prerequisite that gates adoption.
-Every external dependency is a reason for a developer to not use vallorcine.
+Two justifications clear the bar for enhanced implementations:
+
+- **Platform constraint** — bash cannot access the data. Example: Claude Code's
+  SDK-level hooks expose subagent activity that shell hooks cannot see. The
+  status line and todo rendering need this data for accurate real-time state.
+  No amount of bash sophistication can bridge the gap — it is an API surface
+  boundary.
+
+- **Practical constraint** — bash can technically do it, but the implementation
+  would be so degraded in performance, maintainability, or output quality that
+  it undermines the purpose of the feature. Example: processing hundreds of
+  megabytes of structured JSONL through tokenization, AST construction, and
+  formatted rendering. Bash could attempt this, but the result would be slow,
+  fragile, and unmaintainable — worse for users than shipping a Python/JS
+  implementation alongside the existing bash-based real-time data.
+
+The **third-party tool test** is the tiebreaker: if the alternative to shipping
+an enhanced implementation is telling users "download this external tool to get
+these diagnostics," then the kit should ship it with graceful degradation. That
+creates less adoption friction than an external dependency.
+
+When evaluating new features, this is still the first filter: build it in bash.
+If bash cannot fully serve the need, check the two justifications above. If
+neither applies — if the real reason is "this would be easier in Python" — it
+does not belong in the kit as an enhanced implementation. Convenience is not a
+justification; capability boundaries and user-facing quality are.
+
+**If violated (required dependency):** the kit gains an installation
+prerequisite that gates adoption. Every required dependency is a reason for a
+developer to not use vallorcine.
+
+**If violated (unjustified enhancement):** the kit accumulates Python/JS code
+that could have been bash, creating maintenance burden across three languages
+without user-facing benefit. The bar stays high to prevent this drift.
 
 ### 2. Pull model throughout
 
