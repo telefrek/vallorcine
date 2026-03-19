@@ -32,6 +32,11 @@ from model import Token, TokenStream, TokenUsage, Node, NodeType, Story
 # Stage mapping
 # ---------------------------------------------------------------------------
 
+# Keywords that identify a TDD-style subagent (vs. generic action subagents)
+TDD_KEYWORDS = ("test-implement", "tdd", "wu-")
+
+# Maps slash command names to pipeline stage identifiers used in Phase nodes.
+# Commands not in this map fall back to the command name with "/" stripped.
 COMMAND_TO_STAGE = {
     "/feature": "scoping",
     "/feature-quick": "scoping",
@@ -53,8 +58,37 @@ COMMAND_TO_STAGE = {
 }
 
 
+def _is_tdd_description(desc: str) -> bool:
+    """Check if a subagent description indicates a TDD work unit."""
+    desc_lower = desc.lower()
+    return any(kw in desc_lower for kw in TDD_KEYWORDS)
+
+
+def _has_slug(nodes: list[Node], slug: str) -> bool:
+    """Recursively check if any node references the given feature slug.
+
+    Checks node content and string values in data dicts directly,
+    avoiding str(data) which allocates a temporary string representation
+    of the entire dict for every node.
+    """
+    for n in nodes:
+        if slug in (n.content or ""):
+            return True
+        for v in n.data.values():
+            if isinstance(v, str) and slug in v:
+                return True
+        if n.children and _has_slug(n.children, slug):
+            return True
+    return False
+
+
 def detect_story_type(commands: list[str]) -> str:
-    """Determine story type from commands found in the stream."""
+    """Determine story type from the first recognized command in the stream.
+
+    Priority: /feature* → "feature", /curate → "curation",
+    /research → "research", /architect → "architect".
+    Defaults to "feature" if no recognized commands found.
+    """
     for cmd in commands:
         if cmd.startswith("/feature"):
             return "feature"
@@ -72,7 +106,7 @@ def detect_story_type(commands: list[str]) -> str:
 # ---------------------------------------------------------------------------
 
 def parse_ts(ts: str) -> Optional[datetime]:
-    """Parse an ISO timestamp."""
+    """Parse an ISO 8601 timestamp, normalizing 'Z' suffix to UTC offset."""
     if not ts:
         return None
     try:
@@ -82,12 +116,90 @@ def parse_ts(ts: str) -> Optional[datetime]:
 
 
 def duration_between(ts1: str, ts2: str) -> int:
-    """Calculate duration in ms between two timestamps."""
+    """Calculate duration in ms between two ISO timestamps. Returns 0 if either is unparseable."""
     t1 = parse_ts(ts1)
     t2 = parse_ts(ts2)
     if t1 and t2:
         return max(0, int((t2 - t1).total_seconds() * 1000))
     return 0
+
+
+# Token types produced by the assistant (vallorcine is working)
+_ASSISTANT_TYPES = frozenset({"agent_prose", "tool_call", "subagent_start", "subagent_result"})
+# Token types produced by the user (vallorcine is waiting)
+_USER_TYPES = frozenset({"user_text", "command"})
+
+
+def _compute_idle_time(tokens: list["Token"]) -> int:
+    """Compute total idle time in a token list.
+
+    Idle time has four components:
+    1. User wait time — gaps where vallorcine finished speaking and waited
+       for the user to respond. Detected as an assistant-side token followed
+       by a user-initiated token.
+    2. Crash gaps — session_end followed by session_start, representing time
+       between a crash and the user resuming.
+    3. Crashed subagent gaps — a subagent_start with no matching result before
+       a session_end means the subagent was running when the session crashed.
+       The gap between the last real work token and the session_end is idle.
+    4. Subagent internal idle — user wait time that occurred inside subagents
+       (e.g., user sleeping while a permission prompt blocks a subagent).
+       Propagated via the subagent_result token's user_wait_ms metadata.
+
+    Returns total idle milliseconds to subtract from raw wall-clock duration.
+    """
+    idle_ms = 0
+    prev_type = ""
+    prev_ts = ""
+    # Track unmatched subagent starts to detect crashed subagents.
+    # Keyed by tool_use_id (not description) to avoid collisions when
+    # multiple subagents share the same description.
+    pending_subagents: dict[str, str] = {}  # tool_use_id -> subagent_start timestamp
+
+    for t in tokens:
+        if not t.timestamp:
+            continue
+
+        # Crash gap: session_end → session_start
+        if prev_type == "session_end" and t.type == "session_start":
+            idle_ms += duration_between(prev_ts, t.timestamp)
+
+        # User wait: assistant token → user-initiated token
+        elif prev_type in _ASSISTANT_TYPES and t.type in _USER_TYPES:
+            idle_ms += duration_between(prev_ts, t.timestamp)
+
+        # Track subagent lifecycle
+        if t.type == "subagent_start":
+            sa_id = t.metadata.get("tool_use_id", t.metadata.get("description", ""))
+            # Use the subagent_start's own timestamp (not prev_ts) to avoid
+            # double-counting any user wait gap before the launch
+            pending_subagents[sa_id] = t.timestamp
+        elif t.type == "subagent_result":
+            # Match by description since results may not have tool_use_id
+            desc = t.metadata.get("description", "")
+            # Remove the first pending subagent with matching description
+            for sa_id, sa_ts in list(pending_subagents.items()):
+                if desc in sa_id or sa_id in desc:
+                    pending_subagents.pop(sa_id)
+                    break
+            else:
+                # No match by ID — try popping any single pending entry
+                # (handles cases where description was overridden)
+                if len(pending_subagents) == 1:
+                    pending_subagents.popitem()
+            # Add any user wait time that occurred inside the subagent
+            idle_ms += t.metadata.get("user_wait_ms", 0)
+
+        # Crashed subagent: session_end while subagents are still pending
+        if t.type == "session_end" and pending_subagents:
+            for sa_id, launch_ts in pending_subagents.items():
+                idle_ms += duration_between(launch_ts, t.timestamp)
+            pending_subagents.clear()
+
+        prev_type = t.type
+        prev_ts = t.timestamp
+
+    return idle_ms
 
 
 # ---------------------------------------------------------------------------
@@ -163,11 +275,10 @@ def recognize_conversation(tokens: list[Token], start: int) -> tuple[Optional[No
                 for ex in exchanges
             ],
         )
-        if exchanges:
-            node.duration_ms = duration_between(
-                exchanges[0].get("timestamp", ""),
-                exchanges[-1].get("timestamp", ""),
-            )
+        node.duration_ms = duration_between(
+            exchanges[0].get("timestamp", ""),
+            exchanges[-1].get("timestamp", ""),
+        )
         return node, i
 
     return None, start
@@ -282,12 +393,13 @@ def recognize_architect(tokens: list[Token], start: int) -> tuple[Optional[Node]
     return None, start
 
 
-def recognize_tdd_cycle(tokens: list[Token], start: int) -> tuple[Optional[Node], int]:
-    """Recognize a TDD cycle from subagent start/result pairs."""
+def recognize_subagent(tokens: list[Token], start: int) -> tuple[Optional[Node], int]:
+    """Recognize a subagent start/result pair and classify as TDD_CYCLE or ACTION_GROUP."""
     if start >= len(tokens) or tokens[start].type != "subagent_start":
         return None, start
 
     desc = tokens[start].metadata.get("description", "")
+    node_type = NodeType.TDD_CYCLE if _is_tdd_description(desc) else NodeType.ACTION_GROUP
     # Look for the matching subagent_result
     i = start + 1
     while i < len(tokens):
@@ -295,7 +407,7 @@ def recognize_tdd_cycle(tokens: list[Token], start: int) -> tuple[Optional[Node]
         if t.type == "subagent_result" and t.metadata.get("description", "") == desc:
             meta = t.metadata
             return Node(
-                node_type=NodeType.TDD_CYCLE,
+                node_type=node_type,
                 data={
                     "unit_name": desc,
                     "duration_ms": meta.get("duration_ms", 0),
@@ -325,6 +437,14 @@ def build_phase(cmd_token: Token, tokens: list[Token],
                 feature_slug: Optional[str] = None) -> Optional[Node]:
     """Build a Phase node from a command and its following tokens.
 
+    Creates a PHASE node containing the command's stage, title, duration,
+    aggregated token usage, and parsed children. Duration excludes crash
+    gaps (session_end → session_start pairs within the phase).
+
+    Feature filtering: when feature_slug is provided, rejects phases whose
+    command args reference a different feature. Phases with no args pass
+    through (filtered later by the in_feature state machine in parse_story).
+
     Returns None if the phase should be filtered out (wrong feature).
     """
     cmd_name = cmd_token.metadata.get("name", "")
@@ -335,6 +455,9 @@ def build_phase(cmd_token: Token, tokens: list[Token],
     if feature_slug:
         if cmd_args and feature_slug in cmd_args:
             pass  # explicit match
+        elif cmd_args and feature_slug not in cmd_args:
+            # Args present but for a different feature — reject
+            return None
         elif cmd_name in ("/feature", "/feature-quick") and not cmd_args:
             # Bare /feature — check if the slug appears in agent prose
             # or tool call targets within this phase's tokens
@@ -351,7 +474,7 @@ def build_phase(cmd_token: Token, tokens: list[Token],
             if not slug_found:
                 return None
         elif cmd_name.startswith("/feature-"):
-            pass  # pipeline continuation, keep
+            pass  # pipeline continuation (no args), keep
         elif cmd_name in ("/research", "/architect"):
             pass  # these are invoked during domains, keep
         else:
@@ -366,7 +489,9 @@ def build_phase(cmd_token: Token, tokens: list[Token],
         data={"stage": stage, "command": cmd_name, "title": title},
     )
 
-    # Set timestamps
+    # Set timestamps — subtract crash gaps and user wait time from duration.
+    # "Duration" should reflect only time vallorcine was actively working,
+    # not time the user spent reading, thinking, or typing.
     if cmd_token.timestamp:
         phase.data["started"] = cmd_token.timestamp
     if tokens:
@@ -376,7 +501,12 @@ def build_phase(cmd_token: Token, tokens: list[Token],
                 last_ts = t.timestamp
                 break
         if last_ts and cmd_token.timestamp:
-            phase.duration_ms = duration_between(cmd_token.timestamp, last_ts)
+            raw_duration = duration_between(cmd_token.timestamp, last_ts)
+            # Include the command token so the gap between command invocation
+            # and first assistant response is counted as idle (user typed it)
+            all_tokens = [cmd_token] + tokens
+            idle_ms = _compute_idle_time(all_tokens)
+            phase.duration_ms = max(0, raw_duration - idle_ms)
 
     # Aggregate tokens
     for t in tokens:
@@ -390,7 +520,22 @@ def build_phase(cmd_token: Token, tokens: list[Token],
 
 
 def parse_phase_children(tokens: list[Token]) -> list[Node]:
-    """Parse a sequence of tokens within a phase into child AST nodes."""
+    """Parse a sequence of tokens within a phase into child AST nodes.
+
+    Walks the token list with pattern recognizers in priority order:
+    1. Session boundaries → SESSION_BREAK nodes
+    2. Subagent start/result pairs → TDD_CYCLE or ACTION_GROUP nodes
+    3. Orphaned subagent results → TDD_CYCLE or ACTION_GROUP
+    4. Conversations → CONVERSATION nodes (2+ exchange pairs)
+    5. Stage transitions → STAGE_TRANSITION nodes
+    6. Test results → TEST_RESULT nodes (batched)
+    7. Tool calls → ACTION_GROUP nodes (batched)
+    8. Agent prose → ESCALATION or PROSE nodes
+    9. User text → EXCHANGE nodes
+
+    Unrecognized tokens are silently skipped (no data loss — the token
+    stream file preserves everything).
+    """
     children = []
     i = 0
 
@@ -420,38 +565,22 @@ def parse_phase_children(tokens: list[Token]) -> list[Node]:
             continue
 
         # Try pattern recognizers in priority order
-        # TDD cycles (subagent patterns)
+        # Subagent start/result pairs (TDD or generic)
         if t.type == "subagent_start":
-            desc = t.metadata.get("description", "")
-            if any(kw in desc.lower() for kw in ["test-implement", "tdd", "wu-"]):
-                node, new_i = recognize_tdd_cycle(tokens, i)
-                if node:
-                    children.append(node)
-                    i = new_i
-                    continue
-
-        # Non-TDD subagents (stubs, status files, etc.)
-        if t.type == "subagent_start":
-            node, new_i = recognize_tdd_cycle(tokens, i)  # reuse for any subagent
+            node, new_i = recognize_subagent(tokens, i)
             if node:
-                # Reclassify as generic if not TDD
-                desc = t.metadata.get("description", "")
-                if not any(kw in desc.lower() for kw in ["test-implement", "tdd", "wu-"]):
-                    node.node_type = NodeType.ACTION_GROUP
                 children.append(node)
                 i = new_i
                 continue
 
-        # Subagent results without matching starts (from background agents)
+        # Orphaned subagent results (from background agents without a start token)
         if t.type == "subagent_result":
             meta = t.metadata
+            desc = meta.get("description", "")
             children.append(Node(
-                node_type=NodeType.TDD_CYCLE if any(
-                    kw in meta.get("description", "").lower()
-                    for kw in ["test-implement", "tdd", "wu-"]
-                ) else NodeType.ACTION_GROUP,
+                node_type=NodeType.TDD_CYCLE if _is_tdd_description(desc) else NodeType.ACTION_GROUP,
                 data={
-                    "unit_name": meta.get("description", ""),
+                    "unit_name": desc,
                     "summary": meta.get("summary", ""),
                     "duration_ms": meta.get("duration_ms", 0),
                     "files_written": meta.get("files_written", []),
@@ -575,7 +704,24 @@ def parse_phase_children(tokens: list[Token]) -> list[Node]:
 
 def parse_story(stream: TokenStream, feature_slug: Optional[str] = None,
                 story_type: Optional[str] = None) -> Story:
-    """Parse a token stream into a Story AST."""
+    """Parse a token stream into a Story AST.
+
+    Pipeline:
+    1. Segment token stream by command boundaries
+    2. Auto-detect story type from commands (feature/curation/research/architect)
+    3. Build Phase nodes from each segment (with feature filtering)
+    4. For feature stories, run a second-pass in_feature state machine to
+       remove pipeline continuation phases that belong to a different feature
+       (handles crash boundaries where a new feature starts in the same session)
+    5. Aggregate metadata, duration, and token usage from all phases
+
+    Args:
+        stream: Token stream from the tokenizer (stage 1 output).
+        feature_slug: For feature stories, the slug to filter phases by.
+            Phases with args for a different slug are excluded.
+        story_type: Override auto-detection. One of: feature, curation,
+            research, architect.
+    """
 
     # Segment by commands
     segments = segment_by_command(stream.tokens)
@@ -594,7 +740,12 @@ def parse_story(stream: TokenStream, feature_slug: Optional[str] = None,
         if phase:
             phases.append(phase)
 
-    # Filter: for feature stories, remove phases that don't belong
+    # Filter: for feature stories, remove phases that don't belong.
+    # build_phase already rejects commands with args for a different feature.
+    # This second pass handles the in_feature state machine — pipeline
+    # continuation phases (no args) are kept only while in_feature is True,
+    # and session breaks inside phases reset in_feature so a different
+    # feature after a crash doesn't bleed through.
     if feature_slug and story_type == "feature":
         filtered = []
         in_feature = False
@@ -607,31 +758,33 @@ def parse_story(stream: TokenStream, feature_slug: Optional[str] = None,
                 in_feature = True
             elif stage == "scoping":
                 # Scoping without explicit slug — check all descendants
-                def _has_slug(nodes):
-                    for n in nodes:
-                        if feature_slug in (n.content or ""):
-                            return True
-                        if feature_slug in str(n.data):
-                            return True
-                        if n.children and _has_slug(n.children):
-                            return True
-                    return False
-                slug_in_children = _has_slug(phase.children)
-                if slug_in_children:
+                if _has_slug(phase.children, feature_slug):
                     in_feature = True
                 else:
                     in_feature = False
                     continue
+            elif stage == "resume":
+                # Resume without slug in title — different feature resumed
+                in_feature = False
+                continue
             elif stage in ("research", "architect", "knowledge", "decisions"):
                 # These are invoked mid-pipeline, keep if we're in the feature
                 pass
             elif in_feature and stage in ("domains", "planning", "testing",
                                           "implementation", "refactor",
-                                          "coordination", "pr", "retro",
-                                          "complete", "resume"):
-                # Pipeline continuation
+                                          "coordination", "pr",
+                                          "retro", "complete"):
+                # Pipeline continuation (retro/complete handled below)
                 pass
             else:
+                in_feature = False
+                continue
+
+            # Terminal stages — include but reset in_feature so subsequent
+            # commands aren't swept in. Checked after slug match so that
+            # `/feature-complete slug` still gets included.
+            if in_feature and stage in ("retro", "complete"):
+                filtered.append(phase)
                 in_feature = False
                 continue
 
@@ -654,6 +807,8 @@ def parse_story(stream: TokenStream, feature_slug: Optional[str] = None,
                 story.branch = t.metadata.get("branch", "")
             if not story.model:
                 story.model = t.metadata.get("model", "")
+            if not story.cli_version:
+                story.cli_version = t.metadata.get("cli_version", "")
             if not story.started:
                 story.started = t.timestamp
 
@@ -662,5 +817,20 @@ def parse_story(stream: TokenStream, feature_slug: Optional[str] = None,
     story.duration_ms = sum(p.duration_ms for p in phases)
     for p in phases:
         story.tokens.add(p.tokens)
+
+    # Filter sessions to only those that contributed phases.
+    # Build a set of session IDs that contain phase timestamps.
+    if phases:
+        phase_timestamps = {p.data.get("started", "") for p in phases if p.data.get("started")}
+        # Map each timestamp to its session by scanning session boundaries
+        active_sessions = set()
+        current_session_id = ""
+        for t in stream.tokens:
+            if t.type == "session_start":
+                current_session_id = t.metadata.get("session_id", "")
+            if t.timestamp in phase_timestamps and current_session_id:
+                active_sessions.add(current_session_id)
+        if active_sessions:
+            story.sessions = [s for s in story.sessions if s in active_sessions]
 
     return story

@@ -9,7 +9,7 @@ This module knows about Claude Code's JSONL format but NOT about
 vallorcine's pipeline semantics — that's the parser's job.
 
 Usage:
-    from tokenize import tokenize_feature, tokenize_session
+    from tokenizer import tokenize_feature, tokenize_session
     stream = tokenize_feature("encrypt-memory-data", project_dir)
     stream.save("/tmp/tokens.json")
 """
@@ -28,23 +28,29 @@ from model import Token, TokenStream, TokenUsage
 # JSONL helpers
 # ---------------------------------------------------------------------------
 
-def load_jsonl(path: str) -> list[dict]:
-    """Load a JSONL file, skipping malformed lines."""
-    lines = []
+def iter_jsonl(path: str):
+    """Iterate over a JSONL file, yielding parsed dicts and skipping malformed lines.
+
+    Uses O(1) memory per line instead of materializing the entire file.
+    """
     with open(path, "r") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
             try:
-                lines.append(json.loads(line))
+                yield json.loads(line)
             except json.JSONDecodeError:
                 continue
-    return lines
 
 
 def flatten_tool_result_content(content) -> str:
-    """Flatten tool result content to a string."""
+    """Flatten tool result content to a plain string.
+
+    Tool results in JSONL come in three formats: a plain string, a list
+    of content blocks (each with a "text" key), or other types. This
+    normalizes all three into a single string for downstream analysis.
+    """
     if isinstance(content, str):
         return content
     if isinstance(content, list):
@@ -59,7 +65,13 @@ def flatten_tool_result_content(content) -> str:
 
 
 def extract_command(content: str) -> tuple[Optional[str], Optional[str]]:
-    """Extract command name and args from a user message with command tags."""
+    """Extract command name and args from a user message with command tags.
+
+    Claude Code wraps slash command invocations in XML tags within the JSONL:
+        <command-name>/feature</command-name>
+        <command-args>encrypt-memory-data</command-args>
+    Returns (name, args) or (None, None) if no tags found.
+    """
     name_match = re.search(r"<command-name>([^<]+)</command-name>", content)
     args_match = re.search(r"<command-args>(.*?)</command-args>", content, re.DOTALL)
     name = name_match.group(1) if name_match else None
@@ -78,8 +90,23 @@ def extract_usage(entry: dict) -> TokenUsage:
     )
 
 
+def _ts_diff_ms(ts1: str, ts2: str) -> int:
+    """Calculate milliseconds between two ISO timestamps. Returns 0 on error."""
+    try:
+        t1 = datetime.fromisoformat(ts1.replace("Z", "+00:00"))
+        t2 = datetime.fromisoformat(ts2.replace("Z", "+00:00"))
+        return max(0, int((t2 - t1).total_seconds() * 1000))
+    except (ValueError, TypeError):
+        return 0
+
+
 def is_bookkeeping_file(path: str) -> bool:
-    """Check if a file is internal bookkeeping."""
+    """Check if a file is internal bookkeeping that should be excluded from tokens.
+
+    Filters out status.md (pipeline stage tracking) and index files
+    (.kb/CLAUDE.md, .decisions/CLAUDE.md) — these are written frequently
+    but aren't part of the narrative story.
+    """
     basename = os.path.basename(path)
     if basename == "status.md":
         return True
@@ -92,31 +119,46 @@ def is_bookkeeping_file(path: str) -> bool:
 # Interesting moment detection
 # ---------------------------------------------------------------------------
 
-ESCALATION_PATTERNS = [
-    r"escalat", r"contract conflict", r"can't satisfy",
-    r"cannot satisfy", r"doesn't match.*contract",
+# Interest detection patterns — split into literal substrings (fast `in` check)
+# and compiled regex (only for patterns that need alternation/wildcards).
+# This avoids ~600K regex calls on large sessions where `in` is ~100x faster.
+
+_INTEREST_LITERALS: list[tuple[str, str]] = [
+    # (substring, category) — checked with `in` on lowercased text
+    ("escalat", "escalation"),
+    ("contract conflict", "escalation"),
+    ("can't satisfy", "escalation"),
+    ("cannot satisfy", "escalation"),
+    ("flagged for review", "refactor_finding"),
+    ("retry", "retry"),
+    ("second attempt", "retry"),
+    ("trying again", "retry"),
 ]
-REFACTOR_PATTERNS = [
-    r"structural (issue|concern)", r"security (issue|concern|finding)",
-    r"flagged for review", r"pause.*human", r"checklist item 2[cd]",
-]
-RETRY_PATTERNS = [
-    r"cycle [2-9]", r"retry", r"second attempt", r"trying again",
+
+_INTEREST_REGEX: list[tuple[re.Pattern, str]] = [
+    # (compiled pattern, category) — only patterns that truly need regex
+    (re.compile(r"doesn't match.*contract"), "escalation"),
+    (re.compile(r"structural (issue|concern)"), "refactor_finding"),
+    (re.compile(r"security (issue|concern|finding)"), "refactor_finding"),
+    (re.compile(r"pause.*human"), "refactor_finding"),
+    (re.compile(r"checklist item 2[cd]"), "refactor_finding"),
+    (re.compile(r"cycle [2-9]"), "retry"),
 ]
 
 
 def detect_interest(text: str) -> tuple[bool, Optional[str]]:
-    """Check if text contains interesting moment signals."""
+    """Check if text contains interesting moment signals.
+
+    Checks literal substrings first (fast path), then falls back to
+    compiled regex patterns for those that need alternation or wildcards.
+    """
     text_lower = text.lower()
-    for p in ESCALATION_PATTERNS:
-        if re.search(p, text_lower):
-            return True, "escalation"
-    for p in REFACTOR_PATTERNS:
-        if re.search(p, text_lower):
-            return True, "refactor_finding"
-    for p in RETRY_PATTERNS:
-        if re.search(p, text_lower):
-            return True, "retry"
+    for substring, category in _INTEREST_LITERALS:
+        if substring in text_lower:
+            return True, category
+    for pattern, category in _INTEREST_REGEX:
+        if pattern.search(text_lower):
+            return True, category
     return False, None
 
 
@@ -125,22 +167,15 @@ def detect_interest(text: str) -> tuple[bool, Optional[str]]:
 # ---------------------------------------------------------------------------
 
 def tokenize_subagent(jsonl_path: str, meta_path: str) -> Token:
-    """Process a subagent JSONL into a subagent_result token."""
+    """Process a subagent JSONL into a subagent_result token.
+
+    Streams the file line-by-line to avoid materializing large subagent
+    sessions into memory.
+    """
     meta = {}
     if os.path.exists(meta_path):
         with open(meta_path) as f:
             meta = json.load(f)
-
-    lines = load_jsonl(jsonl_path)
-    if not lines:
-        return Token(
-            type="subagent_result",
-            metadata={
-                "agent_type": meta.get("agentType", "unknown"),
-                "description": meta.get("description", ""),
-                "summary": "(empty subagent session)",
-            },
-        )
 
     first_ts = ""
     last_ts = ""
@@ -149,8 +184,17 @@ def tokenize_subagent(jsonl_path: str, meta_path: str) -> Token:
     interesting_moments = []
     test_passed = 0
     test_failed = 0
+    has_entries = False
+    # Track user wait time inside subagents — the subagent may block on
+    # permission prompts (e.g., directory access) for hours if the user
+    # steps away. We detect assistant→user gaps the same way we do for
+    # the main session.
+    prev_msg_type = ""
+    prev_ts = ""
+    user_wait_ms = 0
 
-    for entry in lines:
+    for entry in iter_jsonl(jsonl_path):
+        has_entries = True
         ts = entry.get("timestamp", "")
         if ts and not first_ts:
             first_ts = ts
@@ -159,10 +203,26 @@ def tokenize_subagent(jsonl_path: str, meta_path: str) -> Token:
 
         msg_type = entry.get("type", "")
 
+        # Detect user wait gaps. Two patterns:
+        # 1. assistant→user: vallorcine finished, user is reading/typing
+        #    Any gap > 30s is user wait (normal tool results are instant).
+        # 2. user→assistant: normally instant (model response), but large
+        #    gaps (> 2 min) indicate the system was blocked on a permission
+        #    prompt while the user was away.
+        if prev_msg_type and msg_type in ("assistant", "user") and prev_ts and ts:
+            gap = _ts_diff_ms(prev_ts, ts)
+            if prev_msg_type == "assistant" and msg_type == "user" and gap > 30_000:
+                user_wait_ms += gap
+            elif prev_msg_type == "user" and msg_type == "assistant" and gap > 120_000:
+                user_wait_ms += gap
+
         if msg_type == "assistant":
             tokens.add(extract_usage(entry))
             content_blocks = entry.get("message", {}).get("content", [])
             if not isinstance(content_blocks, list):
+                if ts:
+                    prev_msg_type = msg_type
+                    prev_ts = ts
                 continue
             for block in content_blocks:
                 if block.get("type") == "text":
@@ -188,12 +248,26 @@ def tokenize_subagent(jsonl_path: str, meta_path: str) -> Token:
                         test_passed += passed
                         test_failed += failed
 
+        if ts and msg_type in ("assistant", "user"):
+            prev_msg_type = msg_type
+            prev_ts = ts
+
+    if not has_entries:
+        return Token(
+            type="subagent_result",
+            metadata={
+                "agent_type": meta.get("agentType", "unknown"),
+                "description": meta.get("description", ""),
+                "summary": "(empty subagent session)",
+            },
+        )
+
     duration_ms = 0
     if first_ts and last_ts:
         try:
             t1 = datetime.fromisoformat(first_ts.replace("Z", "+00:00"))
             t2 = datetime.fromisoformat(last_ts.replace("Z", "+00:00"))
-            duration_ms = int((t2 - t1).total_seconds() * 1000)
+            duration_ms = max(0, int((t2 - t1).total_seconds() * 1000) - user_wait_ms)
         except (ValueError, TypeError):
             pass
 
@@ -224,6 +298,7 @@ def tokenize_subagent(jsonl_path: str, meta_path: str) -> Token:
             "test_passed": test_passed,
             "test_failed": test_failed,
             "detail_file": jsonl_path,
+            "user_wait_ms": user_wait_ms,
         },
         tokens=tokens,
     )
@@ -234,21 +309,30 @@ def tokenize_subagent(jsonl_path: str, meta_path: str) -> Token:
 # ---------------------------------------------------------------------------
 
 def tokenize_session(jsonl_path: str, subagent_dir: Optional[str] = None) -> list[Token]:
-    """Tokenize a single session JSONL into clean events."""
-    lines = load_jsonl(jsonl_path)
-    if not lines:
-        return []
+    """Tokenize a single session JSONL into clean events.
 
+    Streams the JSONL file line-by-line to avoid materializing the entire
+    file (which can be hundreds of MB for long sessions) into memory.
+    Tracks last_ts during the forward pass instead of scanning backward.
+    """
     session_id = Path(jsonl_path).stem
     tokens_out = []
     pending_agents = {}  # tool_use_id -> description
+    meta_index = None  # lazy: description -> (jsonl_path, meta_path)
+    session_start_emitted = False
+    last_ts = ""
 
-    # Session start
-    for entry in lines:
+    for entry in iter_jsonl(jsonl_path):
+        msg_type = entry.get("type", "")
         ts = entry.get("timestamp", "")
-        branch = entry.get("gitBranch", "")
-        model = entry.get("message", {}).get("model", "")
         if ts:
+            last_ts = ts
+
+        # Emit session_start from the first entry with a timestamp
+        if not session_start_emitted and ts:
+            branch = entry.get("gitBranch", "")
+            model = entry.get("message", {}).get("model", "")
+            cli_version = entry.get("version", "")
             tokens_out.append(Token(
                 type="session_start",
                 timestamp=ts,
@@ -256,13 +340,17 @@ def tokenize_session(jsonl_path: str, subagent_dir: Optional[str] = None) -> lis
                     "session_id": session_id,
                     "branch": branch or "",
                     "model": model or "",
+                    "cli_version": cli_version or "",
                 },
             ))
-            break
+            session_start_emitted = True
 
-    for entry in lines:
-        msg_type = entry.get("type", "")
-        ts = entry.get("timestamp", "")
+        # Backfill model from assistant messages (first entry often lacks it)
+        if (session_start_emitted and msg_type == "assistant"
+                and not tokens_out[0].metadata.get("model")):
+            model = entry.get("message", {}).get("model", "")
+            if model:
+                tokens_out[0].metadata["model"] = model
 
         # Skip noise
         if msg_type in ("progress", "file-history-snapshot", "last-prompt",
@@ -321,19 +409,29 @@ def tokenize_session(jsonl_path: str, subagent_dir: Optional[str] = None) -> lis
                             if os.path.exists(sa_jsonl):
                                 sa_token = tokenize_subagent(sa_jsonl, sa_meta)
 
-                        # Fallback: match by description
+                        # Fallback: lazy description→path index (built once)
                         if not sa_token and subagent_dir:
-                            for meta_file in Path(subagent_dir).glob("*.meta.json"):
-                                with open(meta_file) as mf:
-                                    meta = json.load(mf)
-                                if meta.get("description") == agent_desc:
-                                    sa_id = meta_file.stem.replace(".meta", "")
-                                    sa_jsonl = os.path.join(subagent_dir, f"{sa_id}.jsonl")
-                                    if os.path.exists(sa_jsonl):
-                                        sa_token = tokenize_subagent(sa_jsonl, str(meta_file))
-                                        break
+                            if meta_index is None:
+                                meta_index = {}
+                                for meta_file in Path(subagent_dir).glob("*.meta.json"):
+                                    try:
+                                        with open(meta_file) as mf:
+                                            m = json.load(mf)
+                                        meta_index[m.get("description", "")] = str(meta_file)
+                                    except (json.JSONDecodeError, OSError):
+                                        continue  # skip corrupt/truncated meta files
+                            meta_path = meta_index.get(agent_desc)
+                            if meta_path:
+                                sa_id = Path(meta_path).stem.replace(".meta", "")
+                                sa_jsonl = os.path.join(subagent_dir, f"{sa_id}.jsonl")
+                                if os.path.exists(sa_jsonl):
+                                    sa_token = tokenize_subagent(sa_jsonl, meta_path)
 
                         if sa_token:
+                            # Override description with the parent's agent_desc
+                            # which has the correct name (meta files sometimes
+                            # have generic descriptions like "subagent")
+                            sa_token.metadata["description"] = agent_desc
                             tokens_out.append(sa_token)
                         else:
                             tokens_out.append(Token(
@@ -371,6 +469,10 @@ def tokenize_session(jsonl_path: str, subagent_dir: Optional[str] = None) -> lis
             if not isinstance(content_blocks, list):
                 continue
 
+            # Track whether usage has been assigned to avoid double-counting
+            # when an assistant message has multiple text blocks
+            usage_assigned = False
+
             for block in content_blocks:
                 block_type = block.get("type", "")
 
@@ -387,8 +489,9 @@ def tokenize_session(jsonl_path: str, subagent_dir: Optional[str] = None) -> lis
                             "interesting": interesting,
                             "interest_reason": reason or "",
                         },
-                        tokens=usage,
+                        tokens=usage if not usage_assigned else TokenUsage(),
                     ))
+                    usage_assigned = True
 
                 elif block_type == "tool_use":
                     tool_name = block.get("name", "")
@@ -464,12 +567,7 @@ def tokenize_session(jsonl_path: str, subagent_dir: Optional[str] = None) -> lis
                                 },
                             ))
 
-    # Session end
-    last_ts = ""
-    for entry in reversed(lines):
-        last_ts = entry.get("timestamp", "")
-        if last_ts:
-            break
+    # Session end — last_ts tracked during forward pass
     if last_ts:
         tokens_out.append(Token(
             type="session_end",
@@ -485,7 +583,12 @@ def tokenize_session(jsonl_path: str, subagent_dir: Optional[str] = None) -> lis
 # ---------------------------------------------------------------------------
 
 def find_project_dir(project_hint: str) -> Optional[str]:
-    """Find the Claude Code project directory matching a hint."""
+    """Find the Claude Code project directory matching a hint.
+
+    Session logs live under ~/.claude/projects/<encoded-path>/. The hint
+    is matched against directory names — e.g., "vallorcine" matches
+    "-home-user-Code-vallorcine". Case-insensitive fallback if exact fails.
+    """
     claude_dir = Path.home() / ".claude" / "projects"
     if not claude_dir.exists():
         return None
@@ -500,13 +603,24 @@ def find_project_dir(project_hint: str) -> Optional[str]:
 
 
 def find_sessions_for_feature(project_dir: str, slug: str) -> list[str]:
-    """Find all session JSONL files that reference a feature slug."""
+    """Find all session JSONL files that reference a feature slug.
+
+    Line-scans each file and breaks on first match to avoid reading
+    entire multi-hundred-MB session files into memory. Uses boundary-aware
+    matching to avoid false positives (e.g., slug "log" matching "logging").
+    """
+    # Require the slug to appear with boundary context — surrounded by
+    # quotes, path separators, whitespace, or line boundaries
+    slug_pattern = re.compile(
+        r'(?:["\'/_\s-]|^)' + re.escape(slug) + r'(?:["\'/_\s,.\-\]}]|$)'
+    )
     sessions = []
     for f in sorted(Path(project_dir).glob("*.jsonl")):
         with open(f) as fh:
-            content = fh.read()
-            if slug in content:
-                sessions.append(str(f))
+            for line in fh:
+                if slug in line and slug_pattern.search(line):
+                    sessions.append(str(f))
+                    break
 
     def first_timestamp(path):
         with open(path) as fh:
@@ -525,7 +639,13 @@ def find_sessions_for_feature(project_dir: str, slug: str) -> list[str]:
 
 
 def tokenize_feature(slug: str, project_dir: str) -> TokenStream:
-    """Tokenize all sessions for a feature into a single token stream."""
+    """Tokenize all sessions for a feature into a single merged token stream.
+
+    Finds every session JSONL that mentions the slug, orders them by
+    timestamp, and concatenates their tokens. Each session contributes
+    a session_start/session_end pair, so the parser can detect crash
+    boundaries where one session ends and another begins.
+    """
     session_paths = find_sessions_for_feature(project_dir, slug)
     if not session_paths:
         return TokenStream()
@@ -547,7 +667,12 @@ def tokenize_feature(slug: str, project_dir: str) -> TokenStream:
 
 
 def tokenize_single_session(session_id: str, project_dir: str) -> TokenStream:
-    """Tokenize a single session."""
+    """Tokenize a single session by ID.
+
+    Use this for non-feature stories (curation, research, architect)
+    where the story is contained in one session and slug-based multi-session
+    stitching isn't needed.
+    """
     path = os.path.join(project_dir, f"{session_id}.jsonl")
     if not os.path.exists(path):
         return TokenStream()

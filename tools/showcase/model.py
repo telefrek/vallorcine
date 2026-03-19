@@ -7,8 +7,7 @@ Defines two layers:
 Both layers serialize to/from JSON for file-based intermediates.
 """
 
-from dataclasses import dataclass, field, asdict
-from typing import Optional
+from dataclasses import dataclass, field
 import json
 
 
@@ -25,6 +24,7 @@ class TokenUsage:
     cache_create: int = 0
 
     def add(self, other: "TokenUsage"):
+        """Accumulate another usage into this one (mutates in place)."""
         self.input += other.input
         self.output += other.output
         self.cache_read += other.cache_read
@@ -78,9 +78,33 @@ class TokenStream:
     tokens: list[Token] = field(default_factory=list)
 
     def save(self, path: str):
-        """Write token stream to a JSON file."""
+        """Write token stream to a JSON file.
+
+        Serializes tokens one at a time to avoid the 2x memory spike
+        from asdict() deep-copying the entire stream.
+        """
         with open(path, "w") as f:
-            json.dump(asdict(self), f, indent=2)
+            f.write('{\n  "sessions": ')
+            json.dump(self.sessions, f)
+            f.write(',\n  "project": ')
+            json.dump(self.project, f)
+            f.write(',\n  "tokens": [\n')
+            for i, t in enumerate(self.tokens):
+                if i > 0:
+                    f.write(',\n')
+                json.dump({
+                    "type": t.type,
+                    "timestamp": t.timestamp,
+                    "content": t.content,
+                    "metadata": t.metadata,
+                    "tokens": {
+                        "input": t.tokens.input,
+                        "output": t.tokens.output,
+                        "cache_read": t.tokens.cache_read,
+                        "cache_create": t.tokens.cache_create,
+                    },
+                }, f)
+            f.write('\n  ]\n}')
 
     @classmethod
     def load(cls, path: str) -> "TokenStream":
@@ -170,31 +194,47 @@ class NodeType:
 
 @dataclass
 class Story:
-    """Root AST node — the complete narrative."""
+    """Root AST node — the complete narrative.
+
+    Contains metadata (type, project, branch, model, timing, token usage)
+    and an ordered list of Phase nodes representing pipeline stages.
+    Serializes to/from JSON for file-based handoff to renderers.
+    """
     story_type: str  # feature, curation, research, architect
     title: str = ""
     project: str = ""
     branch: str = ""
     model: str = ""
+    cli_version: str = ""
     sessions: list[str] = field(default_factory=list)
     started: str = ""
     duration_ms: int = 0
     tokens: TokenUsage = field(default_factory=TokenUsage)
     phases: list[Node] = field(default_factory=list)
 
+    @staticmethod
+    def _usage_dict(u: "TokenUsage") -> dict:
+        """Convert TokenUsage to dict without asdict() deep-copy overhead."""
+        return {
+            "input": u.input, "output": u.output,
+            "cache_read": u.cache_read, "cache_create": u.cache_create,
+        }
+
     def save(self, path: str):
-        """Write story AST to a JSON file."""
+        """Write story AST to a JSON file.
+
+        Uses manual dict construction instead of dataclasses.asdict()
+        to avoid deep-copying the entire AST tree. Nodes with zero-value
+        fields (no duration, no tokens, no children) omit those keys
+        to keep the output compact.
+        """
         def _serialize(obj):
-            if isinstance(obj, TokenUsage):
-                return asdict(obj)
             if isinstance(obj, Node):
-                d = {
-                    "node_type": obj.node_type,
-                }
+                d = {"node_type": obj.node_type}
                 if obj.duration_ms:
                     d["duration_ms"] = obj.duration_ms
                 if obj.tokens and (obj.tokens.input or obj.tokens.output):
-                    d["tokens"] = asdict(obj.tokens)
+                    d["tokens"] = Story._usage_dict(obj.tokens)
                 if obj.data:
                     d["data"] = obj.data
                 if obj.children:
@@ -212,10 +252,11 @@ class Story:
             "project": self.project,
             "branch": self.branch,
             "model": self.model,
+            "cli_version": self.cli_version,
             "sessions": self.sessions,
             "started": self.started,
             "duration_ms": self.duration_ms,
-            "tokens": asdict(self.tokens),
+            "tokens": Story._usage_dict(self.tokens),
             "phases": [_serialize(p) for p in self.phases],
         }
         with open(path, "w") as f:
@@ -246,6 +287,7 @@ class Story:
             project=data.get("project", ""),
             branch=data.get("branch", ""),
             model=data.get("model", ""),
+            cli_version=data.get("cli_version", ""),
             sessions=data.get("sessions", []),
             started=data.get("started", ""),
             duration_ms=data.get("duration_ms", 0),
