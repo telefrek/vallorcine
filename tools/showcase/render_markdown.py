@@ -76,36 +76,94 @@ def format_timestamp(iso: str) -> str:
         return ""
 
 
+def _has_box_drawing(text: str) -> bool:
+    """Check if a string contains box-drawing characters."""
+    return bool(re.search(r"[─━═│┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬→←↑↓]", text))
+
+
+def _is_decoration_line(stripped: str) -> bool:
+    """Check if a line is purely decorative (box drawing, arrows, dashes)."""
+    if not stripped:
+        return False
+    # Pure box-drawing / dash lines
+    if all(c in "─━═│┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬ ·—-" for c in stripped):
+        return True
+    # Lines that are mostly box-drawing with a label (e.g., "Progress ───────")
+    box_chars = sum(1 for c in stripped if c in "─━═│┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬")
+    if box_chars > len(stripped) * 0.4 and box_chars > 5:
+        return True
+    return False
+
+
+def _is_ascii_art_block(lines: list[str], start: int) -> tuple[bool, int]:
+    """Detect a block of ASCII art (dependency graphs, tables with box chars).
+    Returns (is_art, end_index)."""
+    if start >= len(lines):
+        return False, start
+    # Check if this starts a multi-line block with box-drawing
+    box_line_count = 0
+    end = start
+    for i in range(start, min(start + 10, len(lines))):
+        if _has_box_drawing(lines[i]) or not lines[i].strip():
+            box_line_count += 1
+            end = i + 1
+        else:
+            break
+    return box_line_count >= 2, end
+
+
 def clean_agent_prose(text: str) -> str:
     """Clean up agent prose for article presentation.
-    Removes code fence decorative banners but keeps substantive content."""
-    # Remove decorative box-drawing banners
+    Aggressively removes decorative elements and reformats for readability."""
     lines = text.split("\n")
     cleaned = []
     in_banner = False
+    i = 0
 
-    for line in lines:
+    while i < len(lines):
+        line = lines[i]
         stripped = line.strip()
-        # Skip pure box-drawing lines
-        if stripped and all(c in "─━═│┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬ " for c in stripped):
+
+        # Skip pure decoration lines
+        if _is_decoration_line(stripped):
+            i += 1
             continue
-        # Skip ```-only lines that wrap banners
+
+        # Skip code fence banners (``` blocks wrapping decorative content)
         if stripped == "```" and not in_banner:
             in_banner = True
+            i += 1
             continue
         if stripped == "```" and in_banner:
             in_banner = False
+            i += 1
             continue
         if in_banner:
-            # Keep banner content but strip box chars
-            clean = stripped.lstrip("─━═ ")
+            # Keep banner content but strip leading box chars and emoji
+            clean = re.sub(r'^[─━═ 🔍🏛️🗺️🏗️🔀📋🔄🔬⚙️🔧✓⚠️]+\s*', '', stripped)
             if clean:
                 cleaned.append(clean)
+            i += 1
             continue
-        cleaned.append(line)
+
+        # Detect and skip ASCII art blocks (dependency graphs etc.)
+        is_art, art_end = _is_ascii_art_block(lines, i)
+        if is_art:
+            i = art_end
+            continue
+
+        # Strip leading emoji from section labels
+        clean_line = re.sub(r'^[🔍🏛️🗺️🏗️🔀📋🔄🔬⚙️🔧]+\s*', '', stripped)
+
+        # Convert "Label ──────" decorated headings to clean text
+        clean_line = re.sub(r'\s*[─━═]{2,}\s*$', '', clean_line)
+        clean_line = re.sub(r'^[─━═]{2,}\s*', '', clean_line)
+
+        if clean_line:
+            cleaned.append(clean_line)
+        i += 1
 
     # Remove orphaned headings — heading lines with no body text following
-    # them before the next heading or end of block
     final = []
     for i, line in enumerate(cleaned):
         stripped = line.strip()
@@ -132,7 +190,7 @@ def truncate_prose(text: str, max_lines: int = 30) -> str:
     if len(lines) <= max_lines:
         return text
     keep = max_lines // 2
-    return "\n".join(lines[:keep] + ["", "*[...]*", ""] + lines[-keep:])
+    return "\n".join(lines[:keep] + ["", "*(continued...)*", ""] + lines[-keep:])
 
 
 # ---------------------------------------------------------------------------
@@ -284,10 +342,17 @@ def render_feature_chapter(chapter: dict, num: int, total: int) -> list[str]:
                 lines.append("")
 
         elif mtype == "action":
-            summary = moment.get("summary", "")
-            if summary:
-                lines.append(f"→ *{summary}*")
-                lines.append("")
+            # Batch consecutive actions into a compact list
+            actions = [moment]
+            while i + 1 < len(moments) and moments[i + 1].get("type") == "action":
+                i += 1
+                actions.append(moments[i])
+            if len(actions) == 1:
+                lines.append(f"→ *{actions[0].get('summary', '')}*")
+            else:
+                for a in actions:
+                    lines.append(f"- {a.get('summary', '')}")
+            lines.append("")
 
         elif mtype == "stage_transition":
             summary = moment.get("summary", "")
@@ -336,7 +401,7 @@ def render_session_break(moment: dict) -> list[str]:
 
 
 def render_subagent_summary(moment: dict) -> list[str]:
-    """Render a subagent summary as a compact block."""
+    """Render a subagent summary as a structured block."""
     lines = []
     desc = moment.get("description", "Subagent")
     duration = format_duration(moment.get("duration_ms", 0))
@@ -344,19 +409,22 @@ def render_subagent_summary(moment: dict) -> list[str]:
     files = moment.get("files_written", [])
     interesting = moment.get("interesting", False)
 
-    # Compact one-line for routine, expanded for interesting
+    # Parse the summary string into structured parts
+    # Format: "description — N files written — tests: X passed, Y failed — N interesting moments"
+    parts = [p.strip() for p in summary.split(" — ")] if summary else []
+
     if interesting:
-        lines.append(f"### 🔧 {desc} ({duration})")
+        lines.append(f"> **{desc}** *({duration})*")
+        for part in parts[1:]:  # skip the description (already in heading)
+            lines.append(f"> - {part}")
         lines.append("")
-        if summary:
-            # Parse the summary for structured info
-            lines.append(summary)
-            lines.append("")
     else:
-        if summary:
-            lines.append(f"**{desc}** ({duration}) — {summary}")
+        detail_parts = [p for p in parts[1:] if p]  # skip description
+        detail = ", ".join(detail_parts) if detail_parts else ""
+        if detail:
+            lines.append(f"> **{desc}** *({duration})* — {detail}")
         else:
-            lines.append(f"**{desc}** ({duration})")
+            lines.append(f"> **{desc}** *({duration})*")
         lines.append("")
 
     return lines
