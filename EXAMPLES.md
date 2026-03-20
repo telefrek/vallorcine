@@ -254,13 +254,12 @@ complexity signals), it proceeds silently. If it detects scope creep
 After installing vallorcine into a project:
 
 ```
-/feature-init
 /setup-vallorcine
 ```
 
-`/feature-init` creates the project profile (language, framework, test
-runner, conventions). `/setup-vallorcine` initialises the `.kb/` and
-`.decisions/` directory structures. Both are one-time commands.
+`/setup-vallorcine` is a one-time command that initialises everything:
+`.kb/`, `.decisions/`, `.feature/`, project profile (language, framework,
+test runner, conventions), and `.gitignore` entries.
 
 Not sure where to start?
 

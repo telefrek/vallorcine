@@ -153,8 +153,7 @@ or features create implicit dependencies. This feedback loop is what makes the
 |---------|-------------|
 | `/vallorcine-help` | Entry point — routes you to the right command |
 | `/vallorcine-help "<question>"` | Answer questions about any command |
-| `/feature-init` | One-time project profile setup |
-| `/setup-vallorcine` | Initialise `.kb/` and `.decisions/` directories |
+| `/setup-vallorcine` | One-time project setup (KB, decisions, feature pipeline, project profile) |
 | `/upgrade-vallorcine` | Check for and apply kit updates |
 | `/project-context add "<entry>"` | Add team-shared codebase knowledge |
 | `/project-context cleanup` | Review expired context entries |
@@ -229,20 +228,18 @@ Add the following block to your project's root `CLAUDE.md`:
 `.feature/<slug>/` — on-demand only. Profile: `.feature/project-config.md`
 Quick: `/feature-quick "<description>"` — Full: `/feature "<description>"`
 Resume: `/feature-resume "<slug>"` — Status: `/feature-resume "<slug>" --status`
-Setup: `/feature-init` (first time only) — Entry point: `/vallorcine-help`
+Entry point: `/vallorcine-help`
 
 ## Knowledge Base & Decisions
 `.kb/<topic>/<category>/<subject>.md` and `.decisions/<slug>/adr.md` — on-demand only.
 Commands: `/research` `/architect` `/kb` `/decisions`
-Setup: `/setup-vallorcine` (first time only)
 
 ## Codebase Quality
 `/curate` — review quality signals, find stale decisions, knowledge gaps, and implicit dependencies.
 `/curate --init` — first-time scan on existing codebase.
 ```
 
-Run `/feature-init` once to set up the project profile.
-Run `/setup-vallorcine` once to initialise the KB and decisions directories.
+Run `/setup-vallorcine` once to set up the project (KB, decisions, feature pipeline, and project profile).
 
 **Preview changes before installing:**
 ```bash

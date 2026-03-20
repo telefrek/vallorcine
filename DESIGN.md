@@ -41,7 +41,7 @@ and orphaned areas with no structured knowledge. `/curate` surfaces findings
 conversationally and routes to existing commands for resolution.
 
 **System** — setup, upgrade, project context, and help. One-time configuration
-(`/feature-init`, `/setup-vallorcine`), ongoing maintenance (`/upgrade-vallorcine`,
+(`/setup-vallorcine`), ongoing maintenance (`/upgrade-vallorcine`,
 `/project-context`, `/feature-cleanup`), and entry point routing (`/vallorcine-help`).
 
 The knowledge and decisions layers are the durable assets. Features come and go,
@@ -692,9 +692,9 @@ so two developers using the same slug have silently divergent local state with
 no merge signal. Low probability — avoid by convention: one developer per feature
 slug. Branch names include the slug, so `git branch --list` reveals collisions.
 
-**project-config.md overwrite** — running `/feature-init` on separate branches
+**project-config.md overwrite** — running `/setup-vallorcine` on separate branches
 with different answers causes a merge conflict. Fix is convention: run
-`/feature-init` once on main before branching. Documented in `feature-init.md`.
+`/setup-vallorcine` once on main before branching.
 
 ---
 
@@ -736,7 +736,7 @@ vallorcine/
 │   ├── feature-complete/SKILL.md    ← /feature-complete — post-merge archival
 │   ├── feature-resume/SKILL.md      ← /feature-resume [--status] [--share] — crash recovery + briefing
 │   ├── feature-cleanup/SKILL.md     ← /feature-cleanup — review stale feature directories
-│   ├── feature-init/SKILL.md        ← /feature-init — project profile setup + branch prompt
+│   │
 │   │
 │   │  Curation
 │   ├── curate/SKILL.md              ← /curate — codebase quality review, correlation engine

@@ -80,18 +80,9 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
   Found via JLSM dogfood: 12 of 13 ADRs had 45+ deferred items that
   `/decisions triage` couldn't see.
 
-- **Consolidate /feature-init and /setup-vallorcine** — two separate bootstrap
-  commands is unnecessary friction. `/setup-vallorcine` creates `.kb/` and
-  `.decisions/`, `/feature-init` creates `.feature/` and `project-config.md`.
-  Most users need both and run them back-to-back. Merge into a single setup
-  command that initializes everything in one pass. The original separation was
-  based on the four-concern architecture (Knowledge+Decisions vs Features), but
-  from the user's perspective it's one action: "set up vallorcine on my project."
-  Supersedes SETTLED.md "setup-vallorcine and feature-init remain separate"
-  (2026-03-16) — original justification was that a project might use one
-  concern without the other, but in practice no one has, and the tooling now
-  assumes both layers exist (curation, retro, domain analysis all cross the
-  boundary).
+- ~~Consolidate /feature-init and /setup-vallorcine~~ — **done**. `/setup-vallorcine`
+  now handles everything: KB, decisions, feature pipeline, project profile, and
+  .gitignore. `/feature-init` removed.
 
 - **Pipeline observability** — velocity metrics (time/tokens per stage across
   features), KB utilization (which entries get read), pipeline trends. Token

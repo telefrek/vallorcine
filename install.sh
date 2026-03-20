@@ -533,12 +533,13 @@ cat << 'CLAUDEMD'
 `.feature/<slug>/` — on-demand only. Profile: `.feature/project-config.md`
 Quick: `/feature-quick "<description>"` — Full: `/feature "<description>"`
 Resume: `/feature-resume "<slug>"` — Status: `/feature-resume "<slug>" --status`
-Setup: `/feature-init` (first time only) — Entry point: `/vallorcine-help`
+Entry point: `/vallorcine-help`
 
 ## Knowledge Base & Decisions
 `.kb/<topic>/<category>/<subject>.md` and `.decisions/<slug>/adr.md` — on-demand only.
 Commands: `/research` `/architect` `/kb lookup` `/decisions review`
-Setup: `/setup-vallorcine` (first time only)
+
+Setup: `/setup-vallorcine` (first time only — initializes everything)
 
 ## Codebase Quality
 `/curate` — review quality signals, find stale decisions, knowledge gaps, and implicit dependencies.
