@@ -1,8 +1,12 @@
+# DISABLED (2026-03-20): Auto-review burns tokens without producing
+# actionable feedback — comments are generic and don't understand
+# vallorcine's architecture. Re-enable when the plugin improves.
 name: Claude Code Review
 
 on:
-  pull_request:
-    types: [opened, synchronize, ready_for_review, reopened]
+  workflow_dispatch: # manual trigger only
+  # pull_request:
+  #   types: [opened, synchronize, ready_for_review, reopened]
     # Optional: Only run on specific file changes
     # paths:
     #   - "src/**/*.ts"
