@@ -773,7 +773,14 @@ vallorcine/
 │   ├── curate-scan.sh              ← curation scanner (8 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill)
 │   ├── index-verify.sh            ← self-healing index verification for crash recovery
 │   ├── token-stop-hook.sh          ← Stop hook for automatic token tracking
-│   └── statusline.sh              ← status line showing pipeline stage + cost
+│   ├── statusline.sh              ← status line showing pipeline stage + cost
+│   ├── narrative-wrapper.sh       ← runtime detection for narrative generation
+│   └── narrative/                 ← 3-stage narrative pipeline (Python + JS)
+│       ├── model.{py,js}          ← Token, TokenStream, Node, Story data model
+│       ├── tokenizer.{py,js}      ← stage 1: JSONL → TokenStream
+│       ├── parse.{py,js}          ← stage 2: TokenStream → Story AST
+│       ├── render_narrative.{py,js} ← stage 3: Story → polished markdown
+│       └── generate.{py,js}       ← orchestrator: chains stages, cleans up
 │
 ├── tests/                           ← test scripts (not installed)
 │   ├── test-install.sh              ← install + upgrade smoke tests (33 tests)
@@ -785,7 +792,8 @@ vallorcine/
 │   ├── scenario-stale-kb.sh
 │   ├── scenario-adr-contradiction.sh
 │   ├── scenario-curate-scan.sh
-│   └── scenario-index-verify.sh
+│   ├── scenario-index-verify.sh
+│   └── scenario-narrative.sh        ← narrative pipeline parity tests (16 tests)
 │
 ├── kb/                              ← seed KB structure
 │   ├── CLAUDE.md                    ← KB root index template
