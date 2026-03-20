@@ -392,6 +392,51 @@ For each loaded candidate:
 
 Weight scores by the user's stated priorities. Never override user priorities with generic defaults.
 
+### 4b2 — Identify composite candidates
+
+After individual scoring, check whether **combinations** of candidates would
+satisfy constraints better than any single candidate. This is common when:
+
+- Two candidates have complementary strengths (one scores 5 on performance,
+  another scores 5 on memory — together they cover both)
+- The problem has distinct sub-problems that map to different approaches
+  (e.g., hot vs cold data paths, read-heavy vs write-heavy workloads,
+  different data types or access patterns)
+- No single candidate scores 4+ across all high-priority constraints, but
+  a pair does when each handles the sub-problem it's best suited for
+
+**How to identify composites:**
+
+1. For each pair of candidates where both score 3+ on at least one dimension:
+   check whether their strengths are complementary (high scores on different
+   constraint dimensions, or different sub-problems within the design space)
+2. If a complementary pair exists, define the **composition boundary** — the
+   rule that routes work to each approach (e.g., "vectors < 10K dimensions use
+   approach A, vectors ≥ 10K use approach B")
+3. Score the composite as a single candidate: for each constraint dimension,
+   take the score from whichever component handles that sub-problem
+
+**Present composites alongside individual candidates:**
+
+```
+── Composite candidate identified ─────────────
+  <Candidate A> + <Candidate B>
+  Boundary: <routing rule — e.g. "A for hot path, B for cold storage">
+  Why: <A scores 5 on X but 2 on Y; B scores 2 on X but 5 on Y; together they cover both>
+
+  Include this composite in the evaluation?  Type **yes**  ·  or: skip
+```
+
+If "yes": add the composite to evaluation.md as a candidate row with a
+`(composite)` marker. Score each dimension using the component that handles
+that sub-problem. The ADR's Decision section should describe both components
+and the boundary rule.
+
+Do NOT force composites — if a single candidate scores 4+ across all
+high-priority constraints, a composite adds complexity without benefit.
+Only propose composites when no individual candidate adequately covers
+the full problem space.
+
 ### 4c — Assess coverage adequacy (iterate if thin)
 
 After scoring all loaded candidates, assess whether the evaluation has enough
@@ -763,6 +808,10 @@ candidates:
     name: "<Subject 1>"
   - path: ".kb/<topic>/<category>/<subject2>.md"
     name: "<Subject 2>"
+  # Composite candidates (if identified at Step 4b2):
+  # - paths: [".kb/<topic>/<category>/<subjectA>.md", ".kb/<topic>/<category>/<subjectB>.md"]
+  #   name: "<Subject A> + <Subject B> (composite)"
+  #   boundary: "<routing rule>"
 constraint_weights:
   scale: <1-3>
   resources: <1-3>
@@ -840,15 +889,39 @@ constraint_weights:
 
 ---
 
+## Composite Candidate (if identified at Step 4b2)
+
+*Omit this section entirely if no composite was proposed or accepted.*
+
+**Components:** [<Subject A>](<kb-path-A>) + [<Subject B>](<kb-path-B>)
+**Boundary rule:** <what routes work to each component — e.g. "A handles hot path, B handles cold storage">
+
+| Constraint | Weight | Component | Score (1–5) | Weighted | Evidence from KB |
+|------------|--------|-----------|-------------|----------|-----------------|
+| Scale | | <A or B> | | | <which component handles this, and why> |
+| Resources | | <A or B> | | | |
+| Complexity | | <A+B combined> | | | <note integration overhead> |
+| Accuracy | | <A or B> | | | |
+| Operational | | <A+B combined> | | | <note operational complexity of running both> |
+| Fit | | <A+B combined> | | | |
+| **Total** | | | | **<sum>** | |
+
+**Integration cost:** <what's needed to combine them — routing logic, abstraction layer, etc.>
+**When this composite is better than either alone:** <which constraint dimensions it unlocks>
+
+---
+
 ## Comparison Matrix
 
 | Candidate | KB Source | Scale | Resources | Complexity | Accuracy | Operational | Fit | Weighted Total |
 |-----------|-----------|-------|-----------|------------|----------|-------------|-----|----------------|
 | [<name>](<relative-kb-path>) | | | | | | | | |
 | [<name>](<relative-kb-path>) | | | | | | | | |
+| [<A + B> (composite)]() | | | | | | | | |
 
 ## Preliminary Recommendation
-<Which candidate wins on weighted total, and a one-sentence plain-language reason>
+<Which candidate wins on weighted total, and a one-sentence plain-language reason.
+If the composite wins, state both components and the boundary rule.>
 
 ## Risks and Open Questions
 - <Risk 1: what assumption could be wrong>
