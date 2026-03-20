@@ -108,7 +108,7 @@ or features create implicit dependencies. This feedback loop is what makes the
 
 | Command | What it does |
 |---------|-------------|
-| `/architect "<problem>"` | Full architecture decision session with deliberation |
+| `/architect "<problem>"` | Architecture decision with iterative research, composite candidates, and deliberation |
 | `/decisions "<question>"` | Query existing decisions in plain language |
 | `/decisions list` | Browse and filter all decisions by status/keyword |
 | `/decisions explain "<slug>"` | Plain-language summary with KB context |
@@ -135,7 +135,7 @@ or features create implicit dependencies. This feedback loop is what makes the
 | `/feature-implement "<slug>"` | Implement until tests pass |
 | `/feature-refactor "<slug>"` | Quality review (8-item checklist, 2a-2h) |
 | `/feature-pr "<slug>"` | Draft PR title, description, checklist |
-| `/feature-retro "<slug>"` | Post-feature retrospective |
+| `/feature-retro "<slug>"` | Post-feature retrospective + narrative article generation |
 | `/feature-complete "<slug>"` | Archive after PR merges |
 | `/feature-cleanup` | Review stale feature directories |
 
@@ -143,7 +143,7 @@ or features create implicit dependencies. This feedback loop is what makes the
 
 | Command | What it does |
 |---------|-------------|
-| `/curate` | Review quality signals — stale decisions, knowledge gaps, implicit dependencies |
+| `/curate` | Review quality signals — stale decisions, knowledge gaps, implicit dependencies, out-of-scope ADR items |
 | `/curate --init` | First-time scan on an existing codebase |
 | `/curate --deeper` | Scan 6 months of history instead of default 3 |
 

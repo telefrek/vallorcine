@@ -20,40 +20,37 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-03-19*
+*Last updated: 2026-03-20*
 
-**Showcase tools — 3-stage pipeline for turning JSONL session logs into narrative articles.**
+**Preparing for next release — narrative pipeline shipped, architect and decisions
+commands significantly enhanced, setup commands consolidated.**
 
-**What shipped this session:**
-- **`tools/showcase/render_narrative.py`** — stage 3 renderer producing polished
-  markdown from Story ASTs. HTML-styled conversation blocks with speaker colors
-  (blue=vallorcine, green=user), Mermaid gantt with Discovery/Execution/Delivery
-  sections and work unit sub-bars, progressive disclosure (prominent content inline,
-  background collapsed), shields.io badges, retro checklist parsing, phase breakdown
-  table with token percentages and anchor links.
-- **Parser hardening (parse.py)** — duration now excludes user wait time, crash gaps,
-  crashed subagent limbo, and subagent internal idle (permission prompts). Terminal
-  stages (retro/complete) correctly reset feature tracking. Subagent idle keyed by
-  tool_use_id instead of description.
-- **Tokenizer hardening (tokenizer.py)** — streaming via `iter_jsonl` generator (O(1)
-  memory per line), subagent user wait detection, description override from parent's
-  Agent tool call, model backfill from assistant messages, CLI version capture, token
-  usage deduplication, boundary-aware slug matching, corrupt meta file handling.
-- **Model updates (model.py)** — streaming `TokenStream.save()`, `cli_version` field
-  on Story, `_usage_dict()` replacing `asdict()`.
-- **Performance review** — 6 optimizations: streaming tokenizer, literal interest
-  detection, lazy meta index, streaming serialization, boundary-aware slug matching,
-  token usage deduplication.
-- **Code review** — Python expert reviewed all 4 files for correctness, performance,
-  and resource constraints. 7 issues found and fixed.
-- **33-bug test plan** — `TEST_PLAN.md` documents all bugs with reproduction steps.
-- **Validated on 3 real JLSM features** — encrypt-memory-data (2 sessions, 1h 27m),
-  table-partitioning (4 sessions, 1h 24m), float16-vector-support (4 sessions, 39m).
+**What shipped this cycle (since v0.5.3):**
+
+- **Narrative pipeline in `/feature-retro`** — 3-stage pipeline (tokenizer → parser
+  → renderer) integrated as Step 6. Generates `narrative.md` with badges, Mermaid
+  gantt, phase-by-phase breakdown, progressive disclosure. Full Python + JavaScript
+  parity. Graceful degradation when no runtime available.
+- **ADR out-of-scope extraction** — curate-scan.sh Analysis 9 extracts "What This
+  Decision Does NOT Solve" items from confirmed ADRs. `/curate` presents them and
+  offers to create deferred stubs. `/architect` Step 6c now auto-creates deferred
+  stubs for out-of-scope items going forward.
+- **`/setup-vallorcine` consolidation** — absorbed `/feature-init`. Single command
+  now initializes KB, decisions, feature pipeline, and project profile.
+- **Architect iterative research** — Step 4c commissions follow-up research when
+  initial candidates don't adequately cover the constraint space (up to 3 iterations).
+- **Architect composite candidates** — Step 4b2 identifies when combining two
+  candidates would satisfy constraints better than either alone.
+- **`/decisions revisit`** — replaces `/decisions review`. Accepts topic/description
+  search, conversational "why" step, revision condition checking, and feature kickoff
+  after revision.
+- **Architect neutral presentation** — non-negotiable rule against expressing
+  preferences before Step 6a deliberation.
+- **Mandatory doc review in `/release`** — Step 1.5 checks README, EXAMPLES, DESIGN,
+  CONTEXT against changes before drafting release notes.
 
 **Where things stand:**
-All work committed on `feat/showcase-tools` branch. Ready for PR. Deferred items:
-interactive snippet player, diagnostic output mode, README sample snippets,
-vallorcine version tracking.
+All on main, ready for release cut. Documentation updated for all new capabilities.
 
 ---
 
@@ -61,37 +58,36 @@ vallorcine version tracking.
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **Build our own from JSONL logs** (2026-03-19) — asciinema dropped (marker injection
-  has subagent visibility problems). Built a translator that produces narrative
-  markdown from the rich structured JSONL data Claude Code already writes.
+- **JS parity required for narrative pipeline** (2026-03-20) — Principle 1 mandates
+  both Python and JS if either is provided. Full port of 5 pipeline files verified
+  with identical output.
 
-- **3-stage pipeline** (2026-03-19) — tokenizer (JSONL→tokens), parser (tokens→AST),
-  renderers (AST→output). File-based intermediates between stages for crash recovery
-  and debuggability. Each stage has a single concern.
+- **ADR out-of-scope items as deferred stubs** (2026-03-20) — accepted ADRs contain
+  "What This Decision Does NOT Solve" sections invisible to `/decisions triage`.
+  Retroactive: `/curate` Analysis 9 finds them. Proactive: `/architect` Step 6c
+  auto-creates deferred stubs. Found via JLSM: 44 items across 13 ADRs.
 
-- **HTML inline styles over GitHub alerts** (2026-03-19) — `[!NOTE]`/`[!TIP]` etc.
-  are GitHub-specific and render as raw text in most markdown clients. HTML `<div>`
-  with inline styles works universally. Color scheme: blue=vallorcine, green=user,
-  amber=warning, red=crash.
+- **Consolidate /feature-init into /setup-vallorcine** (2026-03-20) — no project has
+  used one concern without the other. Supersedes SETTLED.md separation decision.
 
-- **Duration = active work time only** (2026-03-19) — phase durations subtract user
-  wait time (assistant→user gaps), crash gaps, crashed subagent limbo, and subagent
-  internal idle (permission prompts). A 15h wall-clock feature shows as 1h 27m of
-  vallorcine active work.
+- **Architect iterative research** (2026-03-20) — after scoring, if coverage is thin
+  (no strong candidates, missing constraint dimensions), commission targeted follow-up
+  research. Up to 3 iterations. Found via JLSM dogfood.
 
-- **Terminal stages reset feature tracking** (2026-03-19) — retro and complete are
-  pipeline terminal stages. They're included in the story but reset `in_feature`
-  so subsequent commands from a different feature don't bleed through.
+- **Architect composite candidates** (2026-03-20) — evaluate combinations of
+  approaches when no single candidate covers all constraints. Boundary rule defines
+  which component handles which sub-problem.
 
-- **Gantt sections by work type** (2026-03-19) — Discovery/Execution/Delivery
-  sections in the Mermaid gantt show the shape of work. Crash boundaries shown
-  via alerts in the body instead. Work units rendered as sub-bars under
-  coordination phases.
+- **/decisions revisit replaces /decisions review** (2026-03-20) — single command
+  accepts slug or topic, conversational "why" pre-step, revision condition checking,
+  feature kickoff after revision.
 
-- **Progressive disclosure for background narration** (2026-03-19) — prominent
-  content (conversations, escalations, research/architect cards) shown inline.
-  Internal narration (prose, file writes, test results) collapsed into a single
-  expandable "Show N steps" block per phase.
+- **Architect neutral presentation** (2026-03-20) — non-negotiable rule: never express
+  preference before Step 6a deliberation. Found via JLSM: architect was declaring
+  winners during candidate identification.
+
+- **Mandatory doc review in /release** (2026-03-20) — Step 1.5 checks README, EXAMPLES,
+  DESIGN, CONTEXT against changes before release notes can be drafted.
 
 ---
 

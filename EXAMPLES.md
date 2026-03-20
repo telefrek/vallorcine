@@ -214,7 +214,18 @@ Query decisions in natural language:
 /decisions "what assumptions are we carrying about the database layer?"
 ```
 
-Revisit a confirmed decision with a fresh deliberation:
+Revisit decisions by topic — search across all accepted ADRs:
+
+```
+/decisions revisit "encryption"
+```
+
+The architect asks why you're revisiting, checks revision conditions against
+the current codebase, and opens a deliberation loop. If the decision is
+revised, it offers to start a `/feature` that enters the pipeline at planning
+with the architectural context already loaded.
+
+You can also revisit by slug for a specific decision:
 
 ```
 /decisions revisit "rate-limit-state-store"
@@ -268,3 +279,60 @@ Not sure where to start?
 ```
 
 It reads your project context and suggests the right command to run.
+
+---
+
+## Curation — finding quality gaps
+
+Run a curation scan to surface quality signals across your codebase:
+
+```
+/curate
+```
+
+On an existing codebase, use `--init` for the first scan:
+
+```
+/curate --init
+```
+
+Curate finds ADR drift, stale KB entries, implicit dependencies, orphaned
+areas, and out-of-scope items buried in accepted ADRs. For each finding,
+it offers an action — research, review, or create a deferred stub so the
+item shows up in `/decisions triage`.
+
+Example finding: your `table-partitioning` ADR scoped out "replication
+protocol" and "cross-partition transactions." Curate surfaces these as
+deferred work you can choose to track:
+
+```
+── Out-of-scope items from table-partitioning ──────
+This ADR (accepted 2026-03-15) scoped out these items:
+
+  [1] Replication protocol (Raft/Paxos per partition) — separate decision needed
+  [2] Cross-partition transaction coordination — separate decision
+
+For each: create-stub · skip
+Or: create-all · skip-all
+```
+
+Once promoted to deferred stubs, these items appear in `/decisions triage`.
+
+---
+
+## Narrative articles from feature retros
+
+After completing a feature, `/feature-retro` generates a narrative markdown
+article alongside the retrospective summary (when Python or Node.js is
+available):
+
+```
+/feature-retro "encrypt-memory-data"
+```
+
+The narrative is written to `.feature/<slug>/narrative.md` and includes:
+- shields.io badges (duration, tokens, model, vallorcine version)
+- Mermaid gantt chart showing pipeline phases (Discovery/Execution/Delivery)
+- Phase-by-phase breakdown with conversations, escalations, TDD cycles
+- Progressive disclosure — skim via badges and headlines, deep dive via expandable blocks
+- Duration showing only active work time (user wait and crash gaps excluded)
