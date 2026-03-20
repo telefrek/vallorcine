@@ -363,8 +363,8 @@ in `.claude/dashboard/`, watchers polling `stage.json`, agents writing state via
 status line for lightweight activity signals. Zero infrastructure, zero approval
 cost, works everywhere.
 
-**Lesson:** Principle 1 (bash and markdown only) extends to UX — don't build
-custom UI when the host tool already has the right primitives.
+**Lesson:** Principle 1 (bash-first, zero required dependencies) extends to UX
+— don't build custom UI when the host tool already has the right primitives.
 
 ## Skills migration (2026-03-17)
 

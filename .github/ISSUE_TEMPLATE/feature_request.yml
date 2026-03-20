@@ -44,10 +44,11 @@ body:
     id: principle-check
     attributes:
       label: Does this require external dependencies?
-      description: "Vallorcine uses bash and markdown only (design principle 1). Features requiring runtimes, MCP servers, or package managers are out of scope."
+      description: "Vallorcine is bash-first with zero required dependencies (design principle 1). Features may use Python/JS for enhanced implementations, but every capability must work with bash alone."
       options:
-        - "No — bash and markdown only"
-        - "Yes — requires external tooling"
+        - "No — works with bash alone"
+        - "Yes — requires a runtime or external tooling with no bash fallback"
+        - "Enhanced — bash fallback exists, but Python/JS improves it"
         - "Not sure"
     validations:
       required: true

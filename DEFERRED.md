@@ -88,9 +88,9 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 ## Dropped
 
 - ~~Hooks for non-TDD tooling~~ — **dropped** (2026-03-16). Requires Claude Code
-  hooks infrastructure — violates principle 1 (bash and markdown only).
+  hooks infrastructure — violates principle 1 (bash-first, zero required dependencies).
 - ~~Context7 / live docs in Domain Scout~~ — **dropped** (2026-03-16). Requires
-  MCP server — violates principle 1 (bash and markdown only).
+  MCP server — violates principle 1 (bash-first, zero required dependencies).
 - ~~Coverage gating in refactor~~ — **dropped** (2026-03-16). Requires
   language-specific coverage tools — violates principle 1. Step 2e (missing test
   detection) is the language-agnostic proxy.
