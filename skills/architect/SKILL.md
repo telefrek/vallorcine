@@ -258,6 +258,11 @@ Keyword-matched candidates are shown with the matching term so the user can
 quickly judge relevance. The user can exclude any candidate before subject
 files are loaded in Step 4.
 
+**Neutral presentation:** list candidates without editorial commentary.
+Do not indicate which candidate you expect to win, which seems "natural,"
+or which is "obviously" best. The user reviews the list and decides what
+to evaluate. Evaluation happens at Step 4, recommendation at Step 6.
+
 ---
 
 ## Step 2d — Coverage gap check
@@ -391,6 +396,12 @@ For each loaded candidate:
 | 1 | Disqualifying — cannot satisfy this constraint |
 
 Weight scores by the user's stated priorities. Never override user priorities with generic defaults.
+
+**Neutral scoring:** record scores factually. Do not declare a winner or
+express a preference during scoring. The scores speak for themselves — the
+recommendation is presented at Step 6a after all candidates (including
+composites) have been scored and the user can see the full comparison matrix.
+Even if one candidate dominates every dimension, the user confirms at Step 6.
 
 ### 4b2 — Identify composite candidates
 
