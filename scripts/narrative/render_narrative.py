@@ -968,6 +968,7 @@ def _render_hero(story: Story, ctx: RenderContext) -> list[str]:
     sessions = len(story.sessions)
 
     cli_version = story.cli_version or ""
+    vallorcine_version = story.vallorcine_version or ""
 
     badges = [
         badge("duration", duration, "blue"),
@@ -976,6 +977,8 @@ def _render_hero(story: Story, ctx: RenderContext) -> list[str]:
     ]
     if cli_version:
         badges.append(badge("claude code", f"v{cli_version}", "lightgrey"))
+    if vallorcine_version:
+        badges.append(badge("vallorcine", f"v{vallorcine_version}", "orange"))
     if new_tests:
         badges.append(badge("new tests", str(new_tests), "brightgreen"))
     if sessions > 1:

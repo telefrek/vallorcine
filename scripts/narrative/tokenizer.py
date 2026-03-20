@@ -17,11 +17,63 @@ Usage:
 import json
 import os
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from model import Token, TokenStream, TokenUsage
+
+
+# ---------------------------------------------------------------------------
+# JSONL format guards
+# ---------------------------------------------------------------------------
+
+# Fields we expect on JSONL entries. If the first parseable entry is missing
+# all of these, the format has likely changed and we should warn rather than
+# produce garbage output.
+_EXPECTED_FIELDS = {"type", "timestamp", "message"}
+
+# Tracks whether we've already warned about format issues in this process.
+# Prevents flooding stderr with repeated warnings on large files.
+_format_warned = False
+
+
+def _check_format(entry: dict, source: str) -> bool:
+    """Validate that a JSONL entry has expected structure.
+
+    Returns True if the entry looks valid, False if the format appears
+    to have changed. Logs a diagnostic on first failure.
+    """
+    global _format_warned
+    if _format_warned:
+        return True  # already warned, don't spam
+
+    # Check that at least one expected field is present
+    if not _EXPECTED_FIELDS.intersection(entry.keys()):
+        _format_warned = True
+        print(
+            f"narrative: JSONL format may have changed — entry in {source} "
+            f"has none of the expected fields ({', '.join(sorted(_EXPECTED_FIELDS))}). "
+            f"Found keys: {', '.join(sorted(entry.keys())[:10])}. "
+            f"Report at https://github.com/telefrek/vallorcine/issues",
+            file=sys.stderr,
+        )
+        return False
+
+    # Check message structure if present
+    msg = entry.get("message")
+    if msg is not None and not isinstance(msg, dict):
+        _format_warned = True
+        print(
+            f"narrative: JSONL format may have changed — 'message' field in {source} "
+            f"is {type(msg).__name__}, expected dict. "
+            f"Report at https://github.com/telefrek/vallorcine/issues",
+            file=sys.stderr,
+        )
+        return False
+
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -322,7 +374,13 @@ def tokenize_session(jsonl_path: str, subagent_dir: Optional[str] = None) -> lis
     session_start_emitted = False
     last_ts = ""
 
+    format_checked = False
     for entry in iter_jsonl(jsonl_path):
+        # Format guard: validate structure on first real entry
+        if not format_checked:
+            _check_format(entry, jsonl_path)
+            format_checked = True
+
         msg_type = entry.get("type", "")
         ts = entry.get("timestamp", "")
         if ts:
@@ -660,8 +718,18 @@ def tokenize_feature(slug: str, project_dir: str) -> TokenStream:
         if not os.path.isdir(subagent_dir):
             subagent_dir = None
 
-        session_tokens = tokenize_session(path, subagent_dir)
-        stream.tokens.extend(session_tokens)
+        try:
+            session_tokens = tokenize_session(path, subagent_dir)
+            stream.tokens.extend(session_tokens)
+        except Exception as e:
+            # Guard: if a session fails to tokenize (format change, corrupt
+            # file, etc.), log the error and continue with other sessions.
+            print(
+                f"narrative: failed to tokenize session {session_id}: {e}. "
+                f"Skipping this session. "
+                f"Report at https://github.com/telefrek/vallorcine/issues",
+                file=sys.stderr,
+            )
 
     return stream
 

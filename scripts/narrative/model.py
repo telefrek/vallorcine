@@ -206,6 +206,7 @@ class Story:
     branch: str = ""
     model: str = ""
     cli_version: str = ""
+    vallorcine_version: str = ""
     sessions: list[str] = field(default_factory=list)
     started: str = ""
     duration_ms: int = 0
@@ -253,6 +254,7 @@ class Story:
             "branch": self.branch,
             "model": self.model,
             "cli_version": self.cli_version,
+            "vallorcine_version": self.vallorcine_version,
             "sessions": self.sessions,
             "started": self.started,
             "duration_ms": self.duration_ms,
@@ -288,6 +290,7 @@ class Story:
             branch=data.get("branch", ""),
             model=data.get("model", ""),
             cli_version=data.get("cli_version", ""),
+            vallorcine_version=data.get("vallorcine_version", ""),
             sessions=data.get("sessions", []),
             started=data.get("started", ""),
             duration_ms=data.get("duration_ms", 0),
