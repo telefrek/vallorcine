@@ -604,6 +604,135 @@ else
     fail ".curate/ should be created automatically"
 fi
 
+# ── Test 21: Out-of-scope items from accepted ADRs ──────────────────────────
+
+echo ""
+echo "── Test 21: Out-of-scope extraction (Analysis 9)"
+
+# Add a "What This Decision Does NOT Solve" section to an existing ADR
+cat >> "$PROJECT/.decisions/session-storage/adr.md" << 'EOF'
+
+## What This Decision Does NOT Solve
+- Session replication across regions — separate decision needed
+- Session encryption at rest — can layer on later
+- Rate limiting per session — not needed at current scale
+
+## Conditions for Revision
+This ADR should be re-evaluated if sessions exceed 1M concurrent.
+EOF
+
+git -C "$PROJECT" add -A
+git -C "$PROJECT" commit -m "add out-of-scope to session-storage ADR" >/dev/null 2>&1
+
+cd "$PROJECT" && bash .claude/scripts/curate-scan.sh --init >/dev/null 2>&1
+
+if grep -q "Out-of-Scope Items" "$PROJECT/.curate/scan-summary.md"; then
+    pass "Out-of-Scope Items section present in summary"
+else
+    fail "Out-of-Scope Items section should appear"
+fi
+
+oos_section="$(sed -n '/## Out-of-Scope Items/,/^## /p' "$PROJECT/.curate/scan-summary.md")"
+if echo "$oos_section" | grep -q "Session replication across regions"; then
+    pass "out-of-scope item 1 extracted correctly"
+else
+    fail "should extract 'Session replication across regions'"
+fi
+
+if echo "$oos_section" | grep -q "Session encryption at rest"; then
+    pass "out-of-scope item 2 extracted correctly"
+else
+    fail "should extract 'Session encryption at rest'"
+fi
+
+if echo "$oos_section" | grep -q "session-storage"; then
+    pass "parent ADR slug present in output"
+else
+    fail "parent ADR slug should be in the output table"
+fi
+
+# ── Test 22: Out-of-scope deduplication ─────────────────────────────────────
+
+echo ""
+echo "── Test 22: Out-of-scope deduplication"
+
+# Create a deferred stub for one of the items — it should not appear on next scan
+mkdir -p "$PROJECT/.decisions/session-replication-across-regions"
+cat > "$PROJECT/.decisions/session-replication-across-regions/adr.md" << 'EOF'
+---
+problem: "session-replication-across-regions"
+date: "2026-03-20"
+status: "deferred"
+---
+# Session Replication Across Regions — Deferred
+## Problem
+Session replication across regions
+## Why Deferred
+Scoped out during session-storage decision.
+## Resume When
+Not specified.
+EOF
+
+git -C "$PROJECT" add -A
+git -C "$PROJECT" commit -m "add deferred stub for session replication" >/dev/null 2>&1
+
+cd "$PROJECT" && bash .claude/scripts/curate-scan.sh --init >/dev/null 2>&1
+
+oos_section="$(sed -n '/## Out-of-Scope Items/,/^## /p' "$PROJECT/.curate/scan-summary.md")"
+if echo "$oos_section" | grep -q "Session replication across regions"; then
+    fail "deduplication failed — stubbed item should not appear"
+else
+    pass "stubbed out-of-scope item correctly deduplicated"
+fi
+
+# The other two items should still appear
+if echo "$oos_section" | grep -q "Session encryption at rest"; then
+    pass "non-stubbed items still present after deduplication"
+else
+    fail "non-stubbed items should still appear"
+fi
+
+# ── Test 23: Template placeholders skipped ──────────────────────────────────
+
+echo ""
+echo "── Test 23: Template placeholders skipped"
+
+mkdir -p "$PROJECT/.decisions/placeholder-test"
+cat > "$PROJECT/.decisions/placeholder-test/adr.md" << 'EOF'
+---
+problem: "placeholder-test"
+date: "2026-03-20"
+status: "confirmed"
+---
+# Placeholder Test
+
+## What This Decision Does NOT Solve
+- <Limitation 1 — be explicit about scope>
+- <Limitation 2>
+- Real concern that should appear — genuine limitation
+
+## Conditions for Revision
+None.
+EOF
+
+git -C "$PROJECT" add -A
+git -C "$PROJECT" commit -m "add ADR with template placeholders" >/dev/null 2>&1
+
+cd "$PROJECT" && bash .claude/scripts/curate-scan.sh --init >/dev/null 2>&1
+
+oos_section="$(sed -n '/## Out-of-Scope Items/,/^## /p' "$PROJECT/.curate/scan-summary.md")"
+if echo "$oos_section" | grep -q "Limitation 1"; then
+    fail "template placeholders should be skipped"
+else
+    pass "template placeholders correctly skipped"
+fi
+
+if echo "$oos_section" | grep -q "Real concern that should appear"; then
+    pass "real items still extracted alongside placeholders"
+else
+    fail "real items should still be extracted"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

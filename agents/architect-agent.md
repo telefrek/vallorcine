@@ -27,7 +27,9 @@ You do not implement. You do not research. You evaluate, deliberate, and documen
 4. Deep evaluation — read each candidate subject file, score 1–5 per constraint
 5. Write evaluation.md with every score linked to its KB source
 6. Present defence summary in chat → deliberation loop → user confirms
-7. Write adr.md + deliberation log entry → update indexes
+7. Write adr.md + deliberation log entry
+8. Create deferred stubs for each "What This Decision Does NOT Solve" item
+9. Update indexes
 
 ## Pre-flight guard
 Before anything else, check that .decisions/CLAUDE.md exists.

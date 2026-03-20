@@ -579,7 +579,34 @@ If stop: display the manual command and stop.
      > See [evaluation.md](evaluation.md) for the original scoring.
      ```
 4. Write the deliberation log entry to `log.md` using the **Deliberation Log Entry Template**
-5. Proceed to Step 7
+5. For each item listed in the "What This Decision Does NOT Solve" section
+   of the ADR just written, create a deferred decision stub:
+   - Slugify the concern (first ~5 words, kebab-case)
+   - Check if `.decisions/<slug>/` already exists — skip if so
+   - Write `.decisions/<slug>/adr.md` using the Step 0D deferred template:
+     - Problem: the concern text
+     - Why Deferred: "Scoped out during `<current-problem-slug>` decision.
+       `<reason from the NOT Solve item>`."
+     - Resume When: "When `<current-problem-slug>` implementation is stable
+       and this concern becomes blocking."
+     - What Is Known So Far: "Identified during architecture evaluation of
+       `<current-problem-slug>`. See `.decisions/<current-slug>/adr.md` for
+       the architectural context."
+     - Next Step: "Run `/architect "<concern>"` when ready to evaluate."
+   - Add a row to the Deferred section of `.decisions/CLAUDE.md`
+   - Create a minimal `log.md` with a `deferred` event entry
+
+   Display what was created:
+   ```
+   Out-of-scope items tracked as deferred decisions:
+     ✓ <slug-1> — "<concern-1>"
+     ✓ <slug-2> — "<concern-2>"
+     ✗ <slug-3> — already exists (skipped)
+
+   These will appear in /decisions triage.
+   ```
+   If zero items are in the NOT Solve section: skip this step silently.
+6. Proceed to Step 7
 
 ---
 
@@ -955,6 +982,7 @@ Written to `log.md` at Step 6c immediately after the user confirms.
 | `deferred` | /decisions defer invoked — lightweight adr.md written with status deferred |
 | `closed` | /decisions close invoked — lightweight adr.md written with status closed |
 | `tangent-captured` | Topic raised and set aside during deliberation on another problem |
+| `out-of-scope-promoted` | Out-of-scope item from accepted ADR promoted to deferred stub via /curate or auto-created at Step 6c |
 
 ---
 
@@ -1074,3 +1102,5 @@ last_updated: "<YYYY-MM-DD>"
 - [ ] Any closed problem: adr.md written with status `closed`, Closed row in CLAUDE.md
 - [ ] Any tangent captured during deliberation: `tangent-captured` log entry written,
       stub adr.md written, row added to parent problem's Tangents table in CLAUDE.md
+- [ ] Any out-of-scope item in adr.md "What This Decision Does NOT Solve": deferred
+      stub written, Deferred row in CLAUDE.md, `out-of-scope-promoted` log entry
