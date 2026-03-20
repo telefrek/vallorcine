@@ -5,6 +5,65 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.6.0] — 2026-03-20
+
+### Design evolution
+- **Principle 1 evolved: bash-first, zero required dependencies** — previously "bash
+  and markdown only" as a hard constraint. Relaxed to allow enhanced Python and
+  JavaScript implementations under strict rules: every feature must have a bash
+  fallback, both runtimes must be supported if either is, and detection/degradation
+  must be automatic. The core kit remains bash and markdown — enhanced implementations
+  are permitted only when bash cannot fully serve the need (platform constraint or
+  practical constraint). This change enables shipping the narrative pipeline and
+  multi-language hooks as part of the kit rather than requiring external tools.
+
+### Added
+- **Narrative pipeline in `/feature-retro`** — 3-stage pipeline (tokenizer → parser
+  → renderer) generates polished `narrative.md` with shields.io badges, Mermaid gantt,
+  progressive disclosure, and phase-by-phase breakdowns. Full Python + JavaScript
+  parity with graceful degradation. 16 scenario tests.
+- **ADR out-of-scope extraction** — `curate-scan.sh` Analysis 9 extracts "What This
+  Decision Does NOT Solve" items from confirmed ADRs. `/curate` presents findings and
+  offers to create deferred stubs. `/architect` Step 6c auto-creates deferred stubs
+  going forward. 8 new tests (41/41 passing).
+- **Architect iterative research** — Step 4c commissions targeted follow-up research
+  when initial candidates don't adequately cover constraint dimensions. Up to 3
+  research iterations total.
+- **Architect composite candidates** — Step 4b2 identifies when combining two
+  candidates would satisfy constraints better than either alone.
+- **`/decisions revisit`** — replaces `/decisions review`. Accepts topic/description
+  search, conversational "why" step, revision condition checking against current
+  codebase, and `/feature` kickoff after revision.
+- **Enhanced status line + token tracking** — Python and Node.js implementations
+  alongside bash. Runtime detection wrappers. Subagent visibility via SDK hooks.
+- **Mandatory documentation review in `/release`** — Step 1.5 checks README, EXAMPLES,
+  DESIGN, and CONTEXT against changes before drafting release notes.
+
+### Changed
+- **`/setup-vallorcine`** absorbs `/feature-init` — single bootstrap command
+  initializes KB, decisions, feature pipeline, project profile, and .gitignore.
+- **Architect neutral presentation** — non-negotiable rule: never express a preference
+  or declare a winner before Step 6a deliberation.
+- **Disabled auto code review workflow** — `claude-code-review.yml` switched to
+  manual trigger only.
+
+### Fixed
+- Crash-safe history archive — write before remove in decisions archival
+- Trailing phases from other features bleeding through after retro/complete
+- Crashed subagent idle time double-counting prior user wait gap
+- Subagent idle tracking collisions (now keyed by tool_use_id)
+- Mermaid gantt overflow for features >24h
+- Corrupt `.meta.json` files crashing session tokenization
+- Shields.io badges breaking on hyphenated model names
+- 33 parser/tokenizer bugs documented and fixed
+
+### Removed
+- `/feature-init` — consolidated into `/setup-vallorcine`
+- `/decisions review` — consolidated into `/decisions revisit`
+- `tools/showcase/` — retired old pipeline; replaced by `scripts/narrative/`
+
+---
+
 ## [0.5.3] — 2026-03-18
 
 ### Fixed
