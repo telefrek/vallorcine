@@ -415,8 +415,9 @@ Deferred remaining: <n>
 If the Deferred section is now empty, add a `<!-- Last cleared: YYYY-MM-DD -->`
 comment to that section in `.decisions/CLAUDE.md`.
 
-Check total line count: if over 80 lines, move oldest Recently Accepted rows
-to `history.md` (same rule as `/architect` Step 7).
+Check total line count: if over 80 lines, archive oldest Recently Accepted rows
+to `history.md` (same crash-safe order as `/architect` Step 7: create history.md
+if needed → append row to history.md → remove row from CLAUDE.md).
 
 ---
 
