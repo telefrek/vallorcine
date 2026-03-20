@@ -97,6 +97,51 @@ Proceed immediately — no confirmation step.
 
 ---
 
+## Step 1.5 — Documentation review (REQUIRED)
+
+Before drafting release notes, review all user-facing documentation against
+the changes being released. This catches feature additions, behavior changes,
+and renamed/removed commands that haven't been documented.
+
+**Files to check:**
+
+1. **README.md** — command tables, descriptions, post-install instructions.
+   Every command in `skills/` should appear. Descriptions should reflect
+   current behavior, not historical.
+2. **EXAMPLES.md** — walkthroughs for new features. Every major new capability
+   should have at least one example showing how to use it.
+3. **DESIGN.md** — file manifest (matches actual files), token budget table,
+   architecture descriptions.
+4. **CONTEXT.md** — "Current focus" section should describe what's shipping,
+   not what was shipping last session. "Recent decisions" should include
+   decisions made during this development cycle.
+
+**How to check:**
+
+1. Run `git log v<CURRENT_VERSION>..HEAD --oneline` to see all commits
+2. For each feature commit (feat:), verify it's reflected in README and EXAMPLES
+3. For each renamed/removed command, verify old references are updated
+4. For each new script or file, verify DESIGN.md manifest includes it
+
+**If gaps are found:** fix them now, before proceeding. Commit documentation
+updates as a separate `docs:` commit. Do not bundle doc fixes into the
+release commit — they should be reviewable independently.
+
+Display:
+```
+── Documentation review ────────────────────────
+Checking README, EXAMPLES, DESIGN, CONTEXT against changes since v<CURRENT_VERSION>...
+
+<For each gap found:>
+  ⚠ <file> — <what's missing or stale>
+<If no gaps:>
+  ✓ All documentation up to date.
+```
+
+If gaps were found and fixed, show what was updated before proceeding.
+
+---
+
 ## Step 2 — Draft release notes
 
 **Check for staged changelog notes:** read `.changelog-staging.md` if it exists.
