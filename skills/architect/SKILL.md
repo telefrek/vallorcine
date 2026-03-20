@@ -589,9 +589,12 @@ If stop: display the manual command and stop.
 2. Create or update `.decisions/<problem-slug>/CLAUDE.md` using the **Problem Index Template**
 3. Update `.decisions/CLAUDE.md` master index:
    - Add the problem to the Active Decisions table
-   - Check "Recently Accepted": if it exceeds 5 rows, move the oldest row to `history.md`
-   - Check total line count: if over 80 lines, continue moving oldest accepted rows to `history.md`
-   - If `history.md` does not exist, create it from the **History File Template** first
+   - Check "Recently Accepted": if it exceeds 5 rows, archive the oldest row.
+     Check total line count: if over 80 lines, continue archiving oldest accepted rows.
+     **Archive order (crash-safe):**
+     1. If `history.md` does not exist, create it from the **History File Template** first
+     2. Append the row to `history.md` (write-first — survives crash)
+     3. Remove the row from `CLAUDE.md`
    - Ensure `Archived: [history.md](history.md)` pointer line is present
 
 ---
