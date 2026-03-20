@@ -113,6 +113,7 @@ or features create implicit dependencies. This feedback loop is what makes the
 | `/decisions list` | Browse and filter all decisions by status/keyword |
 | `/decisions explain "<slug>"` | Plain-language summary with KB context |
 | `/decisions review "<slug>"` | Revisit a confirmed decision |
+| `/decisions revisit "<topic>"` | Find decisions by topic, check if revision conditions are met |
 | `/decisions backfill` | Surface undocumented decisions from past work |
 | `/decisions candidates` | Review decisions discovered from session transcripts |
 | `/decisions triage` | Review all deferred/draft items |

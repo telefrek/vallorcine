@@ -13,6 +13,7 @@ Single entry point for all architecture decision operations.
 |------------|-------------|
 | `/decisions "<question>"` | Query decisions in plain language |
 | `/decisions review "<slug>"` | Revisit a confirmed decision with deliberation |
+| `/decisions revisit "<topic or description>"` | Find decisions related to a topic, check if revision conditions are met, and optionally kick off a feature |
 | `/decisions defer "<problem>" [--until <condition>]` | Park a topic for later |
 | `/decisions close "<problem>" [--reason <text>]` | Rule a topic out permanently |
 | `/decisions triage` | Review all deferred items and act on them |
@@ -221,6 +222,134 @@ Display on completion:
 ───────────────────────────────────────────────
 🏛️  DECISIONS REVIEW complete · <slug>
 ⏱  Token estimate: ~<N>K
+───────────────────────────────────────────────
+```
+
+---
+
+## decisions revisit "<topic or description>" — find and re-evaluate decisions
+
+Searches accepted decisions by topic, slug, or free text description, checks
+whether revision conditions are met, and offers to act on what's changed.
+
+Display opening header:
+```
+───────────────────────────────────────────────
+🏛️  DECISIONS REVISIT
+───────────────────────────────────────────────
+```
+
+### Step 1 — Find matching decisions
+
+The argument can be:
+- A **slug** — exact match against `.decisions/<slug>/`
+- A **topic keyword** — matched against problem slugs, recommendation text,
+  and constraint descriptions in the index
+- A **free text description** — matched against ADR content (problem statement,
+  decision text, constraints, conditions for revision)
+
+Read `.decisions/CLAUDE.md` (and `history.md` if it exists). Find all accepted
+decisions that match the argument. For each match, read the `adr.md` to get
+the full decision and "Conditions for Revision" section.
+
+If no matches: "No accepted decisions match '<argument>'. Try /decisions list
+to browse all decisions."
+
+If multiple matches, present them:
+```
+Found <N> decisions matching "<argument>":
+
+  [1] <slug-1> — <recommendation summary> (accepted <date>)
+  [2] <slug-2> — <recommendation summary> (accepted <date>)
+
+Pick a number to review, or: all
+```
+
+### Step 2 — Check revision conditions
+
+For each selected decision, read:
+1. `.decisions/<slug>/adr.md` — "Conditions for Revision" section
+2. `.decisions/<slug>/constraints.md` — original constraints
+3. `.decisions/<slug>/evaluation.md` — candidate scoring
+
+Check each revision condition against the current state of the codebase and KB:
+- **Scale thresholds** — read relevant source files or configs to check if
+  thresholds have been crossed
+- **New research available** — check `.kb/` for entries added after the ADR's
+  accepted date that are in the same topic/category as the ADR's candidates
+- **Time-based review** — check if the ADR's age exceeds any stated review
+  interval
+- **Technology changes** — check if the ADR references technologies or
+  constraints that may have evolved
+
+Present the assessment:
+```
+── <slug> ─────────────────────────────────────
+Decision: <recommendation> (accepted <date>)
+
+Revision conditions:
+  ✓ <condition 1> — triggered: <evidence>
+  ✗ <condition 2> — not triggered: <current state>
+  ? <condition 3> — unknown: <what would need checking>
+
+<If any triggered:>
+<N> revision condition(s) triggered. This decision may need updating.
+
+  review  — run a full /decisions review with deliberation
+  skip    — note for later, continue to next
+```
+
+### Step 3 — Act on findings
+
+**review** — invoke `/decisions review "<slug>"` as a sub-agent. The review
+runs the full deliberation loop (constraints changed, new research, etc.).
+
+After the review completes, check the outcome:
+
+**If the decision was revised** (new `adr-v<N>.md` written):
+
+```
+── Decision revised: <slug> ────────────────────
+Previous: <old recommendation>
+Revised:  <new recommendation>
+
+This revision may require implementation changes.
+
+  feature  — start /feature to implement the change
+             (skips to /feature-domains — architecture context already loaded)
+  later    — note it and move on
+```
+
+**feature** — Generate a feature description from the revision:
+- Slug: `revise-<adr-slug>` (e.g., `revise-session-storage`)
+- Description: "Implement revised architecture decision: <new recommendation>.
+  Previous approach was <old recommendation>. Changed because: <revision reason>."
+- Create `.feature/<slug>/` directory and write `brief.md` with:
+  - The revision context (what changed, why)
+  - The new ADR as the governing decision
+  - Acceptance criteria derived from the ADR's "Implementation Guidance" section
+- Write `status.md` with stage set to `domains` (skip scoping — the brief is
+  the ADR revision itself)
+- Write `domains.md` with the ADR already marked as `resolved` (it was just
+  confirmed via deliberation)
+- Invoke `/feature-plan` as the next step — the feature enters the pipeline
+  at planning, skipping scoping and domains since the architectural context
+  is already established
+
+**later** — note in the review log and continue to next matched decision.
+
+**If the decision was NOT revised** (review concluded with no change):
+```
+  Decision holds. No implementation change needed.
+```
+Continue to next matched decision or finish.
+
+### Step 4 — Summary
+
+```
+───────────────────────────────────────────────
+🏛️  DECISIONS REVISIT complete
+  Reviewed: <n>   Revised: <n>   Features started: <n>   Skipped: <n>
 ───────────────────────────────────────────────
 ```
 
