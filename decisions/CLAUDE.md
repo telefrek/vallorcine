@@ -2,7 +2,7 @@
 
 > **Managed by vallorcine agents. Use slash commands to modify this file.**
 > To start a decision: `/architect "<problem>"`
-> To review a decision: `/decisions review "<slug>"`
+> To review a decision: `/decisions revisit "<slug>"`
 
 > Pull model. Load on demand only.
 > Structure: .decisions/<problem-slug>/adr.md

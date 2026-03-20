@@ -59,7 +59,7 @@ command to run, then explain what it does and what the user can expect.
 - `/architect "<problem>"` — run an architecture decision session with full deliberation
 - `/decisions "<question>"` — query existing decisions in plain language
 - `/decisions backfill [<path>]` — surface implicit decisions from past work (prefer `/curate` for broader review)
-- `/decisions review "<slug>"` — revisit a confirmed decision
+- `/decisions revisit "<slug>"` — revisit a confirmed decision
 - `/decisions triage` — review all deferred/draft items
 - `/decisions defer "<problem>"` — park a topic for later
 - `/decisions close "<problem>"` — rule out permanently

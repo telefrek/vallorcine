@@ -29,7 +29,7 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 
 - **Team KB commands** — `/kb sync` (post-merge integrity check), `/kb
   consolidate` (merge overlapping entries), `/kb status` (human-readable
-  summary), `/decisions review` (review contested ADRs). The git merge driver
+  summary), `/decisions revisit` (review contested ADRs). The git merge driver
   for concurrent index writes is already built — these commands would extend
   the team support further.
 

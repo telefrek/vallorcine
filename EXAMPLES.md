@@ -217,7 +217,7 @@ Query decisions in natural language:
 Revisit a confirmed decision with a fresh deliberation:
 
 ```
-/decisions review "rate-limit-state-store"
+/decisions revisit "rate-limit-state-store"
 ```
 
 Defer a topic for later:

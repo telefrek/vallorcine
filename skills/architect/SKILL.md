@@ -365,7 +365,7 @@ flag it:
   ℹ ADR <slug> (accepted <date>) has not evaluated <n> newer entries:
       <entry-1>.md (added <date>)
       <entry-2>.md (added <date>)
-    Consider: /decisions review "<slug>" after this session.
+    Consider: /decisions revisit "<slug>" after this session.
 ```
 This is informational — it does not block the current decision.
 
@@ -1093,9 +1093,8 @@ Written to `log.md` at Step 6c immediately after the user confirms.
 | `research-commissioned` | research-brief.md written, Research Agent requested |
 | `research-received` | Architect re-run after Research Agent completed |
 | `decision-confirmed` | User confirmed in deliberation — adr.md written immediately after |
-| `review-requested` | /decisions review invoked |
-| `review-deliberation-confirmed` | User confirmed review outcome in deliberation |
-| `review-completed` | Review concluded with no change after deliberation |
+| `revisit-requested` | /decisions revisit invoked — includes user's stated motivation |
+| `revisit-confirmed` | Decision reaffirmed after revisit deliberation |
 | `revision-confirmed` | New adr-v<N>.md written after deliberation confirmed revision |
 | `deferred` | /decisions defer invoked — lightweight adr.md written with status deferred |
 | `closed` | /decisions close invoked — lightweight adr.md written with status closed |

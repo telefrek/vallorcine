@@ -537,7 +537,7 @@ Entry point: `/vallorcine-help`
 
 ## Knowledge Base & Decisions
 `.kb/<topic>/<category>/<subject>.md` and `.decisions/<slug>/adr.md` — on-demand only.
-Commands: `/research` `/architect` `/kb lookup` `/decisions review`
+Commands: `/research` `/architect` `/kb lookup` `/decisions revisit`
 
 Setup: `/setup-vallorcine` (first time only — initializes everything)
 

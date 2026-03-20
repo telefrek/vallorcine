@@ -155,7 +155,7 @@ If an ADR was invalidated or insufficient:
 
   Type **yes** to open a review · or: skip
 ```
-If "yes": invoke `/decisions review "<adr-slug>"` as a sub-agent.
+If "yes": invoke `/decisions revisit "<adr-slug>"` as a sub-agent.
 
 If a design decision was made during implementation without an ADR (detected
 from contract revisions or escalations that changed the approach):
@@ -266,5 +266,5 @@ The retro command writes to:
 - `.feature/<slug>/narrative.md` (via narrative-wrapper.sh, optional)
 
 It does NOT directly write to `.decisions/` or `.kb/` — it invokes
-`/architect`, `/decisions review`, and `/research` as sub-agents, and those
+`/architect`, `/decisions revisit`, and `/research` as sub-agents, and those
 commands handle their own writes.
