@@ -642,6 +642,112 @@ else
     fail "uninstall safety guard should block repo root" "output: $guard_output"
 fi
 
+# ── Test 14a: New wrapper scripts and enhanced implementations installed ──────
+
+echo ""
+echo "── Test 14a: Enhanced status line + token tracking files"
+
+ENHANCED_TARGET="$(make_temp)"
+cd "$ENHANCED_TARGET" && git init -q && cd "$REPO_ROOT"
+bash "$REPO_ROOT/install.sh" "$ENHANCED_TARGET" >/dev/null 2>&1
+
+# Check wrapper scripts exist
+for f in statusline-wrapper.sh token-hook-wrapper.sh subagent-hook-wrapper.sh \
+         subagent-hook.sh statusline.py statusline.js \
+         token-stop-hook.py token-stop-hook.js \
+         subagent-hook.py subagent-hook.js; do
+    if [[ -f "$ENHANCED_TARGET/.claude/scripts/$f" ]]; then
+        :
+    else
+        fail "enhanced script installed: $f"
+    fi
+done
+pass "all enhanced scripts installed"
+
+# Check settings.json uses wrapper commands
+if assert_file_contains "$ENHANCED_TARGET/.claude/settings.json" "token-hook-wrapper.sh"; then
+    pass "settings.json uses token-hook-wrapper.sh"
+else
+    fail "settings.json should reference token-hook-wrapper.sh"
+fi
+
+if assert_file_contains "$ENHANCED_TARGET/.claude/settings.json" "statusline-wrapper.sh"; then
+    pass "settings.json uses statusline-wrapper.sh"
+else
+    fail "settings.json should reference statusline-wrapper.sh"
+fi
+
+# Check SubagentStart/SubagentStop hooks registered
+if assert_file_contains "$ENHANCED_TARGET/.claude/settings.json" "SubagentStart"; then
+    pass "SubagentStart hook registered in settings.json"
+else
+    fail "SubagentStart hook should be in settings.json"
+fi
+
+if assert_file_contains "$ENHANCED_TARGET/.claude/settings.json" "SubagentStop"; then
+    pass "SubagentStop hook registered in settings.json"
+else
+    fail "SubagentStop hook should be in settings.json"
+fi
+
+if assert_file_contains "$ENHANCED_TARGET/.claude/settings.json" "subagent-hook-wrapper.sh"; then
+    pass "subagent hooks use wrapper script"
+else
+    fail "subagent hooks should reference subagent-hook-wrapper.sh"
+fi
+
+# Check .subagent-state in gitignore
+if assert_file_contains "$ENHANCED_TARGET/.gitignore" ".subagent-state"; then
+    pass ".subagent-state in .gitignore"
+else
+    fail ".subagent-state should be in .gitignore"
+fi
+
+# ── Test 14b: Migration from old direct references to wrappers ────────────────
+
+echo ""
+echo "── Test 14b: Migration from direct scripts to wrappers"
+
+MIGRATE_HOOKS_TARGET="$(make_temp)"
+cd "$MIGRATE_HOOKS_TARGET" && git init -q && cd "$REPO_ROOT"
+
+# Simulate an old-style install with direct script references
+mkdir -p "$MIGRATE_HOOKS_TARGET/.claude/scripts"
+cat > "$MIGRATE_HOOKS_TARGET/.claude/settings.json" << 'OLDJSON'
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/token-stop-hook.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash .claude/scripts/statusline.sh"
+  }
+}
+OLDJSON
+
+bash "$REPO_ROOT/install.sh" "$MIGRATE_HOOKS_TARGET" >/dev/null 2>&1
+
+if assert_file_contains "$MIGRATE_HOOKS_TARGET/.claude/settings.json" "token-hook-wrapper.sh"; then
+    pass "migration: Stop hook updated to wrapper"
+else
+    fail "migration: Stop hook should be updated to wrapper"
+fi
+
+if assert_file_contains "$MIGRATE_HOOKS_TARGET/.claude/settings.json" "statusline-wrapper.sh"; then
+    pass "migration: statusline updated to wrapper"
+else
+    fail "migration: statusline should be updated to wrapper"
+fi
+
 # ── Test 14: Uninstall cleans git config + .gitattributes ─────────────────────
 
 echo ""

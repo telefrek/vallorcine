@@ -270,9 +270,9 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 ## [0.3.1] — 2026-03-16
 
 ### Added
-- **Principle 1: bash and markdown only** — new top-priority design principle.
-  Hard constraint gating all new features. No external dependencies beyond
-  bash and markdown.
+- **Principle 1: bash-first, zero required dependencies** — new top-priority
+  design principle. No feature may require anything beyond bash and markdown.
+  Enhanced Python/JS implementations permitted under strict rules (see DESIGN.md).
 - **Refactor step 2h: security review** — holistic security audit after all
   other refactoring. Checks auth, data handling, trust boundaries, dependencies,
   and threat surface delta. HIGH/MEDIUM/LOW severity. Always pauses on findings.

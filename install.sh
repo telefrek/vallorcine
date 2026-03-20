@@ -242,7 +242,30 @@ install_file "$SCRIPT_DIR/scripts/token-stop-hook.sh" "$TARGET/.claude/scripts/t
 install_file "$SCRIPT_DIR/scripts/curate-scan.sh" "$TARGET/.claude/scripts/curate-scan.sh"
 install_file "$SCRIPT_DIR/scripts/index-verify.sh" "$TARGET/.claude/scripts/index-verify.sh"
 install_file "$SCRIPT_DIR/scripts/statusline.sh" "$TARGET/.claude/scripts/statusline.sh"
+install_file "$SCRIPT_DIR/scripts/statusline.py" "$TARGET/.claude/scripts/statusline.py"
+install_file "$SCRIPT_DIR/scripts/statusline.js" "$TARGET/.claude/scripts/statusline.js"
+install_file "$SCRIPT_DIR/scripts/statusline-wrapper.sh" "$TARGET/.claude/scripts/statusline-wrapper.sh"
+install_file "$SCRIPT_DIR/scripts/token-stop-hook.py" "$TARGET/.claude/scripts/token-stop-hook.py"
+install_file "$SCRIPT_DIR/scripts/token-stop-hook.js" "$TARGET/.claude/scripts/token-stop-hook.js"
+install_file "$SCRIPT_DIR/scripts/token-hook-wrapper.sh" "$TARGET/.claude/scripts/token-hook-wrapper.sh"
+install_file "$SCRIPT_DIR/scripts/subagent-hook.sh" "$TARGET/.claude/scripts/subagent-hook.sh"
+install_file "$SCRIPT_DIR/scripts/subagent-hook.py" "$TARGET/.claude/scripts/subagent-hook.py"
+install_file "$SCRIPT_DIR/scripts/subagent-hook.js" "$TARGET/.claude/scripts/subagent-hook.js"
+install_file "$SCRIPT_DIR/scripts/subagent-hook-wrapper.sh" "$TARGET/.claude/scripts/subagent-hook-wrapper.sh"
 install_file "$SCRIPT_DIR/scripts/uninstall.sh" "$TARGET/.claude/scripts/uninstall.sh"
+install_file "$SCRIPT_DIR/scripts/narrative-wrapper.sh" "$TARGET/.claude/scripts/narrative-wrapper.sh"
+chmod +x "$TARGET/.claude/scripts/narrative-wrapper.sh" 2>/dev/null || true
+mkdir -p "$TARGET/.claude/scripts/narrative"
+install_file "$SCRIPT_DIR/scripts/narrative/model.py" "$TARGET/.claude/scripts/narrative/model.py"
+install_file "$SCRIPT_DIR/scripts/narrative/tokenizer.py" "$TARGET/.claude/scripts/narrative/tokenizer.py"
+install_file "$SCRIPT_DIR/scripts/narrative/parse.py" "$TARGET/.claude/scripts/narrative/parse.py"
+install_file "$SCRIPT_DIR/scripts/narrative/render_narrative.py" "$TARGET/.claude/scripts/narrative/render_narrative.py"
+install_file "$SCRIPT_DIR/scripts/narrative/generate.py" "$TARGET/.claude/scripts/narrative/generate.py"
+install_file "$SCRIPT_DIR/scripts/narrative/model.js" "$TARGET/.claude/scripts/narrative/model.js"
+install_file "$SCRIPT_DIR/scripts/narrative/tokenizer.js" "$TARGET/.claude/scripts/narrative/tokenizer.js"
+install_file "$SCRIPT_DIR/scripts/narrative/parse.js" "$TARGET/.claude/scripts/narrative/parse.js"
+install_file "$SCRIPT_DIR/scripts/narrative/render_narrative.js" "$TARGET/.claude/scripts/narrative/render_narrative.js"
+install_file "$SCRIPT_DIR/scripts/narrative/generate.js" "$TARGET/.claude/scripts/narrative/generate.js"
 
 # ── Upgrade script ───────────────────────────────────────────────────────────
 
@@ -292,8 +315,9 @@ echo ""
 echo "── Token tracking hook ──────────────────────────"
 
 SETTINGS_FILE="$TARGET/.claude/settings.json"
-HOOK_MARKER="token-stop-hook.sh"
-STATUSLINE_MARKER="statusline.sh"
+HOOK_MARKER="token-stop-hook"
+STATUSLINE_MARKER="statusline"
+SUBAGENT_MARKER="subagent-hook"
 
 if [[ "$DIFF_MODE" != "1" ]]; then
     # ── Stop hook for token tracking ──────────────────────────────────────
@@ -304,7 +328,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
             jq '.hooks.Stop = ((.hooks.Stop // []) + [{
                 "hooks": [{
                     "type": "command",
-                    "command": "bash .claude/scripts/token-stop-hook.sh"
+                    "command": "bash .claude/scripts/token-hook-wrapper.sh"
                 }]
             }])' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
             echo -e "  ${GREEN}merge${NC} Stop hook added to settings.json"
@@ -318,7 +342,8 @@ if [[ "$DIFF_MODE" != "1" ]]; then
       "Bash(bash .claude/scripts/version-check.sh:*)",
       "Bash(bash .claude/scripts/ensure-merge-driver.sh:*)",
       "Bash(bash .claude/scripts/adr-validate.sh:*)",
-      "Bash(bash .claude/scripts/index-verify.sh:*)"
+      "Bash(bash .claude/scripts/index-verify.sh:*)",
+      "Bash(bash .claude/scripts/narrative-wrapper.sh:*)"
     ]
   },
   "hooks": {
@@ -347,11 +372,46 @@ HOOKJSON
     elif [[ -f "$SETTINGS_FILE" ]] && command -v jq &>/dev/null; then
         jq '.statusLine = {
             "type": "command",
-            "command": "bash .claude/scripts/statusline.sh"
+            "command": "bash .claude/scripts/statusline-wrapper.sh"
         }' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
         echo -e "  ${GREEN}merge${NC} Status line added to settings.json"
     elif [[ -f "$SETTINGS_FILE" ]]; then
         echo -e "  ${YELLOW}skip${NC}  settings.json exists but jq not available — add statusLine manually"
+    fi
+
+    # ── SubagentStart/SubagentStop hooks ─────────────────────────────
+    if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$SUBAGENT_MARKER" "$SETTINGS_FILE" 2>/dev/null; then
+        echo -e "  ${YELLOW}skip${NC}  Subagent hooks already registered"
+    elif [[ -f "$SETTINGS_FILE" ]] && command -v jq &>/dev/null; then
+        jq '.hooks.SubagentStart = ((.hooks.SubagentStart // []) + [{
+            "hooks": [{
+                "type": "command",
+                "command": "bash .claude/scripts/subagent-hook-wrapper.sh"
+            }]
+        }]) | .hooks.SubagentStop = ((.hooks.SubagentStop // []) + [{
+            "hooks": [{
+                "type": "command",
+                "command": "bash .claude/scripts/subagent-hook-wrapper.sh"
+            }]
+        }])' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+        echo -e "  ${GREEN}merge${NC} SubagentStart/SubagentStop hooks added to settings.json"
+    elif [[ -f "$SETTINGS_FILE" ]]; then
+        echo -e "  ${YELLOW}skip${NC}  settings.json exists but jq not available — add subagent hooks manually"
+    fi
+
+    # ── Migrate old direct script references to wrappers ─────────────
+    if [[ -f "$SETTINGS_FILE" ]] && command -v jq &>/dev/null; then
+        # Migrate token-stop-hook.sh → token-hook-wrapper.sh
+        if grep -qF "token-stop-hook.sh" "$SETTINGS_FILE" 2>/dev/null; then
+            sed -i 's|token-stop-hook\.sh|token-hook-wrapper.sh|g' "$SETTINGS_FILE"
+            echo -e "  ${GREEN}migrate${NC} Stop hook → wrapper"
+        fi
+        # Migrate statusline.sh → statusline-wrapper.sh (but not statusline-wrapper.sh)
+        if grep -q 'statusline\.sh[^a-z]' "$SETTINGS_FILE" 2>/dev/null && \
+           ! grep -qF "statusline-wrapper.sh" "$SETTINGS_FILE" 2>/dev/null; then
+            sed -i 's|scripts/statusline\.sh|scripts/statusline-wrapper.sh|g' "$SETTINGS_FILE"
+            echo -e "  ${GREEN}migrate${NC} Status line → wrapper"
+        fi
     fi
 
     # ── Script permissions (explicit per-script, not wildcard) ─────────
@@ -365,7 +425,8 @@ HOOKJSON
             "Bash(bash .claude/scripts/version-check.sh:*)",
             "Bash(bash .claude/scripts/ensure-merge-driver.sh:*)",
             "Bash(bash .claude/scripts/adr-validate.sh:*)",
-            "Bash(bash .claude/scripts/index-verify.sh:*)"
+            "Bash(bash .claude/scripts/index-verify.sh:*)",
+            "Bash(bash .claude/scripts/narrative-wrapper.sh:*)"
         ] | unique)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
         echo -e "  ${GREEN}merge${NC} Script permissions added to settings.json"
     elif [[ -f "$SETTINGS_FILE" ]]; then
@@ -396,6 +457,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
 .claude/.statusline-baseline
 .claude/.token-state
 .claude/.token-checkpoint
+.claude/.subagent-state
 .feature/
 .curate/
 GITIGNOREBLOCK

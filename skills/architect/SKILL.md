@@ -549,10 +549,10 @@ Decision written: .decisions/<slug>/adr.md
 ```
 Feature "<slug>" is paused waiting for this decision.
 
-  ↵  Resume scoping  ·  or type: stop
+  Type **yes**  to resume scoping  ·  or: stop
 ```
 
-If Enter/yes: invoke `/feature "<original description>"` to resume the scoping
+If yes: invoke `/feature "<original description>"` to resume the scoping
 interview where it left off (the scoping agent reads status.md and continues
 from its checkpoint).
 

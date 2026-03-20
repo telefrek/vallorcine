@@ -43,6 +43,31 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
   Redesigned (2026-03-16): bash script (`scripts/adr-validate.sh`) to stay within
   principle 1. Can run as pre-flight check alongside version-check.sh.
 
+- **Curate backfill: distinguish "deferred" from "not needed"** — the backfill
+  logic currently trusts domain analysis labels like "no ADR needed" at face
+  value. But "user deferred to work planner" is a different signal from "no
+  alternative was considered." Deferred decisions that resulted in API designs
+  or interfaces other code depends on should still surface as backfill
+  candidates. Found via JLSM dogfood: VectorIndex Precision API was dismissed
+  because the domain analysis labelled it as deferred, but the pragmatic
+  decision created a public API surface worth documenting.
+
+- **Subagent UI staleness (partial)** — two user-visible feedback mechanisms
+  go stale during delegated work unit execution:
+  1. **TodoWrite** — task lists created inside subagents don't bubble up to
+     the parent's task list. Progress checklists are invisible to the user.
+     Still a Claude Code platform limitation.
+  2. ~~**Status line**~~ — **addressed** (v0.5.4). SubagentStart/SubagentStop
+     hooks now write `.claude/.subagent-state`; the status line reads it to
+     show which subagent is active. Enhanced implementations (Python/Node.js)
+     provide native JSON parsing with bash fallback.
+
+- **Vallorcine version tracking for showcase** — showcase articles should display
+  which vallorcine version was used. JSONL logs capture the Claude Code CLI version
+  but not vallorcine's. Need to write a version stamp during sessions (e.g., to
+  status.md, a `.vallorcine-version` file, or a dedicated JSONL entry) so the
+  tokenizer can extract it.
+
 - **Pipeline observability** — velocity metrics (time/tokens per stage across
   features), KB utilization (which entries get read), pipeline trends. Token
   tracking exists but is narrow. Premature until more projects use vallorcine.
@@ -63,9 +88,9 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 ## Dropped
 
 - ~~Hooks for non-TDD tooling~~ — **dropped** (2026-03-16). Requires Claude Code
-  hooks infrastructure — violates principle 1 (bash and markdown only).
+  hooks infrastructure — violates principle 1 (bash-first, zero required dependencies).
 - ~~Context7 / live docs in Domain Scout~~ — **dropped** (2026-03-16). Requires
-  MCP server — violates principle 1 (bash and markdown only).
+  MCP server — violates principle 1 (bash-first, zero required dependencies).
 - ~~Coverage gating in refactor~~ — **dropped** (2026-03-16). Requires
   language-specific coverage tools — violates principle 1. Step 2e (missing test
   detection) is the language-agnostic proxy.
