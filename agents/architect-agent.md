@@ -25,6 +25,8 @@ You do not implement. You do not research. You evaluate, deliberate, and documen
 2. Survey .kb/ for candidates using category CLAUDE.md indexes
 3. Commission missing research if needed — write research-brief.md, then pause
 4. Deep evaluation — read each candidate subject file, score 1–5 per constraint
+4b. Assess coverage — if thin (no strong candidates, missing constraint coverage),
+    commission follow-up research and re-score. Up to 3 total research iterations.
 5. Write evaluation.md with every score linked to its KB source
 6. Present defence summary in chat → deliberation loop → user confirms
 7. Write adr.md + deliberation log entry

@@ -392,6 +392,51 @@ For each loaded candidate:
 
 Weight scores by the user's stated priorities. Never override user priorities with generic defaults.
 
+### 4c — Assess coverage adequacy (iterate if thin)
+
+After scoring all loaded candidates, assess whether the evaluation has enough
+coverage to make a confident recommendation. Check for these signals:
+
+1. **No candidate scores 4+ on all high-priority constraints** — the best
+   option still has significant gaps
+2. **Fewer than 3 viable candidates** (score 3+ across the board) — the
+   evaluation lacks meaningful alternatives to compare against
+3. **A constraint dimension has no strong signal in any candidate** — the KB
+   may be missing an entire class of approaches
+4. **The top candidate is only marginally better than rejected ones** — a
+   better alternative may exist outside the current KB coverage
+
+If any of these signals fire, **commission a targeted follow-up research pass**
+before writing evaluation.md:
+
+```
+── Coverage gap detected ────────────────────────────────
+The current candidates don't fully cover this problem:
+  <signal — e.g. "No candidate scores above 3 on the performance constraint">
+
+I'd like to research additional approaches before making a recommendation:
+  - <subject 1> (<topic>/<category>) — <why this might help>
+  - <subject 2> (<topic>/<category>) — <why this might help>
+
+Commission research?  Type **yes**  ·  or: proceed with current candidates
+```
+
+If "yes":
+- Write `research-brief.md` (append to existing if one was written at Step 3)
+- Invoke `/research` as a sub-agent for each subject
+- After research completes, re-run Step 4b (score the new candidates)
+- Re-run Step 4c (check coverage again — allows multiple iterations)
+- Cap at 3 research iterations total (Steps 3 + 4c combined) to prevent
+  unbounded loops. After 3 iterations, proceed with what's available and
+  note the gap in the CONFIDENCE section.
+
+If "proceed": continue to Step 5 with current candidates. Note the coverage
+gap in the evaluation's confidence assessment.
+
+Append a log entry for each follow-up: event `research-commissioned`,
+noting this is an iterative pass (e.g. "follow-up research after thin
+initial coverage").
+
 ---
 
 ## Step 5 — Write evaluation.md
