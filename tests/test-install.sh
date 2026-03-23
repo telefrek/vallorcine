@@ -431,6 +431,138 @@ else
     fail "upgrade should still copy top-level .sh scripts"
 fi
 
+# ── Test 8c: Upgrade patches settings.json hooks (#22) ──────────────
+
+echo ""
+echo "── Test 8c: Upgrade patches settings.json hooks"
+
+HOOKS_TARGET="$(make_temp)"
+cd "$HOOKS_TARGET" && git init -q && cd "$REPO_ROOT"
+
+# Simulate old-style install with outdated hooks
+mkdir -p "$HOOKS_TARGET/.claude/scripts"
+cat > "$HOOKS_TARGET/.claude/settings.json" << 'OLDJSON'
+{
+  "permissions": { "allow": [] },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/token-stop-hook.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/dashboard-stop-hook.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash .claude/scripts/statusline.sh"
+  }
+}
+OLDJSON
+
+echo "0.4.0" > "$HOOKS_TARGET/.claude/.vallorcine-version"
+cp "$REPO_ROOT/MANIFEST" "$HOOKS_TARGET/.claude/.vallorcine-manifest"
+
+bash "$REPO_ROOT/upgrade.sh" \
+    --apply \
+    --kit-root "$REPO_ROOT" \
+    --project-root "$HOOKS_TARGET" \
+    --from-version "0.4.0" \
+    --to-version "$VERSION" >/dev/null 2>&1
+
+# 8c-1: Old direct references migrated to wrappers
+if assert_file_contains "$HOOKS_TARGET/.claude/settings.json" "token-hook-wrapper.sh"; then
+    pass "upgrade migrates token-stop-hook.sh → wrapper"
+else
+    fail "upgrade should migrate token-stop-hook.sh to wrapper"
+fi
+
+if assert_file_contains "$HOOKS_TARGET/.claude/settings.json" "statusline-wrapper.sh"; then
+    pass "upgrade migrates statusline.sh → wrapper"
+else
+    fail "upgrade should migrate statusline.sh to wrapper"
+fi
+
+# 8c-2: Stale dashboard hook removed
+if ! grep -qF "dashboard-stop-hook" "$HOOKS_TARGET/.claude/settings.json" 2>/dev/null; then
+    pass "upgrade removes stale dashboard-stop-hook"
+else
+    fail "upgrade should remove stale dashboard-stop-hook"
+fi
+
+# 8c-3: Missing SubagentStart/SubagentStop hooks added
+if assert_file_contains "$HOOKS_TARGET/.claude/settings.json" "SubagentStart" && \
+   assert_file_contains "$HOOKS_TARGET/.claude/settings.json" "SubagentStop"; then
+    pass "upgrade adds missing SubagentStart/SubagentStop hooks"
+else
+    fail "upgrade should add SubagentStart/SubagentStop hooks"
+fi
+
+# 8c-4: Missing script permissions added
+if assert_file_contains "$HOOKS_TARGET/.claude/settings.json" "curate-scan.sh"; then
+    pass "upgrade adds missing script permissions"
+else
+    fail "upgrade should add script permissions"
+fi
+
+# 8c-5: Idempotent — running again changes nothing
+settings_before="$(cat "$HOOKS_TARGET/.claude/settings.json")"
+bash "$REPO_ROOT/upgrade.sh" \
+    --apply \
+    --kit-root "$REPO_ROOT" \
+    --project-root "$HOOKS_TARGET" \
+    --from-version "$VERSION" \
+    --to-version "$VERSION" >/dev/null 2>&1
+settings_after="$(cat "$HOOKS_TARGET/.claude/settings.json")"
+
+if [[ "$settings_before" == "$settings_after" ]]; then
+    pass "upgrade hook patching is idempotent"
+else
+    fail "upgrade hook patching should be idempotent"
+fi
+
+# 8c-6: User hooks preserved
+USERHOOK_TARGET="$(make_temp)"
+cd "$USERHOOK_TARGET" && git init -q && cd "$REPO_ROOT"
+bash "$REPO_ROOT/install.sh" "$USERHOOK_TARGET" >/dev/null 2>&1
+
+# Add a user hook
+if command -v jq &>/dev/null; then
+    jq '.hooks.Stop = (.hooks.Stop + [{
+        "hooks": [{
+            "type": "command",
+            "command": "bash my-custom-hook.sh"
+        }]
+    }])' "$USERHOOK_TARGET/.claude/settings.json" > "$USERHOOK_TARGET/.claude/settings.json.tmp" \
+    && mv "$USERHOOK_TARGET/.claude/settings.json.tmp" "$USERHOOK_TARGET/.claude/settings.json"
+
+    bash "$REPO_ROOT/upgrade.sh" \
+        --apply \
+        --kit-root "$REPO_ROOT" \
+        --project-root "$USERHOOK_TARGET" \
+        --from-version "0.4.0" \
+        --to-version "$VERSION" >/dev/null 2>&1
+
+    if assert_file_contains "$USERHOOK_TARGET/.claude/settings.json" "my-custom-hook.sh"; then
+        pass "upgrade preserves user hooks in settings.json"
+    else
+        fail "upgrade should preserve user hooks"
+    fi
+else
+    echo "  SKIP  user hook preservation test (jq not available)"
+fi
+
 # ── Test 9: Upgrade stale removal preserves user files ──────────────
 
 echo ""
