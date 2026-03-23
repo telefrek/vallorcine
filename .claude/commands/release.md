@@ -375,7 +375,13 @@ gh release create "v<NEW_VERSION>" \
   --notes "<release notes — first paragraph only>"
 ```
 
-Display the release URL on success.
+Display the release URL on success. Then clean up the local zip:
+
+```bash
+rm -f "vallorcine-v<NEW_VERSION>.zip"
+```
+
+Display: `  Cleaned up local zip file.`
 
 If gh fails: display instructions for creating manually:
 ```
@@ -407,9 +413,9 @@ Install command for users:
 ───────────────────────────────────────────────
 ```
 
-Note: `vallorcine-v<NEW_VERSION>.zip` is in the repo root but gitignored.
-It is the distributable artifact — attach to GitHub Release or share directly.
-It is not committed to git history.
+Note: the zip is cleaned up automatically after a successful GitHub Release
+upload. If the release was skipped, `vallorcine-v<NEW_VERSION>.zip` remains
+in the repo root (gitignored) for manual attachment.
 
 `.vallorcine-source` IS committed — it tells consumers where to check
 for upgrades. install.sh copies it to `.claude/.vallorcine-source` in
