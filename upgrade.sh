@@ -350,9 +350,12 @@ for f in "$KIT_ROOT_APPLY"/rules/*.md; do
 done
 
 echo "  Updating scripts..."
-for f in "$KIT_ROOT_APPLY"/scripts/*.sh; do
-    [[ -f "$f" ]] && apply_file "$f" "$PROJECT_ROOT/.claude/scripts/$(basename "$f")"
-done
+while IFS= read -r f; do
+    [[ -f "$f" ]] || continue
+    # Preserve subdirectory structure (e.g. scripts/narrative/model.py)
+    rel="${f#"$KIT_ROOT_APPLY"/scripts/}"
+    apply_file "$f" "$PROJECT_ROOT/.claude/scripts/$rel"
+done < <(find "$KIT_ROOT_APPLY/scripts" -type f \( -name '*.sh' -o -name '*.py' -o -name '*.js' \))
 
 echo "  Updating upgrade.sh..."
 apply_file "$KIT_ROOT_APPLY/upgrade.sh" "$PROJECT_ROOT/.claude/upgrade.sh"

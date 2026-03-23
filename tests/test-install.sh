@@ -393,6 +393,44 @@ else
     fail "upgrade should preserve skill files"
 fi
 
+# ── Test 8b: Upgrade copies script subdirectories (#28) ─────────────
+
+echo ""
+echo "── Test 8b: Upgrade copies scripts/ subdirectories (narrative/)"
+
+SUBDIR_TARGET="$(make_temp)"
+bash "$REPO_ROOT/install.sh" "$SUBDIR_TARGET" >/dev/null 2>&1
+
+# Simulate old install missing the narrative/ subdirectory
+rm -rf "$SUBDIR_TARGET/.claude/scripts/narrative"
+
+echo "0.0.1" > "$SUBDIR_TARGET/.claude/.vallorcine-version"
+
+bash "$REPO_ROOT/upgrade.sh" \
+    --apply \
+    --kit-root "$REPO_ROOT" \
+    --project-root "$SUBDIR_TARGET" \
+    --from-version "0.0.1" \
+    --to-version "$VERSION" >/dev/null 2>&1
+
+if [[ -f "$SUBDIR_TARGET/.claude/scripts/narrative/model.py" \
+   && -f "$SUBDIR_TARGET/.claude/scripts/narrative/model.js" \
+   && -f "$SUBDIR_TARGET/.claude/scripts/narrative/parse.py" \
+   && -f "$SUBDIR_TARGET/.claude/scripts/narrative/generate.js" ]]; then
+    pass "upgrade copies scripts/ subdirectories (narrative/)"
+else
+    fail "upgrade should copy scripts/ subdirectories" \
+        "narrative/ files missing after upgrade"
+fi
+
+# Also verify top-level scripts still copied
+if [[ -f "$SUBDIR_TARGET/.claude/scripts/statusline.sh" \
+   && -f "$SUBDIR_TARGET/.claude/scripts/token-usage.sh" ]]; then
+    pass "upgrade still copies top-level scripts"
+else
+    fail "upgrade should still copy top-level .sh scripts"
+fi
+
 # ── Test 9: Upgrade stale removal preserves user files ──────────────
 
 echo ""
