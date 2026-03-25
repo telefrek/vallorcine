@@ -5,6 +5,52 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.7.0] — 2026-03-25
+
+### Added
+- **Spec analysis pre-pass** — `/feature-test` Step 1c analyzes work-plan contracts
+  across two lenses (contract gaps + implementation risk patterns) before writing tests.
+  Generates defensive test vectors that prevent bugs from being written rather than
+  finding them after implementation. Reads adversarial KB entries from prior features.
+- **Adversarial audit loop** — `/feature-refactor` Step 4b runs a post-implementation
+  audit pass: re-analyzes implementation code, writes targeted adversarial tests, and
+  fixes confirmed bugs with fix-forward scanning. First loop runs automatically;
+  additional rounds require user approval for cross-construct bugs.
+- **Spec Analyst agent** (`spec-analyst-agent.md`) — both-lens analysis identity for
+  the audit pre-pass and post-implementation audit.
+- **Breaker agent** (`breaker-agent.md`) — adversarial test writing identity.
+- **KB adversarial-finding template** — persists bug patterns across features so each
+  audit makes the next one smarter.
+- **KB feature-footprint template** — condensed feature records for cross-reference
+  during domain analysis.
+- **aTDD research data** — full methodology, experiment harness, and validation results
+  in `aTDD-research/`. Documents why each pipeline change was made.
+
+### Changed
+- **Unified pipeline model** — one pipeline with configurable audit depth replaces the
+  tier model. `/feature-quick` = 0 audit loops, `/feature` = 1 loop (default), complex
+  features = user-approved additional rounds.
+- **Code Writer agent** — fix-forward rule: after fixing a bug, scans all other constructs
+  for the same anti-pattern.
+- **Refactor agent** — assert-only validation check, silent exception swallowing check,
+  known_issues.md awareness for structural invariants.
+- **Test Writer agent** — reads adversarial KB entries during defensive vector generation.
+- **Domain Scout** — surfaces feature footprints during `/feature-domains`, silently
+  passes adversarial findings through to test phase.
+- **Feature retro** — graduates adversarial findings and feature footprints to `.kb/`.
+- **TDD protocol** — 5-minute Bash timeout on all test execution.
+- **Pipeline timeouts** — aligned across `/feature-coordinate`, `/feature-implement`,
+  `/feature-test`.
+- **README** — updated pipeline diagram showing audit pass and KB feedback loop.
+- **`/vallorcine-help`** — updated pipeline descriptions with spec analysis and audit.
+
+### Validation
+Validated on 3 jlsm features. Combined pipeline is 3.7x cheaper than original TDD on
+the largest feature (encrypt-memory-data: 47 files, 17.7M vs 64.9M tokens) with zero
+post-implementation audit bugs. Spec analysis prevents bugs rather than finding them.
+
+---
+
 ## [0.6.0] — 2026-03-20
 
 ### Design evolution
