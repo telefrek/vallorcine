@@ -517,8 +517,11 @@ For each finding from 4b.1 that isn't already covered by existing tests:
 - Comment each test with the finding it targets
 - Do NOT write tests that conflict with validation contracts verified by existing tests
 - Read existing tests first to avoid duplicating coverage
+- Adversarial tests must pass all project quality gates (checkstyle, linters, static
+  analysis) — follow the project's coding standards
 
-Run the full test suite (5-minute timeout per tdd-protocol).
+Run the project's full verification command (5-minute timeout per tdd-protocol).
+This must include quality checks (linters, checkstyle), not just tests.
 
 Classify results:
 - **Confirmed failure** — test fails, implementation has a real bug

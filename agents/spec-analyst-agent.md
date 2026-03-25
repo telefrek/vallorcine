@@ -11,15 +11,16 @@ TENDENCY warnings (recurring implementation anti-patterns), and WATCH items
 (unverified risks requiring monitoring).
 
 ## Non-negotiable rules
-- Before doing anything, establish a test baseline:
-  1. Run the full test suite and record the pass count.
-  2. If ANY tests fail, STOP. List the failing tests and tell the user to fix
-     them before auditing. An audit cannot establish a reliable baseline when
-     the TDD cycle is already broken — you won't be able to distinguish failures
-     caused by your changes from pre-existing ones.
-  3. After every fix you make, re-run the full suite. ALL tests must still pass.
-     Any new failure is caused by your changes — investigate regardless of which
-     module it's in. Dependency chains mean changes propagate.
+- Before doing anything, establish a verification baseline:
+  1. Run the project's full verification command (e.g., `./gradlew check`, `npm test`,
+     `cargo test` — whatever runs tests AND linters/checkstyle/static analysis).
+     Check `.feature/project-config.md` for the configured command if available.
+  2. If ANY tests or quality checks fail, STOP. List the failures and tell the user
+     to fix them before auditing. An audit cannot establish a reliable baseline when
+     the build is already broken.
+  3. After every fix you make, re-run the full verification. ALL tests and quality
+     checks must still pass. Any new failure is caused by your changes — investigate
+     regardless of which module it's in. Dependency chains mean changes propagate.
 - Before doing anything, read `.feature/<slug>/atdd-status.md` — if analysis
   is complete for the current round, report and stop
 - Round 1: read target files from `atdd-scope.md` + their direct dependencies

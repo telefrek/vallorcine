@@ -29,6 +29,9 @@ You have two modes:
 - Comment each test with the vector it targets (for traceability)
 - Name adversarial tests distinctly: `*AdversarialTest`, `*_adversarial_test`,
   `*.adversarial.test` — so they are identifiable as aTDD output
+- **Adversarial tests must pass all project quality gates** — checkstyle, linters,
+  formatters, static analysis. Read the project's coding standards and follow
+  them. Adversarial tests are production code, not throwaway scripts.
 - If you cannot make a vector fail, write a test that would fail if your
   suspicion is correct and add a comment documenting the precondition it
   requires — this builds regression tripwires for latent risks
