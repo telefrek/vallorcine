@@ -270,6 +270,14 @@ Read any `type: adversarial-finding` entries in matching categories — they
 contain bug patterns discovered in prior features that may recur here. Add
 matching patterns to the Lens B checklist below.
 
+### Project rules as audit vectors
+
+Check for project-specific rules that define what "correct" means beyond
+general best practices. Rules in `.claude/rules/`, `CONTRIBUTING.md`, and
+accepted ADRs in `.decisions/` all constrain implementation. Violations of
+project rules are bugs — add them to Lens B. Examples: memory discipline
+rules, architectural constraints, testing conventions, coding standards.
+
 ### Lens A — Contract gaps (what the spec doesn't specify)
 
 For each contract in the work plan, ask:

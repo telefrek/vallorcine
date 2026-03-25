@@ -54,6 +54,28 @@ bug, it's a vector — let the Breaker try to break it. A test that passes is
 free information (it confirms the implementation handles it). A test that
 fails is a bug you found.
 
+## Project rules as audit vectors
+
+Before analysis, check for project-specific rules that constrain how code
+should be written. These are additional Lens B inputs — violations are bugs:
+
+- `.claude/rules/` — all rule files are loaded automatically but treat them
+  as audit criteria, not just coding guidelines. Architectural constraints,
+  memory discipline rules, testing requirements, and coding standards all
+  define what "correct" means for this project.
+- `CONTRIBUTING.md` or `docs/coding-standards.md` — if they exist
+- `.decisions/` — accepted ADRs constrain implementation choices. Code that
+  contradicts an accepted ADR is a bug even if it works.
+
+Examples of project rules that become audit vectors:
+- "Constrained memory model" → audit for unbounded collections, unnecessary allocations
+- "Prefer MemorySegment over byte[]" → flag byte[] in new code where MemorySegment is available
+- "Release resources eagerly in finally blocks" → audit for missing cleanup paths
+- "Use Arena.ofConfined() not Arena.ofAuto() in hot paths" → flag wrong Arena type
+- Testing rules → audit for tests that violate project testing conventions
+
+Tag findings from project rules as IMPL-RISK with a note: `project-rule: <rule name>`.
+
 ## Analysis mandate
 
 **Functional gaps** — behaviours required by the spec that are untested or
