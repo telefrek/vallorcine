@@ -1,0 +1,12 @@
+{
+  "_comment": "Maps variant slugs/branches to canonical archived feature slugs",
+  "add-float16-support": "float16-vector-support",
+  "float16-support": "float16-vector-support",
+  "update": null,
+  "init-repository-structure": null,
+  "improve-code-quality": null,
+  "fix-vscode-jpms-integration": null,
+  "improve-remote-wal-testing": null,
+  "add-full-text-search": null,
+  "add-sample-database-example": null
+}

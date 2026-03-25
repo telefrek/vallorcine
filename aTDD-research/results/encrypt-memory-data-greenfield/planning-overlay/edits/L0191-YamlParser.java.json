@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/YamlParser.java",
+  "old_string": "            case FieldType.Primitive p -> {\n                if (valuePart.isEmpty()) {\n                    throw new IllegalArgumentException(\"Expected value for primitive field '\"\n                            + fd.name() + \"' at line \" + lineRef[0]);\n                }\n                yield parsePrimitiveValue(valuePart, p, fd.name());\n            }\n            case FieldType.ArrayType at -> {",
+  "new_string": "            case FieldType.Primitive p -> {\n                if (valuePart.isEmpty()) {\n                    throw new IllegalArgumentException(\"Expected value for primitive field '\"\n                            + fd.name() + \"' at line \" + lineRef[0]);\n                }\n                yield parsePrimitiveValue(valuePart, p, fd.name());\n            }\n            case FieldType.BoundedString _ -> {\n                if (valuePart.isEmpty()) {\n                    throw new IllegalArgumentException(\"Expected value for bounded string field '\"\n                            + fd.name() + \"' at line \" + lineRef[0]);\n                }\n                yield parsePrimitiveValue(valuePart, FieldType.Primitive.STRING, fd.name());\n            }\n            case FieldType.ArrayType at -> {",
+  "replace_all": false
+}

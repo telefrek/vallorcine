@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/CiphertextValidator.java",
+  "old_string": "    /** Exact ciphertext length for Boldyreva OPE (always a long). */\n    private static final int OPE_EXACT_LENGTH = 8;",
+  "new_string": "    /** Exact ciphertext length for Boldyreva OPE (1-byte length + 8-byte encrypted long). */\n    private static final int OPE_EXACT_LENGTH = 9;",
+  "replace_all": false
+}

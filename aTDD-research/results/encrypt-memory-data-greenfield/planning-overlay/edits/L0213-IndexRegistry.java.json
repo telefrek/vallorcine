@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/IndexRegistry.java",
+  "old_string": "        // Validate encryption \u00d7 index compatibility using the capability matrix\n        validateEncryptionCompatibility(fieldDef, def);",
+  "new_string": "        // Validate OrderPreserving \u00d7 field type compatibility\n        validateOrderPreservingFieldType(fieldDef, def);\n\n        // Validate encryption \u00d7 index compatibility using the capability matrix\n        validateEncryptionCompatibility(fieldDef, def);",
+  "replace_all": false
+}

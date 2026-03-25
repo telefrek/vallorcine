@@ -35,6 +35,8 @@ Thumbs.db
 # Zips are generated release artefacts — not committed to history
 # Attach to GitHub Releases instead
 *.zip
+# Exception: research data archives are committed
+!aTDD-research/*.zip
 
 # ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/

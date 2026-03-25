@@ -1,0 +1,6 @@
+{
+  "path": ".feature/extract-core-encryption/status.md",
+  "old_string": "| Domains | in-progress | \u2014 | ~6K | \u2014 | 3 domains |",
+  "new_string": "| Domains | complete | 2026-03-19 | ~6K | \u2014 | 3 domains resolved, 1 ADR |",
+  "replace_all": false
+}

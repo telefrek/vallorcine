@@ -1,0 +1,6 @@
+{
+  "path": ".feature/ope-type-aware-bounds/status.md",
+  "old_string": "**Stage:** testing\n**Substage:** writing-tests\n**Last successful checkpoint:** work-plan.md written\n**Automation mode:** sequential\n**Execution strategy:** single-unit",
+  "new_string": "**Stage:** implementation\n**Substage:** complete\n**Last successful checkpoint:** all tests pass, check clean\n**Automation mode:** sequential\n**Execution strategy:** single-unit",
+  "replace_all": false
+}

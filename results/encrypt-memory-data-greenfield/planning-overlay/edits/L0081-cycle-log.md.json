@@ -1,0 +1,6 @@
+{
+  "path": ".feature/extract-core-encryption/cycle-log.md",
+  "old_string": "---",
+  "new_string": "---\n## 2026-03-19 \u2014 planned\n**Agent:** Work Planner\n**Summary:** Work plan written with 2 work units. WU-1: module extraction (6 class moves from jlsm-table to jlsm-core `jlsm.encryption` package, module-info update, import updates across ~20 files, 6 test moves). WU-2: pre-encrypted document support (CiphertextValidator new, FieldEncryptionDispatch promotion + extension, JlsmDocument/DocumentAccess/DocumentSerializer extensions). 1 stub created: CiphertextValidator.\n**Files written:** work-plan.md, CiphertextValidator.java (stub)\n**Token estimate:** ~8K",
+  "replace_all": false
+}

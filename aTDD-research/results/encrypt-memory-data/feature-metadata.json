@@ -1,0 +1,41 @@
+{
+  "slug": "encrypt-memory-data",
+  "feature_sha": "5a3c159",
+  "parent_sha": "f56de0d",
+  "commit_msg": "feat(table): add field-level encryption with searchable encryption support",
+  "files_changed": 47,
+  "test_files": [
+    "modules/jlsm-table/src/test/java/jlsm/table/AesGcmEncryptorTest.java",
+    "modules/jlsm-table/src/test/java/jlsm/table/AesSivEncryptorTest.java",
+    "modules/jlsm-table/src/test/java/jlsm/table/BoldyrevaOpeEncryptorTest.java",
+    "modules/jlsm-table/src/test/java/jlsm/table/DcpeSapEncryptorTest.java",
+    "modules/jlsm-table/src/test/java/jlsm/table/DocumentSerializerEncryptionTest.java",
+    "modules/jlsm-table/src/test/java/jlsm/table/EncryptionKeyHolderTest.java",
+    "modules/jlsm-table/src/test/java/jlsm/table/EncryptionSpecTest.java",
+    "modules/jlsm-table/src/test/java/jlsm/table/FieldDefinitionEncryptionTest.java",
+    "modules/jlsm-table/src/test/java/jlsm/table/FieldEncryptionDispatchTest.java",
+    "modules/jlsm-table/src/test/java/jlsm/table/IndexRegistryEncryptionTest.java",
+    "modules/jlsm-table/src/test/java/jlsm/table/JlsmSchemaEncryptionTest.java",
+    "modules/jlsm-table/src/test/java/jlsm/table/PositionalPostingCodecTest.java",
+    "modules/jlsm-table/src/test/java/jlsm/table/SseEncryptedIndexTest.java"
+  ],
+  "impl_files": [
+    "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+    "modules/jlsm-table/src/main/java/jlsm/table/EncryptionSpec.java",
+    "modules/jlsm-table/src/main/java/jlsm/table/FieldDefinition.java",
+    "modules/jlsm-table/src/main/java/jlsm/table/JlsmSchema.java",
+    "modules/jlsm-table/src/main/java/jlsm/table/internal/AesGcmEncryptor.java",
+    "modules/jlsm-table/src/main/java/jlsm/table/internal/AesSivEncryptor.java",
+    "modules/jlsm-table/src/main/java/jlsm/table/internal/BoldyrevaOpeEncryptor.java",
+    "modules/jlsm-table/src/main/java/jlsm/table/internal/DcpeSapEncryptor.java",
+    "modules/jlsm-table/src/main/java/jlsm/table/internal/EncryptionKeyHolder.java",
+    "modules/jlsm-table/src/main/java/jlsm/table/internal/FieldEncryptionDispatch.java",
+    "modules/jlsm-table/src/main/java/jlsm/table/internal/IndexRegistry.java",
+    "modules/jlsm-table/src/main/java/jlsm/table/internal/PositionalPostingCodec.java",
+    "modules/jlsm-table/src/main/java/jlsm/table/internal/SseEncryptedIndex.java"
+  ],
+  "tdd_tokens_best": 64006252,
+  "total_tokens": 64930918,
+  "mode": "audit",
+  "checkout_sha": "5a3c159"
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/extract-core-encryption/status.md",
+  "old_string": "**Substage:** surveying-codebase",
+  "new_string": "**Substage:** confirmed-design",
+  "replace_all": false
+}

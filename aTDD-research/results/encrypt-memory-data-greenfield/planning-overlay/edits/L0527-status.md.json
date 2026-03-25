@@ -1,0 +1,6 @@
+{
+  "path": ".feature/extract-core-encryption/status.md",
+  "old_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|",
+  "new_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|\n| JPMS module extraction | resolved | \u2014 | \u2014 | 2026-03-19 | 2026-03-19 |\n| Pre-encrypted document signaling | pending-decision | \u2014 | \u2014 | 2026-03-19 | \u2014 |\n| Ciphertext structural validation | resolved | \u2014 | .kb/algorithms/encryption/searchable-encryption-schemes.md | 2026-03-19 | 2026-03-19 |",
+  "replace_all": false
+}

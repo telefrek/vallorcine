@@ -1,0 +1,6 @@
+{
+  "path": ".feature/extract-core-encryption/status.md",
+  "old_string": "**Automation mode:** not-set\n**Execution strategy:** not-set",
+  "new_string": "**Automation mode:** not-set\n**Execution strategy:** cost",
+  "replace_all": false
+}

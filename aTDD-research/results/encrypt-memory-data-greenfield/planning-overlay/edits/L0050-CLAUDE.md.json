@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| Fix encryption performance | fix-encryption-performance | 2026-03-19 | scoping | brief confirmed |",
+  "new_string": "| Fix encryption performance | fix-encryption-performance | 2026-03-19 | planning-complete | work-plan written, single unit |",
+  "replace_all": false
+}

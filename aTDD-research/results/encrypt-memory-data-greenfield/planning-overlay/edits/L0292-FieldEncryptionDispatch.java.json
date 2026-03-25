@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+  "old_string": "        final long decrypted = ope.decrypt(encValue) - 1; // undo +1 offset\n        final int useBytes = Math.min(originalLen, maxBytes);\n        // Convert the unsigned long back to bytes in the original representation\n        final byte[] result = new byte[originalLen];\n        for (int i = useBytes - 1; i >= 0; i--) {\n            result[i] = (byte) (decrypted & 0xFF);\n            decrypted >>>= 8;\n        }\n        return result;",
+  "new_string": "        long decrypted = ope.decrypt(encValue) - 1; // undo +1 offset\n        final int useBytes = Math.min(originalLen, maxBytes);\n        // Convert the unsigned long back to bytes in the original representation\n        final byte[] result = new byte[originalLen];\n        for (int i = useBytes - 1; i >= 0; i--) {\n            result[i] = (byte) (decrypted & 0xFF);\n            decrypted >>>= 8;\n        }\n        return result;",
+  "replace_all": false
+}

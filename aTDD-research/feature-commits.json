@@ -1,0 +1,91 @@
+{
+  "_comment": "Feature commit SHAs in jlsm repo. feature_sha is the commit containing the TDD work. parent_sha is the state before TDD (end of planning). For state reconstruction: git checkout parent_sha gives the starting point for both standard TDD replay and aTDD comparison.",
+  "features": {
+    "block-compression": {
+      "feature_sha": "af6b5cb",
+      "parent_sha": "c8243f0",
+      "commit_msg": "feat(sstable): add block-level compression to SSTable storage",
+      "files_changed": 27,
+      "insertions": 2893
+    },
+    "encrypt-memory-data": {
+      "feature_sha": "5a3c159",
+      "parent_sha": "f56de0d",
+      "commit_msg": "feat(table): add field-level encryption with searchable encryption support",
+      "files_changed": 47,
+      "insertions": 6018,
+      "note": "This session also produced extract-core-encryption, fix-encryption-performance, and ope-type-aware-bounds as follow-on features"
+    },
+    "engine-clustering": {
+      "feature_sha": "38603db",
+      "parent_sha": "1dfacaf",
+      "commit_msg": "feat(engine): implement engine clustering — membership, ownership, scatter-gather",
+      "files_changed": 28,
+      "insertions": 4334
+    },
+    "float16-vector-support": {
+      "feature_sha": "0f329b3",
+      "parent_sha": "efc0e11",
+      "commit_msg": "integrating vallorcine and testing float16 support",
+      "files_changed": 39,
+      "insertions": 3975,
+      "note": "Early feature, pre-vallorcine feature pipeline. Merged as PR #7."
+    },
+    "in-process-database-engine": {
+      "feature_sha": "962aeb5",
+      "parent_sha": "96c0e41",
+      "commit_msg": "feat(engine): add jlsm-engine module with in-process database engine",
+      "files_changed": 40,
+      "insertions": 4617
+    },
+    "optimize-document-serializer": {
+      "feature_sha": "313ad12",
+      "parent_sha": "14915fe",
+      "commit_msg": "perf(table): optimize DocumentSerializer deserialization allocation strategy",
+      "files_changed": 4,
+      "insertions": 345
+    },
+    "sql-query-support": {
+      "feature_sha": "edc2b36",
+      "parent_sha": "cb626c9",
+      "commit_msg": "feat(jlsm-sql): add SQL SELECT parser and translator module",
+      "files_changed": 22,
+      "insertions": 2446
+    },
+    "streaming-block-decompression": {
+      "feature_sha": "579f8a6",
+      "parent_sha": "1e70573",
+      "commit_msg": "perf(sstable): stream block decompression during v2 compressed scans",
+      "files_changed": 8,
+      "insertions": 696
+    },
+    "striped-block-cache": {
+      "feature_sha": "d6b5acc",
+      "parent_sha": "d5e3bb0",
+      "commit_msg": "feat(cache): add StripedBlockCache for multi-threaded performance",
+      "files_changed": 3,
+      "insertions": 575
+    },
+    "table-indices-and-queries": {
+      "feature_sha": "0001631",
+      "parent_sha": "3153f88",
+      "commit_msg": "feat(jlsm-table): add secondary indices and fluent query API",
+      "files_changed": 20,
+      "insertions": 2673
+    },
+    "table-partitioning": {
+      "feature_sha": "95e2add",
+      "parent_sha": "86f7982",
+      "commit_msg": "feat(jlsm-table): add range-based table partitioning",
+      "files_changed": 34,
+      "insertions": 3851
+    },
+    "vector-field-type": {
+      "feature_sha": "42896c3",
+      "parent_sha": "20aafb1",
+      "commit_msg": "feat(table): add VectorType to FieldType hierarchy with fixed dimensions",
+      "files_changed": 31,
+      "insertions": 2192
+    }
+  }
+}

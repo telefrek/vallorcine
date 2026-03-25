@@ -1,0 +1,6 @@
+{
+  "path": ".feature/encrypt-memory-data/status.md",
+  "old_string": "| Testing | not-started | \u2014 | \u2014 | \u2014 | cycle 0 |\n| Implementation | not-started | \u2014 | \u2014 | \u2014 | cycle 0 |\n| Refactor | not-started | \u2014 | \u2014 | \u2014 | cycle 0 |",
+  "new_string": "| Testing | complete | 2026-03-19 | \u2014 | \u2014 | 4 units |\n| Implementation | complete | 2026-03-19 | \u2014 | \u2014 | 4 units |\n| Refactor | complete | 2026-03-19 | \u2014 | \u2014 | 4 units |",
+  "replace_all": false
+}

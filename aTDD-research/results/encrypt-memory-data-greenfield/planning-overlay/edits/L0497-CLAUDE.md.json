@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| Field-level in-memory encryption | encrypt-memory-data | 2026-03-18 | planning | work-plan.md written |",
+  "new_string": "| Field-level in-memory encryption | encrypt-memory-data | 2026-03-18 | pr-created | PR #20 open |\n| Extract core encryption primitives | extract-core-encryption | 2026-03-19 | scoping | brief confirmed |",
+  "replace_all": false
+}

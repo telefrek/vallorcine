@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldType.java",
+  "old_string": "    /** Returns {@link Primitive#STRING}. */\n    static FieldType string() {\n        return Primitive.STRING;\n    }",
+  "new_string": "    /** Returns {@link Primitive#STRING} (unbounded). */\n    static FieldType string() {\n        return Primitive.STRING;\n    }\n\n    /**\n     * Returns a {@link BoundedString} with the given max byte length.\n     *\n     * @param maxLength the maximum byte length; must be positive\n     * @return a new BoundedString\n     */\n    static FieldType string(int maxLength) {\n        return new BoundedString(maxLength);\n    }",
+  "replace_all": false
+}
