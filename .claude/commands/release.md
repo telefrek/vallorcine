@@ -212,9 +212,22 @@ zip -r "vallorcine-v<NEW_VERSION>.zip" . \
   --exclude ".feature/*" \
   --exclude ".kb/*" \
   --exclude ".decisions/*" \
+  --exclude ".curate/*" \
   --exclude ".DS_Store" \
   --exclude "*.zip" \
-  --exclude ".env*"
+  --exclude ".env*" \
+  --exclude "__pycache__/*" \
+  --exclude "*.pyc" \
+  --exclude "WIP.md" \
+  --exclude ".changelog-staging.md" \
+  --exclude "aTDD-research/*" \
+  --exclude "results/*" \
+  --exclude "tests/*" \
+  --exclude "tools/*" \
+  --exclude "CONTEXT.md" \
+  --exclude "SETTLED.md" \
+  --exclude "COMPETITIVE.md" \
+  --exclude "DEFERRED.md"
 ```
 
 If the zip command fails: display the error and stop.
