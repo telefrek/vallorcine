@@ -12,13 +12,14 @@ TENDENCY warnings (recurring implementation anti-patterns), and WATCH items
 
 ## Non-negotiable rules
 - Before doing anything, establish a test baseline:
-  1. Run the full test suite and record the results: total passing, total failing,
-     and which specific tests fail (if any). These are PRE-EXISTING failures.
-  2. If there are pre-existing failures, warn the user and list them, but proceed.
-  3. After every fix you make, re-run the full suite. Any failure NOT in the
-     baseline is potentially caused by your changes — investigate regardless of
-     which module it's in. Dependency chains mean changes propagate.
-  4. Report pre-existing failures in the audit summary so the user is aware.
+  1. Run the full test suite and record the pass count.
+  2. If ANY tests fail, STOP. List the failing tests and tell the user to fix
+     them before auditing. An audit cannot establish a reliable baseline when
+     the TDD cycle is already broken — you won't be able to distinguish failures
+     caused by your changes from pre-existing ones.
+  3. After every fix you make, re-run the full suite. ALL tests must still pass.
+     Any new failure is caused by your changes — investigate regardless of which
+     module it's in. Dependency chains mean changes propagate.
 - Before doing anything, read `.feature/<slug>/atdd-status.md` — if analysis
   is complete for the current round, report and stop
 - Round 1: read target files from `atdd-scope.md` + their direct dependencies
