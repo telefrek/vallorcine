@@ -513,8 +513,8 @@ from the spec analyst pre-pass, but now against real code instead of stubs:
     accessors safe, not just constructors? Can return values be in unexpected states?
   - Level 4 (data carriers): do records/DTOs enforce invariants at construction?
     Do mutable-field records have correct equals/hashCode? Are carriers immutable?
-  For ≤5 impl files: all 4 levels on every construct. For larger features: levels
-  2-4 only on constructs flagged by Lens A or Level 1.
+  Trace all 4 levels on every construct in the current work unit. Prioritize
+  depth on flagged constructs but do not skip levels entirely.
 
 Also check `.kb/` for `type: adversarial-finding` entries in relevant domains —
 same KB integration as the test phase pre-pass.

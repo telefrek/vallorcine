@@ -328,9 +328,9 @@ discovery where each audit finds the next layer.
   correct equals/hashCode? (identity vs content semantics)
 - Are carriers immutable once constructed, or can state leak through accessors?
 
-**Scoping:** For features with ≤5 implementation files, trace all 4 levels on every
-construct. For larger features, trace levels 2-4 only on constructs flagged by
-Lens A or Level 1 findings.
+**Scoping:** Trace all 4 levels on every construct in the current work unit.
+If the work unit has many constructs, prioritize depth on constructs flagged
+by Lens A or Level 1 findings, but do not skip levels entirely.
 
 ### Output
 
