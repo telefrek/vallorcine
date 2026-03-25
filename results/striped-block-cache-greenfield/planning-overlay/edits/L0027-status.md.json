@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/status.md",
+  "old_string": "**Substage:** confirmed-design",
+  "new_string": "**Substage:** writing-stubs",
+  "replace_all": false
+}

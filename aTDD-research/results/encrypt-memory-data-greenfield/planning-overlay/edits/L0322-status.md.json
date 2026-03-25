@@ -1,0 +1,6 @@
+{
+  "path": ".feature/encrypt-memory-data/status.md",
+  "old_string": "| 1 | WU-3 | 31 | 31 | yes | none |",
+  "new_string": "| 1 | WU-1 | 30 | 30 | yes | none |\n| 1 | WU-2 | 49 | 49 | yes | none |\n| 1 | WU-3 | 31 | 31 | yes | none |\n| 1 | WU-4 | 36 | 36 | yes | none |",
+  "replace_all": false
+}

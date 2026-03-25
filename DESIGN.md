@@ -737,6 +737,10 @@ vallorcine/
 │   ├── feature-resume/SKILL.md      ← /feature-resume [--status] [--share] — crash recovery + briefing
 │   ├── feature-cleanup/SKILL.md     ← /feature-cleanup — review stale feature directories
 │   │
+│   │  Adversarial TDD
+│   ├── atdd-round/SKILL.md         ← /atdd-round — adversarial cycle: Analyst → Breaker → Implementer
+│   ├── atdd-audit/SKILL.md         ← /atdd-audit — audit existing code, bootstrap, enter cycle
+│   ├── atdd-refactor/SKILL.md      ← /atdd-refactor — constrained refactor + regression verification
 │   │
 │   │  Curation
 │   ├── curate/SKILL.md              ← /curate — codebase quality review, correlation engine
@@ -755,7 +759,10 @@ vallorcine/
 │   ├── code-writer-agent.md
 │   ├── refactor-agent.md
 │   ├── research-agent.md
-│   └── architect-agent.md
+│   ├── architect-agent.md
+│   ├── spec-analyst-agent.md
+│   ├── breaker-agent.md
+│   └── constrained-refactorer-agent.md
 │
 ├── rules/                           ← always-loaded identity + protocol rules
 │   ├── tdd-protocol.md              ← pipeline order, write authority, idempotency rule

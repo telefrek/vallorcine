@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+  "old_string": "    private static byte[] longToBytes(long value) {\n        final byte[] buf = new byte[8];\n        for (int i = 0; i < 8; i++) {\n            buf[i] = (byte) (value >>> (56 - i * 8));\n        }\n        return buf;\n    }\n\n    private static long bytesTo8ByteLong(byte[] buf) {\n        assert buf.length == 8 : \"expected 8 bytes for long\";\n        long result = 0;\n        for (int i = 0; i < 8; i++) {\n            result |= ((long) (buf[i] & 0xFF)) << (56 - i * 8);\n        }\n        return result;\n    }\n\n    // -- OPE domain derivation",
+  "new_string": "    // -- OPE domain derivation",
+  "replace_all": false
+}

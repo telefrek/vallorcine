@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+  "old_string": "            case FieldType.ArrayType at -> decodeArray(buf, cursor, at);\n            case FieldType.VectorType vt -> decodeVector(buf, cursor, vt);\n            case FieldType.ObjectType ot -> decodeObject(buf, cursor, ot);\n        };\n    }",
+  "new_string": "            case FieldType.BoundedString _ -> {\n                final int len = readVarInt(buf, cursor);\n                final String s = new String(buf, cursor.pos, len, StandardCharsets.UTF_8);\n                cursor.pos += len;\n                yield s;\n            }\n            case FieldType.ArrayType at -> decodeArray(buf, cursor, at);\n            case FieldType.VectorType vt -> decodeVector(buf, cursor, vt);\n            case FieldType.ObjectType ot -> decodeObject(buf, cursor, ot);\n        };\n    }",
+  "replace_all": false
+}

@@ -1,0 +1,22 @@
+{
+  "changed_files": [
+    "modules/jlsm-core/src/main/java/jlsm/cache/LruBlockCache.java",
+    "modules/jlsm-core/src/main/java/jlsm/cache/StripedBlockCache.java",
+    "modules/jlsm-core/src/test/java/jlsm/cache/StripedBlockCacheTest.java"
+  ],
+  "impl_files": [
+    "modules/jlsm-core/src/main/java/jlsm/cache/LruBlockCache.java",
+    "modules/jlsm-core/src/main/java/jlsm/cache/StripedBlockCache.java"
+  ],
+  "test_files": [
+    "modules/jlsm-core/src/test/java/jlsm/cache/StripedBlockCacheTest.java"
+  ],
+  "impl_dirs": [
+    "modules/jlsm-core/src/main/java/jlsm/cache"
+  ],
+  "test_dirs": [
+    "modules/jlsm-core/src/test/java/jlsm/cache"
+  ],
+  "scope_path": "modules/jlsm-core/src/main/java/jlsm/cache",
+  "mode": "audit"
+}

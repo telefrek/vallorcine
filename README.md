@@ -18,9 +18,10 @@ Your project learns once and remembers forever.
 `.decisions/`. Decisions compound across features — you don't re-debate settled
 questions.
 
-**Features** — TDD pipeline from scoping through PR, with crash recovery and
-parallel work unit execution. Claude follows the discipline so you can focus on
-directing the work, not policing it.
+**Features** — TDD pipeline from scoping through PR, with spec analysis that
+prevents bugs before they're written, an adversarial audit pass that confirms
+implementation quality, crash recovery, and parallel work unit execution. Claude
+follows the discipline so you can focus on directing the work, not policing it.
 
 **Curation** — `/curate` scans your codebase for quality signals: decisions that
 no longer match the code, research that's gone stale, implicit dependencies
@@ -54,11 +55,14 @@ graph LR
         T --> I["/feature-implement"]
         I --> R["/feature-refactor"]
         R -->|"next unit"| T
-        R --> PR["/feature-pr"]
+        R --> A["audit pass"]
+        A -->|"bugs found"| A
+        A --> PR["/feature-pr"]
         PR --> RET["/feature-retro"]
     end
 
     KB -.->|"feeds into"| D
+    KB -.->|"adversarial patterns"| T
     DEC -.->|"feeds into"| D
     RET -.->|"writes back"| KB
     RET -.->|"writes back"| DEC
@@ -77,6 +81,7 @@ graph LR
     style T fill:#22c55e,color:#fff
     style I fill:#22c55e,color:#fff
     style R fill:#22c55e,color:#fff
+    style A fill:#ef4444,color:#fff
     style PR fill:#8b5cf6,color:#fff
     style RET fill:#8b5cf6,color:#fff
     style RES fill:#f59e0b,color:#fff
@@ -89,6 +94,8 @@ graph LR
 
 Knowledge and decisions accumulate across features and get richer over time.
 Features read from them during domain analysis and write back via retrospectives.
+Adversarial findings from each feature's audit pass feed into the next feature's
+spec analysis — bug patterns discovered once are prevented in all future features.
 Curation closes the loop — it detects when decisions drift, research goes stale,
 or features create implicit dependencies. This feedback loop is what makes the
 5th feature on a project faster than the 1st.
@@ -131,9 +138,9 @@ or features create implicit dependencies. This feedback loop is what makes the
 | `/feature-domains "<slug>"` | Domain analysis, commissions research/architect |
 | `/feature-plan "<slug>"` | Work plan, stubs, execution strategy |
 | `/feature-coordinate "<slug>"` | Parallel batch coordinator |
-| `/feature-test "<slug>"` | Write failing tests from contracts |
+| `/feature-test "<slug>"` | Spec analysis pre-pass + write failing tests from contracts |
 | `/feature-implement "<slug>"` | Implement until tests pass |
-| `/feature-refactor "<slug>"` | Quality review (8-item checklist, 2a-2h) |
+| `/feature-refactor "<slug>"` | Quality review (8-item checklist) + adversarial audit pass |
 | `/feature-pr "<slug>"` | Draft PR title, description, checklist |
 | `/feature-retro "<slug>"` | Post-feature retrospective + narrative article generation |
 | `/feature-complete "<slug>"` | Archive after PR merges |

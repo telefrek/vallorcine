@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/YamlWriter.java",
+  "old_string": "            case FieldType.Primitive p -> writePrimitive(p, value, sb);\n            case FieldType.ArrayType at -> writeArray(at, (Object[]) value, sb, depth);\n            case FieldType.VectorType vt -> writeVector(vt, value, sb, depth);\n            case FieldType.ObjectType _ -> {",
+  "new_string": "            case FieldType.Primitive p -> writePrimitive(p, value, sb);\n            case FieldType.BoundedString _ -> writePrimitive(FieldType.Primitive.STRING, value, sb);\n            case FieldType.ArrayType at -> writeArray(at, (Object[]) value, sb, depth);\n            case FieldType.VectorType vt -> writeVector(vt, value, sb, depth);\n            case FieldType.ObjectType _ -> {",
+  "replace_all": false
+}

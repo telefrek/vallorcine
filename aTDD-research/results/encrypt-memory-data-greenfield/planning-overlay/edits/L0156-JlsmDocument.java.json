@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/JlsmDocument.java",
+  "old_string": "    /** Returns the STRING value of the named field. */\n    public String getString(String field) {\n        return (String) requireValue(field, FieldType.Primitive.STRING);\n    }",
+  "new_string": "    /** Returns the STRING or BoundedString value of the named field. */\n    public String getString(String field) {\n        final int idx = requireIndex(field);\n        final FieldType actualType = schema.fields().get(idx).type();\n        if (actualType != FieldType.Primitive.STRING && !(actualType instanceof FieldType.BoundedString)) {\n            throw new IllegalArgumentException(\n                    \"Field '\" + field + \"' has type \" + actualType + \", not STRING or BoundedString\");\n        }\n        final Object val = values[idx];\n        if (val == null) {\n            throw new NullPointerException(\"Field '\" + field + \"' is null\");\n        }\n        return (String) val;\n    }",
+  "replace_all": false
+}

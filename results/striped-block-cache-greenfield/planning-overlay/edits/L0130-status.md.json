@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/status.md",
+  "old_string": "| 1 | \u2014 | 2026-03-17 | 2026-03-17 | \u2014 | 0 |",
+  "new_string": "| 1 | \u2014 | 2026-03-17 | 2026-03-17 | \u2014 | 3 |",
+  "replace_all": false
+}

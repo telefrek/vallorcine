@@ -256,6 +256,61 @@ test count.
 
 ---
 
+## Step 1c — Spec analysis pre-pass (both lenses)
+
+Analyze the work-plan contracts and stubs across two complementary lenses to
+identify risks BEFORE writing tests. This step prevents bugs from being written
+rather than finding them after implementation.
+
+### KB integration
+
+If `.kb/CLAUDE.md` exists, scan the Topic Map for categories relevant to this
+feature's domain (e.g., encryption, indexing, serialization, compression).
+Read any `type: adversarial-finding` entries in matching categories — they
+contain bug patterns discovered in prior features that may recur here. Add
+matching patterns to the Lens B checklist below.
+
+### Lens A — Contract gaps (what the spec doesn't specify)
+
+For each contract in the work plan, ask:
+
+| Question | What to test |
+|----------|-------------|
+| What happens at boundary values? | Empty inputs, zero-length, max capacity, single element |
+| What happens with null at every layer? | Constructor args, method params, stored fields, return values |
+| Are error cases exhaustive? | Invalid combinations, inverted ranges, type mismatches |
+| Are composite operations atomic? | If step A succeeds but step B fails, what state? |
+| Are mutable inputs defensively copied? | Arrays, collections crossing trust boundaries |
+| What equality semantics do keys use? | Identity vs content (especially byte[], arrays) |
+
+### Lens B — Implementation risk patterns (what code typically gets wrong)
+
+Based on the types and patterns visible in the stubs/contracts, flag risks for:
+
+- `byte[]` or arrays used as map/set keys — identity equality, not content
+- Mutable arrays/collections stored by reference without defensive copying
+- Float/double encoding — sign-bit handling differences between integer and IEEE 754
+- Multi-step mutations that aren't atomic — delete-then-insert, check-then-act
+- Switch/instanceof that don't cover all sealed interface subtypes
+- Silent truncation or Math.min instead of fail-fast on mismatched dimensions/sizes
+- Not-equals predicates interacting with null field values
+- Resource lifecycle — double-close, use-after-close, deferred exception aggregation
+- Validation that should happen at construction but is deferred to usage
+- Any patterns from adversarial KB entries loaded above
+
+### Output
+
+For each finding, note:
+- The construct and contract section it applies to
+- Whether it's a CONTRACT-GAP (Lens A) or IMPL-RISK (Lens B)
+- A specific defensive test case to add to the test plan
+
+These findings feed directly into the test plan as a "Defensive (from spec analysis)"
+section. Do NOT write a separate spec-analysis.md file — the findings are integrated
+into the test plan in the next step.
+
+---
+
 ## Step 2 — Write the test plan (in chat first)
 
 Update status.md substage → `confirming-plan`.
@@ -301,14 +356,20 @@ Boundary values
 Structural (from interface analysis)
   N. test_<name> — <scenario> — pattern: <round-trip | lifecycle | interaction | ...>
   ...
+Defensive (from spec analysis)
+  N. test_<name> — <scenario> — finding: <CONTRACT-GAP | IMPL-RISK>: <description>
+  ...
 ───────────────────────────────────────────────
+Spec analysis: <N> CONTRACT-GAP + <N> IMPL-RISK findings → <N> defensive tests
 Does this cover the acceptance criteria? Any to add or remove?
 ───────────────────────────────────────────────
 ```
 
-The plan MUST include "Boundary values" and "Structural" sections. If either has
-no applicable tests (rare), state why explicitly. The structural section should
-list which interface patterns were checked and found not applicable.
+The plan MUST include "Boundary values", "Structural", and "Defensive" sections.
+If any section has no applicable tests (rare), state why explicitly. The structural
+section should list which interface patterns were checked and found not applicable.
+The defensive section should summarize how many findings came from each lens and
+any adversarial KB patterns that were checked.
 
 Wait for confirmation. Update status.md substage → `writing-tests` after confirm.
 
@@ -336,7 +397,8 @@ Update status.md substage → `verifying-failures` after writing.
 
 ## Step 4 — Verify tests fail
 
-Run the test suite.
+Run the test suite (5-minute Bash timeout per tdd-protocol — if the suite hangs,
+investigate before retrying).
 
 Expected: all new tests fail with NotImplementedError or import/compile error.
 

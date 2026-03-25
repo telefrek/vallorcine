@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/status.md",
+  "old_string": "**Substage:** confirming-brief\n**Last successful checkpoint:** feature directory created",
+  "new_string": "**Substage:** complete\n**Last successful checkpoint:** brief confirmed and written",
+  "replace_all": false
+}

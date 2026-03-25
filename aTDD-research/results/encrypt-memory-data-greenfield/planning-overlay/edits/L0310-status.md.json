@@ -1,0 +1,6 @@
+{
+  "path": ".feature/encrypt-memory-data/status.md",
+  "old_string": "**Stage:** planning\n**Substage:** complete\n**Last successful checkpoint:** work-plan.md written, 9 stubs created",
+  "new_string": "**Stage:** refactor\n**Substage:** refactor complete\n**Last successful checkpoint:** all 4 work units complete, 426 tests passing, check clean",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/encrypt-memory-data/cycle-log.md",
+  "old_string": "## 2026-03-19 \u2014 [WU-4] refactored\n**Agent:** \ud83d\udd27 Refactor Agent\n**Summary:** Spotless formatting applied. All 426 tests pass, check clean.\n---",
+  "new_string": "## 2026-03-19 \u2014 [WU-4] refactored\n**Agent:** \ud83d\udd27 Refactor Agent\n**Summary:** Spotless formatting applied. All 426 tests pass, check clean.\n---\n## 2026-03-19 \u2014 pr-drafted\n**Agent:** \ud83d\udccb PR Draft\n**Summary:** PR draft written. 47 files staged across 4 work units (9 new source files, 4 modified source files, 13 test files, 11 KB/decisions files, 10 index files). Archive manifest written.\n---",
+  "replace_all": false
+}

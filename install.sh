@@ -205,6 +205,8 @@ _install_seed() {
 _install_seed "$SCRIPT_DIR/kb/CLAUDE.md"                              "$TARGET/.kb/CLAUDE.md"
 _install_seed "$SCRIPT_DIR/kb/_refs/complexity-notation.md"           "$TARGET/.kb/_refs/complexity-notation.md"
 _install_seed "$SCRIPT_DIR/kb/_refs/benchmarking-methodology.md"      "$TARGET/.kb/_refs/benchmarking-methodology.md"
+_install_seed "$SCRIPT_DIR/kb/_refs/adversarial-finding-template.md"  "$TARGET/.kb/_refs/adversarial-finding-template.md"
+_install_seed "$SCRIPT_DIR/kb/_refs/feature-footprint-template.md"    "$TARGET/.kb/_refs/feature-footprint-template.md"
 
 # ── Decisions seed files (never overwrite — same as KB) ──────────────────────
 

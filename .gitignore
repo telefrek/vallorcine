@@ -1,9 +1,12 @@
 # ── Local test install ───────────────────────────────────────────────────────
 # When you run install.sh . from the repo root to test locally,
 # these directories are created. They are NOT part of the source.
-# Ignore .claude/ contents (local test install) but keep rules/ committed
+# Ignore .claude/ contents (local test install) but keep dev tools committed
 .claude/*
 !.claude/rules/
+!.claude/skills/
+!.claude/commands/
+!.claude/settings.json
 .feature/
 .curate/
 .kb/
@@ -32,6 +35,8 @@ Thumbs.db
 # Zips are generated release artefacts — not committed to history
 # Attach to GitHub Releases instead
 *.zip
+# Exception: research data archives are committed
+!aTDD-research/*.zip
 
 # ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/

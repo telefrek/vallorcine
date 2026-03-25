@@ -453,9 +453,12 @@ def build_phase(cmd_token: Token, tokens: list[Token],
 
     # Feature filtering
     if feature_slug:
-        if cmd_args and feature_slug in cmd_args:
+        # Normalize: "engine clustering" should match slug "engine-clustering"
+        slug_variants = [feature_slug, feature_slug.replace("-", " ")]
+        args_match = cmd_args and any(v in cmd_args for v in slug_variants)
+        if cmd_args and args_match:
             pass  # explicit match
-        elif cmd_args and feature_slug not in cmd_args:
+        elif cmd_args and not args_match:
             # Args present but for a different feature — reject
             return None
         elif cmd_name in ("/feature", "/feature-quick") and not cmd_args:

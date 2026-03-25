@@ -384,9 +384,12 @@ function buildPhase(cmdToken, tokens, featureSlug) {
 
   // Feature filtering
   if (featureSlug) {
-    if (cmdArgs && cmdArgs.includes(featureSlug)) {
+    // Normalize: "engine clustering" should match slug "engine-clustering"
+    const slugVariants = [featureSlug, featureSlug.replace(/-/g, " ")];
+    const argsMatch = cmdArgs && slugVariants.some((v) => cmdArgs.includes(v));
+    if (cmdArgs && argsMatch) {
       // explicit match
-    } else if (cmdArgs && !cmdArgs.includes(featureSlug)) {
+    } else if (cmdArgs && !argsMatch) {
       return null;
     } else if ((cmdName === "/feature" || cmdName === "/feature-quick") && !cmdArgs) {
       let slugFound = false;

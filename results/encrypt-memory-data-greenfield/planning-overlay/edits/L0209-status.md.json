@@ -1,0 +1,6 @@
+{
+  "path": ".feature/encrypt-memory-data/status.md",
+  "old_string": "<!-- current_batch: 3 -->",
+  "new_string": "<!-- current_batch: 4 -->",
+  "replace_all": false
+}

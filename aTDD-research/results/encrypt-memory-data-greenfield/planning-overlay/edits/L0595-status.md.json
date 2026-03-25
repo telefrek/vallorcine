@@ -1,0 +1,6 @@
+{
+  "path": ".feature/extract-core-encryption/status.md",
+  "old_string": "**Stage:** scoping\n**Substage:** complete",
+  "new_string": "**Stage:** domains\n**Substage:** complete",
+  "replace_all": false
+}

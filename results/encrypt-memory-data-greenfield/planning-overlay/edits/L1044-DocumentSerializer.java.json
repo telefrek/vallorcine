@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+  "old_string": "import jlsm.table.FieldEncryptionDispatch;\nimport jdk.incubator.vector.ByteVector;",
+  "new_string": "import jdk.incubator.vector.ByteVector;",
+  "replace_all": false
+}
