@@ -484,10 +484,10 @@ discover" pass — if the spec analyst pre-pass (Step 1c of /feature-test) did i
 job, this should find zero bugs.
 
 **Baseline requirement:** The full test suite was already run in Step 1 (load
-context) to establish a baseline. After every fix in this step, compare results
-against that baseline. Any NEW failures not in the baseline must be investigated
-regardless of which module they're in — dependency chains mean fixes in one
-module can break consumers in another.
+context) and must be all passing before this step begins. After every fix,
+re-run the full suite — ALL tests must still pass. Any new failure is caused
+by your changes — investigate regardless of which module it's in. Dependency
+chains mean fixes in one module can break consumers in another.
 
 **Skip this step if:**
 - This is `/feature-quick` (status.md shows no spec analysis was performed)
