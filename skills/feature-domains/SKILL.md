@@ -173,8 +173,18 @@ For each pending domain:
    category-level `CLAUDE.md` files for entries matching these keywords — this
    catches tangentially related KB entries in other topics/categories. Read only
    the matching category indexes, not subject files.
-3. Read `.decisions/CLAUDE.md` — check for relevant ADR
-4. Classify using the rules below
+3. Check for **feature footprint** entries (`type: feature-footprint`) in relevant
+   categories. Footprints are condensed records from prior features that document
+   what was built, key decisions, and cross-references to ADRs and KB research.
+   If a footprint overlaps with this feature's domain, note it — the Work Planner
+   should reference it for context on prior art and known constraints.
+4. Check for **adversarial finding** entries (`type: adversarial-finding`) in
+   relevant categories. These are bug patterns discovered during prior feature
+   audits. Do NOT surface these to the user or include them in domains.md — they
+   pass through silently to the test phase where the spec analyst pre-pass
+   (Step 1c of /feature-test) will read and apply them.
+5. Read `.decisions/CLAUDE.md` — check for relevant ADR
+6. Classify using the rules below
 
 ### Classification rules
 
@@ -409,6 +419,9 @@ status: "<resolved | has-gaps>"
 
 **Governing ADR:**
 - [`.decisions/<adr-slug>/adr.md`](../../.decisions/<adr-slug>/adr.md) — <one-line decision summary>
+
+**Prior feature footprints:** <if any footprints reference this domain>
+- [`.kb/<topic>/<cat>/<footprint>.md`](../../.kb/<topic>/<cat>/<footprint>.md) — <what was built, key constraint>
 
 **Guidance for implementation:**
 <2–3 sentences the Work Planner must respect>

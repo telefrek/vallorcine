@@ -81,9 +81,9 @@ command to run, then explain what it does and what the user can expect.
 - `/feature-domains "<slug>"` — domain analysis, commissions research/architect
 - `/feature-plan "<slug>"` — work plan, stubs, execution strategy
 - `/feature-coordinate "<slug>"` — parallel batch coordinator (balanced/speed mode)
-- `/feature-test "<slug>"` — write failing tests from contracts
+- `/feature-test "<slug>"` — spec analysis pre-pass (contract gaps + implementation risk patterns) + write failing tests from contracts
 - `/feature-implement "<slug>"` — implement until tests pass
-- `/feature-refactor "<slug>"` — quality review checklist
+- `/feature-refactor "<slug>"` — quality review checklist + adversarial audit pass (writes targeted tests against the implementation, fixes confirmed bugs)
 - `/feature-pr "<slug>"` — draft PR title, description, checklist
 - `/feature-retro "<slug>"` — post-feature retrospective (scope, assumptions, gaps, tokens)
 - `/feature-complete "<slug>"` — archive after PR merges
@@ -243,17 +243,21 @@ Here's how it works, in order:
      Produces: .feature/<slug>/work-plan.md + stub files
 
   4. /feature-test "<slug>"
-     Tests written against the contracts — verified failing before any code is written.
-     Produces: failing tests in your test directory
+     Spec analysis identifies contract gaps and implementation risk patterns.
+     Tests written against contracts + defensive tests from analysis — verified
+     failing before any code is written.
+     Produces: failing tests (contract + defensive + structural)
 
   5. /feature-implement "<slug>"
      Implementation until all tests pass. Escalates conflicts rather than working around them.
      Produces: passing tests + working code
 
   6. /feature-refactor "<slug>"
-     Quality review: standards, security, performance, missing test coverage,
-     and integration tests if configured.
-     Produces: clean, reviewed code
+     Quality review: standards, security, performance, missing test coverage.
+     Then an adversarial audit pass — writes targeted tests against the real
+     implementation and fixes any confirmed bugs. Bug patterns are recorded
+     so future features avoid repeating them.
+     Produces: clean, audited code
 
   7. /feature-pr "<slug>"
      Drafts your PR title, description, and review checklist.

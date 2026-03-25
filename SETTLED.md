@@ -505,3 +505,43 @@ find cross-cutting issues.
 Always skips if file exists, regardless of FORCE_UPDATE or version mismatch auto-force.
 Found via dogfood: every force install was wiping JLSM's populated indexes with
 empty seed templates. Regression test covers both paths.
+
+## JS parity required for narrative pipeline (2026-03-20)
+
+Principle 1 mandates both Python and JS if either is provided. Full port of 5
+pipeline files verified with identical output.
+
+## ADR out-of-scope items as deferred stubs (2026-03-20)
+
+Accepted ADRs contain "What This Decision Does NOT Solve" sections invisible to
+`/decisions triage`. Retroactive: `/curate` Analysis 9 finds them. Proactive:
+`/architect` Step 6c auto-creates deferred stubs.
+
+## Consolidate /feature-init into /setup-vallorcine (2026-03-20)
+
+No project has used one concern without the other. Supersedes the earlier
+separation decision.
+
+## Architect iterative research (2026-03-20)
+
+After scoring, if coverage is thin, commission targeted follow-up research.
+Up to 3 iterations.
+
+## Architect composite candidates (2026-03-20)
+
+Evaluate combinations of approaches when no single candidate covers all
+constraints. Boundary rule defines which component handles which sub-problem.
+
+## /decisions revisit replaces /decisions review (2026-03-20)
+
+Single command accepts slug or topic, conversational "why" pre-step, revision
+condition checking, feature kickoff after revision.
+
+## Architect neutral presentation (2026-03-20)
+
+Non-negotiable rule: never express preference before Step 6a deliberation.
+
+## Mandatory doc review in /release (2026-03-20)
+
+Step 1.5 checks README, EXAMPLES, DESIGN, CONTEXT against changes before
+release notes can be drafted.

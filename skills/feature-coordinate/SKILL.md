@@ -280,9 +280,10 @@ catches worktree confusion, silent failures, or partial writes from subagents.
    `work-plan.md` section and check that every file listed in its constructs
    exists on disk. Collect any missing files.
 
-3. **Run the full test suite** — not per-unit tests, the complete suite from
-   the project root (read test command from project-config.md). This catches
-   cross-unit regressions that per-unit tests wouldn't see.
+3. **Run the full test suite** (5-minute Bash timeout) — not per-unit tests,
+   the complete suite from the project root (read test command from
+   project-config.md). If the suite hangs, investigate before retrying.
+   This catches cross-unit regressions that per-unit tests wouldn't see.
 
 4. **Report results:**
    ```

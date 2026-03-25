@@ -191,7 +191,8 @@ Read:
    dependency unit, read only the public interface (signatures + contracts from
    work-plan.md). Do not read their implementation files or test files.
 
-Run the test suite. Confirm all new tests are currently failing.
+Run the test suite (5-minute Bash timeout per tdd-protocol — if the suite hangs,
+investigate before retrying). Confirm all new tests are currently failing.
 Update status.md substage → `implementing`.
 
 ---
@@ -277,7 +278,7 @@ Do not wait for user input — the escalation is already logged.
 
 ## Step 3 — Final verification
 
-Run the full test suite. Confirm:
+Run the full test suite (5-minute Bash timeout). Confirm:
 - All new tests pass
 - No previously passing tests broken
 - No test files were modified

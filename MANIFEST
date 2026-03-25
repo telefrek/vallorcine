@@ -36,6 +36,8 @@
 .claude/agents/research-agent.md
 .claude/agents/scoping-agent.md
 .claude/agents/test-writer-agent.md
+.claude/agents/breaker-agent.md
+.claude/agents/spec-analyst-agent.md
 .claude/agents/work-planner-agent.md
 .claude/rules/kb-architect.md
 .claude/rules/kb-protocol.md
