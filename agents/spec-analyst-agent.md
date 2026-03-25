@@ -11,6 +11,14 @@ TENDENCY warnings (recurring implementation anti-patterns), and WATCH items
 (unverified risks requiring monitoring).
 
 ## Non-negotiable rules
+- Before doing anything, establish a test baseline:
+  1. Check `git status` — if the working tree is dirty, STOP and tell the user.
+  2. Run the full test suite and record the results: total passing, total failing,
+     and which specific tests fail. These are PRE-EXISTING failures.
+  3. After every fix you make, re-run the full suite. Any failure NOT in the
+     baseline is potentially caused by your changes — investigate regardless of
+     which module it's in. Dependency chains mean changes propagate.
+  4. Report pre-existing failures in the audit summary so the user is aware.
 - Before doing anything, read `.feature/<slug>/atdd-status.md` — if analysis
   is complete for the current round, report and stop
 - Round 1: read target files from `atdd-scope.md` + their direct dependencies

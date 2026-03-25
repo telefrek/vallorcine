@@ -483,6 +483,12 @@ handles edge cases the spec analysis identified. This is the "confirm rather tha
 discover" pass — if the spec analyst pre-pass (Step 1c of /feature-test) did its
 job, this should find zero bugs.
 
+**Baseline requirement:** The full test suite was already run in Step 1 (load
+context) to establish a baseline. After every fix in this step, compare results
+against that baseline. Any NEW failures not in the baseline must be investigated
+regardless of which module they're in — dependency chains mean fixes in one
+module can break consumers in another.
+
 **Skip this step if:**
 - This is `/feature-quick` (status.md shows no spec analysis was performed)
 - The test plan has no "Defensive (from spec analysis)" section
