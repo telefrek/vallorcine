@@ -293,8 +293,11 @@ For each contract in the work plan, ask:
 
 ### Lens B — Implementation risk patterns (what code typically gets wrong)
 
-Based on the types and patterns visible in the stubs/contracts, flag risks for:
+For each construct in scope, trace the full data flow — not just the construct
+itself but its inputs, outputs, and data carriers. This prevents multi-pass
+discovery where each audit finds the next layer.
 
+**Level 1 — The construct itself:**
 - `byte[]` or arrays used as map/set keys — identity equality, not content
 - Mutable arrays/collections stored by reference without defensive copying
 - Float/double encoding — sign-bit handling differences between integer and IEEE 754
@@ -305,6 +308,29 @@ Based on the types and patterns visible in the stubs/contracts, flag risks for:
 - Resource lifecycle — double-close, use-after-close, deferred exception aggregation
 - Validation that should happen at construction but is deferred to usage
 - Any patterns from adversarial KB entries loaded above
+
+**Level 2 — Inputs (who calls this construct, what do they pass?):**
+- Are callers validated at the trust boundary, or is invalid input silently accepted?
+- Per project rules, should out-of-range values be rejected at entry rather than
+  handled downstream? (fail-fast principle)
+- Can callers pass values that are technically valid but semantically wrong?
+  (e.g., NaN as a score, negative capacity, inverted range bounds)
+
+**Level 3 — Outputs (what does this construct return, can consumers misuse it?):**
+- Do returned references expose mutable internal state? (check accessors, not just constructors)
+- Are returned collections unmodifiable, or can consumers corrupt internal state?
+- Can the return value be in a state the consumer doesn't expect? (null, empty, partial)
+
+**Level 4 — Data carriers (records, DTOs, result types):**
+- Do data carrier types enforce their own invariants at construction?
+  (null fields, NaN scores, negative counts, empty required fields)
+- Do records with mutable fields (arrays, collections, MemorySegment) have
+  correct equals/hashCode? (identity vs content semantics)
+- Are carriers immutable once constructed, or can state leak through accessors?
+
+**Scoping:** For features with ≤5 implementation files, trace all 4 levels on every
+construct. For larger features, trace levels 2-4 only on constructs flagged by
+Lens A or Level 1 findings.
 
 ### Output
 

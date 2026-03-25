@@ -502,9 +502,19 @@ from the spec analyst pre-pass, but now against real code instead of stubs:
 - **Lens A — Contract gaps:** check whether the implementation handles the boundary
   cases identified during planning. Focus on gaps that couldn't be predicted from
   stubs alone (runtime branching, error recovery paths, resource cleanup sequences).
-- **Lens B — Implementation risk patterns:** check for the standard pitfalls list
-  (byte[] identity, mutable references, float encoding, non-atomic multi-step ops,
-  unsealed type switches, silent truncation, null interaction with not-equals).
+- **Lens B — Implementation risk patterns:** trace the full data flow per construct:
+  - Level 1 (construct): byte[] identity, mutable references, float encoding,
+    non-atomic multi-step ops, unsealed type switches, silent truncation,
+    null interaction with not-equals, deferred validation
+  - Level 2 (inputs): are callers validated at trust boundaries? Should out-of-range
+    values be rejected at entry per project rules? Can callers pass semantically
+    wrong but technically valid values?
+  - Level 3 (outputs): do returned references expose mutable internal state? Are
+    accessors safe, not just constructors? Can return values be in unexpected states?
+  - Level 4 (data carriers): do records/DTOs enforce invariants at construction?
+    Do mutable-field records have correct equals/hashCode? Are carriers immutable?
+  For ≤5 impl files: all 4 levels on every construct. For larger features: levels
+  2-4 only on constructs flagged by Lens A or Level 1.
 
 Also check `.kb/` for `type: adversarial-finding` entries in relevant domains —
 same KB integration as the test phase pre-pass.
