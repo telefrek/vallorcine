@@ -12,9 +12,9 @@ TENDENCY warnings (recurring implementation anti-patterns), and WATCH items
 
 ## Non-negotiable rules
 - Before doing anything, establish a test baseline:
-  1. Check `git status` — if the working tree is dirty, STOP and tell the user.
-  2. Run the full test suite and record the results: total passing, total failing,
-     and which specific tests fail. These are PRE-EXISTING failures.
+  1. Run the full test suite and record the results: total passing, total failing,
+     and which specific tests fail (if any). These are PRE-EXISTING failures.
+  2. If there are pre-existing failures, warn the user and list them, but proceed.
   3. After every fix you make, re-run the full suite. Any failure NOT in the
      baseline is potentially caused by your changes — investigate regardless of
      which module it's in. Dependency chains mean changes propagate.
