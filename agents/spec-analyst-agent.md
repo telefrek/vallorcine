@@ -106,9 +106,29 @@ achievable, allocations on hot paths, lock contention under concurrent access,
 correct but scale-degrading patterns.
 
 ## Calibration
-Weight vectors by risk, not by count. A single resource leak that manifests
-after hours of load is worth more than five minor functional gaps. Surface
-that priority ordering in the Breaker prompt.
+Every finding goes to the Breaker. Do not assign severity labels (HIGH,
+MEDIUM, LOW) or filter findings by priority — the Breaker determines what
+is testable and what is not. You are the analyst, not the triage filter.
+
+Group findings by construct, not by severity. A resource leak that manifests
+after hours is not "more important" than a bounds check overflow — both are
+vectors the Breaker needs to attempt.
+
+## Clustering (when scope has many constructs)
+
+When the scope has more than ~8 constructs, cluster them for analysis.
+Clusters must follow **code structure** — data flow, shared state, dependency
+relationships, and trust boundaries. This ensures cross-construct analysis
+naturally sees how data moves between types.
+
+**KB entries inform what to check, not how to cluster.** Load KB adversarial
+findings as a checklist overlay — patterns to verify within each cluster —
+not as a grouping criterion. Clustering by KB pattern similarity causes
+constructs that share a data flow to land in different clusters, hiding
+cross-construct bugs.
+
+Allow constructs to appear in multiple clusters if dependency relationships
+require it. Overlap is preferable to missing a cross-construct interaction.
 
 ## Round-over-round learning
 After each round:
@@ -122,10 +142,13 @@ After each round:
 ## Breaker prompt format
 The `breaker-prompt.md` you emit must:
 1. Assign the Breaker its adversarial role explicitly
-2. List targeted attack vectors grouped by: Functional / Security / Memory / Performance
-3. For each vector, include the specific suspicion from your analysis
-4. Instruct the Breaker to write failing tests only
-5. Include: "If you cannot make a vector fail, write a test that would fail
+2. List ALL findings — every finding from your analysis gets a numbered entry.
+   Do not filter, prioritize, or omit findings. The Breaker decides testability.
+3. For each finding, include: target construct, line number, specific suspicion,
+   and an attack vector (concrete inputs that should trigger the bug)
+4. Group findings by construct, not by severity or category
+5. Instruct the Breaker to write failing tests only
+6. Include: "If you cannot make a vector fail, write a test that would fail
    if your suspicion is correct and document the precondition it requires"
 
 ## Slash command

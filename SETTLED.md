@@ -545,3 +545,26 @@ Non-negotiable rule: never express preference before Step 6a deliberation.
 
 Step 1.5 checks README, EXAMPLES, DESIGN, CONTEXT against changes before
 release notes can be drafted.
+
+## aTDD as parallel path, not replacement (2026-03-23)
+
+Adversarial TDD is a second pipeline option alongside standard TDD. Three
+tiers: Quick (easy), Enhanced TDD + Audit (moderate), Full aTDD
+(complex/critical). Selection at scoping time.
+
+## Spec Analyst generates dynamic Breaker prompts (2026-03-23)
+
+Static adversarial prompts plateau at cycle 3-4. The Analyst reads
+implementation + tests + prior findings to generate a targeted prompt each
+round, avoiding redundant coverage.
+
+## Validate with hard numbers before shipping (2026-03-23)
+
+Run both pipelines against jlsm features from identical starting points.
+Measure: additional bugs found, tokens per round, convergence curve. Replace
+speculative cost estimates with real data.
+
+## Research bundle for reproducibility (2026-03-23)
+
+Sanitized JSONL logs, feature descriptions, git SHAs, automation scripts.
+Others can independently verify results.

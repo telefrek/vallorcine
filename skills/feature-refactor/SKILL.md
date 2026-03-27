@@ -478,10 +478,11 @@ Update status.md substage → `refactor: final-lint`.
 
 ## Step 4b — Adversarial audit pass
 
-After the final lint, run a single adversarial audit to confirm the implementation
-handles edge cases the spec analysis identified. This is the "confirm rather than
-discover" pass — if the spec analyst pre-pass (Step 1c of /feature-test) did its
-job, this should find zero bugs.
+After the final lint, run a full adversarial audit against the implementation.
+The spec analyst pre-pass (Step 1c of /feature-test) analysed stubs and contracts;
+this pass analyses real code with real data flow, which surfaces bugs that stubs
+cannot reveal. Expect to find issues — the goal is exhaustive coverage, not
+confirmation of prior work.
 
 **Baseline requirement:** The full test suite was already run in Step 1 (load
 context) and must be all passing before this step begins. After every fix,
@@ -494,61 +495,120 @@ chains mean fixes in one module can break consumers in another.
 - The test plan has no "Defensive (from spec analysis)" section
 - This is a refactor cycle > 1 (audit runs once after the first clean refactor)
 
-### 4b.1 — Re-analyze implementation (Spec Analyst identity)
+### Phase splitting
 
-Read the implementation files listed in work-plan.md. Apply the same two lenses
-from the spec analyst pre-pass, but now against real code instead of stubs:
+The audit runs as three separate phases, each in its own subagent. This
+prevents context competition between analysis, test writing, and fixing.
+Each phase writes its output to a file; the next phase reads that file
+instead of inheriting the full conversation history.
 
-- **Lens A — Contract gaps:** check whether the implementation handles the boundary
-  cases identified during planning. Focus on gaps that couldn't be predicted from
-  stubs alone (runtime branching, error recovery paths, resource cleanup sequences).
-- **Lens B — Implementation risk patterns:** trace the full data flow per construct:
-  - Level 1 (construct): byte[] identity, mutable references, float encoding,
-    non-atomic multi-step ops, unsealed type switches, silent truncation,
-    null interaction with not-equals, deferred validation
-  - Level 2 (inputs): are callers validated at trust boundaries? Should out-of-range
-    values be rejected at entry per project rules? Can callers pass semantically
-    wrong but technically valid values?
-  - Level 3 (outputs): do returned references expose mutable internal state? Are
-    accessors safe, not just constructors? Can return values be in unexpected states?
-  - Level 4 (data carriers): do records/DTOs enforce invariants at construction?
-    Do mutable-field records have correct equals/hashCode? Are carriers immutable?
-  Trace all 4 levels on every construct in the current work unit. Prioritize
-  depth on flagged constructs but do not skip levels entirely.
+**Why phase-split matters:** In single-session audits, analysis that finds
+35 findings may only produce tests for 5-8 of them — context from the
+analysis phase competes with test writing, and the agent applies implicit
+severity filtering that drops real bugs. Phase splitting eliminates both
+problems by giving each phase a fresh context with only its input file.
 
-Also check `.kb/` for `type: adversarial-finding` entries in relevant domains —
-same KB integration as the test phase pre-pass.
+### 4b.1 — Analyze implementation (subagent: Spec Analyst)
 
-### 4b.2 — Write adversarial tests (Breaker identity)
+Launch a subagent with the Spec Analyst identity. The subagent:
 
-For each finding from 4b.1 that isn't already covered by existing tests:
+1. Reads the implementation files listed in work-plan.md
+2. Reads `.kb/` for `type: adversarial-finding` entries in relevant domains.
+   KB entries inform the **checklist** (what patterns to look for), not the
+   **clustering** (how to group constructs). Clusters follow code structure —
+   data flow, shared state, and dependency relationships — so cross-construct
+   analysis sees trust boundaries naturally. KB patterns are checked within
+   each cluster, not used to form clusters.
+3. Applies both analysis lenses against real code (not stubs):
 
-- Name adversarial tests `*AdversarialTest.java` / `test_adversarial_*` (language-appropriate)
-- Comment each test with the finding it targets
-- Do NOT write tests that conflict with validation contracts verified by existing tests
-- Read existing tests first to avoid duplicating coverage
-- Adversarial tests must pass all project quality gates (checkstyle, linters, static
-  analysis) — follow the project's coding standards
+   - **Lens A — Contract gaps:** boundary cases, null handling, error
+     exhaustiveness, composite atomicity, defensive copying, equality semantics
+   - **Lens B — Implementation risk patterns:** trace the full data flow per
+     construct across all 4 levels:
+     - Level 1 (construct): byte[] identity, mutable references, float encoding,
+       non-atomic multi-step ops, unsealed type switches, silent truncation,
+       null interaction with not-equals, deferred validation
+     - Level 2 (inputs): caller validation at trust boundaries, semantically
+       wrong but technically valid values, out-of-range per project rules
+     - Level 3 (outputs): mutable internal state via accessors, unmodifiable
+       collections, unexpected return states
+     - Level 4 (data carriers): record/DTO invariants at construction,
+       mutable-field equals/hashCode, immutability guarantees
+     Trace all 4 levels on every construct. Do not skip levels.
 
-Run the project's full verification command (5-minute timeout per tdd-protocol).
-This must include quality checks (linters, checkstyle), not just tests.
+4. Writes `.feature/<slug>/spec-analysis.md` with ALL findings organized by
+   construct. No severity labels, no priority filtering. Every finding gets
+   a numbered entry with: construct name, line number, description, and a
+   concrete attack vector (inputs that should trigger the bug).
 
-Classify results:
+**The subagent writes findings to the file and returns.** It does not write
+tests or fix bugs.
+
+### 4b.2 — Write adversarial tests (parallel subagents: Breaker)
+
+Read `.feature/<slug>/spec-analysis.md` and identify the construct groups.
+Each top-level construct section becomes a work unit.
+
+Launch one breaker subagent **per construct group**, in parallel. Each
+subagent receives:
+- The findings for its construct group (the relevant section from
+  spec-analysis.md, included in the subagent prompt)
+- The path to the primary implementation file for that construct
+- Paths to direct dependency files the construct uses
+- Path to the existing test file for that construct (if one exists)
+- The Breaker agent identity (`.claude/agents/breaker-agent.md`)
+
+Each breaker subagent:
+1. Reads the implementation file and its direct dependencies
+2. Reads the existing test file for coverage context
+3. Writes ONE adversarial test file named `<ConstructName>AdversarialTest`
+   (language-appropriate suffix) matching the construct it is testing
+4. For every finding in its group, writes a test that demonstrates the bug
+   — comment each with the finding ID
+5. Verifies compilation (5-minute timeout per tdd-protocol)
+6. If a finding is not testable, documents WHY in a comment and moves on.
+   The skip decision is the Breaker's, based on testability — not severity.
+
+Each subagent writes its test file and returns: findings received, tests
+written, not-testable with reasons.
+
+**Why parallel per-construct:** A single breaker subagent writing all tests
+accumulates context over 100+ compile/fix turns, spending 97% of tokens on
+cache reads. Splitting by construct gives each subagent a fresh context with
+only the files it needs. Projected savings: ~70% token reduction.
+
+**After all breaker subagents return**, run the full test suite once to
+classify results:
 - **Confirmed failure** — test fails, implementation has a real bug
 - **Theoretical concern** — test passes, documents a risk worth watching
+- **Not testable** — documented in test file comments
 
-### 4b.3 — Fix confirmed failures (Code Writer identity)
+### 4b.3 — Fix confirmed failures (parallel subagents: Code Writer)
 
-For every confirmed failure:
-1. Fix the implementation (never modify tests)
-2. Apply fix-forward: scan ALL other constructs in scope for the same pattern
-3. Re-run full suite after each fix
+For each construct group with confirmed failures, launch a fixer subagent.
+Each fixer subagent receives:
+- The adversarial test file for its construct
+- The primary implementation file and direct dependencies
+- The list of confirmed failures (test method names that failed)
+- The Code Writer agent identity (`.claude/agents/code-writer-agent.md`)
 
-### 4b.4 — Write known_issues.md
+Each fixer subagent:
+1. Reads the adversarial test file and the failing test names
+2. Reads the implementation file and its dependencies
+3. Fixes each confirmed failure (never modify tests)
+4. Applies fix-forward: scans other constructs in scope for the same pattern
+5. Verifies compilation after each fix
 
-Write `.feature/<slug>/known_issues.md`:
-- RESOLVED entries for each confirmed bug (test reference + fix description)
-- TENDENCY entries for recurring implementation patterns worth tracking
+Each subagent returns: bugs fixed, fix-forward instances, files modified.
+
+**After all fixer subagents return**, run the full verification command
+(5-minute timeout) to confirm no cross-construct regressions. If the build
+fails, investigate — a fixer may have broken a dependency that another
+construct relies on.
+
+### 4b.4 — Audit bookkeeping (coordinator)
+
+After all three subagents complete, the coordinator (you) handles bookkeeping:
 
 Update status.md substage → `audit-complete`.
 
@@ -557,10 +617,12 @@ Append `audit-complete` to cycle-log.md:
 ## <YYYY-MM-DD> — audit-complete
 **Agent:** ✨ Refactor Agent (audit pass)
 **Cycle:** <n>
+**Findings from analysis:** <n>
 **Adversarial tests written:** <n>
 **Confirmed failures:** <n>
 **Bugs fixed:** <n>
 **Fix-forward instances:** <n>
+**Not testable (with reasons):** <n>
 **TENDENCY patterns:** <list or "none">
 ---
 ```
@@ -568,7 +630,8 @@ Append `audit-complete` to cycle-log.md:
 Display:
 ```
 ── Audit pass ─────────────────────────────────
-  Adversarial tests: <n> written
+  Analysis findings: <n>
+  Adversarial tests: <n> written (<n> not testable)
   Confirmed bugs: <n> found and fixed
   Fix-forward: <n> proactive fixes
   Result: <all passing | see known_issues.md>
@@ -581,7 +644,7 @@ The audit found <n> bugs involving cross-construct interactions.
 Recommend another audit round to check for fix-induced regressions.
   Type **yes** for another round · or: continue to PR
 ```
-If "yes": re-run Step 4b (incrementally — only read changed files).
+If "yes": re-run Step 4b (incrementally — analysis subagent reads only changed files).
 If "continue" or no cross-construct bugs: proceed to Step 5.
 
 ---

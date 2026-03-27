@@ -20,43 +20,55 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-03-23*
+*Last updated: 2026-03-27*
 
-**Adversarial TDD (aTDD) pipeline — designed, data extracted, validation harness
-built, ready to begin validation runs against jlsm features.**
+**5-pass analysis pipeline for /audit — validated against 26 known bugs,
+24/26 found (92%), at 416K tokens (60% cheaper than old ~1M approach).**
 
-**What happened this session:**
+**What happened this session (2026-03-27):**
 
-- **aTDD pipeline designed** — 3 new agents (Spec Analyst, Breaker, Constrained
-  Refactorer) and 3 new skills (`/atdd-round`, `/atdd-audit`, `/atdd-refactor`).
-  Reuses existing Code Writer as Implementer with `known_issues.md` injection.
-  Write authority and escalation paths added to `tdd-protocol.md`.
-- **jlsm validation data extracted** — 130 JSONL sessions mapped to 15 features.
-  Token usage extracted per-stage with TDD boundary detection. Git SHAs and parent
-  commits verified for state reconstruction. 84 session files sanitized (PII removed,
-  integrity verified with SHA256 checksums).
-- **Validation harness built** — `aTDD-research/harness/` with scripts to set up
-  worktrees at feature commits, collect results after Claude Code runs, and generate
-  comparison reports (standard TDD cost vs aTDD additional cost vs bugs found).
+- **Context pruning research** — KB entry at `.claude/research/context-pruning-techniques.md`
+  covering 6 same-session techniques. Key finding: caching and pruning are adversarial
+  (arXiv 2601.06007); batch clearing events to amortize cache invalidation.
+
+- **5-pass analysis pipeline designed, implemented, and validated:**
+  - Pass 1: Construct inventory + 8 relationship edge types (~49K tokens)
+  - Pass 2: Concern triage across 7 areas (~63K tokens)
+  - Pass 2.5: Construct clustering via graph partitioning (~55K tokens)
+  - Pass 3a: Per-cluster deep analysis with attack-generation framing (~185K tokens)
+  - Pass 3b: Cross-cluster reconciliation for producer/consumer bugs (~64K tokens)
+
+- **`shares_state` edge type validated** — methods sharing mutable state (channel,
+  flag, collection) must cluster together. Found B-19 (channel race) on first try;
+  old pipeline found it 50% of runs. Type-scoped unsplittable: within same type
+  is mandatory, cross-type bridges defer to Pass 3b.
+
+- **Prompt refinements from validation failures:**
+  - Data integrity: added "hardcoded instead of read" pattern (caught B-16/17/18)
+  - Contract conformance: added "semantically nonsensical input" and "stale
+    reporting methods" (targets B-25/B-26)
+  - Concurrency: added shared I/O handles on parent objects (caught readBytes race)
+
+- **Scaling validated:** encryption feature (13 files) costs ~249K for triage
+  phases — linear scaling with file count confirmed.
+
+- **Phase 4 design outlined** — write-and-return test writer (no compile loops),
+  separate compile checker, per-cluster implementer with context management.
 
 **Where things stand:**
-First validation runs complete for `encrypt-memory-data` (both greenfield and audit).
-Results inform pipeline enhancements now shipping in standard TDD agents.
+Analysis pipeline is validated. Next: implement Phase 4 (test writing + fixing)
+with context pruning applied to eliminate compile/fix loop bloat. Then integrate
+the full pipeline into the shipped /audit skill.
 
-**encrypt-memory-data validation results (2026-03-24):**
-- Greenfield aTDD: 3 rounds, 20 bugs, 2.2M billable tokens, 373 messages
-- Audit aTDD: 3 rounds, 8 bugs (7+1+0), 1.4M billable tokens, 259 messages
-- Greenfield: 9.1 bugs/M tokens. Audit: 5.7 bugs/M tokens (greenfield more efficient)
-- Both converged: greenfield round 3 found repeat tendency only, audit round 3 found 0
-- Round 2 valuable in audit — caught regression from round 1 fix (keySegment obfuscation)
-- Key finding: T2-HEAPCOPY tendency repeated 3x across greenfield rounds — Implementer
-  defaults to caching key material on heap, defeating off-heap threat model
-
-**Pipeline enhancements from validation findings:**
-- Test Writer: defensive test vectors (boundary values, error paths, security caching)
-- Code Writer: fix-forward rule (scan for same anti-pattern after fixing a bug)
-- Refactor Agent: assert-only validation check, exception swallowing check
-- tdd-protocol: 5-minute Bash timeout on all test execution
+**Pipeline cost (block-compression, 7 files, 26 known bugs):**
+```
+Pass 1:    49K tokens   (inventory + edges)
+Pass 2:    63K tokens   (triage matrix)
+Pass 2.5:  55K tokens   (clustering)
+Pass 3a:  185K tokens   (6 clusters, 24/26 bugs + 44 extra findings)
+Pass 3b:   64K tokens   (reconciliation, +3 cross-cluster bugs)
+Total:    416K tokens   → 92% detection at 60% cost reduction
+```
 
 ---
 
@@ -64,36 +76,40 @@ Results inform pipeline enhancements now shipping in standard TDD agents.
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **aTDD as parallel path, not replacement** (2026-03-23) — adversarial TDD is a
-  second pipeline option alongside standard TDD. Three tiers: Quick (easy), Standard
-  (moderate), Adversarial (complex/critical). Selection at scoping time.
+- **5-pass analysis pipeline replaces single-session spec analysis** (2026-03-27) —
+  inventory → triage → clustering → per-cluster deep analysis → reconciliation.
+  Each pass writes to disk; next pass reads the file, not the conversation history.
+  416K tokens vs ~1M for equivalent coverage. Validated against 26 known bugs (92%).
 
-- **Spec Analyst generates dynamic Breaker prompts** (2026-03-23) — static adversarial
-  prompts plateau at cycle 3-4. The Analyst reads implementation + tests + prior
-  findings to generate a targeted prompt each round, avoiding redundant coverage.
+- **Construct-level clustering, not file-level** (2026-03-27) — clusters follow data
+  flow and shared state, not file boundaries. A 600-line file can span 3 clusters.
+  Subagents read targeted line ranges, not full files.
 
-- **Constrained Refactorer is a separate agent** (2026-03-23) — distinct from the
-  standard Refactor Agent because it must honour `known_issues.md` as structural
-  invariants. Mixing both modes into one agent makes debugging harder.
+- **`shares_state` edge type for mutable state clustering** (2026-03-27) — methods
+  on the same mutable type that access the same field/resource must cluster together.
+  Prevents splitting concurrency/lifecycle bugs across clusters. Validated: found
+  channel race bug on first try (old pipeline: 50% hit rate).
 
-- **Implementer is the existing Code Writer** (2026-03-23) — no new agent needed.
-  `known_issues.md` injected as additional context (RESOLVED patterns as hard
-  constraints, TENDENCY as code review blockers).
+- **Type-scoped unsplittable edges** (2026-03-27) — `shares_state` and `data_flow`
+  are unsplittable within a single type. Cross-type data_flow bridges are strong
+  preferences but can split — Pass 3b handles cross-cluster producer/consumer analysis.
+  Without this rule, transitive closure merged Writer+Reader into one 65-cell cluster.
 
-- **Inter-round human gate with convergence signal** (2026-03-23) — intra-round is
-  automated (Analyst → Breaker → Implementer). Between rounds, show confirmed bugs
-  vs theoretical concerns. When Breaker can only produce untriggerable vectors,
-  that's the convergence signal to stop.
+- **No hard limits on cluster size** (2026-03-27) — removed arbitrary cell/construct/line
+  limits. Soft preference for 6-15 cells. Complexity warning at 25+ cells or 500+ lines
+  surfaces to user as refactoring signal. Graph structure determines boundaries.
 
-- **atdd-status.md separate from status.md** (2026-03-23) — aTDD runs after standard
-  TDD without clobbering pipeline state. Separate checkpoint file.
+- **Attack-generation framing for deep analysis** (2026-03-27) — "what input breaks
+  this?" not "does this look correct?" Per-cell independence prevents satisficing.
+  Clearing requires specific line references, not "looks correct."
 
-- **Validate with hard numbers before shipping** (2026-03-23) — run both pipelines
-  against 15 jlsm features from identical starting points. Measure: additional bugs
-  found, tokens per round, convergence curve. Replace speculative 2-4x cost estimate.
+- **Language-agnostic pipeline design** (2026-03-27) — all edge types, concern areas,
+  and prompts use semantic descriptions, not language-specific syntax or patterns.
+  No grep/AST parsers needed. Works for any language the LLM can read.
 
-- **Research bundle for reproducibility** (2026-03-23) — sanitized JSONL logs, feature
-  descriptions, git SHAs, automation scripts. Others can independently verify results.
+- **Write-and-return test writers** (2026-03-27) — Phase 4 breakers write tests and
+  exit. No compile loops in test writing. Separate compile-check phase. Eliminates
+  50% post-write overhead measured in breaker agents.
 
 ---
 
@@ -104,29 +120,19 @@ Results inform pipeline enhancements now shipping in standard TDD agents.
 
 ### Do next (high priority, clear direction)
 
-- **aTDD validation runs** — run `/atdd-audit` against all 15 jlsm features,
-  collect metrics, determine real cost multiplier and convergence curve. Starting
-  with `striped-block-cache` (simplest). Time-sensitive: JSONL logs expire ~Apr 2.
+- **Phase 4 implementation and validation** — design and test the write-and-return
+  test writer (4a), compile checker (4b), fix-up subagent (4c), and per-cluster
+  implementer (4d). Apply context pruning techniques to eliminate compile/fix loop
+  bloat. Validate end-to-end: analysis findings → tests → fixes → verify.
 
-- **Three-tier analysis: TDD vs TDD+Audit vs full aTDD** — the validation should
-  measure not just aTDD vs TDD, but where a single audit pass falls on the
-  cost/quality curve. Three comparison points per feature:
-  1. **Standard TDD** — baseline bugs found, cost
-  2. **TDD + Audit** — single post-implementation audit pass, additional bugs, ~1.3-1.5x cost
-  3. **Full aTDD** — iterative rounds, additional bugs beyond audit, ~2-4x cost
+- **Full end-to-end pipeline test** — run all phases (1 through 4d) on
+  block-compression at af6b5cb. Score: do all 26 bugs get tests written, do
+  tests fail before fixes, do fixes pass? Measure total token cost across
+  entire pipeline.
 
-  Key questions:
-  - What % of aTDD-found bugs does a single audit catch? If 80% at 30% cost,
-    most features should use TDD+Audit, not full aTDD.
-  - Does the "everything is wrong" mindset belong in the standard Test Writer
-    for high-risk domains (crypto, concurrency)? An enhanced prompt adding 2-3
-    "skeptical" tests per construct during standard test writing is nearly free.
-  - Where does the iterative convergence loop actually pay off? Likely only for
-    code where fixing bug A reveals bug B (state machines, invariant-heavy APIs).
-
-  Expected outcome: a decision framework for tier selection at scoping time,
-  informed by real data rather than intuition. Encryption features likely justify
-  full aTDD; most CRUD features should stop at TDD+Audit or enhanced Test Writer.
+- **Integrate into shipped /audit skill** — once end-to-end is validated, ship
+  the 5-pass analysis pipeline + Phase 4 as the user-facing /audit command.
+  Replace the existing single-session spec-analyst approach.
 
 ### Do soon (medium effort, clear designs)
 
