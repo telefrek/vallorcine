@@ -157,19 +157,28 @@ passes.
 You CANNOT modify the test. The test defines correct behavior. Only
 source code changes are allowed.
 
-### 2a. Identify the minimal fix
+### 2a. Re-read the source file (MANDATORY)
 
-You already read the source in Phase 1. You already understand the bug
-from writing the test. Identify the minimum edit to make the test pass:
+**You MUST re-read the source file before editing.** Do not rely on your
+Phase 1 read. Other prove-fix agents may have edited this file since you
+read it. Use the Read tool with the same file path and line range now.
+
+If the source has changed from what you saw in Phase 1 (new lines, moved
+code, added methods), adjust your fix to work with the current state of
+the file, not the state you saw earlier.
+
+### 2b. Identify the minimal fix
+
+Identify the minimum edit to make the test pass:
 - Preserve existing API contracts
 - One edit region when possible
 - No speculative improvements to surrounding code
 
-### 2b. Apply the fix
+### 2c. Apply the fix
 
 Edit the source file. Make the minimum change.
 
-### 2c. Compile and run
+### 2d. Compile and run
 
 Compile the project. If compilation fails, fix syntax and recompile.
 
@@ -180,7 +189,14 @@ catches regressions — your fix might break a test from a prior finding.
 - Pass/fail status per test method
 - The assertion message for any failures
 
-### 2d. Classify result
+### 2e. Verify edit persisted
+
+After a successful compile+run, re-read the edited file at the lines you
+changed. Confirm your edit is present in the file. If it is not (another
+agent's edit or a tool error replaced it), re-apply your edit and
+recompile.
+
+### 2f. Classify result
 
 **All tests pass:** FIXED. Write the output file. STOP.
 
@@ -235,6 +251,11 @@ Write the output file to the path the orchestrator specified:
 - **File:** <path>:<lines modified>
 - **Result:** <FIXED | FIX_IMPOSSIBLE>
 - **Detail:** <what changed and why it fixes the bug>
+- **Diff:** (exact lines added/removed — for verification)
+  ```
+  - <old line>
+  + <new line>
+  ```
 
 ### Impossibility proof (if applicable)
 - **Approaches tried:** <list>
