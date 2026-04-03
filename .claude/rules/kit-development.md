@@ -57,6 +57,7 @@ and are NOT in the MANIFEST.
   /feature-implement, /feature-refactor, /audit, /feature-pr,
   /feature-retro, /feature-complete, /feature-cleanup, /feature-resume,
   /feature-coordinate,
+  /spec, /spec-author, /spec-write, /spec-verify, /spec-init, /spec-resolve,
   /kb, /research, /architect, /decisions, /curate,
   /project-context, /vallorcine-help, /setup-vallorcine, /upgrade-vallorcine,
   /uninstall-vallorcine
