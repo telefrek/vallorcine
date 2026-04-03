@@ -202,6 +202,13 @@ From "Spec Coverage Gaps" in the scan summary (if present):
 3. Cross-reference with ADR pressure — if the same area has both ADR pressure
    and spec drift, it's a stronger signal
 
+**Undecided absent behaviors:**
+1. Specs with `[ABSENT]` requirements — behaviors that downstream specs assume
+   but the implementation doesn't provide
+2. These are unresolved design decisions: each `[ABSENT]` requirement needs an
+   explicit promote/preserve/defer choice
+3. Higher count = more implicit assumptions without backing decisions
+
 ---
 
 ## Step 3 — Present findings as a numbered pick list
@@ -276,7 +283,10 @@ I scanned <N> commits since last review and found <N> items:
  11. Spec <ID> (<name>) — <N> commits to related files since spec was written
      → I'll check if the spec still matches the implementation via /spec-verify
 
- 12. <Orphaned files> — <N> commits, no KB or decision coverage
+ 12. Spec <ID> (<name>) — <N> undecided [ABSENT] requirements need explicit decisions
+     → I'll show each one so you can promote, preserve, or defer
+
+ 13. <Orphaned files> — <N> commits, no KB or decision coverage
      → I'll research this area so future work has context
 
 Pick a number to start, or:
@@ -434,6 +444,24 @@ was written on <date> and <N> commits have touched its domain files since.
 Want me to run `/spec-verify` to check if the spec still matches the
 implementation?" When the user accepts, invoke `/spec-verify` with the spec
 file path.
+
+**Undecided absent behaviors:** Read the spec file. Find all requirements
+tagged with `[ABSENT]`. For each one, display the requirement ID, the full
+requirement text, and any consuming specs that assume this behavior. Then
+offer the three choices:
+
+- **promote** — Rewrite as a positive requirement describing what the code
+  SHOULD do. Remove `[ABSENT]`, add `[UNIMPLEMENTED]`. This creates an open
+  obligation (implementation work needed).
+- **preserve** — Rewrite as a negative requirement documenting the intentional
+  absence ("X MUST NOT Y" instead of "X does not Y [ABSENT]"). Remove
+  `[ABSENT]`. This locks in the design choice.
+- **defer** — Leave `[ABSENT]` in place. It will resurface on the next
+  `/curate` run.
+
+Apply decisions directly to the spec file. After all `[ABSENT]` requirements
+in the spec are decided, summarize what changed: how many promoted (new work),
+how many preserved (documented decisions), how many deferred.
 
 After completing the action, mark it `resolved` in the review log. Then
 **ALWAYS re-present the remaining items** (renumbered) so the user can

@@ -546,6 +546,7 @@ fi
 > "$TMPDIR_SCAN/spec-unspecified.txt"
 > "$TMPDIR_SCAN/spec-obligations.txt"
 > "$TMPDIR_SCAN/spec-drift.txt"
+> "$TMPDIR_SCAN/spec-absent.txt"
 
 if [[ -d ".spec" && -d ".spec/domains" ]]; then
 
@@ -696,6 +697,31 @@ if [[ -d ".spec" && -d ".spec/domains" ]]; then
     done
 
     sort -t'|' -k4 -rn "$TMPDIR_SCAN/spec-drift.txt" -o "$TMPDIR_SCAN/spec-drift.txt" 2>/dev/null || true
+
+    # ── 10d: Specs with [ABSENT] requirements ────────────────────────────
+    # Scan spec files for [ABSENT] markers that need explicit decisions.
+
+    > "$TMPDIR_SCAN/spec-absent.txt"
+
+    find .spec/domains -name '*.md' 2>/dev/null | while IFS= read -r spec_file; do
+        spec_base="$(basename "$spec_file" .md)"
+
+        # Find lines with [ABSENT] markers and extract requirement IDs
+        absent_lines="$(grep -n '\[ABSENT\]' "$spec_file" 2>/dev/null || true)"
+        [[ -z "$absent_lines" ]] && continue
+
+        absent_count="$(echo "$absent_lines" | wc -l)"
+        # Extract requirement IDs (R<number>) from lines containing [ABSENT]
+        req_ids="$(echo "$absent_lines" \
+            | grep -oE 'R[0-9]+' 2>/dev/null \
+            | sort -t'R' -k1 -n \
+            | tr '\n' ',' | sed 's/,$//' || true)"
+        [[ -z "$req_ids" ]] && req_ids="(no IDs found)"
+
+        echo "ABSENT|$spec_base|$absent_count|$req_ids" >> "$TMPDIR_SCAN/spec-absent.txt"
+    done
+
+    sort -t'|' -k3 -rn "$TMPDIR_SCAN/spec-absent.txt" -o "$TMPDIR_SCAN/spec-absent.txt" 2>/dev/null || true
 
 fi
 
@@ -880,7 +906,7 @@ fi
 
 # Spec coverage gaps
 has_spec_signals=0
-if [[ -s "$TMPDIR_SCAN/spec-unspecified.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-obligations.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-drift.txt" ]]; then
+if [[ -s "$TMPDIR_SCAN/spec-unspecified.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-obligations.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-drift.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-absent.txt" ]]; then
     echo "## Spec Coverage Gaps" >> "$SUMMARY_FILE"
     echo "" >> "$SUMMARY_FILE"
     has_spec_signals=1
@@ -922,6 +948,16 @@ if [[ -s "$TMPDIR_SCAN/spec-drift.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+if [[ -s "$TMPDIR_SCAN/spec-absent.txt" ]]; then
+    echo "### Undecided absent behaviors" >> "$SUMMARY_FILE"
+    echo "Specs with [ABSENT] requirements that need explicit decisions:" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ spec_name absent_count req_ids; do
+        echo "$spec_name — $absent_count [ABSENT] requirements: $req_ids" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/spec-absent.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
 # ── Report ───────────────────────────────────────────────────────────────────
 
 echo "Scan complete: $COMMIT_COUNT commits analyzed"
@@ -941,6 +977,7 @@ echo "  Out-of-scope items: $(wc -l < "$TMPDIR_SCAN/out-of-scope.txt" 2>/dev/nul
 echo "  Unspecified shared types: $(wc -l < "$TMPDIR_SCAN/spec-unspecified.txt" 2>/dev/null || echo 0)"
 echo "  Specs with obligations: $(wc -l < "$TMPDIR_SCAN/spec-obligations.txt" 2>/dev/null || echo 0)"
 echo "  Spec-code drift: $(wc -l < "$TMPDIR_SCAN/spec-drift.txt" 2>/dev/null || echo 0)"
+echo "  Specs with [ABSENT] reqs: $(wc -l < "$TMPDIR_SCAN/spec-absent.txt" 2>/dev/null || echo 0)"
 
 # ── Update curation state ─────────────────────────────────────────────────
 
