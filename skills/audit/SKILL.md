@@ -471,13 +471,25 @@ Expected return format:
 "<finding ID>: <CONFIRMED_AND_FIXED | IMPOSSIBLE | FIX_IMPOSSIBLE> —
 <one-line summary>"
 
-After each subagent returns:
+### Error handling
+
+If a subagent fails (API error, timeout, 0 tokens returned, no output
+file written):
+1. **Retry once** — transient API errors (500, 529) usually resolve.
+   Re-launch the same subagent with the same prompt.
+2. If the retry also fails: mark the finding as DEFERRED with reason
+   "subagent failure — <error description>". Do NOT stop the pipeline.
+3. Continue to the next finding. Deferred findings can be retried in
+   a subsequent run.
+4. Report the failure: `[N/total] <finding ID>: DEFERRED (API error)`
+
+After each subagent returns successfully:
 1. Parse the result from the return summary
-2. Accumulate totals (fixed, impossible, fix_impossible)
+2. Accumulate totals (fixed, impossible, fix_impossible, deferred)
 3. Report progress to the user:
    `[N/total] <finding ID>: <result> — <summary>`
 4. Update **Job 3** label: "Prove-Fix (<completed>/<total>, <fixed>
-   fixed, <impossible> impossible)"
+   fixed, <impossible> impossible, <deferred> deferred)"
 
 After all findings are processed, mark **Job 3: Prove-Fix** complete.
 If zero confirmed findings, skip to Report.
