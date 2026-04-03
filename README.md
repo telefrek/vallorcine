@@ -126,31 +126,47 @@ or features create implicit dependencies. This feedback loop is what makes the
 | `/decisions defer "<problem>"` | Park a topic for later |
 | `/decisions close "<problem>"` | Rule out permanently |
 
+### Specifications — behavioral contracts
+
+| Command | What it does |
+|---------|-------------|
+| `/spec "<question>"` | Query specs, discover gaps, and trace change impact |
+| `/spec-author "<feature-id>" "<title>"` | Two-pass adversarial spec authoring (structured draft + falsification) |
+| `/spec-write "<id>" "<title>"` | Register a spec in `.spec/` storage with conflict check |
+| `/spec-verify "<id>"` | Verify a spec against the current implementation |
+| `/spec-init` | Initialize the `.spec/` directory structure |
+
 ### Features — TDD pipeline
 
 | Command | What it does |
 |---------|-------------|
-| `/feature "<description>"` | Start a new feature (full pipeline) |
+| `/feature "<description>"` | Start a new feature (full pipeline: scoping → domains → specs → plan → test → implement → refactor → audit → PR) |
 | `/feature-quick "<description>"` | Small task (single session, no planning) |
 | `/feature-resume "<slug>"` | Where am I? What do I run next? |
 | `/feature-resume "<slug>" --status` | Detailed session briefing |
 | `/feature-resume "<slug>" --list` | List all active features |
-| `/feature-domains "<slug>"` | Domain analysis, commissions research/architect |
-| `/feature-plan "<slug>"` | Work plan, stubs, execution strategy |
+| `/feature-domains "<slug>"` | Domain analysis, commissions research/architect. Routes to spec authoring when `.spec/` exists. |
+| `/feature-plan "<slug>"` | Work plan, stubs, execution strategy. Consumes specs as primary context. |
 | `/feature-coordinate "<slug>"` | Parallel batch coordinator |
-| `/feature-test "<slug>"` | Spec analysis pre-pass + write failing tests from contracts |
-| `/feature-implement "<slug>"` | Implement until tests pass |
-| `/feature-refactor "<slug>"` | Quality review (8-item checklist) + adversarial audit pass |
+| `/feature-test "<slug>"` | Operationalizes spec requirements into tests (Lens A) + adversarial implementation risk analysis (Lens B) |
+| `/feature-implement "<slug>"` | Implement until tests pass. Detects spec conflicts in test failures. |
+| `/feature-refactor "<slug>"` | Quality review (8-item checklist), then delegates to `/audit` for adversarial bug finding |
 | `/feature-pr "<slug>"` | Draft PR title, description, checklist |
 | `/feature-retro "<slug>"` | Post-feature retrospective + narrative article generation |
 | `/feature-complete "<slug>"` | Archive after PR merges |
 | `/feature-cleanup` | Review stale feature directories |
 
+### Audit — adversarial bug finding
+
+| Command | What it does |
+|---------|-------------|
+| `/audit "<entry-point>"` | Adversarial audit: finds bugs, proves them with tests, fixes the code. Accepts feature slugs, file paths, spec references, or prior reports. |
+
 ### Curation — codebase quality over time
 
 | Command | What it does |
 |---------|-------------|
-| `/curate` | Review quality signals — stale decisions, knowledge gaps, implicit dependencies, out-of-scope ADR items |
+| `/curate` | Review quality signals — stale decisions, knowledge gaps, spec coverage gaps, implicit dependencies, out-of-scope ADR items |
 | `/curate --init` | First-time scan on an existing codebase |
 | `/curate --deeper` | Scan 6 months of history instead of default 3 |
 
