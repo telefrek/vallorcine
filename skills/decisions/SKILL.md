@@ -285,12 +285,12 @@ fine, mark as reviewed and move on.
 ### Step 5 — Present and confirm
 
 Present the outcome as a defence summary in chat (same format as
-`/architect` Step 6a) with one of these headers:
+`/architect` Step 7a) with one of these headers:
 - `[STILL VALID]` — recommendation holds; explain with KB evidence
 - `[REVISED]` — recommendation changes; explain what changed
 - `[OVERRIDE]` — user-directed change; state what changed and the reason
 
-Follow all deliberation chat rules from `/architect` Step 6b.
+Follow all deliberation chat rules from `/architect` Step 7b.
 
 ### Step 6 — Write confirmed outcome
 
@@ -421,7 +421,7 @@ To triage all deferred: /decisions triage
 as out-of-scope mid-deliberation, capture it the same way — brief acknowledgement,
 `tangent-captured` log entry on the parent problem, stub adr.md for the tangent,
 row in the Deferred (or Closed) section. Return to deliberation without
-re-presenting the full summary. See `/architect` Step 6b for full rules.
+re-presenting the full summary. See `/architect` Step 7b for full rules.
 
 ---
 
@@ -551,7 +551,7 @@ If the Deferred section is now empty, add a `<!-- Last cleared: YYYY-MM-DD -->`
 comment to that section in `.decisions/CLAUDE.md`.
 
 Check total line count: if over 80 lines, archive oldest Recently Accepted rows
-to `history.md` (same crash-safe order as `/architect` Step 7: create history.md
+to `history.md` (same crash-safe order as `/architect` Step 8: create history.md
 if needed → append row to history.md → remove row from CLAUDE.md).
 
 ---

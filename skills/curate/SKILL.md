@@ -20,6 +20,7 @@ couldn't see because they each had a narrower scope.
 8. Unspecified shared types — foundational types referenced by 3+ specs with no spec
 9. Spec obligations — DRAFT specs with unresolved conflicts blocking approval
 10. Spec-code drift — specs whose domain code changed after the spec was written
+11. Cross-reference gaps — KB entries and ADRs with missing related/source links
 
 **Flags:**
 - `--init` — first-time scan (ignores last-scanned SHA, good for new installs)
@@ -209,6 +210,35 @@ From "Spec Coverage Gaps" in the scan summary (if present):
    explicit promote/preserve/defer choice
 3. Higher count = more implicit assumptions without backing decisions
 
+### 2i — Cross-reference repair candidates
+
+**Guard:** Only run this step if "Cross-Reference Candidates" section exists in
+the scan summary. If absent, skip entirely.
+
+From "Cross-Reference Candidates" in the scan summary:
+
+**KB entries with missing related links (tag overlap):**
+1. Entry pairs that share 2+ tags but have no `related` link between them
+2. Higher tag overlap = stronger signal that these entries should reference each other
+3. Entries in different categories are more valuable links — same-category entries
+   are already navigable via category indexes
+4. Assess whether the overlap is meaningful: shared tags like "performance" +
+   "caching" between a caching strategy and a benchmarking entry → likely related.
+   Shared tags like "java" + "testing" between unrelated entries → coincidental.
+
+**KB entries with overlapping applies_to:**
+1. Entries that target the same source files/patterns but don't reference each other
+2. These likely describe different aspects of the same code — a `related` link
+   helps the Research Agent find all relevant context when loading one entry
+3. Stronger signal than tag overlap because file paths are specific
+
+**ADR evaluation references not in KB Sources:**
+1. KB entries cited in evaluation.md scoring that don't appear in the ADR's
+   KB Sources Used table
+2. These are missing traceability links — the ADR used this research during
+   evaluation but doesn't formally reference it
+3. Fix is straightforward: add the missing row to the KB Sources table
+
 ---
 
 ## Step 3 — Present findings as a numbered pick list
@@ -288,6 +318,12 @@ I scanned <N> commits since last review and found <N> items:
 
  13. <Orphaned files> — <N> commits, no KB or decision coverage
      → I'll research this area so future work has context
+
+ 14. <N> KB entries may need `related` links — <N> tag-overlap pairs, <N> applies_to overlaps
+     → I'll show the most likely candidates so you can add or dismiss each link
+
+ 15. <adr-slug> — evaluation references <N> KB entries not in its Sources table
+     → I'll add the missing references to the ADR
 
 Pick a number to start, or:
   all   — work through each item in order
@@ -462,6 +498,52 @@ offer the three choices:
 Apply decisions directly to the spec file. After all `[ABSENT]` requirements
 in the spec are decided, summarize what changed: how many promoted (new work),
 how many preserved (documented decisions), how many deferred.
+
+**Cross-reference repair (KB related links):** Present candidates one at a time,
+highest overlap first. For each pair, show both entries' tags and the shared tags:
+
+```
+── Cross-reference candidate ───────────────────
+  Entry A: .kb/<path-a>
+    Tags: [tag1, tag2, tag3]
+  Entry B: .kb/<path-b>
+    Tags: [tag1, tag2, tag4]
+  Shared: [tag1, tag2]
+
+  add    — add related links in both entries
+  skip   — not related, won't resurface
+  defer  — resurface next /curate run
+```
+
+- **add**: Read both entries. Add entry B's relative path to entry A's `related`
+  array and vice versa. Both entries get the bidirectional link. Use the standard
+  frontmatter array format (`related: ["topic/category/subject.md"]`).
+- **skip**: Record as dismissed in curation state (`xref-dismissed`). Won't
+  resurface on future scans.
+- **defer**: Leave for next `/curate` run.
+
+For applies_to overlap candidates, present the same way but show the shared
+file paths instead of tags. Same action options.
+
+**Cross-reference repair (ADR KB Sources):** Present the ADR and its missing
+references together:
+
+```
+── Missing KB references in ADR ────────────────
+  ADR: .decisions/<slug>/adr.md
+  Missing from KB Sources table:
+    · .kb/<path> — referenced in evaluation.md scoring
+    · .kb/<path> — referenced in evaluation.md scoring
+
+  add-all — add all missing references to the ADR's KB Sources table
+  select  — choose which to add
+  skip    — these references aren't significant
+```
+
+- **add-all**: Read adr.md, add rows to the "KB Sources Used in This Decision"
+  table for each missing entry. Role column: "Referenced in evaluation."
+- **select**: Present each missing reference individually for add/skip.
+- **skip**: Record and move on. Won't resurface (the evaluation hasn't changed).
 
 After completing the action, mark it `resolved` in the review log. Then
 **ALWAYS re-present the remaining items** (renumbered) so the user can
