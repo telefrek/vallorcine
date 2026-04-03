@@ -145,6 +145,20 @@ don't test real behavior). Write the output file. STOP.
 **Test ERRORS (setup problem):** Fix the setup and retry. A test error
 is not evidence the bug doesn't exist.
 
+**Test TIMES OUT:** The test is hanging — likely a deadlock, missing
+timeout, or infinite loop in the test setup. Do NOT retry the same test.
+Instead:
+1. Check the test for missing `@Timeout` annotations on concurrency tests
+2. Check for blocking operations without timeouts (Thread.join(),
+   Future.get(), CountDownLatch.await() without duration)
+3. Add `@Timeout(10)` (10 seconds) to the test method if missing
+4. If the test still hangs after adding a timeout: the test design is
+   wrong. Rewrite with a non-blocking approach (e.g., use
+   `assertTimeoutPreemptively` or poll-based verification instead of
+   blocking waits)
+5. If no viable non-blocking approach exists: mark as IMPOSSIBLE with
+   proof that the bug cannot be exercised without a blocking test
+
 ---
 
 ## Phase 2 — FIX
@@ -185,9 +199,25 @@ Compile the project. If compilation fails, fix syntax and recompile.
 Run the FULL test class (all methods, not just the current one). This
 catches regressions — your fix might break a test from a prior finding.
 
+**Use a timeout on the test command** (e.g., `timeout 120` prefix or
+the build tool's timeout flag). Do not let a test run indefinitely.
+
 **Read ONLY:**
 - Pass/fail status per test method
 - The assertion message for any failures
+
+**If the full class times out:** Do NOT retry the full class. Instead:
+1. Run each test method individually with a timeout to isolate which
+   method is hanging
+2. For the hanging method: check if it's a concurrency test missing
+   `@Timeout`. Add the annotation and retry that single test.
+3. If a test from a PRIOR finding hangs (not your current test): that
+   test has a pre-existing problem. Skip it for regression checking —
+   run only the non-hanging tests to verify your fix didn't break them.
+   Note in the output: "Skipped <method> for regression check — hangs
+   (pre-existing, not caused by this fix)"
+4. If YOUR test hangs: treat as a test timeout in Phase 1 — rewrite
+   with non-blocking approach or mark IMPOSSIBLE
 
 ### 2e. Verify edit persisted
 
