@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-vector/src/main/java/jlsm/vector/LsmVectorIndex.java",
+  "old_string": "                    float[] vec = decodeFloats(put.value().toArray(ValueLayout.JAVA_BYTE),\n                            dimensions);",
+  "new_string": "                    float[] vec = decodeVector(put.value().toArray(ValueLayout.JAVA_BYTE),\n                            dimensions, precision);",
+  "replace_all": false
+}

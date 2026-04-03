@@ -13,7 +13,7 @@ structured decisions, TDD guardrails, and a conversational flow that enforces
 the process you want without the friction you don't. Each feature shipped makes
 the next one faster because the project's context compounds across sessions.
 
-Organised around five concerns:
+Organised around six concerns:
 
 **Knowledge** — a pull-model knowledge base (`.kb/`) maintained by the Research
 Agent. Research findings accumulate across features and are queried on demand.
@@ -26,28 +26,40 @@ profiling, candidate evaluation, and explicit confirmation. Decisions are the
 project's governance layer — they record not just what was chosen but why, what
 alternatives were rejected, and when to revisit.
 
+**Specifications** — an operational specification store (`.spec/`) maintained by
+the Spec Author. Each spec goes through a two-pass adversarial authoring process:
+structured drafting followed by falsification. Specs describe observable
+behavioral contracts — what must be true — without referencing specific
+implementation structures. They are the authoritative reference for what the
+system guarantees, consumed by the work planner, test writer, and audit pipeline.
+Domain-sharded directories with a manifest registry enable deterministic context
+resolution via bash scripts.
+
 **Features** — a staged TDD pipeline that takes a feature description through
 scoping, domain analysis, work planning, test writing, implementation, refactor,
 PR preparation, and retrospective. Each stage is a separate slash command backed
-by a named agent. Features read from the knowledge and decisions layers during
-domain analysis and write back via retrospectives — creating a feedback loop
-that makes the project layer richer with every feature completed.
+by a named agent. Features read from the knowledge, decisions, and specifications
+layers during domain analysis and work planning, and write back via
+retrospectives — creating a feedback loop that makes the project layer richer
+with every feature completed.
 
 **Curation** — a correlation engine (`.curate/`) that combines vallorcine's
 structured history with git data to find things that individual features,
 decisions, and research sessions couldn't see because they each had a narrower
-scope. Detects ADR drift, stale research, implicit dependencies between features,
-and orphaned areas with no structured knowledge. `/curate` surfaces findings
-conversationally and routes to existing commands for resolution.
+scope. Detects ADR drift, stale research, spec-code divergence, implicit
+dependencies between features, and orphaned areas with no structured knowledge.
+`/curate` surfaces findings conversationally and routes to existing commands
+for resolution.
 
 **System** — setup, upgrade, project context, and help. One-time configuration
 (`/setup-vallorcine`), ongoing maintenance (`/upgrade-vallorcine`,
 `/project-context`, `/feature-cleanup`), and entry point routing (`/vallorcine-help`).
 
-The knowledge and decisions layers are the durable assets. Features come and go,
-but KB entries, ADRs, and project context persist and compound. Curation closes
-the loop — it detects when those assets need updating based on how the codebase
-has evolved. This is what makes the 5th feature on a project faster than the 1st.
+The knowledge, decisions, and specifications layers are the durable assets.
+Features come and go, but KB entries, ADRs, specs, and project context persist
+and compound. Curation closes the loop — it detects when those assets need
+updating based on how the codebase has evolved. This is what makes the 5th
+feature on a project faster than the 1st.
 
 ---
 

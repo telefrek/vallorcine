@@ -1,0 +1,6 @@
+{
+  "path": ".feature/sql-query-support/cycle-log.md",
+  "old_string": "**Token estimate:** ~15K\n---",
+  "new_string": "**Token estimate:** ~15K\n---\n\n## 2026-03-16 \u2014 planned\n**Agent:** \ud83c\udfd7\ufe0f Work Planner\n**Summary:** 9 new constructs in 2 work units. WU-1: Lexer + Parser + AST (TokenType, Token, SqlParseException, SqlLexer, SqlAst, SqlParser). WU-2: Translator + Public API (SqlQuery, SqlTranslator, JlsmSql). New module jlsm-sql created with build.gradle, module-info.java, and all stubs. Compiles cleanly.\n**Files read:** brief ~2K, domains ~3K, project-config ~1K, jlsm-table API surface ~8K\n**Token estimate:** ~20K\n---",
+  "replace_all": false
+}

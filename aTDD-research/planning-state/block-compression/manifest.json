@@ -1,0 +1,413 @@
+{
+  "operations": [
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/cycle-log.md",
+      "edit_file": "edits/L0102-cycle-log.md.json",
+      "line": 102
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/ARCHIVE.md",
+      "line": 140,
+      "size": 2867
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0146-CLAUDE.md.json",
+      "line": 146
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/status.md",
+      "line": 27,
+      "size": 1554
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0050-status.md.json",
+      "line": 50
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/brief.md",
+      "line": 61,
+      "size": 3578
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/cycle-log.md",
+      "line": 65,
+      "size": 410
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/status.md",
+      "line": 71,
+      "size": 1560
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0078-CLAUDE.md.json",
+      "line": 78
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0109-status.md.json",
+      "line": 109
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0129-status.md.json",
+      "line": 129
+    },
+    {
+      "op": "write",
+      "path": ".kb/algorithms/compression/block-compression-algorithms.md",
+      "line": 194,
+      "size": 13350
+    },
+    {
+      "op": "write",
+      "path": ".kb/algorithms/compression/CLAUDE.md",
+      "line": 199,
+      "size": 1285
+    },
+    {
+      "op": "edit",
+      "path": ".kb/algorithms/CLAUDE.md",
+      "edit_file": "edits/L0206-CLAUDE.md.json",
+      "line": 206
+    },
+    {
+      "op": "edit",
+      "path": ".kb/CLAUDE.md",
+      "edit_file": "edits/L0213-CLAUDE.md.json",
+      "line": 213
+    },
+    {
+      "op": "edit",
+      "path": ".kb/CLAUDE.md",
+      "edit_file": "edits/L0216-CLAUDE.md.json",
+      "line": 216
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0220-status.md.json",
+      "line": 220
+    },
+    {
+      "op": "write",
+      "path": ".decisions/sstable-block-compression-format/constraints.md",
+      "line": 278,
+      "size": 2621
+    },
+    {
+      "op": "write",
+      "path": ".decisions/sstable-block-compression-format/log.md",
+      "line": 282,
+      "size": 480
+    },
+    {
+      "op": "write",
+      "path": ".decisions/sstable-block-compression-format/evaluation.md",
+      "line": 287,
+      "size": 6694
+    },
+    {
+      "op": "write",
+      "path": ".decisions/sstable-block-compression-format/adr.md",
+      "line": 299,
+      "size": 6481
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/sstable-block-compression-format/log.md",
+      "edit_file": "edits/L0305-log.md.json",
+      "line": 305
+    },
+    {
+      "op": "write",
+      "path": ".decisions/sstable-block-compression-format/CLAUDE.md",
+      "line": 310,
+      "size": 1504
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/CLAUDE.md",
+      "edit_file": "edits/L0317-CLAUDE.md.json",
+      "line": 317
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0321-status.md.json",
+      "line": 321
+    },
+    {
+      "op": "write",
+      "path": ".decisions/compression-codec-api-design/constraints.md",
+      "line": 377,
+      "size": 2832
+    },
+    {
+      "op": "write",
+      "path": ".decisions/compression-codec-api-design/log.md",
+      "line": 378,
+      "size": 446
+    },
+    {
+      "op": "write",
+      "path": ".decisions/compression-codec-api-design/evaluation.md",
+      "line": 384,
+      "size": 7668
+    },
+    {
+      "op": "write",
+      "path": ".decisions/compression-codec-api-design/adr.md",
+      "line": 396,
+      "size": 5837
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/compression-codec-api-design/log.md",
+      "edit_file": "edits/L0402-log.md.json",
+      "line": 402
+    },
+    {
+      "op": "write",
+      "path": ".decisions/compression-codec-api-design/CLAUDE.md",
+      "line": 406,
+      "size": 1567
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/CLAUDE.md",
+      "edit_file": "edits/L0412-CLAUDE.md.json",
+      "line": 412
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0416-status.md.json",
+      "line": 416
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/domains.md",
+      "line": 421,
+      "size": 4320
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0428-status.md.json",
+      "line": 428
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0431-status.md.json",
+      "line": 431
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/cycle-log.md",
+      "edit_file": "edits/L0437-cycle-log.md.json",
+      "line": 437
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0440-CLAUDE.md.json",
+      "line": 440
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0455-status.md.json",
+      "line": 455
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0458-status.md.json",
+      "line": 458
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0497-status.md.json",
+      "line": 497
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0513-status.md.json",
+      "line": 513
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0567-status.md.json",
+      "line": 567
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/units/WU-1/status.md",
+      "edit_file": "edits/L0583-status.md.json",
+      "line": 583
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/units/WU-1/status.md",
+      "edit_file": "edits/L0593-status.md.json",
+      "line": 593
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-core/src/main/java/jlsm/core/compression/CompressionCodec.java",
+      "line": 26,
+      "size": 3932
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-core/src/main/java/jlsm/core/compression/NoneCodec.java",
+      "line": 29,
+      "size": 1293
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-core/src/main/java/jlsm/core/compression/DeflateCodec.java",
+      "line": 32,
+      "size": 1880
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-core/src/main/java/jlsm/sstable/internal/CompressionMap.java",
+      "line": 35,
+      "size": 3431
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/work-plan.md",
+      "line": 39,
+      "size": 10949
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/status.md",
+      "line": 42,
+      "size": 2201
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/units/WU-1/status.md",
+      "line": 45,
+      "size": 384
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/units/WU-1/cycle-log.md",
+      "line": 48,
+      "size": 93
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/units/WU-2/status.md",
+      "line": 51,
+      "size": 395
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/units/WU-2/cycle-log.md",
+      "line": 54,
+      "size": 93
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/cycle-log.md",
+      "edit_file": "edits/L0058-cycle-log.md.json",
+      "line": 58
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0061-CLAUDE.md.json",
+      "line": 61
+    },
+    {
+      "op": "write",
+      "path": ".feature/block-compression/pr-draft.md",
+      "line": 78,
+      "size": 3079
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0084-status.md.json",
+      "line": 84
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0087-status.md.json",
+      "line": 87
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/cycle-log.md",
+      "edit_file": "edits/L0091-cycle-log.md.json",
+      "line": 91
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-core/src/main/java/jlsm/sstable/TrieSSTableReader.java",
+      "line": 100,
+      "size": 28667
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/status.md",
+      "edit_file": "edits/L0115-status.md.json",
+      "line": 115
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/units/WU-2/status.md",
+      "edit_file": "edits/L0119-status.md.json",
+      "line": 119
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/units/WU-2/cycle-log.md",
+      "edit_file": "edits/L0123-cycle-log.md.json",
+      "line": 123
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-core/src/main/java/jlsm/sstable/internal/SSTableFormat.java",
+      "edit_file": "edits/L0149-SSTableFormat.java.json",
+      "line": 149
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/units/WU-2/status.md",
+      "edit_file": "edits/L0158-status.md.json",
+      "line": 158
+    },
+    {
+      "op": "edit",
+      "path": ".feature/block-compression/units/WU-2/cycle-log.md",
+      "edit_file": "edits/L0161-cycle-log.md.json",
+      "line": 161
+    }
+  ],
+  "total_ops": 68
+}

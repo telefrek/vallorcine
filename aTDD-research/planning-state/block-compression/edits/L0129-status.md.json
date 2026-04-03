@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/status.md",
+  "old_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|",
+  "new_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|\n| Block compression algorithms | pending | \u2014 | \u2014 | \u2014 | \u2014 |\n| SSTable block format changes | pending | \u2014 | \u2014 | \u2014 | \u2014 |\n| Compression codec API design | pending | \u2014 | \u2014 | \u2014 | \u2014 |",
+  "replace_all": false
+}

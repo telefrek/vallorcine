@@ -54,8 +54,9 @@ and are NOT in the MANIFEST.
 
 **User-facing commands** — installed to developer projects:
   /feature, /feature-quick, /feature-domains, /feature-plan, /feature-test,
-  /feature-implement, /feature-refactor, /feature-pr, /feature-retro,
-  /feature-complete, /feature-cleanup, /feature-resume, /feature-coordinate,
+  /feature-implement, /feature-refactor, /audit, /feature-pr,
+  /feature-retro, /feature-complete, /feature-cleanup, /feature-resume,
+  /feature-coordinate,
   /kb, /research, /architect, /decisions, /curate,
   /project-context, /vallorcine-help, /setup-vallorcine, /upgrade-vallorcine,
   /uninstall-vallorcine

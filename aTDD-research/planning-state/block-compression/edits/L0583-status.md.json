@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/units/WU-1/status.md",
+  "old_string": "**Stage:** not-started\n**Substage:** \u2014\n**Last successful checkpoint:** unit directory created\n**Cycle:** 0",
+  "new_string": "**Stage:** testing\n**Substage:** planning\n**Last successful checkpoint:** unit directory created\n**Cycle:** 1",
+  "replace_all": false
+}

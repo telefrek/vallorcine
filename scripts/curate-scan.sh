@@ -250,7 +250,7 @@ if [[ -d ".decisions" ]] && [[ -s "$TMPDIR_SCAN/artifact-hits.txt" ]]; then
         total=0
         for adr_f in .decisions/"$slug"/adr.md .decisions/"$slug"/constraints.md; do
             [[ -f "$adr_f" ]] || continue
-            t=$(grep -oE '[a-zA-Z0-9_./+-]+/[a-zA-Z0-9_.+-]+\.[a-zA-Z0-9]+' "$adr_f" 2>/dev/null \
+            t=$( (grep -oE '[a-zA-Z0-9_./+-]+/[a-zA-Z0-9_.+-]+\.[a-zA-Z0-9]+' "$adr_f" 2>/dev/null || true) \
                 | sort -u | wc -l)
             total=$((total + t))
         done
@@ -734,3 +734,14 @@ echo "  ADRs to revisit: $(wc -l < "$TMPDIR_SCAN/adr-revisit.txt" 2>/dev/null ||
 echo "  Test-source drift: $(wc -l < "$TMPDIR_SCAN/test-drift.txt" 2>/dev/null || echo 0)"
 echo "  Backfill candidates: $(wc -l < "$TMPDIR_SCAN/backfill-candidates.txt" 2>/dev/null || echo 0)"
 echo "  Out-of-scope items: $(wc -l < "$TMPDIR_SCAN/out-of-scope.txt" 2>/dev/null || echo 0)"
+
+# ── Update curation state ─────────────────────────────────────────────────
+
+cat > "$STATE_FILE" << STATE
+Last scanned: $CURRENT_SHA
+Scan date: $SCAN_DATE
+Commits: $COMMIT_COUNT
+Window: ${WINDOW_MONTHS} months
+STATE
+
+exit 0

@@ -1,0 +1,6 @@
+{
+  "path": "SSTableWriteScratch.java",
+  "old_string": "    @TearDown(Level.Trial)\n    public void tearDown() throws IOException {",
+  "new_string": "    @TearDown(org.openjdk.jmh.annotations.Level.Trial)\n    public void tearDown() throws IOException {",
+  "replace_all": false
+}

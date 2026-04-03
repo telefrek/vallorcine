@@ -1,0 +1,6 @@
+{
+  "path": "settings.gradle",
+  "old_string": "include 'benchmarks:jlsm-bloom-benchmarks'\ninclude 'benchmarks:jlsm-tree-benchmarks'",
+  "new_string": "include 'benchmarks:jlsm-bloom-benchmarks'\ninclude 'benchmarks:jlsm-tree-benchmarks'\ninclude 'benchmarks:jlsm-perf-scratch'",
+  "replace_all": false
+}

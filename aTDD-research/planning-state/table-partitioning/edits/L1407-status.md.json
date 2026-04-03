@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "**Automation mode:** not-set",
+  "new_string": "**Automation mode:** autonomous",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/in-process-database-engine/cycle-log.md",
+  "old_string": "**Token estimate:** ~5K (loaded: project-config ~1K / wrote: brief ~2K, status ~1K, cycle-log ~1K)\n---",
+  "new_string": "**Token estimate:** ~5K (loaded: project-config ~1K / wrote: brief ~2K, status ~1K, cycle-log ~1K)\n---\n## 2026-03-19 \u2014 domains-resolved\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** 2 domains identified and resolved. Table catalog persistence: researched 4 patterns, ADR confirmed for per-table metadata directories. Engine API surface design: ADR confirmed for interface-based handle pattern with tracked lifecycle and lease eviction. 1 new KB entry written.\n**Files read:** brief ~2K, .kb/CLAUDE.md ~1K, .decisions/CLAUDE.md ~1K\n**Token estimate:** ~30K\n---",
+  "replace_all": false
+}

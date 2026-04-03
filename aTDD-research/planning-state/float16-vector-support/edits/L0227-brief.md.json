@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/brief.md",
+  "old_string": "## Open Assumptions\n- Java's Float.float16ToFloat / Float.floatToFloat16 (Java 20+) will be used for conversion\n- SIMD float16 distance computation will use ShortVector or manual half-precision arithmetic\n  depending on jdk.incubator.vector support for float16 operations",
+  "new_string": "## Open Assumptions\n- Java's Float.float16ToFloat / Float.floatToFloat16 (Java 20+) will be used for conversion\n- Distance computation: vectors are stored as float16 (short[]) but decoded to float32 for SIMD\n  computation via FloatVector. Precision loss comes from storage quantization (values rounded to\n  float16 on write). True float16 SIMD arithmetic is not available in Java 25's Vector API \u2014\n  Float16Vector is in active development (JDK-8370691) and expected in JDK 27+. When it ships,\n  the inner distance loop can be swapped to native float16 SIMD without changing storage format.",
+  "replace_all": false
+}

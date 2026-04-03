@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/cycle-log.md",
+  "old_string": "**Token estimate:** ~5K (loaded: project-config ~1K, status ~1K / wrote: brief ~2K, status ~1K, cycle-log ~1K)\n---",
+  "new_string": "**Token estimate:** ~5K (loaded: project-config ~1K, status ~1K / wrote: brief ~2K, status ~1K, cycle-log ~1K)\n---\n\n## 2026-03-16 \u2014 domains-resolved\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** 4 domains identified, all resolved. Partitioning strategy covered by ADR-001. Scatter-gather, result fusion, and partition descriptor model covered by KB research (partitioning-strategies.md, vector-search-partitioning.md). No gaps \u2014 all domains resolved via prior research and architecture work.\n**Files read:** brief ~2K, .kb/CLAUDE.md ~1K, .decisions/CLAUDE.md ~1K\n**Token estimate:** ~6K\n---",
+  "replace_all": false
+}

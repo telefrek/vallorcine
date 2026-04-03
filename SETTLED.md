@@ -166,6 +166,28 @@ SETTLED.md (graduated history), COMPETITIVE.md (market positioning).
 Different update cadences, different token costs. `/save-work` graduates
 aged entries.
 
+## 5-pass analysis pipeline (2026-03-27)
+
+Inventory → triage → clustering → per-cluster deep analysis → reconciliation.
+Each pass writes to disk; next pass reads the file, not the conversation history.
+416K tokens vs ~1M for equivalent coverage. Validated against 26 known bugs (92%).
+
+## Construct-level clustering (2026-03-27)
+
+Clusters follow data flow and shared state, not file boundaries. `shares_state`
+edges are unsplittable within a type. Cross-type bridges defer to reconciliation.
+No hard size limits — graph structure determines boundaries.
+
+## Attack-generation framing (2026-03-27)
+
+"What input breaks this?" not "does this look correct?" Per-cell independence
+prevents satisficing. Validated: doubled bug detection vs comprehension framing.
+
+## Write-and-return test writers (2026-03-27)
+
+Phase 4 breakers write tests and exit. No compile loops in test writing.
+Separate compile-check phase. Eliminates 50% post-write overhead.
+
 ## Escalation flags and re-entry logic (2026-03-13)
 
 Full Code Writer → Test Writer → Work Planner escalation chain with

@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+  "old_string": "import java.lang.foreign.MemorySegment;\nimport java.lang.foreign.ValueLayout;\nimport java.nio.charset.StandardCharsets;\nimport java.util.List;\nimport java.util.Objects;",
+  "new_string": "import java.lang.foreign.MemorySegment;\nimport java.lang.foreign.ValueLayout;\nimport java.nio.charset.StandardCharsets;\nimport java.util.List;\nimport java.util.Objects;\nimport java.util.Optional;",
+  "replace_all": false
+}

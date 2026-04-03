@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| Table indices and queries | table-indices-and-queries | 2026-03-16 | WU-1 complete | cycle 1 clean, WU-2 ready |",
+  "new_string": "| Table indices and queries | table-indices-and-queries | 2026-03-16 | WU-1 complete | cycle 1 clean, WU-2 ready |\n| SQL query support | sql-query-support | 2026-03-16 | scoping/complete | brief written |",
+  "replace_all": false
+}

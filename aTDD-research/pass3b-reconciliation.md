@@ -18,6 +18,9 @@ Read these files (and ONLY these files):
    especially edges that cross cluster boundaries
 3. **The cluster definitions** (Pass 2.5 output) — for understanding which
    constructs were assigned to which cluster
+4. **`spec-context.md`** (if it exists) — the spec requirements bundle. Used
+   to check whether findings map to spec requirements and whether any spec
+   requirements have no corresponding analysis coverage.
 
 Do NOT read source code files. You are reasoning about structured findings
 and relationship graphs, not about code.
@@ -106,6 +109,27 @@ Look for findings from different clusters that combine into a larger issue:
 These combinations are findings that exist ONLY because of cross-cluster
 visibility. No single subagent could have found them.
 
+### Step 6 — Spec coverage analysis (only when spec-context.md exists)
+
+If spec context was provided, build a coverage map:
+
+1. **Collect all spec requirement references** from Pass 3a findings (the
+   `Spec requirement` field) and from cleared cells with spec conformance
+   concern area.
+
+2. **Compare against the full requirement list** in spec-context.md. For each
+   requirement:
+   - **Covered** — at least one finding or cleared cell references it
+   - **Uncovered** — no cluster analyzed it. This means either (a) triage
+     didn't map it to any construct, or (b) the requirement describes behavior
+     at a boundary that falls between clusters.
+   - **Undocumented behavior count** — findings tagged "undocumented" that
+     describe code behavior no spec requirement covers.
+
+3. Uncovered requirements are gaps — not necessarily bugs, but areas where the
+   audit cannot confirm the implementation matches the spec. Report them so the
+   user can decide whether to extend the audit or accept the gap.
+
 ## Output
 
 Write findings to `pass3b-reconciliation.md`.
@@ -160,6 +184,29 @@ Use this format:
 |-----------|---------|-----------|---------|------|
 | SkippedType | Foo.method | uses_type | F-2.3 | May be part of attack path |
 
+## Spec Coverage (omit section if no spec context)
+
+### Requirement coverage
+
+| Requirement | Status | Evidence |
+|-------------|--------|----------|
+| R1 | covered | F-1.2 (finding), Cluster 1 cleared cell |
+| R3 | covered | F-2.1 (finding) |
+| R5 | uncovered | Not mapped to any construct in triage |
+
+### Undocumented behaviors
+
+| Finding | Construct | Behavior | Notes |
+|---------|-----------|----------|-------|
+| F-1.4 | Foo.bar | Silently accepts negative offset | No spec requirement covers negative input handling |
+
+### Coverage summary
+
+- Total spec requirements: {count}
+- Covered by analysis: {count}
+- Uncovered (gap): {count}
+- Undocumented behaviors found: {count}
+
 ## Summary
 
 - Cross-cluster findings: {count}
@@ -167,6 +214,7 @@ Use this format:
 - Boundary edges analyzed: {count}
 - Unanalyzed boundary gaps: {count}
 - Skipped constructs with finding-adjacent edges: {count}
+- Spec requirements covered: {count} / {total} (omit if no spec context)
 ```
 
 ## Rules

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| Table partitioning | table-partitioning | 2026-03-16 | planning/complete | 8 constructs, 3 WUs (balanced) |",
+  "new_string": "| Table partitioning | table-partitioning | 2026-03-16 | refactor/complete | 3 WUs done, 85 tests, check clean |",
+  "replace_all": false
+}

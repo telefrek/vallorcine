@@ -1,0 +1,6 @@
+{
+  "path": ".claude/skills/perf-review/perf-context.md",
+  "old_string": "*(run an exploration to populate)*",
+  "new_string": "- TrieSSTableWriter \u2014 SSTable write path (key index nested loops, MemorySegment alloc per entry)\n- TrieSSTableReader \u2014 SSTable read path (eager data load, trie traversal, block cache)\n- SpookyCompactor + MergeIterator \u2014 compaction merge (N-way heap, overlap scan)\n- LocalWriteAheadLog \u2014 WAL write (fsync latency, writeLock contention)\n- BlockedBloomFilter \u2014 bloom filter (hash + double-hash loop)\n- LruBlockCache \u2014 block cache (ReentrantLock contention)\n- LsmVectorIndex \u2014 SIMD distance computation\n- DocumentSerializer \u2014 SIMD byte-swap encoding",
+  "replace_all": false
+}

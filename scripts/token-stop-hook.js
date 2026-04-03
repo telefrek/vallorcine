@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+'use strict';
 /**
  * vallorcine token tracking Stop hook — Node.js implementation.
  *
@@ -43,7 +44,9 @@ function readJsonOrShell(filePath) {
 
 function writeState(filePath, data) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(data) + '\n');
+  const tmpFile = filePath + '.tmp';
+  fs.writeFileSync(tmpFile, JSON.stringify(data) + '\n');
+  fs.renameSync(tmpFile, filePath);
 }
 
 function readStageFromStatus(statusPath) {
@@ -63,11 +66,17 @@ function findTranscript() {
   const projectId = projectDir.replace(/^\//, '').replace(/\//g, '-');
   const sessionDir = path.join(os.homedir(), '.claude', 'projects', `-${projectId}`);
   try {
-    const files = fs.readdirSync(sessionDir)
-      .filter(f => f.endsWith('.jsonl'))
-      .map(f => ({ name: f, mtime: fs.statSync(path.join(sessionDir, f)).mtimeMs }))
-      .sort((a, b) => b.mtime - a.mtime);
-    return files.length ? path.join(sessionDir, files[0].name) : '';
+    let newest = '';
+    let newestMtime = -1;
+    for (const f of fs.readdirSync(sessionDir)) {
+      if (!f.endsWith('.jsonl')) continue;
+      const mtime = fs.statSync(path.join(sessionDir, f)).mtimeMs;
+      if (mtime > newestMtime) {
+        newestMtime = mtime;
+        newest = f;
+      }
+    }
+    return newest ? path.join(sessionDir, newest) : '';
   } catch { return ''; }
 }
 
@@ -108,7 +117,9 @@ function updateStatusMdActualTokens(statusPath, stageCap, actualStr) {
       }
       return line;
     });
-    fs.writeFileSync(statusPath, updated.join('\n'));
+    const tmpFile = statusPath + '.tmp';
+    fs.writeFileSync(tmpFile, updated.join('\n'));
+    fs.renameSync(tmpFile, statusPath);
   } catch {}
 }
 

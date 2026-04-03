@@ -1,0 +1,6 @@
+{
+  "path": "settings.gradle",
+  "old_string": "include 'modules:jlsm-table'",
+  "new_string": "include 'modules:jlsm-table'\ninclude 'modules:jlsm-sql'",
+  "replace_all": false
+}

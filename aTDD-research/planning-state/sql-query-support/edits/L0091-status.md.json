@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "**Stage:** refactor\n**Substage:** complete",
+  "new_string": "**Stage:** pr\n**Substage:** pr-draft-written",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/in-process-database-engine/status.md",
+  "old_string": "**Last successful checkpoint:** WU-1 complete, WU-2 unblocked",
+  "new_string": "**Last successful checkpoint:** WU-2 complete (50 tests), WU-3 unblocked",
+  "replace_all": false
+}

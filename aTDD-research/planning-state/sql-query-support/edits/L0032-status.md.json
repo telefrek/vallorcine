@@ -1,0 +1,6 @@
+{
+  "path": ".feature/sql-query-support/status.md",
+  "old_string": "## Current Stage\nscoping/complete\n\n## Completed Stages\n- [x] scoping \u2014 brief written\n\n## Pending Stages\n- [ ] domains\n- [ ] work-plan\n- [ ] test (per work unit)\n- [ ] implement (per work unit)\n- [ ] refactor (per work unit)\n- [ ] pr",
+  "new_string": "## Current Stage\ndomains/in-progress\n\n## Completed Stages\n- [x] scoping \u2014 brief written\n\n## Pending Stages\n- [ ] domains\n- [ ] work-plan\n- [ ] test (per work unit)\n- [ ] implement (per work unit)\n- [ ] refactor (per work unit)\n- [ ] pr\n\n## Domain Resolution Tracker\n| Domain | Status | Source | Commissioned |\n|--------|--------|--------|--------------|\n| SQL Parsing Strategy | pending | \u2014 | \u2014 |\n| Vector Similarity SQL Syntax | pending | \u2014 | \u2014 |",
+  "replace_all": false
+}

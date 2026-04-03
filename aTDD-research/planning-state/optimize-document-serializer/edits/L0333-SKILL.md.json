@@ -1,0 +1,6 @@
+{
+  "path": ".claude/skills/research/SKILL.md",
+  "old_string": "5. Record every URL with title and access date \u2014 these go in the sources frontmatter\n\n---",
+  "new_string": "5. Record every URL with title and access date \u2014 these go in the sources frontmatter\n\n### Fetch discipline\n\nFetches can hang indefinitely on slow or unresponsive sources. Rules:\n- **Never block on a single fetch.** If a fetch hasn't returned within ~30\n  seconds, move on. The research can proceed with the sources that did respond.\n- **Prefer smaller pages.** Arxiv HTML versions, GitHub wiki pages, and\n  documentation sites are usually fast. Avoid fetching large PDFs, full\n  repository archives, or pages that require JavaScript rendering.\n- **3 sources is enough.** Don't fetch 5 sources if 3 gave you what you need.\n  Each additional fetch is a timeout risk for diminishing return.\n- **If a fetch fails or times out:** note the URL in the subject file's sources\n  as `(not fetched \u2014 timeout/error)` so future research knows to try again or\n  use a different source. Do not retry in the same session.\n\n---",
+  "replace_all": false
+}

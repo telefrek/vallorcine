@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/status.md",
+  "old_string": "| WU-2 | SSTable v2 Format with Compression | CompressionMap, SSTableFormat, TrieSSTableWriter, TrieSSTableReader, StandardLsmTree.Builder | WU-1 | in-progress | 1 |",
+  "new_string": "| WU-2 | SSTable v2 Format with Compression | CompressionMap, SSTableFormat, TrieSSTableWriter, TrieSSTableReader, StandardLsmTree.Builder | WU-1 | complete | 1 |",
+  "replace_all": false
+}

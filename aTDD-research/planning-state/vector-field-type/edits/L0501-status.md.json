@@ -1,0 +1,6 @@
+{
+  "path": ".feature/vector-field-type/status.md",
+  "old_string": "| VectorType serialization encoding | pending-decision | none | none | 2026-03-17 | \u2014 |",
+  "new_string": "| VectorType serialization encoding | resolved | .decisions/vector-type-serialization-encoding/adr.md | .kb/algorithms/vector-encoding/ | 2026-03-17 | 2026-03-17 |",
+  "replace_all": false
+}

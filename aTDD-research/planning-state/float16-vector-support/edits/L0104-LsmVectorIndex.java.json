@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-vector/src/main/java/jlsm/vector/LsmVectorIndex.java",
+  "old_string": "                    MemorySegment.ofArray(encodeNode(docIdBytes, newNodeLayers, vector)));",
+  "new_string": "                    MemorySegment.ofArray(encodeNode(docIdBytes, newNodeLayers, vector,\n                            precision)));",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/streaming-block-decompression/status.md",
+  "old_string": "| Domains | in-progress | \u2014 | \u2014 | \u2014 | |",
+  "new_string": "| Domains | complete | 2026-03-18 | ~8K | \u2014 | 3 domains resolved |",
+  "replace_all": false
+}

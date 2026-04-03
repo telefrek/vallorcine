@@ -31,14 +31,19 @@ reference. This tells you exactly what to test and what input triggers the bug.
 
 #### Step 2 — Read the construct source
 
-Read ONLY the line range specified for this finding's construct. If the
-finding references specific lines (e.g., "line 59"), read a small window
-around those lines (±10 lines) to understand the code structure, method
-signature, and any setup needed to invoke the construct.
+Read ONLY the line range specified for this finding's construct. **Always
+use `offset` and `limit` parameters on every Read call for implementation
+files.** If the finding references specific lines (e.g., "line 59"), read
+a small window around those lines (±10 lines) to understand the code
+structure, method signature, and any setup needed to invoke the construct.
 
-Do NOT read the full file. Do NOT read other constructs' source code unless
-the finding explicitly says the test needs to invoke a different method to
-set up state.
+- **DO:** `Read(file, offset=590, limit=40)` for a finding at line 602
+- **DO NOT:** `Read(file)` with no offset/limit
+- **DO NOT:** Read the file in sequential chunks that cover the whole file
+
+Do NOT read other constructs' source code unless the finding explicitly
+says the test needs to invoke a different method to set up state — and
+even then, read only that method's line range.
 
 #### Step 3 — Write the test
 
@@ -46,14 +51,27 @@ Write a single test method that:
 
 1. **Sets up** the minimum state needed to reach the buggy code path
 2. **Provides** the specific adversarial input from the finding's attack
-   description (exact values: `Integer.MAX_VALUE`, `negative length`, etc.)
-3. **Asserts** the expected wrong behavior described in the finding:
-   - If the finding says "throws wrong exception type" → assert the correct
-     exception type should be thrown but isn't
+   description (exact values: max integer, negative length, etc.)
+3. **Asserts** the correct behavior that the buggy code fails to provide:
+   - If the finding says "throws wrong error type" → assert the correct
+     error type should be thrown (the test fails because the buggy code
+     throws the wrong type)
+   - If the finding says "debug assertion used as validation" → assert that
+     proper validation occurs (the language's standard validation error
+     type). Do NOT expect the debug assertion's error type — that is the
+     buggy behavior. The test should verify that real validation occurs,
+     which fails because the current code relies on a debug mechanism
+     that is disabled in production builds.
    - If the finding says "silent data corruption" → assert the output data
-     is wrong (or assert the expected correct behavior that currently fails)
+     matches the correct result (the test fails because the buggy code
+     produces wrong output)
    - If the finding says "resource leak" → assert the resource should be
      closed (or test that it isn't, if the framework supports it)
+
+   **Key principle:** every test asserts what CORRECT code should do. The
+   test fails because the current code doesn't do it. After the fix, the
+   test passes. If your test would PASS on the current buggy code, you
+   are testing the bug, not the fix — reverse the assertion.
 
 The test should **fail on the current code** (it's testing a real bug). If
 you cannot construct a test that would fail, note it as "untestable" with
@@ -61,6 +79,43 @@ a one-line reason and move to the next finding.
 
 Name the test descriptively: `test_{construct}_{concern}_{bug summary}`.
 Example: `testDecompressOverflowBypassesBoundsCheck`.
+
+#### Test intent comment (mandatory)
+
+Every test method MUST have a block comment immediately before it that
+explains the intent — what the test proves, why it matters, and what a
+failure means. An implementer reading this comment should understand:
+(a) what correct behavior looks like, (b) what the bug is, and
+(c) how to tell if their fix actually addresses it.
+
+```java
+/**
+ * Finding F-1.2: negative dimension bypasses validation
+ * Spec: R3 — vector dimension must match configured dimension
+ *
+ * Intent: When a caller passes a negative dimension, the writer should
+ * reject it with IllegalArgumentException before any I/O occurs. Currently
+ * the negative value passes the >= 0 check (off-by-one: should be > 0)
+ * and reaches the allocation path where it causes a NegativeArraySizeException.
+ *
+ * A correct fix validates dimension > 0 at the entry point.
+ * If this test fails after a fix, it means the validation was removed or
+ * the check boundary shifted again.
+ */
+@Test
+void testWriterNegativeDimensionRejected() { ... }
+```
+
+The comment structure:
+1. **Finding ID** and **spec requirement** (if applicable) — traceability
+2. **Intent** — what the test proves and what correct behavior is
+3. **Current bug** — what actually happens and why the test fails
+4. **Fix guidance** — what a correct fix looks like
+5. **Regression note** — what a future failure of this test would mean
+
+Keep it concise (5-8 lines) but complete. The implementer should not need
+to read the finding, the spec, or the source to understand what this test
+wants.
 
 #### Step 4 — Write a summary line
 
@@ -137,10 +192,10 @@ Tests written: {count}
 Untestable findings: {count} ({finding IDs}: {reasons})
 Shared helpers: {count}
 
-| Finding | Test method | What it tests |
-|---------|------------|---------------|
-| F-{N}.1 | testMethodName | one-line description |
-| F-{N}.2 | testMethodName | one-line description |
+| Finding | Spec Req | Test method | What it tests |
+|---------|----------|------------|---------------|
+| F-{N}.1 | R3 | testMethodName | one-line description |
+| F-{N}.2 | — | testMethodName | one-line description |
 ```
 
 ## Rules

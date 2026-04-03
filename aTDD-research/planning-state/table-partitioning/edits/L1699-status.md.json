@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "| Testing | not-started | \u2014 | \u2014 | \u2014 | cycle 0 |\n| Implementation | not-started | \u2014 | \u2014 | \u2014 | cycle 0 |\n| Refactor | not-started | \u2014 | \u2014 | \u2014 | cycle 0 |",
+  "new_string": "| Testing | complete | 2026-03-17 | ~8K | \u2014 | 85 tests across 3 WUs |\n| Implementation | complete | 2026-03-17 | ~12K | \u2014 | 8 constructs implemented |\n| Refactor | complete | 2026-03-17 | ~3K | \u2014 | spotless + checkstyle clean |",
+  "replace_all": false
+}

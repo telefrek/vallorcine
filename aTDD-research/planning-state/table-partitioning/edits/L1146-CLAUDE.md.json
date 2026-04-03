@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| SQL query support | sql-query-support | 2026-03-16 | refactor/complete | all units done, 74 tests passing |",
+  "new_string": "| SQL query support | sql-query-support | 2026-03-16 | refactor/complete | all units done, 74 tests passing |\n| Table partitioning | table-partitioning | 2026-03-16 | scoping/complete | brief confirmed, ADR-001 decided |",
+  "replace_all": false
+}

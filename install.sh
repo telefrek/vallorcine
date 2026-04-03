@@ -214,6 +214,12 @@ echo ""
 echo "── Decisions seed files ─────────────────────────"
 _install_seed "$SCRIPT_DIR/decisions/CLAUDE.md" "$TARGET/.decisions/CLAUDE.md"
 
+# ── Spec seed files (never overwrite — same as KB / Decisions) ────────────
+
+echo ""
+echo "── Spec seed files ──────────────────────────────"
+_install_seed "$SCRIPT_DIR/spec/CLAUDE.md" "$TARGET/.spec/CLAUDE.md"
+
 # ── Curation directory ────────────────────────────────────────────────────
 
 echo ""
@@ -229,6 +235,18 @@ else
         ((unchanged++)) || true
     fi
 fi
+
+# ── Audit prompts ─────────────────────────────────────────────────────────────
+
+echo ""
+echo "── Audit prompts ──────────────────────────────────"
+mkdir -p "$TARGET/.claude/prompts/audit"
+for f in "$SCRIPT_DIR"/prompts/audit/*.md; do
+    install_file "$f" "$TARGET/.claude/prompts/audit/$(basename "$f")"
+done
+for f in "$SCRIPT_DIR"/prompts/audit/*.py; do
+    install_file "$f" "$TARGET/.claude/prompts/audit/$(basename "$f")"
+done
 
 # ── Scripts ───────────────────────────────────────────────────────────────────
 
@@ -255,6 +273,11 @@ install_file "$SCRIPT_DIR/scripts/subagent-hook.py" "$TARGET/.claude/scripts/sub
 install_file "$SCRIPT_DIR/scripts/subagent-hook.js" "$TARGET/.claude/scripts/subagent-hook.js"
 install_file "$SCRIPT_DIR/scripts/subagent-hook-wrapper.sh" "$TARGET/.claude/scripts/subagent-hook-wrapper.sh"
 install_file "$SCRIPT_DIR/scripts/uninstall.sh" "$TARGET/.claude/scripts/uninstall.sh"
+install_file "$SCRIPT_DIR/scripts/spec-lib.sh" "$TARGET/.claude/scripts/spec-lib.sh"
+install_file "$SCRIPT_DIR/scripts/spec-validate.sh" "$TARGET/.claude/scripts/spec-validate.sh"
+install_file "$SCRIPT_DIR/scripts/spec-stats.sh" "$TARGET/.claude/scripts/spec-stats.sh"
+install_file "$SCRIPT_DIR/scripts/spec-resolve.sh" "$TARGET/.claude/scripts/spec-resolve.sh"
+install_file "$SCRIPT_DIR/scripts/spec-obligations-gc.sh" "$TARGET/.claude/scripts/spec-obligations-gc.sh"
 install_file "$SCRIPT_DIR/scripts/narrative-wrapper.sh" "$TARGET/.claude/scripts/narrative-wrapper.sh"
 chmod +x "$TARGET/.claude/scripts/narrative-wrapper.sh" 2>/dev/null || true
 mkdir -p "$TARGET/.claude/scripts/narrative"
@@ -276,6 +299,10 @@ echo "── Upgrade script ─────────────────�
 install_file "$SCRIPT_DIR/upgrade.sh" "$TARGET/.claude/upgrade.sh"
 chmod +x "$TARGET/.claude/upgrade.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/uninstall.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/spec-validate.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/spec-stats.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/spec-resolve.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/spec-obligations-gc.sh" 2>/dev/null || true
 
 # ── Merge driver for index files ──────────────────────────────────────────────
 
@@ -345,7 +372,11 @@ if [[ "$DIFF_MODE" != "1" ]]; then
       "Bash(bash .claude/scripts/ensure-merge-driver.sh:*)",
       "Bash(bash .claude/scripts/adr-validate.sh:*)",
       "Bash(bash .claude/scripts/index-verify.sh:*)",
-      "Bash(bash .claude/scripts/narrative-wrapper.sh:*)"
+      "Bash(bash .claude/scripts/narrative-wrapper.sh:*)",
+      "Bash(bash .claude/scripts/spec-validate.sh:*)",
+      "Bash(bash .claude/scripts/spec-stats.sh:*)",
+      "Bash(bash .claude/scripts/spec-resolve.sh:*)",
+      "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)"
     ]
   },
   "hooks": {
@@ -428,7 +459,11 @@ HOOKJSON
             "Bash(bash .claude/scripts/ensure-merge-driver.sh:*)",
             "Bash(bash .claude/scripts/adr-validate.sh:*)",
             "Bash(bash .claude/scripts/index-verify.sh:*)",
-            "Bash(bash .claude/scripts/narrative-wrapper.sh:*)"
+            "Bash(bash .claude/scripts/narrative-wrapper.sh:*)",
+      "Bash(bash .claude/scripts/spec-validate.sh:*)",
+      "Bash(bash .claude/scripts/spec-stats.sh:*)",
+      "Bash(bash .claude/scripts/spec-resolve.sh:*)",
+      "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)"
         ] | unique)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
         echo -e "  ${GREEN}merge${NC} Script permissions added to settings.json"
     elif [[ -f "$SETTINGS_FILE" ]]; then
@@ -527,11 +562,8 @@ fi
 
 # ── CLAUDE.md block ───────────────────────────────────────────────────────────
 
-echo ""
-echo "Add this block to your root CLAUDE.md:"
-echo ""
-cat << 'CLAUDEMD'
-## Feature Development
+CLAUDE_MD="$TARGET/CLAUDE.md"
+CLAUDE_BLOCK='## Feature Development
 `.feature/<slug>/` — on-demand only. Profile: `.feature/project-config.md`
 Quick: `/feature-quick "<description>"` — Full: `/feature "<description>"`
 Resume: `/feature-resume "<slug>"` — Status: `/feature-resume "<slug>" --status`
@@ -545,6 +577,31 @@ Setup: `/setup-vallorcine` (first time only — initializes everything)
 
 ## Codebase Quality
 `/curate` — review quality signals, find stale decisions, knowledge gaps, and implicit dependencies.
-`/curate --init` — first-time scan on existing codebase.
-CLAUDEMD
-echo ""
+`/curate --init` — first-time scan on existing codebase.'
+
+if [[ -f "$CLAUDE_MD" ]] && grep -q "vallorcine-help" "$CLAUDE_MD" 2>/dev/null; then
+    # Already has vallorcine block — replace it in place
+    # Find the Feature Development header and replace through Codebase Quality section
+    tmpfile="$(mktemp)"
+    awk '
+        /^## Feature Development$/ { skip=1; next }
+        skip && /^## / && !/^## (Knowledge Base|Codebase Quality)/ { skip=0 }
+        skip && /^## (Knowledge Base|Codebase Quality)/ { next }
+        skip { next }
+        { print }
+    ' "$CLAUDE_MD" > "$tmpfile"
+    # Remove trailing blank lines then append the fresh block
+    sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$tmpfile" 2>/dev/null || true
+    printf '\n%s\n' "$CLAUDE_BLOCK" >> "$tmpfile"
+    mv "$tmpfile" "$CLAUDE_MD"
+    echo -e "  ${GREEN}update${NC} $CLAUDE_MD  (vallorcine block refreshed)"
+else
+    # No existing block — append or create
+    if [[ -f "$CLAUDE_MD" ]]; then
+        printf '\n%s\n' "$CLAUDE_BLOCK" >> "$CLAUDE_MD"
+        echo -e "  ${GREEN}append${NC} $CLAUDE_MD  (vallorcine block added)"
+    else
+        printf '%s\n' "$CLAUDE_BLOCK" > "$CLAUDE_MD"
+        echo -e "  ${GREEN}write${NC} $CLAUDE_MD"
+    fi
+fi

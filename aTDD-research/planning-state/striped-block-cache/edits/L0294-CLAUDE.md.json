@@ -1,0 +1,6 @@
+{
+  "path": ".decisions/CLAUDE.md",
+  "old_string": "| Stripe hash function for StripedBlockCache | stripe-hash-function | 2026-03-17 | Stafford variant 13 (splitmix64 finalizer) |",
+  "new_string": "| Stripe hash function for StripedBlockCache | stripe-hash-function | 2026-03-17 | Stafford variant 13 (splitmix64 finalizer) |\n| Cross-stripe eviction for StripedBlockCache | cross-stripe-eviction | 2026-03-17 | Sequential loop over stripes |",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/streaming-block-decompression/status.md",
+  "old_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|",
+  "new_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|\n| SSTable block compression format | pending | sstable-block-compression-format | algorithms/compression/block-compression-algorithms | \u2014 | \u2014 |\n| Compression codec API | pending | compression-codec-api-design | \u2014 | \u2014 | \u2014 |\n| Index scan patterns over LSM | pending | \u2014 | \u2014 | \u2014 | \u2014 |",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| Vector field type | vector-field-type | 2026-03-17 | scoping | brief confirmed |",
+  "new_string": "| Vector field type | vector-field-type | 2026-03-17 | domains | domains.md written |",
+  "replace_all": false
+}

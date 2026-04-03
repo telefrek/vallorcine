@@ -1,0 +1,6 @@
+{
+  "path": ".feature/streaming-block-decompression/status.md",
+  "old_string": "**Stage:** planning\n**Substage:** complete\n**Last successful checkpoint:** work-plan.md written",
+  "new_string": "**Stage:** testing\n**Substage:** planning\n**Last successful checkpoint:** work-plan.md written",
+  "replace_all": false
+}

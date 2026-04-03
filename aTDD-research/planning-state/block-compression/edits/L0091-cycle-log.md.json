@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/cycle-log.md",
+  "old_string": "**Token estimate:** ~12K\n---",
+  "new_string": "**Token estimate:** ~12K\n---\n\n## 2026-03-18 \u2014 pr-drafted\n**Agent:** \ud83d\udccb PR Draft\n**Summary:** PR draft written and confirmed by user.\n**Token estimate:** ~8K (loaded: brief ~2K, work-plan ~4K, domains ~2K)\n---",
+  "replace_all": false
+}

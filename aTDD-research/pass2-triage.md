@@ -17,6 +17,12 @@ common in this codebase," mark "Input validation" as applicable for any
 construct that does arithmetic on parameters, even if the arithmetic looks
 correct at first glance.
 
+If the orchestrator provided a `spec-context.md` path, read it. The spec
+context contains behavioral requirements that define what correct means for
+this feature. Use these requirements as an additional triage input — if a
+spec requirement describes behavior a construct must exhibit, that construct
+gets an "applicable" mark in the **Spec conformance** concern area.
+
 ## Critical framing
 
 The triage question for each concern is: **"COULD this be a problem here?"**
@@ -29,7 +35,10 @@ You are identifying WHERE to look, not whether bugs exist. Err on the side
 of marking applicable. A false positive costs one deep-analysis check. A
 false negative means a bug is never examined.
 
-## The 7 concern areas
+## The concern areas
+
+There are 7 structural concern areas that always apply, plus an 8th
+(spec conformance) that applies when spec context is available.
 
 For each construct, answer these triage questions with **applicable** or
 **not applicable**. If applicable, add a one-phrase reason WHY.
@@ -117,6 +126,24 @@ bounds at scale?
 Mark applicable if the construct does ANY arithmetic on sizes or counts,
 or casts between numeric types.
 
+### 8. Spec conformance (only when spec context is available)
+
+Does this construct have behavior that a spec requirement explicitly defines?
+This includes:
+- Requirements that name an operation or observable behavior this construct
+  implements (e.g., "R3: Writing a vector with dimension N must fail if N
+  does not match the configured dimension")
+- Requirements about error conditions, return values, or state transitions
+  that this construct is responsible for
+- Requirements about cross-construct interactions where this construct is
+  a participant
+
+Mark applicable with the specific requirement ID(s) and a one-phrase reason.
+Example: `applicable: R3, R7 — implements vector write with dimension check`.
+
+If no spec context was provided, skip this column entirely — do not add
+empty cells for it.
+
 ## Output
 
 Write the triage matrix file:
@@ -126,15 +153,18 @@ Write the triage matrix file:
 
 ## <TypeName> (<FileName>)
 
-| Construct | Input | Data | Contract | Concurrency | Resource | Error | Capacity |
-|-----------|-------|------|----------|-------------|----------|-------|----------|
-| method1 | applicable: params used in allocation | — | — | — | — | applicable: assert guard | — |
-| method2 | — | applicable: deserializes from byte[] | — | — | — | — | applicable: int accumulator |
+| Construct | Input | Data | Contract | Concurrency | Resource | Error | Capacity | Spec |
+|-----------|-------|------|----------|-------------|----------|-------|----------|------|
+| method1 | applicable: params used in allocation | — | — | — | — | applicable: assert guard | — | applicable: R3 — dimension validation |
+| method2 | — | applicable: deserializes from byte[] | — | — | — | — | applicable: int accumulator | — |
 
 ```
 
 One table per top-level class. Use **applicable: <reason>** or **—** for
 each cell. The reason must be specific to this construct, not generic.
+
+If no spec context was provided, omit the **Spec** column entirely from
+all tables (7 columns, not 8).
 
 At the end, write a summary:
 
@@ -151,6 +181,7 @@ Coverage by concern:
   5. Resource lifecycle: <n> constructs
   6. Error handling: <n> constructs
   7. Capacity and bounds: <n> constructs
+  8. Spec conformance: <n> constructs (<n> requirements mapped) — or "N/A: no spec context"
 ```
 
 Write the file and return the summary.

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "| Planning | complete | 2026-03-16 | ~10K | \u2014 | 8 constructs, 3 work units (balanced) |",
+  "new_string": "| Planning | complete | 2026-03-16 | ~10K | 33 in / 16.4K out | 8 constructs, 3 work units (balanced) |",
+  "replace_all": false
+}

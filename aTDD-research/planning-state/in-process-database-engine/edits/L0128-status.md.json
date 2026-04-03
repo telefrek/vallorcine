@@ -1,0 +1,6 @@
+{
+  "path": ".feature/in-process-database-engine/status.md",
+  "old_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|",
+  "new_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|\n| Table catalog persistence | pending-decision | \u2014 | \u2014 | \u2014 | \u2014 |\n| Engine API surface design | pending-decision | \u2014 | \u2014 | \u2014 | \u2014 |",
+  "replace_all": false
+}

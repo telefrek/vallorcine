@@ -15,6 +15,23 @@ Idempotent — skips domains already resolved and resumes from the first pending
 Read `.feature/<slug>/status.md`.
 
 **If Domains stage is `complete`:**
+
+Check whether the project has spec infrastructure (`test -f .spec/CLAUDE.md ||
+test -d .spec/registry`). Display the appropriate next step:
+
+If spec infrastructure exists:
+```
+🗺️  DOMAIN SCOUT · <slug>
+───────────────────────────────────────────────
+Domain analysis is already complete for '<slug>'.
+Domains: .feature/<slug>/domains.md
+
+  Type **yes**  to proceed to spec authoring  ·  or: stop
+```
+If "yes": invoke `/spec-author "<feature-id>" "<slug>"` as a sub-agent immediately.
+If "stop": display `Next: /spec-author "<feature-id>" "<slug>"` and stop.
+
+If no spec infrastructure:
 ```
 🗺️  DOMAIN SCOUT · <slug>
 ───────────────────────────────────────────────
@@ -384,6 +401,43 @@ structure from these constraints and ADRs.
   Type **yes**  ·  or: stop
 ───────────────────────────────────────────────
 ```
+
+### Step 5a — Determine next stage (spec authoring or planning)
+
+Check whether the project has spec infrastructure:
+```bash
+test -f .spec/CLAUDE.md || test -d .spec/registry
+```
+
+**If `.spec/CLAUDE.md` or `.spec/registry` exists:** the project uses the spec
+system. The next stage is spec authoring — specs must be written (or confirmed
+current) before work planning, because the planner consumes spec requirements
+as its primary input.
+
+If "yes":
+- Update status.md: Spec Authoring stage → `in-progress`
+- Display:
+  ```
+  Spec infrastructure detected — routing through spec authoring.
+  Specs will define behavioral requirements before work planning begins.
+  ```
+- Invoke `/spec-author "<feature-id>" "<slug>"` as a sub-agent immediately.
+  The spec-author reads brief.md and domains.md to produce hardened specs.
+  After spec-author completes, invoke `/spec-write "<feature-id>" "<slug>"`
+  to register the spec, then invoke `/feature-plan "<slug>"` as a sub-agent.
+
+If "stop":
+```
+When you're ready:
+  /spec-author "<feature-id>" "<slug>"
+
+After spec authoring, continue with:
+  /feature-plan "<slug>"
+```
+
+**If neither `.spec/CLAUDE.md` nor `.spec/registry` exists:** the project does
+not use the spec system. Hand off directly to work planning for backwards
+compatibility.
 
 If "yes": invoke /feature-plan "<slug>" as a sub-agent immediately.
 If "stop":

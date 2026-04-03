@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/status.md",
+  "old_string": "**Substage:** complete\n**Last successful checkpoint:** work-plan.md written, 4 stubs created",
+  "new_string": "**Substage:** pr-draft-written\n**Last successful checkpoint:** pr-draft.md written",
+  "replace_all": false
+}

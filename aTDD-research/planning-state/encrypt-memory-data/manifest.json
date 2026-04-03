@@ -1,0 +1,575 @@
+{
+  "operations": [
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/status.md",
+      "edit_file": "edits/L0206-status.md.json",
+      "line": 206
+    },
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/status.md",
+      "edit_file": "edits/L0209-status.md.json",
+      "line": 209
+    },
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/cycle-log.md",
+      "edit_file": "edits/L0300-cycle-log.md.json",
+      "line": 300
+    },
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/status.md",
+      "edit_file": "edits/L0310-status.md.json",
+      "line": 310
+    },
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/status.md",
+      "edit_file": "edits/L0313-status.md.json",
+      "line": 313
+    },
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/status.md",
+      "edit_file": "edits/L0316-status.md.json",
+      "line": 316
+    },
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/status.md",
+      "edit_file": "edits/L0319-status.md.json",
+      "line": 319
+    },
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/status.md",
+      "edit_file": "edits/L0322-status.md.json",
+      "line": 322
+    },
+    {
+      "op": "write",
+      "path": ".feature/encrypt-memory-data/pr-draft.md",
+      "line": 358,
+      "size": 3950
+    },
+    {
+      "op": "write",
+      "path": ".feature/encrypt-memory-data/ARCHIVE.md",
+      "line": 363,
+      "size": 2100
+    },
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/status.md",
+      "edit_file": "edits/L0367-status.md.json",
+      "line": 367
+    },
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/cycle-log.md",
+      "edit_file": "edits/L0370-cycle-log.md.json",
+      "line": 370
+    },
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/status.md",
+      "edit_file": "edits/L0385-status.md.json",
+      "line": 385
+    },
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/cycle-log.md",
+      "edit_file": "edits/L0388-cycle-log.md.json",
+      "line": 388
+    },
+    {
+      "op": "edit",
+      "path": ".feature/encrypt-memory-data/cycle-log.md",
+      "edit_file": "edits/L0406-cycle-log.md.json",
+      "line": 406
+    },
+    {
+      "op": "write",
+      "path": ".feature/extract-core-encryption/status.md",
+      "line": 432,
+      "size": 1521
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0464-status.md.json",
+      "line": 464
+    },
+    {
+      "op": "write",
+      "path": ".feature/extract-core-encryption/brief.md",
+      "line": 476,
+      "size": 4481
+    },
+    {
+      "op": "write",
+      "path": ".feature/extract-core-encryption/cycle-log.md",
+      "line": 480,
+      "size": 753
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0486-status.md.json",
+      "line": 486
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0489-status.md.json",
+      "line": 489
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0497-CLAUDE.md.json",
+      "line": 497
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0524-status.md.json",
+      "line": 524
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0527-status.md.json",
+      "line": 527
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0581-status.md.json",
+      "line": 581
+    },
+    {
+      "op": "write",
+      "path": ".feature/extract-core-encryption/domains.md",
+      "line": 586,
+      "size": 4017
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0589-status.md.json",
+      "line": 589
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0592-status.md.json",
+      "line": 592
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0595-status.md.json",
+      "line": 595
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/cycle-log.md",
+      "edit_file": "edits/L0598-cycle-log.md.json",
+      "line": 598
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0613-status.md.json",
+      "line": 613
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0616-status.md.json",
+      "line": 616
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0655-status.md.json",
+      "line": 655
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0667-status.md.json",
+      "line": 667
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0670-status.md.json",
+      "line": 670
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0673-status.md.json",
+      "line": 673
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0743-status.md.json",
+      "line": 743
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0910-status.md.json",
+      "line": 910
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+      "edit_file": "edits/L1022-FieldEncryptionDispatch.java.json",
+      "line": 1022
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+      "edit_file": "edits/L1029-DocumentSerializer.java.json",
+      "line": 1029
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+      "edit_file": "edits/L1038-DocumentSerializer.java.json",
+      "line": 1038
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+      "edit_file": "edits/L1042-DocumentSerializer.java.json",
+      "line": 1042
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+      "edit_file": "edits/L1044-DocumentSerializer.java.json",
+      "line": 1044
+    },
+    {
+      "op": "write",
+      "path": ".feature/ope-type-aware-bounds/work-plan.md",
+      "line": 90,
+      "size": 4661
+    },
+    {
+      "op": "edit",
+      "path": ".feature/ope-type-aware-bounds/status.md",
+      "edit_file": "edits/L0094-status.md.json",
+      "line": 94
+    },
+    {
+      "op": "edit",
+      "path": ".feature/ope-type-aware-bounds/status.md",
+      "edit_file": "edits/L0097-status.md.json",
+      "line": 97
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldType.java",
+      "edit_file": "edits/L0140-FieldType.java.json",
+      "line": 140
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldType.java",
+      "edit_file": "edits/L0144-FieldType.java.json",
+      "line": 144
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldType.java",
+      "edit_file": "edits/L0148-FieldType.java.json",
+      "line": 148
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/JlsmDocument.java",
+      "edit_file": "edits/L0152-JlsmDocument.java.json",
+      "line": 152
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/JlsmDocument.java",
+      "edit_file": "edits/L0156-JlsmDocument.java.json",
+      "line": 156
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+      "edit_file": "edits/L0160-DocumentSerializer.java.json",
+      "line": 160
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+      "edit_file": "edits/L0164-DocumentSerializer.java.json",
+      "line": 164
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+      "edit_file": "edits/L0168-DocumentSerializer.java.json",
+      "line": 168
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/JsonParser.java",
+      "edit_file": "edits/L0185-JsonParser.java.json",
+      "line": 185
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/JsonWriter.java",
+      "edit_file": "edits/L0188-JsonWriter.java.json",
+      "line": 188
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/YamlParser.java",
+      "edit_file": "edits/L0191-YamlParser.java.json",
+      "line": 191
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/YamlWriter.java",
+      "edit_file": "edits/L0195-YamlWriter.java.json",
+      "line": 195
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/YamlWriter.java",
+      "edit_file": "edits/L0198-YamlWriter.java.json",
+      "line": 198
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/FieldValueCodec.java",
+      "edit_file": "edits/L0202-FieldValueCodec.java.json",
+      "line": 202
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/FieldValueCodec.java",
+      "edit_file": "edits/L0205-FieldValueCodec.java.json",
+      "line": 205
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/IndexRegistry.java",
+      "edit_file": "edits/L0209-IndexRegistry.java.json",
+      "line": 209
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/IndexRegistry.java",
+      "edit_file": "edits/L0213-IndexRegistry.java.json",
+      "line": 213
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/IndexRegistry.java",
+      "edit_file": "edits/L0217-IndexRegistry.java.json",
+      "line": 217
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/IndexRegistry.java",
+      "edit_file": "edits/L0221-IndexRegistry.java.json",
+      "line": 221
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/QueryExecutor.java",
+      "edit_file": "edits/L0225-QueryExecutor.java.json",
+      "line": 225
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+      "edit_file": "edits/L0229-FieldEncryptionDispatch.java.json",
+      "line": 229
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+      "edit_file": "edits/L0233-FieldEncryptionDispatch.java.json",
+      "line": 233
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/IndexRegistry.java",
+      "edit_file": "edits/L0244-IndexRegistry.java.json",
+      "line": 244
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+      "edit_file": "edits/L0259-FieldEncryptionDispatch.java.json",
+      "line": 259
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+      "edit_file": "edits/L0276-FieldEncryptionDispatch.java.json",
+      "line": 276
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+      "edit_file": "edits/L0280-FieldEncryptionDispatch.java.json",
+      "line": 280
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+      "edit_file": "edits/L0284-FieldEncryptionDispatch.java.json",
+      "line": 284
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+      "edit_file": "edits/L0288-FieldEncryptionDispatch.java.json",
+      "line": 288
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+      "edit_file": "edits/L0292-FieldEncryptionDispatch.java.json",
+      "line": 292
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/CiphertextValidator.java",
+      "edit_file": "edits/L0299-CiphertextValidator.java.json",
+      "line": 299
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/CiphertextValidator.java",
+      "edit_file": "edits/L0301-CiphertextValidator.java.json",
+      "line": 301
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+      "edit_file": "edits/L0309-FieldEncryptionDispatch.java.json",
+      "line": 309
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+      "edit_file": "edits/L0350-FieldEncryptionDispatch.java.json",
+      "line": 350
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-core/src/main/java/jlsm/encryption/README.md",
+      "line": 414,
+      "size": 6058
+    },
+    {
+      "op": "edit",
+      "path": ".feature/ope-type-aware-bounds/status.md",
+      "edit_file": "edits/L0418-status.md.json",
+      "line": 418
+    },
+    {
+      "op": "edit",
+      "path": ".feature/ope-type-aware-bounds/status.md",
+      "edit_file": "edits/L0421-status.md.json",
+      "line": 421
+    },
+    {
+      "op": "write",
+      "path": ".feature/ope-type-aware-bounds/cycle-log.md",
+      "line": 425,
+      "size": 2756
+    },
+    {
+      "op": "edit",
+      "path": ".feature/ope-type-aware-bounds/cycle-log.md",
+      "edit_file": "edits/L0432-cycle-log.md.json",
+      "line": 432
+    },
+    {
+      "op": "write",
+      "path": ".feature/fix-encryption-performance/work-plan.md",
+      "line": 40,
+      "size": 5964
+    },
+    {
+      "op": "write",
+      "path": ".feature/fix-encryption-performance/status.md",
+      "line": 44,
+      "size": 1802
+    },
+    {
+      "op": "edit",
+      "path": ".feature/fix-encryption-performance/cycle-log.md",
+      "edit_file": "edits/L0047-cycle-log.md.json",
+      "line": 47
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0050-CLAUDE.md.json",
+      "line": 50
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/CiphertextValidator.java",
+      "line": 68,
+      "size": 1012
+    },
+    {
+      "op": "write",
+      "path": ".feature/extract-core-encryption/work-plan.md",
+      "line": 71,
+      "size": 14084
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0075-status.md.json",
+      "line": 75
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/status.md",
+      "edit_file": "edits/L0078-status.md.json",
+      "line": 78
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/cycle-log.md",
+      "edit_file": "edits/L0081-cycle-log.md.json",
+      "line": 81
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0083-CLAUDE.md.json",
+      "line": 83
+    },
+    {
+      "op": "edit",
+      "path": ".feature/extract-core-encryption/cycle-log.md",
+      "edit_file": "edits/L0087-cycle-log.md.json",
+      "line": 87
+    }
+  ],
+  "total_ops": 95
+}

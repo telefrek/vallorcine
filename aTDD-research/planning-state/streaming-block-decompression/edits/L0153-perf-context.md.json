@@ -1,0 +1,6 @@
+{
+  "path": ".claude/skills/perf-review/perf-context.md",
+  "old_string": "- **Partition routing overhead** \u2014 routeKey ~106ns, overlapping ~1.5\u03bcs, mergeOrdered ~163ns/entry @64P; all negligible vs data I/O (1030761)",
+  "new_string": "- **Partition routing overhead** \u2014 routeKey ~106ns, overlapping ~1.5\u03bcs, mergeOrdered ~163ns/entry @64P; all negligible vs data I/O (1030761)\n- **Block compression write cost** \u2014 Deflate CPU is the expected trade-off; 90%+ in native zlib, no Java-level overhead (1e70573)\n- **Block compression point-get improvement** \u2014 smaller files offset decompression cost; +9-20% getHit throughput (1e70573)",
+  "replace_all": false
+}

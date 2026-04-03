@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "| Scoping | complete | 2026-03-16 | ~5K | unknown | Paused for research + ADR between Q1-Q2 |",
+  "new_string": "| Scoping | complete | 2026-03-16 | ~5K | 5.1K in / 35.6K out | Paused for research + ADR between Q1-Q2 |",
+  "replace_all": false
+}

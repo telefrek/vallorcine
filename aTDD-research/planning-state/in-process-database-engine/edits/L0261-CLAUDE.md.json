@@ -1,0 +1,6 @@
+{
+  "path": ".kb/CLAUDE.md",
+  "old_string": "| 2026-03-17 | algorithms | vector-encoding | lossless-vector-compression |\n| 2026-03-17 | data-structures | caching | concurrent-lru-caches |",
+  "new_string": "| 2026-03-17 | algorithms | vector-encoding | lossless-vector-compression |",
+  "replace_all": false
+}

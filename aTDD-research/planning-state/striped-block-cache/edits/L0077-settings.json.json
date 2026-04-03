@@ -1,0 +1,6 @@
+{
+  "path": ".claude/settings.json",
+  "old_string": "{\n  \"permissions\": {\n    \"allow\": [\n      \"Bash(./gradlew:*)\",\n      \"Bash(git:*)\",\n      \"mcp__ide__getDiagnostics\"\n    ]\n  },\n  \"enabledPlugins\": {\n    \"vallorcine@vallorcine\": true\n  }\n}",
+  "new_string": "{\n  \"permissions\": {\n    \"allow\": [\n      \"Bash(./gradlew:*)\",\n      \"Bash(git:*)\",\n      \"mcp__ide__getDiagnostics\"\n    ]\n  }\n}",
+  "replace_all": false
+}

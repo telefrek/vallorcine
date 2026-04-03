@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "**Substage:** surveying-codebase\n**Last successful checkpoint:** Context loaded, surveying existing API",
+  "new_string": "**Substage:** confirmed-design\n**Last successful checkpoint:** Design confirmed \u2014 7 new constructs",
+  "replace_all": false
+}

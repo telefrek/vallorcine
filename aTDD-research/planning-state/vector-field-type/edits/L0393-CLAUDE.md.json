@@ -1,0 +1,6 @@
+{
+  "path": ".kb/CLAUDE.md",
+  "old_string": "| Topic | Path | Categories | Files | Last Updated |\n|-------|------|------------|-------|--------------|",
+  "new_string": "| Topic | Path | Categories | Files | Last Updated |\n|-------|------|------------|-------|--------------|\n| algorithms | [algorithms/](algorithms/CLAUDE.md) | 3 | 9 | 2026-03-17 |",
+  "replace_all": false
+}

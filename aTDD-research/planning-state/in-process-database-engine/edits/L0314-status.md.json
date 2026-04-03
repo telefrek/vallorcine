@@ -1,0 +1,6 @@
+{
+  "path": ".feature/in-process-database-engine/status.md",
+  "old_string": "| Table catalog persistence | pending-decision | \u2014 | \u2014 | \u2014 | \u2014 |",
+  "new_string": "| Table catalog persistence | resolved | .decisions/table-catalog-persistence/adr.md | .kb/systems/database-engines/catalog-persistence-patterns.md | 2026-03-19 | 2026-03-19 |",
+  "replace_all": false
+}

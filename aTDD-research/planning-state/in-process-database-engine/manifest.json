@@ -1,0 +1,473 @@
+{
+  "operations": [
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0240-status.md.json",
+      "line": 240
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0243-status.md.json",
+      "line": 243
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0246-status.md.json",
+      "line": 246
+    },
+    {
+      "op": "write",
+      "path": ".feature/in-process-database-engine/status.md",
+      "line": 27,
+      "size": 1572
+    },
+    {
+      "op": "write",
+      "path": ".feature/in-process-database-engine/brief.md",
+      "line": 64,
+      "size": 3686
+    },
+    {
+      "op": "write",
+      "path": ".feature/in-process-database-engine/cycle-log.md",
+      "line": 68,
+      "size": 608
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0074-status.md.json",
+      "line": 74
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0077-status.md.json",
+      "line": 77
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0084-CLAUDE.md.json",
+      "line": 84
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0111-status.md.json",
+      "line": 111
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0114-status.md.json",
+      "line": 114
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0128-status.md.json",
+      "line": 128
+    },
+    {
+      "op": "write",
+      "path": ".decisions/table-catalog-persistence/constraints.md",
+      "line": 163,
+      "size": 3034
+    },
+    {
+      "op": "write",
+      "path": ".decisions/table-catalog-persistence/log.md",
+      "line": 164,
+      "size": 439
+    },
+    {
+      "op": "write",
+      "path": ".kb/systems/database-engines/catalog-persistence-patterns.md",
+      "line": 227,
+      "size": 14360
+    },
+    {
+      "op": "write",
+      "path": ".kb/systems/database-engines/CLAUDE.md",
+      "line": 232,
+      "size": 990
+    },
+    {
+      "op": "edit",
+      "path": ".kb/systems/CLAUDE.md",
+      "edit_file": "edits/L0239-CLAUDE.md.json",
+      "line": 239
+    },
+    {
+      "op": "edit",
+      "path": ".kb/CLAUDE.md",
+      "edit_file": "edits/L0246-CLAUDE.md.json",
+      "line": 246
+    },
+    {
+      "op": "edit",
+      "path": ".kb/CLAUDE.md",
+      "edit_file": "edits/L0249-CLAUDE.md.json",
+      "line": 249
+    },
+    {
+      "op": "edit",
+      "path": ".kb/CLAUDE.md",
+      "edit_file": "edits/L0257-CLAUDE.md.json",
+      "line": 257
+    },
+    {
+      "op": "edit",
+      "path": ".kb/CLAUDE.md",
+      "edit_file": "edits/L0261-CLAUDE.md.json",
+      "line": 261
+    },
+    {
+      "op": "write",
+      "path": ".decisions/table-catalog-persistence/evaluation.md",
+      "line": 266,
+      "size": 10764
+    },
+    {
+      "op": "write",
+      "path": ".decisions/table-catalog-persistence/adr.md",
+      "line": 284,
+      "size": 6645
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/table-catalog-persistence/log.md",
+      "edit_file": "edits/L0290-log.md.json",
+      "line": 290
+    },
+    {
+      "op": "write",
+      "path": ".decisions/table-catalog-persistence/CLAUDE.md",
+      "line": 295,
+      "size": 1596
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/history.md",
+      "edit_file": "edits/L0306-history.md.json",
+      "line": 306
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/CLAUDE.md",
+      "edit_file": "edits/L0310-CLAUDE.md.json",
+      "line": 310
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0314-status.md.json",
+      "line": 314
+    },
+    {
+      "op": "write",
+      "path": ".decisions/engine-api-surface-design/constraints.md",
+      "line": 336,
+      "size": 2483
+    },
+    {
+      "op": "write",
+      "path": ".decisions/engine-api-surface-design/log.md",
+      "line": 340,
+      "size": 394
+    },
+    {
+      "op": "write",
+      "path": ".decisions/engine-api-surface-design/evaluation.md",
+      "line": 349,
+      "size": 9515
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/engine-api-surface-design/constraints.md",
+      "edit_file": "edits/L0374-constraints.md.json",
+      "line": 374
+    },
+    {
+      "op": "write",
+      "path": ".decisions/engine-api-surface-design/adr.md",
+      "line": 378,
+      "size": 7701
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/engine-api-surface-design/log.md",
+      "edit_file": "edits/L0381-log.md.json",
+      "line": 381
+    },
+    {
+      "op": "write",
+      "path": ".decisions/engine-api-surface-design/CLAUDE.md",
+      "line": 386,
+      "size": 1451
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/CLAUDE.md",
+      "edit_file": "edits/L0393-CLAUDE.md.json",
+      "line": 393
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/history.md",
+      "edit_file": "edits/L0396-history.md.json",
+      "line": 396
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0400-status.md.json",
+      "line": 400
+    },
+    {
+      "op": "write",
+      "path": ".feature/in-process-database-engine/domains.md",
+      "line": 405,
+      "size": 4793
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0411-status.md.json",
+      "line": 411
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0414-status.md.json",
+      "line": 414
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/cycle-log.md",
+      "edit_file": "edits/L0420-cycle-log.md.json",
+      "line": 420
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0423-CLAUDE.md.json",
+      "line": 423
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0441-status.md.json",
+      "line": 441
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0444-status.md.json",
+      "line": 444
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0580-status.md.json",
+      "line": 580
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0590-status.md.json",
+      "line": 590
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0599-status.md.json",
+      "line": 599
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0602-status.md.json",
+      "line": 602
+    },
+    {
+      "op": "write",
+      "path": ".feature/in-process-database-engine/units/WU-1/status.md",
+      "line": 609,
+      "size": 321
+    },
+    {
+      "op": "write",
+      "path": ".feature/in-process-database-engine/units/WU-1/cycle-log.md",
+      "line": 613,
+      "size": 102
+    },
+    {
+      "op": "write",
+      "path": ".feature/in-process-database-engine/units/WU-2/status.md",
+      "line": 617,
+      "size": 311
+    },
+    {
+      "op": "write",
+      "path": ".feature/in-process-database-engine/units/WU-2/cycle-log.md",
+      "line": 621,
+      "size": 102
+    },
+    {
+      "op": "write",
+      "path": ".feature/in-process-database-engine/units/WU-3/status.md",
+      "line": 625,
+      "size": 318
+    },
+    {
+      "op": "write",
+      "path": ".feature/in-process-database-engine/units/WU-3/cycle-log.md",
+      "line": 629,
+      "size": 102
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0736-status.md.json",
+      "line": 736
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0741-status.md.json",
+      "line": 741
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/units/WU-1/status.md",
+      "edit_file": "edits/L0759-status.md.json",
+      "line": 759
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/units/WU-1/status.md",
+      "edit_file": "edits/L0790-status.md.json",
+      "line": 790
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0070-status.md.json",
+      "line": 70
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/module-info.java",
+      "line": 74,
+      "size": 164
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/Engine.java",
+      "line": 80,
+      "size": 2740
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/Table.java",
+      "line": 83,
+      "size": 3844
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/TableMetadata.java",
+      "line": 86,
+      "size": 1377
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/EngineMetrics.java",
+      "line": 89,
+      "size": 1237
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/AllocationTracking.java",
+      "line": 92,
+      "size": 611
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/HandleEvictedException.java",
+      "line": 95,
+      "size": 3490
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/internal/HandleTracker.java",
+      "line": 98,
+      "size": 5287
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/internal/HandleRegistration.java",
+      "line": 101,
+      "size": 799
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/internal/HandleRegistration.java",
+      "line": 105,
+      "size": 1079
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/internal/TableCatalog.java",
+      "line": 108,
+      "size": 4168
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/internal/LocalEngine.java",
+      "line": 111,
+      "size": 5242
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/internal/LocalTable.java",
+      "line": 114,
+      "size": 4167
+    },
+    {
+      "op": "write",
+      "path": ".feature/in-process-database-engine/work-plan.md",
+      "line": 125,
+      "size": 14631
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0132-status.md.json",
+      "line": 132
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/status.md",
+      "edit_file": "edits/L0135-status.md.json",
+      "line": 135
+    },
+    {
+      "op": "edit",
+      "path": ".feature/in-process-database-engine/cycle-log.md",
+      "edit_file": "edits/L0139-cycle-log.md.json",
+      "line": 139
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0143-CLAUDE.md.json",
+      "line": 143
+    }
+  ],
+  "total_ops": 78
+}

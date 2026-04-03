@@ -1,0 +1,6 @@
+{
+  "path": ".feature/sql-query-support/status.md",
+  "old_string": "| SQL Parsing Strategy | pending | \u2014 | \u2014 |\n| Vector Similarity SQL Syntax | pending | \u2014 | \u2014 |",
+  "new_string": "| SQL Parsing Strategy | resolved | brief \u2014 recursive descent, well-understood | \u2014 |\n| Vector Similarity SQL Syntax | pending-research | no KB entry | 2026-03-16 |",
+  "replace_all": false
+}

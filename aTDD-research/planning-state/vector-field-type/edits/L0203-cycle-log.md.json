@@ -1,0 +1,6 @@
+{
+  "path": ".feature/vector-field-type/cycle-log.md",
+  "old_string": "**Token estimate:** ~5K (loaded: project-config ~1K / wrote: brief ~2K, status ~1K, cycle-log ~1K)\n---",
+  "new_string": "**Token estimate:** ~5K (loaded: project-config ~1K / wrote: brief ~2K, status ~1K, cycle-log ~1K)\n---\n## 2026-03-17 \u2014 domains-decision-commissioned\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** Commissioned /architect for VectorType serialization encoding decision.\n---",
+  "replace_all": false
+}

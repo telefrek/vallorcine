@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-vector/src/main/java/jlsm/vector/LsmVectorIndex.java",
+  "old_string": "     *   [dim \u00d7 4 bytes] \u2014 big-endian IEEE-754 float vector",
+  "new_string": "     *   [dim \u00d7 precision.bytesPerComponent() bytes] \u2014 vector encoded per VectorPrecision",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| Feature | Slug | Started | Stage | Last Checkpoint |\n|---------|------|---------|-------|-----------------|",
+  "new_string": "| Feature | Slug | Started | Stage | Last Checkpoint |\n|---------|------|---------|-------|-----------------|\n| Block-level SSTable compression | block-compression | 2026-03-17 | scoping | brief confirmed |",
+  "replace_all": false
+}

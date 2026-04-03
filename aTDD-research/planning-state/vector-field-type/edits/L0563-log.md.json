@@ -1,0 +1,6 @@
+{
+  "path": ".decisions/index-definition-api-simplification/log.md",
+  "old_string": "- (none \u2014 API design decision grounded in codebase, not research)\n\n---",
+  "new_string": "- (none \u2014 API design decision grounded in codebase, not research)\n\n---\n## 2026-03-17 \u2014 decision-confirmed\n\n**Agent:** Architect Agent\n**Event:** decision-confirmed\n**Summary:** Derive-from-schema confirmed. vectorDimensions removed from IndexDefinition; dimensions extracted from VectorType at IndexRegistry validation time.\n\n### Deliberation Summary\n\n**Rounds of deliberation:** 1\n**Recommendation presented:** Derive from Schema\n**Final decision:** Derive from Schema *(same as presented)*\n\n**Topics raised during deliberation:**\n- None \u2014 user confirmed immediately\n\n**Constraints updated during deliberation:**\n- None\n\n**Assumptions explicitly confirmed by user:**\n- Schema is the single source of truth for dimensions\n- Pre-1.0 breaking change to IndexDefinition is acceptable\n\n**Override:** None\n**Override reason:** N/A\n\n**Confirmation:** User confirmed with: \"yes\"\n\n**Files written after confirmation:**\n- `adr.md` \u2014 decision record v1\n- `constraints.md` \u2014 no changes\n\n**KB files read during evaluation:**\n- (none \u2014 codebase-derived decision)\n\n---",
+  "replace_all": false
+}

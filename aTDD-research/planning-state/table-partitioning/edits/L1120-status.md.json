@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "**Substage:** interviewing\n**Last successful checkpoint:** Q1 resolved via ADR-001 (range partitioning confirmed); resuming interview",
+  "new_string": "**Substage:** confirming-brief\n**Last successful checkpoint:** All 4 questions answered; drafting brief\n\n## Draft Brief\n\nSummary: Add range-based table partitioning to jlsm via a new PartitionedTable\ncoordinator that routes operations to partitions based on key ranges. Each\npartition is a self-contained JlsmTable with co-located secondary, vector, and\nfull-text indices. Initial implementation: static partitions, in-process only,\nremote-capable interface design.\n\nKey decisions from scoping:\n- Q1: Range partitioning with co-located indices (ADR-001)\n- Q2: New PartitionedTable API, not transparent wrapper\n- Q3: Static partitions initially; dynamic split/merge deferred\n- Q4: In-process implementation; remote transport deferred, interface designed for it",
+  "replace_all": false
+}

@@ -20,55 +20,48 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-03-27*
+*Last updated: 2026-03-30*
 
-**5-pass analysis pipeline for /audit — validated against 26 known bugs,
-24/26 found (92%), at 416K tokens (60% cheaper than old ~1M approach).**
+**Spec storage system + adversarial authoring + pipeline integration.**
 
-**What happened this session (2026-03-27):**
+Built the complete spec storage layer (`.spec/`), adversarial spec authoring
+process (`/spec-author`), and integrated specs into the work planner and TDD
+pipeline. Tested on float16-vector-support: 8 surface requirements expanded
+to 29 hardened behavioral requirements across two adversarial passes (~110K
+tokens total for both passes).
 
-- **Context pruning research** — KB entry at `.claude/research/context-pruning-techniques.md`
-  covering 6 same-session techniques. Key finding: caching and pruning are adversarial
-  (arXiv 2601.06007); batch clearing events to amortize cache invalidation.
+**What happened this session (2026-03-30):**
 
-- **5-pass analysis pipeline designed, implemented, and validated:**
-  - Pass 1: Construct inventory + 8 relationship edge types (~49K tokens)
-  - Pass 2: Concern triage across 7 areas (~63K tokens)
-  - Pass 2.5: Construct clustering via graph partitioning (~55K tokens)
-  - Pass 3a: Per-cluster deep analysis with attack-generation framing (~185K tokens)
-  - Pass 3b: Cross-cluster reconciliation for producer/consumer bugs (~64K tokens)
+- **Spec storage system built and tested** — 5 bash scripts (spec-lib, validate,
+  stats, resolve, obligations-gc), 6 skills (spec-init, spec-resolve, spec-write,
+  spec-verify, spec-author), install/upgrade/manifest integration. Domain-sharded
+  directories, manifest registry for O(1) lookups, transitive `requires` expansion,
+  token-budgeted context bundles. Tested against sample 3-spec corpus.
 
-- **`shares_state` edge type validated** — methods sharing mutable state (channel,
-  flag, collection) must cluster together. Found B-19 (channel race) on first try;
-  old pipeline found it 50% of runs. Type-scoped unsplittable: within same type
-  is mandatory, cross-type bridges defer to Pass 3b.
+- **Adversarial spec authoring validated** — two-pass process: structured draft
+  (operational sequence tracing, failure mode expansion, decision collapsing) then
+  adversarial falsification (enforcement path tracing, cross-requirement interaction,
+  cross-module boundaries, observability). Float16 test: pass 2 found 6 new gaps,
+  pass 3 found 4 (diminishing returns confirmed two passes optimal).
 
-- **Prompt refinements from validation failures:**
-  - Data integrity: added "hardcoded instead of read" pattern (caught B-16/17/18)
-  - Contract conformance: added "semantically nonsensical input" and "stale
-    reporting methods" (targets B-25/B-26)
-  - Concurrency: added shared I/O handles on parent objects (caught readBytes race)
+- **KB/decisions cross-references added** — `related`, `decision_refs`, `kb_refs`
+  fields across all three knowledge layers. LLM relevance gate in `/kb` query.
+  Tags on category indexes for keyword scan surface area. `adr-validate.sh`
+  extended with cross-reference validation.
 
-- **Scaling validated:** encryption feature (13 files) costs ~249K for triage
-  phases — linear scaling with file count confirmed.
+- **Work planner integrated with specs** — spec resolution as primary context,
+  construct-graph clustering (shares_state, produces/consumes, depends_on),
+  requirement traceability table, agent success shaping, spec as tiebreaker
+  for escalations.
 
-- **Phase 4 design outlined** — write-and-return test writer (no compile loops),
-  separate compile checker, per-cluster implementer with context management.
+- **TDD framing agreed** — test writer operationalizes spec (Lens A becomes
+  "can I write a test that verifies this requirement?"), breaker falsifies spec
+  (finds behaviors the spec didn't anticipate). Audit mode: same split.
 
 **Where things stand:**
-Analysis pipeline is validated. Next: implement Phase 4 (test writing + fixing)
-with context pruning applied to eliminate compile/fix loop bloat. Then integrate
-the full pipeline into the shipped /audit skill.
-
-**Pipeline cost (block-compression, 7 files, 26 known bugs):**
-```
-Pass 1:    49K tokens   (inventory + edges)
-Pass 2:    63K tokens   (triage matrix)
-Pass 2.5:  55K tokens   (clustering)
-Pass 3a:  185K tokens   (6 clusters, 24/26 bugs + 44 extra findings)
-Pass 3b:   64K tokens   (reconciliation, +3 cross-cluster bugs)
-Total:    416K tokens   → 92% detection at 60% cost reduction
-```
+Spec system is built and tested. Work planner is integrated. TDD test writer and
+breaker agent changes are designed but not yet implemented. Next: implement
+`/feature-test` changes, update breaker agent, then run end-to-end test on float16.
 
 ---
 
@@ -76,40 +69,43 @@ Total:    416K tokens   → 92% detection at 60% cost reduction
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **5-pass analysis pipeline replaces single-session spec analysis** (2026-03-27) —
-  inventory → triage → clustering → per-cluster deep analysis → reconciliation.
-  Each pass writes to disk; next pass reads the file, not the conversation history.
-  416K tokens vs ~1M for equivalent coverage. Validated against 26 known bugs (92%).
+- **Spec storage as sixth knowledge layer** (2026-03-30) — `.spec/` alongside `.kb/`
+  and `.decisions/`. Domain-sharded directories, manifest registry, bash resolver for
+  deterministic context bundles. Specs reference decisions and KB, don't duplicate them.
 
-- **Construct-level clustering, not file-level** (2026-03-27) — clusters follow data
-  flow and shared state, not file boundaries. A 600-line file can span 3 clusters.
-  Subagents read targeted line ranges, not full files.
+- **Two-pass adversarial spec authoring** (2026-03-30) — Pass 1: structured draft with
+  operational sequence tracing and failure mode expansion. Pass 2: adversarial
+  falsification with enforcement path tracing. User checkpoint between passes.
+  Validated: 8→29 requirements on float16, two passes optimal (third pass yield drops).
 
-- **`shares_state` edge type for mutable state clustering** (2026-03-27) — methods
-  on the same mutable type that access the same field/resource must cluster together.
-  Prevents splitting concurrency/lifecycle bugs across clusters. Validated: found
-  channel race bug on first try (old pipeline: 50% hit rate).
+- **Specs describe behavior, not code** (2026-03-30) — requirements must be verifiable
+  by observing inputs/outputs, never reference class/method/file names. Work planner
+  translates behavioral contracts into implementation constructs.
 
-- **Type-scoped unsplittable edges** (2026-03-27) — `shares_state` and `data_flow`
-  are unsplittable within a single type. Cross-type data_flow bridges are strong
-  preferences but can split — Pass 3b handles cross-cluster producer/consumer analysis.
-  Without this rule, transitive closure merged Writer+Reader into one 65-cell cluster.
+- **Prerequisite stubs verified and APPROVED immediately** (2026-03-30) — when a feature
+  assumes something about an existing component, create a minimal spec stub, verify it
+  holds in code, mark APPROVED. No DRAFT stubs for verified assumptions.
 
-- **No hard limits on cluster size** (2026-03-27) — removed arbitrary cell/construct/line
-  limits. Soft preference for 6-15 cells. Complexity warning at 25+ cells or 500+ lines
-  surfaces to user as refactoring signal. Graph structure determines boundaries.
+- **Conflict check mandatory in /spec-write** (2026-03-30) — new specs must run the
+  resolver first and either `invalidates` conflicting requirements or adjust. Silent
+  contradictions are spec defects.
 
-- **Attack-generation framing for deep analysis** (2026-03-27) — "what input breaks
-  this?" not "does this look correct?" Per-cell independence prevents satisficing.
-  Clearing requires specific line references, not "looks correct."
+- **Collapse user decisions, expand spec requirements** (2026-03-30) — present users
+  one conceptual decision; expand into separate per-layer requirements that evolve
+  independently. Users make fewer decisions; specs are fully descriptive.
 
-- **Language-agnostic pipeline design** (2026-03-27) — all edge types, concern areas,
-  and prompts use semantic descriptions, not language-specific syntax or patterns.
-  No grep/AST parsers needed. Works for any language the LLM can read.
+- **Enforcement path tracing for new requirements** (2026-03-30) — any requirement
+  adding validation must trace callers/consumers. A requirement that creates a
+  cascading failure when enforced is a spec defect, not a finding.
 
-- **Write-and-return test writers** (2026-03-27) — Phase 4 breakers write tests and
-  exit. No compile loops in test writing. Separate compile-check phase. Eliminates
-  50% post-write overhead measured in breaker agents.
+- **Construct-graph clustering replaces token-based work unit splitting** (2026-03-30) —
+  work units cluster by shares_state (unsplittable), produces/consumes, and depends_on.
+  Later units include prior unit constructs as visible context. Token cost is secondary.
+
+- **KB cross-references via `related` and `decision_refs`** (2026-03-30) — explicit
+  frontmatter fields for cross-topic KB links and KB→ADR links. LLM relevance gate
+  prunes before deep reads. Depth-1 limit on `related` traversal. Tags on category
+  indexes for keyword scan surface area. Repair mechanism deferred to `/curate`.
 
 ---
 
@@ -120,57 +116,47 @@ Total:    416K tokens   → 92% detection at 60% cost reduction
 
 ### Do next (high priority, clear direction)
 
-- **Phase 4 implementation and validation** — design and test the write-and-return
-  test writer (4a), compile checker (4b), fix-up subagent (4c), and per-cluster
-  implementer (4d). Apply context pruning techniques to eliminate compile/fix loop
-  bloat. Validate end-to-end: analysis findings → tests → fixes → verify.
+- **Implement /feature-test spec integration** — update Lens A (operationalize
+  spec requirements into tests) and Lens B (spec failure modes as test vectors).
+  Update breaker agent prompt for spec-aware falsification.
 
-- **Full end-to-end pipeline test** — run all phases (1 through 4d) on
-  block-compression at af6b5cb. Score: do all 26 bugs get tests written, do
-  tests fail before fixes, do fixes pass? Measure total token cost across
-  entire pipeline.
+- **End-to-end test** — run /spec-author → /spec-write → /feature-plan →
+  /feature-test on float16-vector-support in jlsm. Validate the full pipeline
+  from hardened spec to failing tests.
 
-- **Integrate into shipped /audit skill** — once end-to-end is validated, ship
-  the 5-pass analysis pipeline + Phase 4 as the user-facing /audit command.
-  Replace the existing single-session spec-analyst approach.
+- **Integrate spec into shipped /audit skill** — audit mode reads `.spec/` as
+  authoritative reference, diffs code against spec. Findings are either "code
+  violates spec requirement" or "code has behavior no spec covers."
 
 ### Do soon (medium effort, clear designs)
 
-- **Large repo curation testing** — `/curate` dogfooded on JLSM (19 commits).
-  Needs testing on a larger repo (1000+ commits, 30+ contributors) to validate
-  the 500-commit cap and co-change analysis performance in bash.
+- **Architect/decision hardening** — apply adversarial authoring to the decision
+  deliberation layer. Same Author→Adversarial→Arbitration pattern. Use existing
+  jlsm ADRs (pre/post-hardening) as test cases.
 
-- **Work unit split thresholds** — 15K crossover and 3.5K per-construct are
-  reasoned estimates, not measured. Token tracking is collecting actuals — needs
-  data review once enough features have run with tracking enabled.
+- **Phase 4 implementation for audit** — write-and-return test writer (4a),
+  compile checker (4b), fix-up subagent (4c), per-cluster implementer (4d).
+  Context pruning to eliminate compile/fix loop bloat.
+
+- **/curate cross-reference repair** — new signal type that discovers missing
+  `related`/`decision_refs` in existing KB entries via tag overlap and
+  applies_to pattern matching.
 
 ### Do when needed (useful but workarounds exist)
 
 - **/feature-split** — split in-progress feature when scope expands. Workaround:
   finish current feature, start a new one.
 
-- **HANDOFF.md convention** — `/save-work` mostly covers this. May just need
-  documentation rather than new code.
-
-- **KB coding agent** — third KB role that reads entries and implements against
-  them. Current workflow (read KB manually) works.
+- **Large repo curation testing** — `/curate` needs testing on a repo with
+  1000+ commits, 30+ contributors.
 
 ### Do when scale demands it (team/scale features)
 
-- **KB `depends-on` field** — frontmatter field for structural staleness. P2/P3
-  tension with fan-out reads on dependency chains. Date-based staleness sufficient
-  for current scale.
-
-- **Team KB commands** — `/kb sync`, `/kb consolidate`, `/kb status`. Useful for
-  teams but vallorcine is primarily single-developer today.
-
-- **LSP integration** — README documentation of companion plugins. Nice-to-have.
+- **Team KB commands** — `/kb sync`, `/kb consolidate`, `/kb status`.
 
 - **Pipeline observability** — velocity metrics, KB utilization tracking.
-  Premature until more projects use vallorcine.
 
-- **KB cross-referencing** — reverse mapping (decisions → KB). One-way exists.
-  Low urgency until KB is large enough to need it.
+- **LSP integration** — README documentation of companion plugins.
 
 ---
 

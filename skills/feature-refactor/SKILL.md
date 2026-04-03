@@ -145,54 +145,24 @@ TodoWrite item. Use `activeForm` to show what is being reviewed or fixed
 
 ---
 
-## Step 1 — Load context (lightweight)
+## Step 1 — Load context
 
-Read only what you need to orient — do NOT read all source files upfront:
-
+Read:
 1. `.feature/project-config.md` — standards, security requirements, run commands
-2. `.feature/<slug>/work-plan.md` — file list and contracts (tells you WHICH files
-   exist, but don't read their contents yet)
-3. `CONTRIBUTING.md` (or `docs/coding-standards.md` if it exists) — full standards
+2. `CONTRIBUTING.md` (or `docs/coding-standards.md` if it exists) — full standards
+3. `.feature/<slug>/work-plan.md` — contracts (intent vs. implementation check)
+4. All implementation files changed during this feature
+5. All test files for this feature
 
 Run the full test suite to confirm current baseline (all passing).
 If tests are failing: stop and say "Tests are failing before refactor began.
 Run /feature-implement to restore a passing state first."
-
-**Do NOT read implementation or test files here.** Each checklist step reads
-only the files relevant to that step's concern. This prevents upfront context
-loading from consuming budget that later steps need for analysis.
 
 ---
 
 ## Step 2 — Review checklist (work through in order, update substage after each)
 
 Update status.md substage as each item begins so a crash is resumable.
-
-### Context management between steps
-
-After completing each checklist step (2a through 2h), write a summary of
-changes made and drop the source/test files from working memory:
-
-```
-Completed 2a — coding standards:
-  - Fixed 3 unused imports in Foo.java (lines 12, 15, 23)
-  - Renamed `bar` to `barCount` in Baz.java (line 45)
-  - No test changes needed
-```
-
-The next step reads source files fresh (with prior step's changes applied).
-Carry forward only the summaries, not the source code or reasoning from
-prior steps. This prevents context growth across the 8-step checklist.
-
-Each step should read ONLY the files relevant to its concern:
-- 2a (coding standards): read each implementation file one at a time
-- 2b (duplication): read files that share similar logic
-- 2c (security): read files with public API boundaries
-- 2d (performance): read files with loops, allocations, queries
-- 2e (missing tests): read test files + corresponding implementation
-- 2f (integration): run tests only, minimal source reading
-- 2g (documentation): read docs, scan for stale references
-- 2h (security review): read files at trust boundaries
 
 ### 2a — Coding standards
 `status.md substage → "refactor: coding-standards"`
@@ -508,119 +478,42 @@ Update status.md substage → `refactor: final-lint`.
 
 ## Step 4b — Adversarial audit pass
 
-After the final lint, run an adversarial audit using the multi-pass analysis
-pipeline. This replaces the old single-session spec analysis with a structured
-5-pass approach that provides deterministic coverage at lower token cost.
-
-**Baseline requirement:** All tests must be passing before this step begins.
+Delegate the full adversarial audit to `/audit`. The audit orchestrator
+handles scoping, analysis, reconciliation, suspect identification, prove-fix
+cycles, and reporting.
 
 **Skip this step if:**
 - This is `/feature-quick` (status.md shows no spec analysis was performed)
 - This is a refactor cycle > 1 (audit runs once after the first clean refactor)
 
-### Pipeline overview
+### 4b.1 — Run the audit
 
-The audit runs as 5 analysis passes followed by test writing and fixing.
-Each pass writes its output to a file; the next pass reads that file with
-a fresh context. This eliminates context competition between phases.
+Invoke `/audit <slug>` where `<slug>` is the current feature slug.
 
-### 4b.1 — Analysis pipeline (subagents)
+Wait for the audit to complete. Do not intervene in the audit pipeline — it
+manages its own subagents and state.
 
-The orchestrator runs these passes in sequence. Each pass is a separate
-subagent with a fresh context.
+### 4b.2 — Read the audit report
 
-**Pass 1 — Construct inventory:** Reads each implementation file from
-work-plan.md. Produces a construct inventory with 8 relationship edge types
-(uses_type, calls, creates, inherits, contains, reads_field, shares_state,
-data_flow). Writes `.feature/<slug>/construct-inventory.md`.
+After the audit finishes, read `.feature/<slug>/audit-report.md` (the final
+output from the audit orchestrator).
 
-**Pass 2 — Concern triage:** Reads the inventory, reads source files, and
-classifies each construct against 7 concern areas (input validation, data
-integrity, contract conformance, concurrency safety, resource lifecycle,
-error handling, capacity and bounds). Writes `.feature/<slug>/triage-matrix.md`.
-
-**Pass 2.5 — Construct clustering:** Reads inventory + triage matrix (no
-source code). Groups constructs by data flow and shared state for deep
-analysis. `shares_state` and `data_flow` edges are unsplittable within the
-same type. Cross-type data_flow bridges are strong preferences but can split.
-Writes `.feature/<slug>/cluster-definitions.md`.
-
-If any cluster exceeds 25 applicable cells or 500 source lines, surface a
-complexity warning to the user — the code may benefit from refactoring before
-audit to reduce analysis cost.
-
-**Pass 3a — Deep analysis:** One subagent per cluster. Each reads its
-cluster's source lines and analyzes every applicable cell using
-attack-generation reasoning ("what input breaks this?"). Per-cell
-independence — no cross-references between constructs. Writes findings to
-`.feature/<slug>/pass3a-cluster-{N}.md`.
-
-**Pass 3b — Cross-cluster reconciliation:** One subagent reads all cluster
-findings + the inventory + cluster definitions. Finds producer/consumer
-mismatches, systemic patterns, and boundary gaps. Writes
-`.feature/<slug>/pass3b-reconciliation.md`.
-
-### 4b.2 — Write adversarial tests (subagents)
-
-One test-writer subagent per cluster. Each receives its cluster's findings
-and writes tests using the summarize-and-forget pattern: read finding →
-read source → write test → one-line summary → forget and advance.
-
-**Write and return — no compilation.** Test writers do not compile or run
-tests. They write test files and exit.
-
-After all test writers return, compile all tests. If any fail to compile,
-launch a fix-up subagent per failing test with just the test file + error.
-
-Run all tests to classify: confirmed failure (test fails = real bug),
-theoretical concern (test passes), not testable (documented in comments).
-
-### 4b.3 — Fix confirmed failures (subagents)
-
-One fixer subagent per construct group with confirmed failures. Each reads
-the failing tests + source code and makes the minimum fix to pass all tests.
-3-attempt maximum per construct. Summarize-and-forget between constructs.
-
-After all fixers return, run the full test suite to catch regressions.
-
-### 4b.4 — Audit bookkeeping (coordinator)
-
-Update status.md substage → `audit-complete`.
+Update status.md substage to `audit-complete`.
 
 Append `audit-complete` to cycle-log.md:
 ```markdown
 ## <YYYY-MM-DD> — audit-complete
-**Agent:** Refactor Agent (audit pass)
+**Agent:** Refactor Agent (audit delegation)
 **Cycle:** <n>
-**Analysis findings:** <n> (Pass 3a: <n>, Pass 3b: <n>)
-**Adversarial tests written:** <n>
-**Confirmed failures:** <n>
-**Bugs fixed:** <n>
-**Not testable (with reasons):** <n>
-**Clusters analyzed:** <n>
-**Pipeline tokens:** ~<N>K
+**Audit result:** <summary from audit-report.md>
 ---
 ```
 
-Display:
-```
-── Audit pass ─────────────────────────────────
-  Analysis: <n> findings across <n> clusters
-  Tests: <n> written (<n> not testable)
-  Confirmed bugs: <n> found and fixed
-  Pipeline cost: ~<N>K tokens
-  Result: <all passing | see findings>
-```
+Display the audit summary to the user:
+- If the audit found and fixed bugs, list them with their test references
+- If zero findings, note that the refactored code passed adversarial audit
 
-If confirmed failures were found and fixed, and the fixes changed control
-flow in multi-construct operations, recommend a second audit round:
-```
-The audit found <n> bugs involving cross-construct interactions.
-Recommend another audit round to check for fix-induced regressions.
-  Type **yes** for another round · or: continue to PR
-```
-If "yes": re-run Step 4b (incrementally — Pass 1 re-inventories only changed files).
-If "continue" or no cross-construct bugs: proceed to Step 5.
+Proceed to Step 5.
 
 ---
 

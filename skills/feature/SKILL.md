@@ -330,6 +330,7 @@ last_updated: "<YYYY-MM-DD HH:MM>"
 |-------|--------|-----------|-------------|---------------|-------|
 | Scoping | in-progress | — | — | — | |
 | Domains | not-started | — | — | — | |
+| Spec Authoring | not-started | — | — | — | if .spec/ exists |
 | Planning | not-started | — | — | — | |
 | Testing | not-started | — | — | — | cycle 0 |
 | Implementation | not-started | — | — | — | cycle 0 |

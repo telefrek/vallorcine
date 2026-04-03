@@ -1,0 +1,6 @@
+{
+  "path": ".feature/extract-core-encryption/status.md",
+  "old_string": "**Stage:** planning\n**Substage:** confirmed-design\n**Last successful checkpoint:** domains.md written, all 3 domains resolved",
+  "new_string": "**Stage:** testing\n**Substage:** not-started\n**Last successful checkpoint:** work-plan.md written, 1 stub created",
+  "replace_all": false
+}

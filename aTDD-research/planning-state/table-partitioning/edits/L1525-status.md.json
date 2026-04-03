@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "| WU-2 | Partition execution | InProcessPartitionClient, ResultMerger | WU-1 | blocked | \u2014 |",
+  "new_string": "| WU-2 | Partition execution | InProcessPartitionClient, ResultMerger | WU-1 | not-started | \u2014 |",
+  "replace_all": false
+}

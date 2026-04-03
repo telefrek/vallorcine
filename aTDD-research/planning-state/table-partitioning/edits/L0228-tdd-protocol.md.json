@@ -1,0 +1,6 @@
+{
+  "path": ".claude/rules/tdd-protocol.md",
+  "old_string": "<<<<<<< HEAD\n- `bash .claude/scripts/adr-validate.sh` \u2014 warns if contradictory accepted ADRs exist\n=======\n>>>>>>> origin/main",
+  "new_string": "- `bash .claude/scripts/adr-validate.sh` \u2014 warns if contradictory accepted ADRs exist",
+  "replace_all": false
+}

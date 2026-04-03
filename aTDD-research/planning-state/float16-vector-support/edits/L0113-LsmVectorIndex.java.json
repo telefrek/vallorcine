@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-vector/src/main/java/jlsm/vector/LsmVectorIndex.java",
+  "old_string": "        @SuppressWarnings(\"unchecked\")\n        public B similarityFunction(SimilarityFunction fn) {\n            this.similarityFunction = Objects.requireNonNull(fn,\n                    \"similarityFunction must not be null\");\n            return (B) this;\n        }\n\n        void validateBase() {",
+  "new_string": "        @SuppressWarnings(\"unchecked\")\n        public B similarityFunction(SimilarityFunction fn) {\n            this.similarityFunction = Objects.requireNonNull(fn,\n                    \"similarityFunction must not be null\");\n            return (B) this;\n        }\n\n        /**\n         * Sets the vector storage precision. Default is {@link VectorPrecision#FLOAT32}.\n         *\n         * @param precision the precision; must not be null\n         * @return this builder\n         */\n        @SuppressWarnings(\"unchecked\")\n        public B precision(VectorPrecision precision) {\n            this.precision = Objects.requireNonNull(precision, \"precision must not be null\");\n            return (B) this;\n        }\n\n        void validateBase() {",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".kb/CLAUDE.md",
+  "old_string": "| 2026-03-17 | data-structures | caching | concurrent-lru-caches |\n| 2026-03-16 | algorithms | sql-extensions | vector-similarity-sql-syntax |",
+  "new_string": "| 2026-03-17 | data-structures | caching | concurrent-lru-caches |",
+  "replace_all": false
+}

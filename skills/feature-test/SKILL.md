@@ -221,6 +221,25 @@ If work unit is active, load only what is needed for that unit:
 
 If --add-missing: load only the missing test cases from cycle-log.md.
 
+### Step 1a — Resolve hardened specs (if available)
+
+Check whether the project has a `.spec/` directory with a manifest:
+
+```bash
+bash .claude/scripts/spec-resolve.sh "<feature brief title or description>" 8000 2>/dev/null
+```
+
+If the script succeeds and produces a non-empty bundle, store the output as
+SPEC_BUNDLE. This bundle contains behavioral requirements (R1, R2, ...) that
+the spec system has already hardened.
+
+If the script fails, `.spec/` does not exist, or the bundle is empty: set
+SPEC_BUNDLE to empty. All subsequent spec-aware steps fall back to their
+original behavior.
+
+**Do not read `.spec/` files directly.** The resolver handles file discovery,
+domain matching, transitive dependency expansion, and token budgeting.
+
 ---
 
 ## Step 1b — Construct analysis (derive tests from interfaces)
@@ -278,9 +297,39 @@ accepted ADRs in `.decisions/` all constrain implementation. Violations of
 project rules are bugs — add them to Lens B. Examples: memory discipline
 rules, architectural constraints, testing conventions, coding standards.
 
-### Lens A — Contract gaps (what the spec doesn't specify)
+### Lens A — Requirement operationalization / Contract gaps
 
-For each contract in the work plan, ask:
+**If SPEC_BUNDLE is non-empty (hardened specs available):**
+
+The bundle contains behavioral requirements (R1, R2, ...) from hardened specs.
+Operationalize each requirement into test cases:
+
+1. Extract every requirement ID (R1, R2, ...) and its behavioral description
+   from the `## Feature Requirements` section of the bundle.
+2. For each requirement, ask: **"Can I write a test that verifies this
+   requirement against the constructs in the work plan?"**
+   - If yes: create one or more test cases that exercise the requirement.
+     Tag each test with the requirement ID it covers (e.g., `covers: R3`).
+   - If the requirement is abstract or cross-cutting (e.g., "the system must
+     be resilient to X"): identify which construct is responsible for that
+     behavior and write a concrete test against it.
+   - If the requirement cannot be tested at the unit/integration level (e.g.,
+     deployment constraints): note it as `UNTESTABLE: <reason>` in the
+     defensive section. Do not silently drop it.
+3. After operationalizing all spec requirements, apply the contract-gap table
+   below as a **supplement** — the spec may not cover every edge case the
+   interface implies. Any gap found that isn't already covered by a spec
+   requirement becomes a CONTRACT-GAP finding.
+4. Check for open obligations in the bundle's `## Open Obligations` section.
+   Each obligation is a spec-level TODO that must be addressed. Convert
+   applicable obligations into test cases.
+
+**If SPEC_BUNDLE is empty (no hardened specs — fallback):**
+
+For each contract in the work plan, apply the contract-gap table below as the
+primary analysis tool. This is the original Lens A behavior.
+
+**Contract-gap table (primary in fallback mode, supplement in spec mode):**
 
 | Question | What to test |
 |----------|-------------|
@@ -292,6 +341,24 @@ For each contract in the work plan, ask:
 | What equality semantics do keys use? | Identity vs content (especially byte[], arrays) |
 
 ### Lens B — Implementation risk patterns (what code typically gets wrong)
+
+**Spec-aware scoping:** If SPEC_BUNDLE is non-empty, use the spec requirements
+as the boundary of what is "specified behavior." Lens B then focuses on:
+- Behaviors the spec **did not anticipate** — interactions, edge cases, and
+  failure modes that fall outside any R_N requirement
+- Gaps **between** requirements — where two requirements interact but neither
+  fully specifies the combined behavior
+- Implementation assumptions the spec takes for granted (e.g., thread safety,
+  ordering, resource cleanup) without an explicit requirement
+
+When specs are available, tag each Lens B finding with whether it is:
+- `SPEC-BOUNDARY` — the spec has a relevant requirement but doesn't cover
+  this specific edge case
+- `SPEC-BLIND-SPOT` — no spec requirement addresses this area at all
+- `IMPL-RISK` — standard implementation risk (same as no-spec mode)
+
+If SPEC_BUNDLE is empty, proceed with the standard implementation risk analysis
+below without spec-boundary tagging.
 
 For each construct in scope, trace the full data flow — not just the construct
 itself but its inputs, outputs, and data carriers. This prevents multi-pass
@@ -336,8 +403,14 @@ by Lens A or Level 1 findings, but do not skip levels entirely.
 
 For each finding, note:
 - The construct and contract section it applies to
-- Whether it's a CONTRACT-GAP (Lens A) or IMPL-RISK (Lens B)
+- The finding type:
+  - `SPEC-REQ` — directly operationalized from a spec requirement (Lens A, spec mode)
+  - `CONTRACT-GAP` — gap not covered by any spec requirement (Lens A)
+  - `SPEC-BOUNDARY` — spec-adjacent edge case (Lens B, spec mode)
+  - `SPEC-BLIND-SPOT` — no spec coverage at all (Lens B, spec mode)
+  - `IMPL-RISK` — standard implementation risk (Lens B)
 - A specific defensive test case to add to the test plan
+- If from a spec requirement: the requirement ID (e.g., `R3`)
 
 These findings feed directly into the test plan as a "Defensive (from spec analysis)"
 section. Do NOT write a separate spec-analysis.md file — the findings are integrated
@@ -390,11 +463,15 @@ Boundary values
 Structural (from interface analysis)
   N. test_<name> — <scenario> — pattern: <round-trip | lifecycle | interaction | ...>
   ...
+Spec requirements (from hardened specs)          ← only when specs loaded
+  N. test_<name> — <scenario> — covers: R<N>
+  ...
 Defensive (from spec analysis)
-  N. test_<name> — <scenario> — finding: <CONTRACT-GAP | IMPL-RISK>: <description>
+  N. test_<name> — <scenario> — finding: <CONTRACT-GAP | SPEC-BOUNDARY | SPEC-BLIND-SPOT | IMPL-RISK>: <description>
   ...
 ───────────────────────────────────────────────
-Spec analysis: <N> CONTRACT-GAP + <N> IMPL-RISK findings → <N> defensive tests
+Spec analysis: <N> SPEC-REQ + <N> CONTRACT-GAP + <N> IMPL-RISK findings → <N> defensive tests
+              [if specs loaded: <N> requirements operationalized, <N> untestable]
 Does this cover the acceptance criteria? Any to add or remove?
 ───────────────────────────────────────────────
 ```
@@ -404,6 +481,12 @@ If any section has no applicable tests (rare), state why explicitly. The structu
 section should list which interface patterns were checked and found not applicable.
 The defensive section should summarize how many findings came from each lens and
 any adversarial KB patterns that were checked.
+
+**When specs were loaded:** The defensive section should additionally report:
+- How many spec requirements were operationalized (SPEC-REQ count)
+- How many requirements were marked UNTESTABLE and why
+- How many SPEC-BOUNDARY and SPEC-BLIND-SPOT findings were identified
+- Which requirement IDs each defensive test covers
 
 Wait for confirmation. Update status.md substage → `writing-tests` after confirm.
 
@@ -585,6 +668,8 @@ Write `.feature/<slug>/test-plan.md` (or append cycle section if it exists):
 ### Coverage
 - Acceptance criteria covered: <n>/<total>
 - Error cases covered: <n>
+- Spec requirements operationalized: <n>/<total> (omit if no specs loaded)
+- Untestable requirements: <list or none> (omit if no specs loaded)
 - Gaps noted: <any>
 ```
 

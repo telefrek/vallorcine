@@ -220,8 +220,13 @@ def main():
                         "baseline_ctx_tokens": current_ctx_tokens,
                         "baseline_timestamp": now_utc(),
                     }
-                    baseline_file.parent.mkdir(parents=True, exist_ok=True)
-                    baseline_file.write_text(json.dumps(new_baseline) + "\n")
+                    try:
+                        baseline_file.parent.mkdir(parents=True, exist_ok=True)
+                        tmp = baseline_file.with_suffix(".tmp")
+                        tmp.write_text(json.dumps(new_baseline) + "\n")
+                        tmp.rename(baseline_file)
+                    except OSError:
+                        pass
                     baseline_ctx = current_ctx_tokens
 
                 stage_used = max(0, current_ctx_tokens - baseline_ctx)
@@ -268,4 +273,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        pass

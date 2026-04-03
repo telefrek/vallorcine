@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/status.md",
+  "old_string": "**Substage:** refactor: coding-standards",
+  "new_string": "**Substage:** refactor: duplication",
+  "replace_all": false
+}

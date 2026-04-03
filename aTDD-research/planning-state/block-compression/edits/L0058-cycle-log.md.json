@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/cycle-log.md",
+  "old_string": "## 2026-03-17 \u2014 domains-resolved\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** 3 domains resolved, 0 gaps noted.\n**Files read:** brief ~2K, .kb/CLAUDE.md ~1K, .decisions/CLAUDE.md ~1K, algorithms/CLAUDE.md ~1K\n**Token estimate:** ~15K\n---",
+  "new_string": "## 2026-03-17 \u2014 domains-resolved\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** 3 domains resolved, 0 gaps noted.\n**Files read:** brief ~2K, .kb/CLAUDE.md ~1K, .decisions/CLAUDE.md ~1K, algorithms/CLAUDE.md ~1K\n**Token estimate:** ~15K\n---\n\n## 2026-03-17 \u2014 planned\n**Agent:** \ud83c\udfd7\ufe0f Work Planner\n**Summary:** 4 new constructs, 5 extensions. 2 work units (balanced). Stubs written.\n**Files read:** brief ~2K, domains ~3K, 2 ADRs ~6K, source files ~10K\n**Token estimate:** ~12K\n---",
+  "replace_all": false
+}

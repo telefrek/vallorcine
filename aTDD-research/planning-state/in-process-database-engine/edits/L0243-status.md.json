@@ -1,0 +1,6 @@
+{
+  "path": ".feature/in-process-database-engine/status.md",
+  "old_string": "| 0 | WU-1 | 2026-03-19 | 23/23 | n/a (pure types) | \u2014 |",
+  "new_string": "| 0 | WU-1 | 2026-03-19 | 23/23 | n/a (pure types) | \u2014 |\n| 1 | WU-2 | 2026-03-19 | 50/50 | yes | \u2014 |",
+  "replace_all": false
+}

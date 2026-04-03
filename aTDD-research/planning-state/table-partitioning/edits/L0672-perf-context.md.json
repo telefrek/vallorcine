@@ -1,0 +1,6 @@
+{
+  "path": ".claude/skills/perf-review/perf-context.md",
+  "old_string": "- `jlsm-core#KeyComparator#compare \u2014 MemTable \u2014 543f0e3 \u2014 1363 profiler samples (dominant frame in all MemTable ops)`\n- `jlsm-core#ConcurrentSkipListMemTable#apply \u2014 MemTable \u2014 543f0e3 \u2014 put@100K: 349K ops/s (post-fix baseline)`",
+  "new_string": "- `jlsm-core#KeyComparator#compare \u2014 MemTable \u2014 543f0e3 \u2014 1363 profiler samples (dominant frame in all MemTable ops)`\n- `jlsm-core#ConcurrentSkipListMemTable#apply \u2014 MemTable \u2014 543f0e3 \u2014 put@100K: 349K ops/s (post-fix baseline)`\n- `jlsm-core#BlockedBloomFilter#mightContain \u2192 Murmur3Hash \u2014 SSTable read \u2014 543f0e3 \u2014 1184 samples (dominates get path)`\n- `jlsm-core#TrieSSTableReader#get \u2014 SSTable read \u2014 543f0e3 \u2014 getHit: 1.07M ops/s, getMiss: 12.85M ops/s`\n- `jlsm-core#TrieSSTableWriter#append \u2014 SSTable write \u2014 543f0e3 \u2014 125 ops/s @1K entries, 45 ops/s @10K (post-fix)`\n- `jlsm-core#MappedByteBuffer#force \u2014 WAL \u2014 543f0e3 \u2014 ~100% of append CPU; 427 ops/s @128B`",
+  "replace_all": false
+}

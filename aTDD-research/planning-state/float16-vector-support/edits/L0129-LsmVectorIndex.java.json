@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-vector/src/main/java/jlsm/vector/LsmVectorIndex.java",
+  "old_string": "            public VectorIndex.Hnsw<D> build() {\n                validateBase();\n                return new LsmVectorIndex.Hnsw<>(lsmTree, docIdSerializer, dimensions,\n                        similarityFunction, maxConnections, efConstruction, efSearch);\n            }",
+  "new_string": "            public VectorIndex.Hnsw<D> build() {\n                validateBase();\n                return new LsmVectorIndex.Hnsw<>(lsmTree, docIdSerializer, dimensions,\n                        similarityFunction, maxConnections, efConstruction, efSearch, precision);\n            }",
+  "replace_all": false
+}

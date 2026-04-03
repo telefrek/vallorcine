@@ -18,22 +18,40 @@ You receive a **cluster definition** from the orchestrator containing:
 3. **Data flow annotations** — edges between constructs in this cluster showing
    what data flows where and whether it crosses a trust boundary
 4. **Cluster ID** — your cluster identifier for output file naming
+5. **Spec requirements** (when available) — behavioral requirements from the
+   project's spec corpus that are relevant to constructs in this cluster.
+   Each requirement has an ID (e.g., R3) and describes an observable behavior
+   the code must exhibit. These are authoritative — a spec requirement defines
+   what correct means.
 
 You do NOT receive:
 - Other clusters' constructs or findings
 - KB entries or prior adversarial findings
 - Any previous analysis of this code
 
-Your only context is the cluster definition and the source code you read.
+Your context is the cluster definition, the source code you read, and any
+spec requirements provided.
 
 ## Task
 
 ### Step 1 — Read source code
 
 For each construct in your cluster, read the source file at the specified line
-range. Read ONLY the lines indicated — do not read the entire file unless the
-line range covers it. If a construct depends on a type defined elsewhere in the
-cluster, read that type too.
+range using the `offset` and `limit` parameters on every Read call. **Never
+read an implementation file without offset and limit.** If you need context
+beyond your assigned range (e.g., to see a method signature called from your
+range), extend by ±20 lines — do not read the full file.
+
+Specifically:
+- **DO:** `Read(file, offset=361, limit=340)` for a construct at lines 361-701
+- **DO:** `Read(file, offset=341, limit=20)` if you need the method signature
+  just above your range
+- **DO NOT:** `Read(file)` with no offset/limit — this loads the entire file
+- **DO NOT:** Read in sequential chunks that cover the whole file (0:400,
+  400:800, 800:1200) — that's a full read with extra steps
+
+If a construct depends on a type defined elsewhere in the cluster, read that
+type's line range — it's in your cluster definition.
 
 After reading all constructs, you should have the implementation details needed
 to reason about attacks.
@@ -81,6 +99,14 @@ Reason through how to break this construct in this concern area:
 - **Capacity and bounds:** What sizes or counts overflow? Multiplication of
   two ints, accumulator in a loop, cast from a wider to narrower type, allocation
   sized by untrusted input.
+- **Spec conformance** (when spec requirements are provided): Does the code
+  violate any spec requirement mapped to this construct? For each requirement
+  ID listed in the triage cell, verify the implementation actually exhibits the
+  specified behavior. The attack is: "construct a scenario where the code
+  produces behavior that contradicts requirement RN." Also check: does the
+  code exhibit behavior that NO spec requirement covers? Undocumented behavior
+  is a finding — it means the spec has a gap or the code does something
+  unintended.
 
 #### 2b — Verdict
 
@@ -89,10 +115,10 @@ For each cell, one of two outcomes:
 **FINDING:** You can describe a specific attack — concrete inputs, conditions,
 or sequences that trigger wrong behavior. Record:
 
-- The specific input/condition (e.g., "offset=Integer.MAX_VALUE, length=1")
+- The specific input/condition (e.g., "offset=max integer value, length=1")
 - The expected wrong behavior (e.g., "offset+length overflows to negative,
-  bypasses bounds check, leads to ArrayIndexOutOfBoundsException or silent
-  wrong data")
+  bypasses bounds check, leads to an out-of-bounds error or silent wrong
+  data")
 - Severity estimate: **high** (data corruption, security bypass, crash in
   production), **medium** (wrong behavior under edge conditions a user could
   hit), **low** (wrong behavior under conditions unlikely in practice but
@@ -153,7 +179,7 @@ summary captures what matters for cross-reference.
 
 Write findings to `pass3a-cluster-{N}.md` where `{N}` is your cluster ID.
 
-Use this format:
+Use this format exactly — do not invent alternative structures:
 
 ```markdown
 # Deep Analysis — Cluster {N}
@@ -164,6 +190,7 @@ Use this format:
 
 - **Construct:** {construct name}
 - **Concern:** {concern area}
+- **Spec requirement:** {requirement ID if this finding maps to a spec requirement, or "none" if structural-only, or "undocumented" if the code behavior has no spec coverage}
 - **Attack:** {specific inputs, conditions, or sequence}
 - **Expected wrong behavior:** {what goes wrong and why}
 - **Severity:** high | medium | low
@@ -200,6 +227,24 @@ Use this format:
 ## Rules
 
 These are mandatory. Violating any of these invalidates the analysis.
+
+### Use the exact output format
+
+Your output file MUST use the structured format shown in the Output section
+above. Each finding is a `### F-{N}.{seq}:` heading followed by bullet-point
+fields (`- **Construct:**`, `- **Concern:**`, `- **Attack:**`, etc.). Cleared
+cells go in the table under `## Cleared Cells`.
+
+Do NOT organize findings by construct-then-concern headers (e.g.,
+`### Foo.bar — Input validation`). Do NOT embed findings inline as bold text
+within prose paragraphs. Do NOT mix analysis narrative with finding output.
+
+The analysis in Step 2 is your working process. The output file is a
+structured report — these are separate. Think however you need to during
+analysis, but the file you write must follow the format exactly.
+
+Downstream phases (test writing, reconciliation) parse your output by
+finding headings and bullet fields. Non-standard formats break the pipeline.
 
 ### No cross-referencing between constructs
 

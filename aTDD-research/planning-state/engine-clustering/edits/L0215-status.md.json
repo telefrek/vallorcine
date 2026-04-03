@@ -1,0 +1,6 @@
+{
+  "path": ".feature/engine-clustering/status.md",
+  "old_string": "**Stage:** testing\n**Substage:** not-started\n**Last successful checkpoint:** work-plan.md written, 22 stubs created",
+  "new_string": "**Stage:** testing\n**Substage:** in-progress\n**Last successful checkpoint:** WU-1 complete (test + implement + refactor)",
+  "replace_all": false
+}
