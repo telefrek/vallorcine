@@ -518,10 +518,50 @@ Display the Report subagent's summary as the final output:
   Findings: <n> suspected, <n> fixed, <n> impossible, <n> fix_impossible
   Cross-domain compositions: <n>
   Deferred (budget): <n>
+  Spec conflicts: <n> (or "none")
   Pipeline health: fix=<n>% impossible=<n>%
   Report: .feature/<slug>/audit-report.md
 ───────────────────────────────────────────────
 ```
+
+If the report summary mentions spec conflicts, display the resolution flow:
+
+```
+── Spec conflicts detected ────────────────────
+A fix from this audit contradicts an existing spec requirement.
+This is a design tradeoff, not a bug — both the fix and the spec
+had valid reasons. A decision is needed.
+
+  CONFLICT-1: <description>
+    Fix: <finding ID> — <what the fix changed>
+    Spec: <spec>.<req> — <requirement text>
+    Tradeoff: <why this is a tension>
+
+Options for each conflict:
+  1. Keep the fix, update the spec
+     → I'll update the spec requirement to match the new behavior
+       and check if other specs depend on the old behavior
+
+  2. Revert the fix, keep the spec
+     → I'll revert the source change and mark the finding as
+       FIX_IMPOSSIBLE with the spec requirement as the reason
+
+  3. Defer — decide later
+     → I'll log the conflict as an open obligation on the spec
+
+Which option for CONFLICT-1? (1 / 2 / 3)
+```
+
+For option 1: read the conflicting spec, update the requirement to match
+the fix, and run `spec-resolve.sh` to check if any other spec's `requires`
+references the changed requirement. If so, flag the downstream specs.
+
+For option 2: revert the fix (git checkout the changed lines), update the
+prove-fix output to FIX_IMPOSSIBLE, and note the spec requirement as the
+architectural constraint.
+
+For option 3: add `[UNRESOLVED]` marker to the spec requirement and add
+an `open_obligations` entry. The spec becomes DRAFT if it was APPROVED.
 
 If cross-cluster unresolved findings exist, suggest a follow-up round:
 

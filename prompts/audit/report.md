@@ -113,7 +113,32 @@ Compute and flag against targets:
 | Cross-cluster unresolved | 0 | >0 |
 | Cross-domain compositions | — | — (informational) |
 
-### 5. Spec coverage (if specs were in scope)
+### 5. Fix-spec conflicts
+
+Review all CONFIRMED_AND_FIXED findings. For each fix, check whether
+the fix changes behavior that a spec requirement describes:
+
+- Does the fix contradict a requirement in any spec (not just the
+  audited feature's spec)?
+- Does the fix add behavior that a related spec explicitly prohibits?
+- Does the fix change an invariant that another spec depends on?
+
+For each conflict found, create a structured entry:
+
+```markdown
+## Fix-Spec Conflicts
+
+### CONFLICT-<N>: <one-line description>
+- **Fix:** <finding ID> — <what the fix changed>
+- **Spec requirement:** <spec ID>.<requirement ID> — <requirement text>
+- **Nature:** <contradicts | weakens | changes assumption>
+- **Impact:** <what breaks if the fix stays vs what breaks if the spec stays>
+- **Tradeoff:** <one sentence — why this is a genuine design tension>
+```
+
+If no fix-spec conflicts: omit this section entirely.
+
+### 6. Spec coverage (if specs were in scope)
 
 If `.spec/` exists and specs were loaded by Classification, assess how the
 audit's findings relate to the spec requirements.
@@ -199,6 +224,15 @@ If no specs were in scope, skip this section entirely.
 - **Clusters:** <N> → <M>
 - **Mismatch:** <producer guarantees X, consumer assumes Y>
 - **Recommendation:** co-cluster in next round
+
+## Fix-Spec Conflicts
+[If none: omit this section]
+### CONFLICT-<N>: <description>
+- **Fix:** <finding ID> — <what changed>
+- **Spec requirement:** <spec>.<req> — <requirement text>
+- **Nature:** <contradicts | weakens | changes assumption>
+- **Impact:** <what breaks if fix stays vs spec stays>
+- **Tradeoff:** <why this is a genuine design tension>
 
 ## Spec Coverage
 [If no specs in scope: "No specs in scope for this audit."]
