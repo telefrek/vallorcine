@@ -58,6 +58,19 @@ For each CANDIDATE lens in active-lenses.md:
    CONFIRMED or PRUNED. For PRUNED lenses, add a Proof line explaining
    why.
 
+## Construct-level concurrency filtering
+
+Even when the concurrency lens is CONFIRMED for the codebase (the codebase
+genuinely uses concurrency), not every construct has a concurrency surface.
+When the concurrency lens is confirmed, only cluster constructs whose
+cards have `state.thread_sharing: possible` or `state.thread_sharing:
+explicit`. Constructs with `state.thread_sharing: none` must be excluded
+from concurrency clusters — they have mutable state that is never shared
+across threads, and including them produces false positive findings.
+
+This is not pruning the lens. The lens stays active. This is scoping which
+constructs the lens analyzes, using evidence already captured in the cards.
+
 ## Domain pruning must NOT
 
 - Prune a lens without specific evidence that the domain doesn't apply

@@ -102,6 +102,7 @@ state:
   owns: [<field/resource names this construct is responsible for>]
   reads_external: [<construct.field pairs read but not owned>]
   writes_external: [<construct.field pairs written but not owned>]
+  thread_sharing: <none | possible | explicit>
 ```
 
 **owns** — fields or resources where this construct is the primary
@@ -117,9 +118,32 @@ mutates. Format: `ConstructName.fieldName`. Includes writing through
 setters, mutating objects received as parameters, and side effects on
 shared state.
 
+**thread_sharing** — determines whether this construct's mutable state
+could be accessed from multiple threads. This field is critical for
+downstream concurrency analysis — it prevents false positives on
+single-threaded constructs. Assess by examining the construct's API
+surface and lifecycle:
+
+- **`none`** — the construct is designed for single-threaded use. Evidence
+  includes: private constructor with no public factory, builder pattern
+  (create→configure→build→discard), single-use writer/reader lifecycle,
+  local variable scope only (never stored in a field or collection),
+  no public mutable fields, no references passed to other threads. A
+  construct with mutable state that is never shared is `none`.
+- **`possible`** — the construct's API allows multi-threaded access but
+  does not explicitly manage it. Evidence includes: public constructor
+  or factory, mutable state accessible via public methods, instances
+  stored in shared collections or fields readable by other constructs,
+  passed as parameters to methods that may run on other threads.
+- **`explicit`** — the construct explicitly manages concurrent access.
+  Evidence includes: synchronized blocks/methods, volatile fields,
+  use of concurrent collections (ConcurrentHashMap, AtomicReference),
+  executor/thread pool submission, Lock usage, compare-and-swap
+  operations.
+
 If a construct truly has no mutable state and accesses no external state,
-write all fields as empty lists. This is valid for pure functions,
-stateless utilities, and immutable value types.
+write all fields as empty lists and `thread_sharing: none`. This is valid
+for pure functions, stateless utilities, and immutable value types.
 
 #### Sweep 3: Guarantees
 
@@ -143,6 +167,17 @@ A guarantee is an observable postcondition enforced by code. Examples:
   allocation matching input.length
 - "Field is always positive after this method" — evidenced by Math.max
   or bounds check
+- "close() is idempotent" — evidenced by guard check (if already closed,
+  return) or by the underlying operation being inherently safe under
+  repeated invocation
+
+**Idempotency guarantees** are particularly important for downstream
+concurrency analysis. When an operation is safe under repeated
+invocation (close(), shutdown(), clear(), dispose()), record it as a
+guarantee. Evidence includes: boolean guard flags (`if (closed) return`),
+compare-and-set patterns, or delegation to an API that documents
+idempotent behavior. These guarantees prevent false positive race
+condition findings on operations that are safe by design.
 
 **If you cannot point to specific code that enforces a guarantee, do not
 list it.** "Returns valid data" is not a guarantee — it is filler. The
@@ -235,6 +270,7 @@ state:
   owns: [<from sweep 2>]
   reads_external: [<from sweep 2>]
   writes_external: [<from sweep 2>]
+  thread_sharing: <from sweep 2>
 
 contracts:
   guarantees: [<from sweep 3>]

@@ -118,10 +118,55 @@ this concern? Be concrete:
 - What mechanism (cite the line number and the code)
 - Why it's sufficient
 
+**CLEARED (already tested)** — an existing test exercises the exact failure
+mode. This is valid ONLY when all of the following hold:
+- The construct's test file (from exploration's test references) contains a
+  test method that targets this specific failure mode — not just the
+  construct in general
+- The test uses adversarial inputs that would trigger the bug if it existed
+- The test asserts the correct behavior for this specific concern
+
+Record: "already tested — <test method name> (<test file>:<line>)"
+
+"Tests exist for this class" is NOT a valid clearing. The test must exercise
+the specific failure mode described in the attack. A test that calls the
+same method but with valid inputs does not clear a validation gap finding.
+
 "Looks correct" is NOT a valid clearing. "Seems fine" is NOT a valid
 clearing. You MUST name the specific defense and cite the line.
 
-### 3. Card-driven analysis
+### 3. Mandatory concurrency clearing checks
+
+Before generating any concurrency-domain finding (race condition, unsafe
+shared state, double-close, unsynchronized access), apply these mandatory
+clearings. These are non-negotiable — the card evidence is authoritative
+and cannot be overridden by speculative "but what if someone uses it
+wrong" reasoning.
+
+1. **Single-threaded construct.** Does the card's `state.thread_sharing`
+   say `none`? If yes, CLEAR — "single-threaded construct, no concurrency
+   surface." A construct with `thread_sharing: none` has no mutable state
+   accessible from multiple threads. Do not generate concurrency findings
+   for it.
+
+2. **Idempotent operation.** Does the card's `contracts.guarantees`
+   include an idempotency guarantee for the operation in question (e.g.,
+   `close() is idempotent`)? If yes, CLEAR — "operation is idempotent,
+   safe under concurrent invocation." A double-close or double-shutdown
+   on an idempotent operation is not a race condition.
+
+3. **Single-use lifecycle.** Is the construct a builder, writer, formatter,
+   or other single-use pattern where the lifecycle is
+   create→use→discard within a single method or call chain? If yes,
+   CLEAR — "single-use lifecycle, no concurrent access path." Evidence:
+   private constructor, no public factory, instances never stored in
+   shared fields or collections.
+
+These clearings apply ONLY to concurrency-domain findings. They do not
+clear findings in other concern areas (validation, transformation, etc.)
+for the same construct.
+
+### 4. Card-driven analysis
 
 Use construct cards to systematically check interaction points:
 
@@ -140,7 +185,7 @@ For each reconciliation inconsistency in the cluster:
 - The invokes/entry_points mismatch may indicate a caller using an
   API differently than intended. Analyze the actual call site.
 
-### 4. Cross-cluster boundary observations
+### 5. Cross-cluster boundary observations
 
 For constructs that have invokes/invoked_by edges to constructs outside
 this cluster:

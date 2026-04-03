@@ -29,6 +29,35 @@ the finding. You are reading to understand the API — types, method
 signatures, constructors, required setup. You are NOT re-analyzing
 whether the bug exists. The analysis is done. You are writing a test.
 
+### 1a2. Check existing test coverage
+
+Before writing a new test, check whether an existing test already exercises
+the finding's behavior. This check should take at most 2-3 turns — if
+uncertain, skip it and write the new test.
+
+1. Search the project's test directories for test methods that exercise the
+   same construct:
+   - Test methods with `covers: R<N>` or `Finding:` comments matching the
+     finding's spec requirement or finding ID
+   - Test methods whose names reference the construct under test
+   - Test methods that import and instantiate the construct
+
+2. For each candidate (read at most 2-3 methods):
+   - Does it exercise the exact behavior described in the finding?
+   - Does it use adversarial inputs similar to what the finding describes?
+
+3. If an existing test already exercises the finding's behavior:
+   - **Run it.** If it **FAILS**: the bug is confirmed by an existing test.
+     Skip writing a new test. Proceed directly to Phase 2 (Fix) using the
+     existing test as the verification. In the output, record the existing
+     test method name and note "confirmed by existing test."
+   - If it **PASSES**: the existing test covers the area but doesn't catch
+     this specific bug. Proceed to write a new test as normal — the existing
+     test is partial coverage, not a duplicate.
+
+4. If no existing test covers the behavior: proceed to write a new test as
+   normal.
+
 ### 1b. Read the test class
 
 Read the existing test class file. Note:

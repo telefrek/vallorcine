@@ -21,9 +21,9 @@ Read all pipeline output files in the feature/run directory:
 - `scope-definition.md` — tiers, clusters, domain signals, domain lenses
 - `scope-exclusions.md` — what was deferred
 - `active-lenses.md` — which domain lenses were active and which were pruned
-- `suspect-cluster-*.md` (all) — findings, clearings, boundary observations
-- `prove-cluster-*.md` (all) — confirmation results (may be per-finding files)
-- `fix-cluster-*.md` (all) — fix results, impossibility reviews, removed tests
+- `suspect-*-cluster-*.md` (all) — findings, clearings, boundary observations
+- `prove-fix-*.md` (all) — per-finding prove and fix results
+  (each file covers one finding: test confirmation + source fix)
 
 ## Process
 
@@ -97,8 +97,7 @@ section entirely.
 Count findings at each pipeline stage and verify no findings were dropped:
 
 - Suspect total = sum of findings across all suspect outputs
-- Prove confirmed + impossible = Suspect total
-- Fix fixed + removed (all classifications) = Prove confirmed
+- Prove-fix results: confirmed_and_fixed + impossible + fix_impossible = Suspect total
 
 If any count doesn't reconcile, flag it in the report.
 
@@ -163,8 +162,7 @@ If no specs were in scope, skip this section entirely.
 |-------|-------|--------|------------|
 | Scope | <entry point> | <n> constructs, <n> clusters | <n> boundary, <n> ignored |
 | Suspect | <n> constructs × <n> concerns | <n> findings, <n> cleared | <domains activated> |
-| Prove | <n> findings | <n> confirmed, <n> impossible | <rate>% |
-| Fix | <n> confirmed | <n> fixed, <n> removed | <rate>% |
+| Prove-Fix | <n> findings | <n> fixed, <n> impossible, <n> fix_impossible | <rate>% |
 | Report | all outputs | this report | <n> cross-cluster unresolved |
 
 ## Bugs Fixed
