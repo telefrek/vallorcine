@@ -539,6 +539,166 @@ if [[ -d ".decisions" ]]; then
     done
 fi
 
+# ── Analysis 10: Spec coverage signals ─────────────────────────────────────
+# Three spec signals: unspecified shared types, open obligations, spec-code drift.
+# All require .spec/ to exist — skip silently if absent.
+
+> "$TMPDIR_SCAN/spec-unspecified.txt"
+> "$TMPDIR_SCAN/spec-obligations.txt"
+> "$TMPDIR_SCAN/spec-drift.txt"
+
+if [[ -d ".spec" && -d ".spec/domains" ]]; then
+
+    # ── 10a: Unspecified shared types ──────────────────────────────────────
+    # Find CamelCase type names referenced in 3+ spec files that have no
+    # spec of their own.
+
+    > "$TMPDIR_SCAN/spec-type-refs.txt"
+
+    # Extract CamelCase words from all spec files, record which spec references them
+    find .spec/domains -name '*.md' 2>/dev/null | while IFS= read -r spec_file; do
+        spec_base="$(basename "$spec_file" .md)"
+        # Extract CamelCase identifiers (2+ chars, starts uppercase, has lowercase)
+        (grep -oE '\b[A-Z][a-z]+([A-Z][a-z]*)+\b' "$spec_file" 2>/dev/null || true) \
+            | sort -u \
+            | while IFS= read -r type_name; do
+                [[ -z "$type_name" ]] && continue
+                echo "$type_name|$spec_base"
+            done
+    done >> "$TMPDIR_SCAN/spec-type-refs.txt"
+
+    if [[ -s "$TMPDIR_SCAN/spec-type-refs.txt" ]]; then
+        # Count distinct spec files per type name
+        cut -d'|' -f1 "$TMPDIR_SCAN/spec-type-refs.txt" \
+            | sort | uniq -c | sort -rn \
+            | awk '$1 >= 3' > "$TMPDIR_SCAN/spec-type-counts.txt" 2>/dev/null || true
+
+        # Build list of spec file base names for cross-reference
+        find .spec/domains -name '*.md' 2>/dev/null \
+            | xargs -I{} basename {} .md \
+            | sort -u > "$TMPDIR_SCAN/spec-names.txt" 2>/dev/null || true
+
+        while IFS= read -r line; do
+            ref_count="$(echo "$line" | awk '{print $1}')"
+            type_name="$(echo "$line" | awk '{$1=""; print $0}' | sed 's/^ //')"
+            # Check if any spec file name contains this type name (case-insensitive)
+            type_lower="$(echo "$type_name" | tr '[:upper:]' '[:lower:]')"
+            has_spec=0
+            while IFS= read -r spec_name; do
+                spec_lower="$(echo "$spec_name" | tr '[:upper:]' '[:lower:]')"
+                if [[ "$spec_lower" == *"$type_lower"* ]]; then
+                    has_spec=1
+                    break
+                fi
+            done < "$TMPDIR_SCAN/spec-names.txt"
+
+            if [[ "$has_spec" -eq 0 ]]; then
+                # Collect which specs reference this type
+                referencing_specs="$(grep "^${type_name}|" "$TMPDIR_SCAN/spec-type-refs.txt" \
+                    | cut -d'|' -f2 | sort -u | tr '\n' ',' | sed 's/,$//')"
+                echo "UNSPECIFIED|$type_name|$ref_count|$referencing_specs" >> "$TMPDIR_SCAN/spec-unspecified.txt"
+            fi
+        done < "$TMPDIR_SCAN/spec-type-counts.txt"
+
+        sort -t'|' -k3 -rn "$TMPDIR_SCAN/spec-unspecified.txt" -o "$TMPDIR_SCAN/spec-unspecified.txt" 2>/dev/null || true
+    fi
+
+    # ── 10b: Specs with open obligations ──────────────────────────────────
+    # Scan specs for open_obligations in frontmatter or [UNRESOLVED]/[CONFLICT] markers
+
+    find .spec/domains -name '*.md' 2>/dev/null | while IFS= read -r spec_file; do
+        spec_base="$(basename "$spec_file" .md)"
+        obligation_count=0
+        obligations=""
+
+        # Check frontmatter for open_obligations
+        fm_obligations="$(sed -n '/^---$/,/^---$/p' "$spec_file" 2>/dev/null \
+            | grep 'open_obligations' | head -1 || true)"
+
+        # Count [UNRESOLVED] and [CONFLICT] markers in body
+        unresolved_count="$(grep -c '\[UNRESOLVED\]' "$spec_file" 2>/dev/null || echo 0)"
+        conflict_count="$(grep -c '\[CONFLICT\]' "$spec_file" 2>/dev/null || echo 0)"
+        obligation_count=$((unresolved_count + conflict_count))
+
+        # Extract obligation text for display
+        if [[ "$obligation_count" -gt 0 ]]; then
+            obligations="$(grep -oE '\[UNRESOLVED\][^.]*\.|\[CONFLICT\][^.]*\.' "$spec_file" 2>/dev/null \
+                | head -5 | tr '\n' ';' | sed 's/;$//' || true)"
+            echo "OBLIGATION|$spec_base|$obligation_count|$obligations" >> "$TMPDIR_SCAN/spec-obligations.txt"
+        fi
+
+        # Also check for DRAFT status with open_obligations in frontmatter
+        if [[ -n "$fm_obligations" && "$obligation_count" -eq 0 ]]; then
+            ob_text="$(echo "$fm_obligations" | sed 's/.*open_obligations:[[:space:]]*//' | tr -d '[]"' || true)"
+            if [[ -n "$ob_text" ]]; then
+                ob_count="$(echo "$ob_text" | tr ',' '\n' | grep -c '[a-z]' 2>/dev/null || echo 1)"
+                echo "OBLIGATION|$spec_base|$ob_count|$ob_text" >> "$TMPDIR_SCAN/spec-obligations.txt"
+            fi
+        fi
+    done
+
+    sort -t'|' -k3 -rn "$TMPDIR_SCAN/spec-obligations.txt" -o "$TMPDIR_SCAN/spec-obligations.txt" 2>/dev/null || true
+
+    # ── 10c: Spec-code drift ──────────────────────────────────────────────
+    # For each spec, check if its domain files have been committed after the
+    # spec's created date.
+
+    find .spec/domains -name '*.md' 2>/dev/null | while IFS= read -r spec_file; do
+        spec_base="$(basename "$spec_file" .md)"
+
+        # Extract created date from frontmatter
+        created_date="$(sed -n '/^---$/,/^---$/p' "$spec_file" 2>/dev/null \
+            | grep -m1 '^created:' | awk '{print $2}' | tr -d '"' || true)"
+        [[ -z "$created_date" ]] && continue
+
+        # Extract domain/files references from the spec
+        # Look for domains: field in frontmatter or file paths in body
+        domain_dir=""
+        # Try to extract domains from frontmatter
+        domains_field="$(sed -n '/^---$/,/^---$/p' "$spec_file" 2>/dev/null \
+            | grep -m1 '^domains:' | sed 's/^domains:[[:space:]]*//' | tr -d '[]"' || true)"
+
+        if [[ -n "$domains_field" ]]; then
+            # Count commits to domain directories since spec creation
+            commit_count=0
+            IFS=',' read -ra domain_list <<< "$domains_field"
+            for domain in "${domain_list[@]}"; do
+                domain="$(echo "$domain" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+                [[ -z "$domain" ]] && continue
+                # Count git commits touching files in this domain since spec date
+                dc="$(git log --oneline --since="$created_date" -- "$domain" 2>/dev/null | wc -l || echo 0)"
+                commit_count=$((commit_count + dc))
+            done
+
+            if [[ "$commit_count" -gt 0 ]]; then
+                domain_desc="$(echo "$domains_field" | sed 's/,/, /g')"
+                echo "DRIFT|$spec_base|$created_date|$commit_count|$domain_desc" >> "$TMPDIR_SCAN/spec-drift.txt"
+            fi
+        else
+            # Fallback: extract file paths from spec body (lines with src/ or similar)
+            file_paths="$(grep -oE '(src|lib|pkg|app|internal)/[a-zA-Z0-9_/.-]+' "$spec_file" 2>/dev/null \
+                | sort -u | head -20 || true)"
+            if [[ -n "$file_paths" ]]; then
+                commit_count=0
+                while IFS= read -r fpath; do
+                    [[ -z "$fpath" ]] && continue
+                    # Get the directory containing the file
+                    fdir="$(dirname "$fpath")"
+                    dc="$(git log --oneline --since="$created_date" -- "$fdir" 2>/dev/null | wc -l || echo 0)"
+                    commit_count=$((commit_count + dc))
+                done <<< "$file_paths"
+
+                if [[ "$commit_count" -gt 0 ]]; then
+                    echo "DRIFT|$spec_base|$created_date|$commit_count|inferred from file paths" >> "$TMPDIR_SCAN/spec-drift.txt"
+                fi
+            fi
+        fi
+    done
+
+    sort -t'|' -k4 -rn "$TMPDIR_SCAN/spec-drift.txt" -o "$TMPDIR_SCAN/spec-drift.txt" 2>/dev/null || true
+
+fi
+
 # ── Write summary file ──────────────────────────────────────────────────────
 
 SCAN_DATE="$(date +%Y-%m-%d)"
@@ -718,6 +878,50 @@ if [[ -s "$TMPDIR_SCAN/out-of-scope.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+# Spec coverage gaps
+has_spec_signals=0
+if [[ -s "$TMPDIR_SCAN/spec-unspecified.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-obligations.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-drift.txt" ]]; then
+    echo "## Spec Coverage Gaps" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    has_spec_signals=1
+fi
+
+if [[ -s "$TMPDIR_SCAN/spec-unspecified.txt" ]]; then
+    echo "### Unspecified shared types" >> "$SUMMARY_FILE"
+    echo "Types referenced by 3+ specs that have no spec of their own:" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Type | Ref Count | Referenced By |" >> "$SUMMARY_FILE"
+    echo "|------|-----------|---------------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ type_name ref_count specs; do
+        echo "| $type_name | $ref_count | $specs |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/spec-unspecified.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+if [[ -s "$TMPDIR_SCAN/spec-obligations.txt" ]]; then
+    echo "### Specs with open obligations" >> "$SUMMARY_FILE"
+    echo "Specs with unresolved conflicts or open obligations:" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Spec | Open Count | Details |" >> "$SUMMARY_FILE"
+    echo "|------|------------|---------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ spec_name ob_count details; do
+        echo "| $spec_name | $ob_count | $details |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/spec-obligations.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+if [[ -s "$TMPDIR_SCAN/spec-drift.txt" ]]; then
+    echo "### Spec-code drift" >> "$SUMMARY_FILE"
+    echo "Specs whose domain files have changed since the spec was created:" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Spec | Created | Commits Since | Domains |" >> "$SUMMARY_FILE"
+    echo "|------|---------|---------------|---------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ spec_name created commits domains; do
+        echo "| $spec_name | $created | $commits | $domains |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/spec-drift.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
 # ── Report ───────────────────────────────────────────────────────────────────
 
 echo "Scan complete: $COMMIT_COUNT commits analyzed"
@@ -734,6 +938,9 @@ echo "  ADRs to revisit: $(wc -l < "$TMPDIR_SCAN/adr-revisit.txt" 2>/dev/null ||
 echo "  Test-source drift: $(wc -l < "$TMPDIR_SCAN/test-drift.txt" 2>/dev/null || echo 0)"
 echo "  Backfill candidates: $(wc -l < "$TMPDIR_SCAN/backfill-candidates.txt" 2>/dev/null || echo 0)"
 echo "  Out-of-scope items: $(wc -l < "$TMPDIR_SCAN/out-of-scope.txt" 2>/dev/null || echo 0)"
+echo "  Unspecified shared types: $(wc -l < "$TMPDIR_SCAN/spec-unspecified.txt" 2>/dev/null || echo 0)"
+echo "  Specs with obligations: $(wc -l < "$TMPDIR_SCAN/spec-obligations.txt" 2>/dev/null || echo 0)"
+echo "  Spec-code drift: $(wc -l < "$TMPDIR_SCAN/spec-drift.txt" 2>/dev/null || echo 0)"
 
 # ── Update curation state ─────────────────────────────────────────────────
 

@@ -17,6 +17,9 @@ couldn't see because they each had a narrower scope.
 5. Stale KB — research that may have better approaches now given what's been built
 6. Implicit dependencies — gaps between independently-designed features
 7. Orphaned areas — high-churn files with no structured knowledge behind them
+8. Unspecified shared types — foundational types referenced by 3+ specs with no spec
+9. Spec obligations — DRAFT specs with unresolved conflicts blocking approval
+10. Spec-code drift — specs whose domain code changed after the spec was written
 
 **Flags:**
 - `--init` — first-time scan (ignores last-scanned SHA, good for new installs)
@@ -173,6 +176,32 @@ From "Out-of-Scope Items" in the scan summary:
 4. For each item, the user can: create a deferred stub, skip, or create all
    stubs from that parent ADR at once
 
+### 2h — Spec coverage analysis
+
+**Guard:** Only run this step if `.spec/` exists. If no spec directory, skip
+entirely — don't mention specs or suggest setting up specs.
+
+From "Spec Coverage Gaps" in the scan summary (if present):
+
+**Unspecified shared types:**
+1. Types referenced by 3+ specs that have no spec of their own
+2. These are foundational types with implicit contracts — multiple specs
+   depend on their behavior but nobody has defined what that behavior is
+3. Rank by reference count — higher count = more dependent specs = bigger risk
+
+**Specs with open obligations:**
+1. Specs with `[UNRESOLVED]` or `[CONFLICT]` markers or `open_obligations`
+   in frontmatter
+2. These are blocking downstream work — DRAFT specs can't be relied on until
+   obligations are resolved
+3. Higher obligation count = more blocking
+
+**Spec-code drift:**
+1. Specs whose domain files have been committed since the spec was created
+2. Higher commit count = more likely the spec no longer matches reality
+3. Cross-reference with ADR pressure — if the same area has both ADR pressure
+   and spec drift, it's a stronger signal
+
 ---
 
 ## Step 3 — Present findings as a numbered pick list
@@ -235,11 +264,20 @@ I scanned <N> commits since last review and found <N> items:
   7. <Shared files> — touched by <feature A> and <feature B>, no cross-coverage
      → I'll explore the interaction and flag anything missed
 
-  8. <Orphaned files> — <N> commits, no KB or decision coverage
-     → I'll research this area so future work has context
-
-  9. <parent-adr-slug> — <N> out-of-scope items with no deferred stubs
+  8. <parent-adr-slug> — <N> out-of-scope items with no deferred stubs
      → I'll show them and you can choose which to track as deferred decisions
+
+  9. <TypeName> — referenced by <N> specs but has no spec of its own
+     → I'll run spec extraction to define its contract and find cross-spec conflicts
+
+ 10. Spec <ID> (<name>) — <N> unresolved conflicts blocking APPROVED status
+     → I'll show the conflicts so you can resolve them via /spec-author
+
+ 11. Spec <ID> (<name>) — <N> commits to related files since spec was written
+     → I'll check if the spec still matches the implementation via /spec-verify
+
+ 12. <Orphaned files> — <N> commits, no KB or decision coverage
+     → I'll research this area so future work has context
 
 Pick a number to start, or:
   all   — work through each item in order
@@ -378,6 +416,24 @@ Or: create-all · skip-all
 - **create-all** → Apply create-stub to all items from that parent ADR
 - **skip** → Items resurface on next `/curate` run (no dismiss needed — once
   a stub exists, the scan deduplicates automatically)
+
+**Unspecified shared types:** Read the spec files that reference this type to
+understand the implicit contract. Then invoke `/spec-author extraction-mode`
+with the type name — this extracts the type's behavioral contract from the
+referencing specs and the source code, producing a standalone spec. Present
+summary: "This type is referenced by <N> specs. Here's what each spec assumes
+about it: <brief list>. Want me to extract its spec?"
+
+**Specs with open obligations:** Read the spec file and display the specific
+`[UNRESOLVED]` and `[CONFLICT]` markers with their surrounding context (2-3
+lines each direction). Present: "This spec has <N> unresolved items. Here they
+are: <list>." Offer: "Want me to run `/spec-resolve` to work through these?"
+
+**Spec-code drift:** Present the commit count and affected domains: "This spec
+was written on <date> and <N> commits have touched its domain files since.
+Want me to run `/spec-verify` to check if the spec still matches the
+implementation?" When the user accepts, invoke `/spec-verify` with the spec
+file path.
 
 After completing the action, mark it `resolved` in the review log. Then
 **ALWAYS re-present the remaining items** (renumbered) so the user can
