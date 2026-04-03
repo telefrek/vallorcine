@@ -175,6 +175,7 @@ initialize the TodoWrite checklist:
 ◻ Step 1.7: Assembly
 ◻ Job 2: Suspect
 ◻ Job 3: Prove-Fix
+◻ Job 3b: Test Cleanup
 ◻ Job 4: Report
 ◻ Job 5: Reconciliation (if .spec/ exists)
 ```
@@ -486,6 +487,58 @@ If zero confirmed findings, skip to Report.
 If the user specified a budget limit, stop dispatching when the limit
 is reached. Mark remaining findings as DEFERRED. Report the deferral
 count in the job label.
+
+---
+
+## Job 3b: Test Cleanup (after prove-fix, before report)
+
+After all prove-fix agents complete, pre-existing tests may assert old
+(buggy) behavior that the fixes changed. These are not regressions — they
+are tests written against the previous behavior that need updating to
+match the corrected behavior.
+
+Launch a subagent:
+
+> You are the Test Cleanup subagent for an audit pipeline.
+>
+> The prove-fix stage has fixed <N> bugs. Some pre-existing tests may
+> now fail because they were asserting the old (buggy) behavior.
+>
+> Run the full project test suite. For each failing pre-existing test
+> (NOT the adversarial tests written by this audit):
+>
+> 1. Read the failing test method and its assertion
+> 2. Read the prove-fix output that changed the behavior it tests
+> 3. Determine: is the test asserting OLD behavior that the fix
+>    corrected? Or is this a real regression from the fix?
+>
+> If OLD behavior (stale test):
+>   - Update the test to assert the NEW (correct) behavior
+>   - Add a comment: "// Updated by audit <finding ID>: <old behavior>
+>     was a bug, now correctly <new behavior>"
+>
+> If REAL regression:
+>   - Do NOT modify the test
+>   - Flag: "REGRESSION: fix <finding ID> broke <test method> —
+>     the fix may need revision"
+>
+> Return: "Test cleanup — <N> stale tests updated, <N> regressions found"
+
+Expected return: stale test count + regression count.
+
+If regressions found, display them and ask the user before proceeding
+to Report:
+```
+<N> pre-existing tests broke as regressions (not stale assertions):
+  <test method> — broken by <finding ID>
+
+These fixes may need revision. Continue to Report? (yes / review)
+```
+
+If zero failures in the full suite, skip this step entirely — no
+subagent needed.
+
+Mark **Job 3b: Test Cleanup** complete.
 
 ---
 
