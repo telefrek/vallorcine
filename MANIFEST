@@ -34,6 +34,8 @@
 .claude/skills/spec-write/SKILL.md
 .claude/skills/spec-verify/SKILL.md
 .claude/skills/spec-author/SKILL.md
+.claude/skills/spec-author/extraction-mode.md
+.claude/skills/spec/SKILL.md
 .claude/skills/audit/SKILL.md
 .claude/prompts/audit/pass1-inventory.md
 .claude/prompts/audit/pass2-triage.md
