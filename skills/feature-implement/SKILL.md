@@ -191,8 +191,14 @@ Read:
    dependency unit, read only the public interface (signatures + contracts from
    work-plan.md). Do not read their implementation files or test files.
 
-Run the test suite (5-minute Bash timeout per tdd-protocol — if the suite hangs,
-investigate before retrying). Confirm all new tests are currently failing.
+Run the test suite (5-minute Bash timeout per tdd-protocol). If the suite times
+out: run individual test methods to isolate which test is hanging. For hanging
+tests, check for missing @Timeout, blocking waits without duration, or deadlocks
+in test setup. If a test from a prior work unit hangs, skip it for regression
+checking and note it in the output. If the current work unit's test hangs, the
+implementation may have introduced a deadlock — check lock ordering before
+retrying. Do not retry the full suite without isolating first.
+Confirm all new tests are currently failing.
 Update status.md substage → `implementing`.
 
 ---
@@ -205,9 +211,13 @@ Skip any construct whose tests are already passing (idempotent re-entry).
 For each construct:
 1. Read its contract (docstring/comment in the stub)
 2. Read the relevant test(s) to understand what is expected
-3. Implement only what the contract specifies
-4. Run the tests for this construct — confirm they pass before moving on
-5. Update status.md substage → "implemented: <construct name>" after each passing unit
+3. Before any Edit, re-read the target file at the lines being changed — prior
+   constructs may have modified it. Do not rely on earlier reads.
+4. Implement only what the contract specifies
+5. Run the tests for this construct — confirm they pass before moving on
+6. After a successful compile, re-read the edited lines to verify the edit
+   persisted (earlier work unit edits can silently revert if old_string was stale).
+7. Update status.md substage → "implemented: <construct name>" after each passing unit
 
 If a test fails unexpectedly after implementation: see Escalation Protocol.
 
@@ -325,7 +335,10 @@ Do not wait for user input — the escalation is already logged.
 
 ## Step 3 — Final verification
 
-Run the full test suite (5-minute Bash timeout). Confirm:
+Run the full test suite (5-minute Bash timeout). If the suite times out: run
+individual test methods to isolate the hanger. For hanging tests from a prior
+work unit, skip and note them. For the current work unit's test, check for
+deadlocks or lock ordering issues before retrying. Confirm:
 - All new tests pass
 - No previously passing tests broken
 - No test files were modified

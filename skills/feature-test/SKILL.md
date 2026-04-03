@@ -514,6 +514,10 @@ Write to the test directory from project-config.md.
 
 **Idempotent:** check whether each test already exists before writing.
 Append to existing test files rather than overwriting; do not duplicate tests.
+Before editing an existing test file, re-read it to pick up any additions from
+prior test-writing passes — stale reads cause Edit old_string mismatches or
+silent overwrites. After writing each test method, re-read the file to verify
+the method is present.
 
 Rules:
 - Test names describe behaviour: `test_returns_error_when_input_is_empty`
@@ -530,8 +534,10 @@ Update status.md substage → `verifying-failures` after writing.
 
 ## Step 4 — Verify tests fail
 
-Run the test suite (5-minute Bash timeout per tdd-protocol — if the suite hangs,
-investigate before retrying).
+Run the test suite (5-minute Bash timeout per tdd-protocol). If the suite times
+out: run individual test methods to isolate which test is hanging. For hanging
+tests, add a @Timeout annotation or rewrite with a non-blocking approach. Do
+not retry the full suite without isolating first.
 
 Expected: all new tests fail with NotImplementedError or import/compile error.
 

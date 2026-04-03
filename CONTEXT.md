@@ -20,48 +20,76 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-03-30*
+*Last updated: 2026-04-03*
 
-**Spec storage system + adversarial authoring + pipeline integration.**
+**Audit pipeline validation + spec ecosystem hardening + jlsm release prep.**
 
-Built the complete spec storage layer (`.spec/`), adversarial spec authoring
-process (`/spec-author`), and integrated specs into the work planner and TDD
-pipeline. Tested on float16-vector-support: 8 surface requirements expanded
-to 29 hardened behavioral requirements across two adversarial passes (~110K
-tokens total for both passes).
+Two sessions (2026-04-02 and 2026-04-03) validated the combined prove-fix
+pipeline on float16-vector-support and block-compression, hardened the full
+aTDD pipeline with adversarial fixes, built the spec conflict detection
+and extraction system, and started the jlsm release prep (2-week push).
 
-**What happened this session (2026-03-30):**
+**What happened (2026-04-02):**
 
-- **Spec storage system built and tested** — 5 bash scripts (spec-lib, validate,
-  stats, resolve, obligations-gc), 6 skills (spec-init, spec-resolve, spec-write,
-  spec-verify, spec-author), install/upgrade/manifest integration. Domain-sharded
-  directories, manifest registry for O(1) lookups, transitive `requires` expansion,
-  token-budgeted context bundles. Tested against sample 3-spec corpus.
+- **Combined prove-fix model validated** — merged separate Prove + Fix stages
+  into single per-finding subagent. Tested on float16: 40 findings, 20 fixed,
+  10 impossible, $207 total (with fixes included). Serial execution prevents
+  fix conflicts and enables fix cascade deduplication (7 of 10 impossibles
+  were prior fixes resolving later findings).
 
-- **Adversarial spec authoring validated** — two-pass process: structured draft
-  (operational sequence tracing, failure mode expansion, decision collapsing) then
-  adversarial falsification (enforcement path tracing, cross-requirement interaction,
-  cross-module boundaries, observability). Float16 test: pass 2 found 6 new gaps,
-  pass 3 found 4 (diminishing returns confirmed two passes optimal).
+- **All 5 release blockers cleared** — spec phase in /feature flow, /feature-test
+  consuming .spec/, /feature-audit using prove-fix, multi-language parity for
+  pipeline scripts (bash + Node), /feature-audit renamed to /audit.
 
-- **KB/decisions cross-references added** — `related`, `decision_refs`, `kb_refs`
-  fields across all three knowledge layers. LLM relevance gate in `/kb` query.
-  Tags on category indexes for keyword scan surface area. `adr-validate.sh`
-  extended with cross-reference validation.
+- **Pipeline hardened with 5 adversarial fixes** — spec-author prove/disprove
+  framing, architect falsification pass, KB confidence field, audit feedback
+  loop (reconcile-findings), feature-refactor delegation to /audit.
 
-- **Work planner integrated with specs** — spec resolution as primary context,
-  construct-graph clustering (shares_state, produces/consumes, depends_on),
-  requirement traceability table, agent success shaping, spec as tiebreaker
-  for escalations.
+- **Script audit** — ~55 fixes across 27 scripts (bash/Python/Node): atomic
+  writes, exit 0 guarantees, pipefail safety, empty array guards.
 
-- **TDD framing agreed** — test writer operationalizes spec (Lens A becomes
-  "can I write a test that verifies this requirement?"), breaker falsifies spec
-  (finds behaviors the spec didn't anticipate). Audit mode: same split.
+**What happened (2026-04-03):**
+
+- **Block-compression audit complete** — 77 findings, 28 fixed, 49 impossible,
+  $550. 6 lenses, 11 clusters. Found real bugs: footer overflow guards,
+  int truncation, codec validation, state machine hardening, resource safety.
+
+- **Impossible category analysis** — 48 impossibles broken down: 19 fix cascade
+  (40%), 4 single-threaded false positive (8%), 3 idempotent false positive (6%),
+  22 genuine (46%). True bug rate: 52.2% (excluding preventable impossibles).
+
+- **Concurrency lens false positive prevention** — card construction captures
+  thread_sharing evidence, Suspect has mandatory concurrency clearings,
+  domain pruning excludes single-threaded constructs from concurrency clusters.
+
+- **Test deduplication** — prove-fix checks existing test coverage before writing
+  new tests. Suspect can clear findings as "already tested."
+
+- **Spec conflict resolution flow** — audit report detects fix-spec conflicts,
+  orchestrator presents 3 options (keep fix + update spec, revert fix, defer).
+  Standalone resolve-spec-conflict prompt for manual resolution.
+
+- **Spec extraction mode** — bottom-up spec authoring from existing implementation.
+  Auto-discovers source files, consuming specs, and tests. Cross-references
+  consuming specs for CONTRADICTED, UNGUARANTEED, MISSING findings.
+
+- **[ABSENT] requirement promotion** — extraction mode surfaces behaviors the
+  code does NOT do. Users promote (becomes implementation work), preserve
+  (becomes negative requirement), or defer (curate resurfaces later).
+
+- **Curate spec awareness** — 4 new signal types: unspecified shared types,
+  open obligations, spec-code drift, undecided [ABSENT] requirements. Each
+  routes to the appropriate spec command.
+
+- **Batch spec authoring** — 10 jlsm features got hardened specs via automated
+  two-pass process. ~$3.40/spec.
 
 **Where things stand:**
-Spec system is built and tested. Work planner is integrated. TDD test writer and
-breaker agent changes are designed but not yet implemented. Next: implement
-`/feature-test` changes, update breaker agent, then run end-to-end test on float16.
+Audit pipeline is validated on 2 features with real cost data. Spec ecosystem
+is comprehensive: authoring, extraction, conflict detection, resolution,
+curate integration. jlsm has 11 specs covering all features. Block-compression
+has a spec conflict (eager snapshot vs F08 streaming) being resolved. Next
+audit will validate the concurrency lens fix and test dedup improvements.
 
 ---
 
@@ -69,43 +97,46 @@ breaker agent changes are designed but not yet implemented. Next: implement
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **Spec storage as sixth knowledge layer** (2026-03-30) — `.spec/` alongside `.kb/`
-  and `.decisions/`. Domain-sharded directories, manifest registry, bash resolver for
-  deterministic context bundles. Specs reference decisions and KB, don't duplicate them.
+- **Combined prove-fix per-finding model** (2026-04-02) — merged Prove + Fix into
+  single subagent. Each finding gets fresh context. Test result determines path
+  (not agent's choice). Validated: same cost as prove-only with fixes included.
+  Fix cascade reduces total work via serial execution.
 
-- **Two-pass adversarial spec authoring** (2026-03-30) — Pass 1: structured draft with
-  operational sequence tracing and failure mode expansion. Pass 2: adversarial
-  falsification with enforcement path tracing. User checkpoint between passes.
-  Validated: 8→29 requirements on float16, two passes optimal (third pass yield drops).
+- **Sequential execution for prove-fix** (2026-04-02) — one finding at a time,
+  no parallelism. Prevents fix conflicts on shared source files. Fix cascade
+  deduplication is a bonus. Wall-clock tradeoff acceptable.
 
-- **Specs describe behavior, not code** (2026-03-30) — requirements must be verifiable
-  by observing inputs/outputs, never reference class/method/file names. Work planner
-  translates behavioral contracts into implementation constructs.
+- **Effort asymmetry removal in prove-fix** (2026-04-02) — agent always writes
+  test regardless of outcome (confirmed or impossible). Test result chooses the
+  path. Prevents task-avoidance bias from sandbagging research.
 
-- **Prerequisite stubs verified and APPROVED immediately** (2026-03-30) — when a feature
-  assumes something about an existing component, create a minimal spec stub, verify it
-  holds in code, mark APPROVED. No DRAFT stubs for verified assumptions.
+- **Concurrency lens per-construct filtering** (2026-04-02) — thread_sharing
+  field in cards (none/possible/explicit). Concurrency lens excludes
+  thread_sharing:none constructs. Prevents false positives on single-threaded
+  components.
 
-- **Conflict check mandatory in /spec-write** (2026-03-30) — new specs must run the
-  resolver first and either `invalidates` conflicting requirements or adjust. Silent
-  contradictions are spec defects.
+- **Spec conflict detection at resolution time** (2026-04-02) — spec-resolve.sh
+  checks for contradictions between included specs before emitting bundle.
+  Feature-plan blocks, feature-test marks UNTESTABLE, feature-implement
+  diagnoses spec conflicts instead of misdiagnosing as test/contract bugs.
 
-- **Collapse user decisions, expand spec requirements** (2026-03-30) — present users
-  one conceptual decision; expand into separate per-layer requirements that evolve
-  independently. Users make fewer decisions; specs are fully descriptive.
+- **DRAFT specs with conflicts blocked from bundles** (2026-04-02) — specs with
+  [UNRESOLVED]/[CONFLICT] markers or open_obligations excluded from resolved
+  context. Only APPROVED specs trusted as authoritative.
 
-- **Enforcement path tracing for new requirements** (2026-03-30) — any requirement
-  adding validation must trace callers/consumers. A requirement that creates a
-  cascading failure when enforced is a spec defect, not a finding.
+- **Spec extraction from implementation** (2026-04-03) — bottom-up spec
+  authoring for foundational types (JlsmSchema, JlsmDocument). Auto-discovery
+  of source, consuming specs, tests. [ABSENT] tag for behaviors code doesn't
+  have but specs may assume.
 
-- **Construct-graph clustering replaces token-based work unit splitting** (2026-03-30) —
-  work units cluster by shares_state (unsplittable), produces/consumes, and depends_on.
-  Later units include prior unit constructs as visible context. Token cost is secondary.
+- **[ABSENT] requirement lifecycle** (2026-04-03) — promote (becomes
+  implementation work with [UNIMPLEMENTED] obligation), preserve (becomes
+  negative requirement), defer (curate resurfaces). No requirement falls
+  through the cracks.
 
-- **KB cross-references via `related` and `decision_refs`** (2026-03-30) — explicit
-  frontmatter fields for cross-topic KB links and KB→ADR links. LLM relevance gate
-  prunes before deep reads. Depth-1 limit on `related` traversal. Tags on category
-  indexes for keyword scan surface area. Repair mechanism deferred to `/curate`.
+- **Fix-spec conflict resolution** (2026-04-03) — three options: keep fix +
+  update spec, revert fix + mark FIX_IMPOSSIBLE, split (keep fix + add new
+  requirement that invalidates old). Fourth option: defer with [UNRESOLVED].
 
 ---
 
@@ -116,36 +147,36 @@ breaker agent changes are designed but not yet implemented. Next: implement
 
 ### Do next (high priority, clear direction)
 
-- **Implement /feature-test spec integration** — update Lens A (operationalize
-  spec requirements into tests) and Lens B (spec failure modes as test vectors).
-  Update breaker agent prompt for spec-aware falsification.
+- **Spec-driven work planning** — two capabilities: (1) free-text search across
+  all specs to find applicable requirements for a problem description,
+  (2) spec-change-driven planning where the planner traces downstream impact
+  of requirement changes (tests, implementations, dependent specs). Entry
+  point: `/spec-plan` or extension of `/spec-author`.
 
-- **End-to-end test** — run /spec-author → /spec-write → /feature-plan →
-  /feature-test on float16-vector-support in jlsm. Validate the full pipeline
-  from hardened spec to failing tests.
+- **Validate concurrency lens fix** — run an audit on a concurrency-heavy
+  feature (striped-block-cache) with updated prompts. Verify single-threaded
+  false positives are eliminated and test dedup reduces cascade impossibles.
 
-- **Integrate spec into shipped /audit skill** — audit mode reads `.spec/` as
-  authoritative reference, diffs code against spec. Findings are either "code
-  violates spec requirement" or "code has behavior no spec covers."
+- **JlsmSchema spec extraction** — running now. Will test the extraction mode
+  on the highest-fanout type (6 consuming specs). Results inform whether
+  extraction mode scales.
 
 ### Do soon (medium effort, clear designs)
 
 - **Architect/decision hardening** — apply adversarial authoring to the decision
-  deliberation layer. Same Author→Adversarial→Arbitration pattern. Use existing
-  jlsm ADRs (pre/post-hardening) as test cases.
+  deliberation layer. Falsification pass added (Step 6) but not yet tested
+  on real ADRs.
 
-- **Phase 4 implementation for audit** — write-and-return test writer (4a),
-  compile checker (4b), fix-up subagent (4c), per-cluster implementer (4d).
-  Context pruning to eliminate compile/fix loop bloat.
+- **/curate cross-reference repair** — signal type that discovers missing
+  `related`/`decision_refs` in existing KB entries via tag overlap.
 
-- **/curate cross-reference repair** — new signal type that discovers missing
-  `related`/`decision_refs` in existing KB entries via tag overlap and
-  applies_to pattern matching.
+- **Concurrency lens false positive rate tracking** — need multi-codebase data
+  to confirm thread_sharing field eliminates false positives. Block-compression
+  data shows 54% preventable impossibles.
 
 ### Do when needed (useful but workarounds exist)
 
-- **/feature-split** — split in-progress feature when scope expands. Workaround:
-  finish current feature, start a new one.
+- **/feature-split** — split in-progress feature when scope expands.
 
 - **Large repo curation testing** — `/curate` needs testing on a repo with
   1000+ commits, 30+ contributors.
@@ -155,8 +186,6 @@ breaker agent changes are designed but not yet implemented. Next: implement
 - **Team KB commands** — `/kb sync`, `/kb consolidate`, `/kb status`.
 
 - **Pipeline observability** — velocity metrics, KB utilization tracking.
-
-- **LSP integration** — README documentation of companion plugins.
 
 ---
 
@@ -181,7 +210,7 @@ question or decision.
 the loop at every meaningful boundary. No silent chaining. No surprises.
 
 **Token awareness is a first-class concern.** Quantitative where possible.
-Not vibes-based.
+Not vibes-based. Always measure by API token pricing, never assume subscription.
 
 **No ceremony without value.** Resist adding steps that always run regardless
 of need. 0-signal complexity check is silent. 0-question scoping is valid.
