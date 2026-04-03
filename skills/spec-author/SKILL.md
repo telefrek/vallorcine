@@ -201,6 +201,13 @@ Review the full requirement set (Pass 1 + new additions) for:
   requirement B to fail
 - **Ordering dependencies:** requirement A must be implemented before B
   but this ordering isn't stated
+- **Ambiguous alternatives:** a requirement that uses "either X or Y",
+  "may", or conditional language allowing two mutually exclusive
+  implementations. If two test writers could independently write tests
+  that contradict each other while both satisfying the requirement,
+  the requirement is ambiguous and must be tightened. Replace "either
+  X or Y" with a concrete choice. The spec makes the decision — the
+  implementer should not have to choose.
 
 ### 2d — Cross-module boundaries
 

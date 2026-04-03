@@ -509,22 +509,54 @@ Launch a subagent:
 >
 > 1. Read the failing test method and its assertion
 > 2. Read the prove-fix output that changed the behavior it tests
-> 3. Determine: is the test asserting OLD behavior that the fix
->    corrected? Or is this a real regression from the fix?
+> 3. Check: do the failing test and the passing audit test both
+>    reference the SAME spec requirement (via `covers:` comments,
+>    finding IDs, or construct/method under test)?
+> 4. Classify the failure into one of three categories:
 >
-> If OLD behavior (stale test):
+> **STALE** — test asserts OLD (buggy) behavior the fix corrected:
 >   - Update the test to assert the NEW (correct) behavior
 >   - Add a comment: "// Updated by audit <finding ID>: <old behavior>
 >     was a bug, now correctly <new behavior>"
 >
-> If REAL regression:
+> **SPEC AMBIGUITY** — both the failing test and the audit test are
+> valid interpretations of the same spec requirement, but they expect
+> opposite behavior. The spec allows both readings:
+>   - Do NOT modify either test
+>   - Flag: "SPEC AMBIGUITY: <test method> and audit test <method>
+>     interpret <spec>.<requirement> differently.
+>     Failing test expects: <behavior A>
+>     Audit test expects: <behavior B>
+>     The spec requirement allows both — it needs tightening."
+>   - Include the spec requirement text and both interpretations
+>
+> **REGRESSION** — the fix genuinely broke unrelated behavior:
 >   - Do NOT modify the test
 >   - Flag: "REGRESSION: fix <finding ID> broke <test method> —
 >     the fix may need revision"
 >
-> Return: "Test cleanup — <N> stale tests updated, <N> regressions found"
+> Return: "Test cleanup — <N> stale updated, <N> spec ambiguities,
+> <N> regressions"
 
 Expected return: stale test count + regression count.
+
+If spec ambiguities found, display them and ask the user to decide:
+```
+<N> spec ambiguity detected — a requirement allows conflicting interpretations:
+
+  <spec>.<requirement>: "<requirement text>"
+    Test A (<method>) expects: <behavior A>
+    Test B (<method>) expects: <behavior B>
+
+  The requirement needs tightening. Which interpretation should the code follow?
+    1. <behavior A> (update Test B)
+    2. <behavior B> (update Test A)
+    3. Defer — leave both tests, resolve in /spec-author
+```
+
+Apply the user's decision: update the losing test and add a comment
+noting the decision. If deferred, note both tests as conflicting in
+the audit report.
 
 If regressions found, display them and ask the user before proceeding
 to Report:
