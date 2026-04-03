@@ -1,0 +1,6 @@
+{
+  "path": ".kb/algorithms/CLAUDE.md",
+  "old_string": "| vector-quantization | [vector-quantization/](vector-quantization/CLAUDE.md) | 5 | 2026-03-16 | Compression techniques for high-dimensional vectors in ANN search |",
+  "new_string": "| compression | [compression/](compression/CLAUDE.md) | 1 | 2026-03-17 | Lossless block compression algorithms for SSTable storage (LZ4, Deflate, Snappy, ZSTD) |\n| vector-quantization | [vector-quantization/](vector-quantization/CLAUDE.md) | 5 | 2026-03-16 | Compression techniques for high-dimensional vectors in ANN search |",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/in-process-database-engine/status.md",
+  "old_string": "**Execution strategy:** not-set",
+  "new_string": "**Execution strategy:** balanced",
+  "replace_all": false
+}

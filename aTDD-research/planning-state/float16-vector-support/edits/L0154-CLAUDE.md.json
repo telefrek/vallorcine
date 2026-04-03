@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| Float16 vector support | float16-vector-support | 2026-03-12 | testing/complete | cycle 1 \u2014 21 tests, 7 failing |",
+  "new_string": "| Float16 vector support | float16-vector-support | 2026-03-12 | implementation/complete | cycle 1 \u2014 all 21 tests passing |",
+  "replace_all": false
+}

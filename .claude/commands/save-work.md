@@ -53,6 +53,44 @@ If no meaningful changes were made, skip this step.
 
 ---
 
+## Step 3.5 — Session learnings
+
+Ask the user:
+
+> **Learnings check:** What did we learn this session about how Claude/agents
+> behave, or about our pipeline design, that we didn't know before? Not what
+> we did — what we now understand differently.
+>
+> I'd suggest these candidates:
+> - <1-3 specific findings from the session, if any>
+>
+> Keep any? (list numbers, "all", or "none")
+
+Guidelines for proposing candidates:
+- Only propose things that would change how we design prompts, agents, or pipelines
+- Don't propose code patterns, architecture decisions, or project state — those
+  belong in SETTLED.md, CONTEXT.md, or the user's .kb/
+- Don't propose things that are obvious from the code or git history
+- When in doubt, don't propose — the user can always add their own
+
+If the user selects any:
+1. Write each to `.claude/research/<slug>.md` using this format:
+   ```markdown
+   ---
+   title: <concise title>
+   date: <YYYY-MM-DD>
+   source: <session context>
+   tags: [<free-form tags from: agent-behavior, prompt-design, cost-model, failure-modes, schema-compliance, context-management>]
+   ---
+
+   <2-5 sentences: the finding, then its implication for vallorcine design>
+   ```
+2. List the files written in the Step 5 confirmation output
+
+If the user says "none", skip silently.
+
+---
+
 ## Step 4 — Clear WIP.md
 
 If `WIP.md` exists, delete it. The work is either committed or captured in
@@ -76,6 +114,8 @@ Updated: COMPETITIVE.md
 <If docs synced:>
 Updated: DESIGN.md
 Updated: README.md
+<If learnings captured:>
+Added: .claude/research/<slug>.md
 <If version bumped:>
 Updated: VERSION → <new version>
 Updated: CHANGELOG.md

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/status.md",
+  "old_string": "**Substage:** surveying-codebase",
+  "new_string": "**Substage:** design-ready",
+  "replace_all": false
+}

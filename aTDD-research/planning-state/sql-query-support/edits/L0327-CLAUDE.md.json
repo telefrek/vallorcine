@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| SQL query support | sql-query-support | 2026-03-16 | domains/complete | domains.md written |",
+  "new_string": "| SQL query support | sql-query-support | 2026-03-16 | planning/complete | work-plan.md written, 9 stubs |",
+  "replace_all": false
+}

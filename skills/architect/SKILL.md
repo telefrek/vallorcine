@@ -261,7 +261,7 @@ files are loaded in Step 4.
 **Neutral presentation:** list candidates without editorial commentary.
 Do not indicate which candidate you expect to win, which seems "natural,"
 or which is "obviously" best. The user reviews the list and decides what
-to evaluate. Evaluation happens at Step 4, recommendation at Step 6.
+to evaluate. Evaluation happens at Step 4, recommendation at Step 7.
 
 ---
 
@@ -399,9 +399,9 @@ Weight scores by the user's stated priorities. Never override user priorities wi
 
 **Neutral scoring:** record scores factually. Do not declare a winner or
 express a preference during scoring. The scores speak for themselves — the
-recommendation is presented at Step 6a after all candidates (including
+recommendation is presented at Step 7a after all candidates (including
 composites) have been scored and the user can see the full comparison matrix.
-Even if one candidate dominates every dimension, the user confirms at Step 6.
+Even if one candidate dominates every dimension, the user confirms at Step 7.
 
 ### 4b2 — Identify composite candidates
 
@@ -506,12 +506,93 @@ Every score row must include:
 
 ---
 
-## Step 6 — Deliberation loop (REQUIRED before writing adr.md)
+## Step 6 — Falsification (mandatory)
+
+After writing evaluation.md, launch a subagent to challenge the recommendation
+before presenting it to the user. This step is not skippable.
+
+Display: `── Falsification ───────────────────────────`
+
+### Subagent dispatch
+
+Launch a subagent with these inputs:
+- The comparison matrix from evaluation.md (all candidates, all scores)
+- The constraint profile from constraints.md
+- The recommended candidate (highest weighted total)
+- All rejected candidates
+
+### Subagent prompt
+
+> You are a falsification agent. Your job is to find reasons the recommendation
+> is wrong. You are not trying to be balanced — you are trying to break the
+> recommendation. If it survives, the decision is stronger.
+>
+> **Inputs provided:**
+> - Scoring matrix with all candidates and per-constraint scores
+> - Constraint profile with weights and priorities
+> - Recommended candidate and rejected candidates
+>
+> Perform these four challenges:
+>
+> **1. Score justification**
+> For each score >= 4 on the recommended candidate:
+> - Cite specific evidence from the KB entry that justifies this score.
+> - What would have to be true for this score to be a 2 instead?
+>
+> **2. Rejection challenge**
+> For the top rejected candidate (highest weighted total among rejected):
+> - What scenario or constraint reweight would make this the right choice?
+> - What is the strongest argument for this candidate over the recommendation?
+>
+> **3. Assumption exposure**
+> - What assumption, if wrong, would make the recommendation the worst choice?
+> - Name the single most dangerous assumption.
+>
+> **4. Missing candidate check**
+> - Is there an approach not represented in the KB that could score better?
+> - What search terms would find it?
+>
+> **Return format:**
+> ```
+> ## Challenged Scores
+> <For each score >= 4: the score, evidence for, evidence against, verdict (holds/weakened)>
+>
+> ## Strongest Counter-Argument
+> <Top rejected candidate name>
+> <The scenario where it wins>
+> <Why this scenario is or isn't likely given the constraints>
+>
+> ## Most Dangerous Assumption
+> <The assumption>
+> <What happens if it's wrong>
+>
+> ## Missing Candidates
+> <Any suggestions, or "None identified">
+> <Search terms if applicable>
+> ```
+
+### After subagent returns
+
+1. Read the falsification results.
+2. If any challenged score's verdict is "weakened" AND the weakening would
+   change the weighted total ranking: re-score the affected candidates and
+   re-run the comparison matrix. If the recommendation changes, mark it
+   `[REVISED]` and update evaluation.md before proceeding.
+3. If missing candidates are identified: offer the user the choice to research
+   them (same flow as Step 4c) or proceed. Cap at the same 3-iteration
+   research limit.
+4. Incorporate the falsification results into the deliberation display at
+   Step 7a (see Falsification Results section below).
+5. Proceed to Step 7.
+
+---
+
+## Step 7 — Deliberation loop (REQUIRED before writing adr.md)
 
 **Do not write `adr.md` yet.** Present the recommendation in chat first.
 The ADR is only written after the user explicitly confirms.
 
-### 6a — Present the defence summary
+### 7a — Present the defence summary
 
 Display this in chat (do NOT write it to a file):
 
@@ -544,6 +625,17 @@ WHAT THIS DOES NOT SOLVE
   - <Limitation 1>
   - <Limitation 2>
 
+FALSIFICATION RESULTS
+  Challenged scores:
+    <Constraint> on <Candidate>: scored <N> — <holds | weakened>
+      Evidence for: <summary>
+      Evidence against: <summary>
+  Strongest counter-argument:
+    <Top rejected candidate> would win if <scenario>.
+    <Why recommendation still holds, or [REVISED] if it doesn't.>
+  Most dangerous assumption:
+    <The assumption and what breaks if it's wrong.>
+
 CONFIDENCE: <High | Medium | Low>
 <One sentence reason — e.g. "All six constraints specified; all candidates in KB.">
 ───────────────────────────────────────────────
@@ -559,7 +651,7 @@ I will answer questions and iterate until we reach an agreed position.
 ─────────────────────────────────────────────────────────────
 ```
 
-### 6b — Deliberation chat rules
+### 7b — Deliberation chat rules
 
 **If the user asks a clarifying question:**
 - Answer directly with a KB source reference if applicable
@@ -627,7 +719,7 @@ One per turn maximum. Only ask when genuinely ambiguous:
 Never re-ask questions already answered in the constraint profile.
 Never ask hypothetical or open-ended future questions.
 
-### 6c — Confirmation and write
+### 7c — Confirmation and write
 
 When the user confirms (any affirmative):
 
@@ -707,13 +799,13 @@ If stop: display the manual command and stop.
    These will appear in /decisions triage.
    ```
    If zero items are in the NOT Solve section: skip this step silently.
-6. Proceed to Step 7
+6. Proceed to Step 8
 
 ---
 
-## Step 7 — Update indexes and enforce context budget
+## Step 8 — Update indexes and enforce context budget
 
-1. The log entry was already written at Step 6c — do not write a second entry
+1. The log entry was already written at Step 7c — do not write a second entry
 2. Create or update `.decisions/<problem-slug>/CLAUDE.md` using the **Problem Index Template**
 3. Update `.decisions/CLAUDE.md` master index:
    - Add the problem to the Active Decisions table
@@ -1032,7 +1124,7 @@ This ADR should be re-evaluated if:
 
 ## Deliberation Log Entry Template
 
-Written to `log.md` at Step 6c immediately after the user confirms.
+Written to `log.md` at Step 7c immediately after the user confirms.
 
 ```markdown
 ## <YYYY-MM-DD> — decision-confirmed
@@ -1110,13 +1202,13 @@ Written to `log.md` at Step 6c immediately after the user confirms.
 | `deferred` | /decisions defer invoked — lightweight adr.md written with status deferred |
 | `closed` | /decisions close invoked — lightweight adr.md written with status closed |
 | `tangent-captured` | Topic raised and set aside during deliberation on another problem |
-| `out-of-scope-promoted` | Out-of-scope item from accepted ADR promoted to deferred stub via /curate or auto-created at Step 6c |
+| `out-of-scope-promoted` | Out-of-scope item from accepted ADR promoted to deferred stub via /curate or auto-created at Step 7c |
 
 ---
 
 ## Problem Index Template
 
-`.decisions/<problem-slug>/CLAUDE.md` — created or updated at Step 7.
+`.decisions/<problem-slug>/CLAUDE.md` — created or updated at Step 8.
 
 ```markdown
 ---
@@ -1196,6 +1288,14 @@ last_updated: "<YYYY-MM-DD>"
 - [ ] Every score in evaluation.md has a note and a KB path
 - [ ] Every KB subject read is listed in evaluation.md frontmatter candidates:
 - [ ] Hard disqualifiers called out explicitly, not just reflected in low scores
+
+**Falsification**
+- [ ] Falsification subagent was launched and returned results
+- [ ] All scores >= 4 on the recommended candidate were challenged with evidence
+- [ ] Strongest counter-argument for the top rejected candidate was articulated
+- [ ] Most dangerous assumption was identified
+- [ ] If any challenged score weakened and changed the ranking: evaluation.md updated, [REVISED] applied
+- [ ] Falsification results section present in the defence summary
 
 **Deliberation**
 - [ ] Defence summary presented in chat before any ADR was written

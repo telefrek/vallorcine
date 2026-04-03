@@ -1,0 +1,6 @@
+{
+  "path": "SSTableWriteScratch.java",
+  "old_string": "    @Setup(Level.Trial)\n    public void setup() throws IOException {",
+  "new_string": "    @Setup(org.openjdk.jmh.annotations.Level.Trial)\n    public void setup() throws IOException {",
+  "replace_all": false
+}

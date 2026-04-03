@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/units/WU-2/cycle-log.md",
+  "old_string": "**Token estimate:** ~8K\n---",
+  "new_string": "**Token estimate:** ~8K\n---\n\n## 2026-03-18 \u2014 implemented\n**Agent:** \u2699\ufe0f Code Writer\n**Cycle:** 1\n**Unit:** WU-2\n**Summary:** Implemented TrieSSTableReader v2 compression support. Added `open` and `openLazy` overloads accepting `CompressionCodec...` varargs. Reader detects v1/v2 by magic bytes, reads compression map for v2, decompresses blocks on read. Supports point lookup, full scan, range scan, and lazy reader with compressed blocks. Backward compatible \u2014 v2 reader reads v1 files. Unknown codec ID throws IOException on open. All 17 tests passing (10 CompressionMapTest + 7 SSTableCompressionTest).\n**Files modified:**\n- `modules/jlsm-core/src/main/java/jlsm/sstable/TrieSSTableReader.java` (v2 factory methods, footer detection, compression map loading, block decompression)\n**Token estimate:** ~20K\n---",
+  "replace_all": false
+}

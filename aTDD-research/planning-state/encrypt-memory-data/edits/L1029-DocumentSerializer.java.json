@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+  "old_string": "import jlsm.table.internal.FieldEncryptionDispatch;",
+  "new_string": "import jlsm.table.FieldEncryptionDispatch;",
+  "replace_all": true
+}

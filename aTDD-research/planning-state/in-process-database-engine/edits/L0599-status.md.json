@@ -1,0 +1,6 @@
+{
+  "path": ".feature/in-process-database-engine/status.md",
+  "old_string": "<!-- work_units: none  \u2190 set this if no split was done -->\n<!-- execution_strategy: not-set -->\n<!-- current_batch: 0 -->\n\n| Unit | Name | Constructs | Depends On | Status | Cycle |\n|------|------|------------|------------|--------|-------|",
+  "new_string": "<!-- work_units: 3 -->\n<!-- execution_strategy: balanced -->\n<!-- current_batch: 0 -->\n\n| Unit | Name | Constructs | Depends On | Status | Cycle |\n|------|------|------------|------------|--------|-------|\n| WU-1 | API types + module setup | Engine, Table, TableMetadata, EngineMetrics, AllocationTracking, HandleEvictedException, module-info, build.gradle | \u2014 | not-started | \u2014 |\n| WU-2 | Infrastructure | HandleTracker, TableCatalog | WU-1 | blocked | \u2014 |\n| WU-3 | Engine implementation | LocalEngine, LocalTable | WU-1, WU-2 | blocked | \u2014 |",
+  "replace_all": false
+}

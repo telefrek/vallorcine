@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/cycle-log.md",
+  "old_string": "**Files modified:** `modules/jlsm-core/src/main/java/jlsm/cache/StripedBlockCache.java`, `modules/jlsm-core/src/main/java/jlsm/cache/LruBlockCache.java`\n---",
+  "new_string": "**Files modified:** `modules/jlsm-core/src/main/java/jlsm/cache/StripedBlockCache.java`, `modules/jlsm-core/src/main/java/jlsm/cache/LruBlockCache.java`\n---\n## 2026-03-17 \u2014 missing-tests-found\n**Agent:** Refactor Agent\n**Cycle:** 1\n**Missing cases:**\n- `getNegativeBlockOffsetRejected` \u2014 get() with blockOffset < 0 should throw IllegalArgumentException | Construct: StripedBlockCache | Why: validation rule in work-plan.md not covered by tests\n- `putNegativeBlockOffsetRejected` \u2014 put() with blockOffset < 0 should throw IllegalArgumentException | Construct: StripedBlockCache | Why: validation rule in work-plan.md not covered by tests\n- `putNullBlockRejected` \u2014 put() with null block should throw NullPointerException | Construct: StripedBlockCache | Why: validation rule in work-plan.md not covered by tests\n---",
+  "replace_all": false
+}

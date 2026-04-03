@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/status.md",
+  "old_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|",
+  "new_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|\n| Stripe hash function | pending-decision | none | none | \u2014 | \u2014 |\n| Cross-stripe eviction | pending-decision | none | none | \u2014 | \u2014 |",
+  "replace_all": false
+}

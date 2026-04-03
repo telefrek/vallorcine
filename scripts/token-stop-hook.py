@@ -56,10 +56,13 @@ def read_json_or_shell(path: Path) -> dict:
 
 def write_state(path: Path, data: dict) -> None:
     """Write JSON state file atomically."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data) + "\n")
-    tmp.rename(path)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data) + "\n")
+        tmp.rename(path)
+    except OSError:
+        pass
 
 
 def read_stage_from_status(status_path: str) -> tuple[str, str]:
@@ -141,7 +144,10 @@ def update_status_md_actual_tokens(status_path: str, stage_cap: str, actual_str:
                         parts[5] = f" {actual_str} "
                         line = "|".join(parts)
             updated.append(line)
-        Path(status_path).write_text("\n".join(updated) + "\n")
+        target = Path(status_path)
+        tmp = target.with_suffix(".tmp")
+        tmp.write_text("\n".join(updated) + "\n")
+        tmp.rename(target)
     except OSError:
         pass
 
@@ -200,18 +206,21 @@ def main():
 
             # Append to token log
             log_file = f"{feature_dir}/token-log.md"
-            if not os.path.isfile(log_file):
-                with open(log_file, "w") as f:
-                    f.write("# Token Usage Log\n\n")
-                    f.write("| Phase | Messages | Input | Output | Cache Create | Cache Read | Started | Ended |\n")
-                    f.write("|-------|----------|-------|--------|--------------|------------|---------|-------|\n")
+            try:
+                if not os.path.isfile(log_file):
+                    with open(log_file, "w") as f:
+                        f.write("# Token Usage Log\n\n")
+                        f.write("| Phase | Messages | Input | Output | Cache Create | Cache Read | Started | Ended |\n")
+                        f.write("|-------|----------|-------|--------|--------------|------------|---------|-------|\n")
 
-            with open(log_file, "a") as f:
-                f.write(
-                    f"| {cached_stage} | {usage['messages']} | {usage['input']} | {usage['output']} "
-                    f"| {usage['cache_create']} | {usage['cache_read']} "
-                    f"| {timestamp or 'unknown'} | {now_utc()} |\n"
-                )
+                with open(log_file, "a") as f:
+                    f.write(
+                        f"| {cached_stage} | {usage['messages']} | {usage['input']} | {usage['output']} "
+                        f"| {usage['cache_create']} | {usage['cache_read']} "
+                        f"| {timestamp or 'unknown'} | {now_utc()} |\n"
+                    )
+            except OSError:
+                pass
 
             # Update Actual Tokens in status.md
             actual_str = f"{fmt_tokens(usage['input'])} in / {fmt_tokens(usage['output'])} out"
@@ -269,4 +278,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        pass

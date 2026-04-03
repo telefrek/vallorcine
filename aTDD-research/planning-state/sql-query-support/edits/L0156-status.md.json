@@ -1,0 +1,6 @@
+{
+  "path": ".feature/sql-query-support/status.md",
+  "old_string": "## Current Stage\ndomains/in-progress\n\n## Completed Stages\n- [x] scoping \u2014 brief written\n\n## Pending Stages\n- [ ] domains",
+  "new_string": "## Current Stage\ndomains/complete\n\n## Completed Stages\n- [x] scoping \u2014 brief written\n- [x] domains \u2014 domains.md written\n\n## Pending Stages\n- [x] domains",
+  "replace_all": false
+}

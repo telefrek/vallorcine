@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/status.md",
+  "old_string": "**Stage:** implementation\n**Substage:** implementing\n**Automation:** autonomous\n**Last successful checkpoint:** cycle 1 tests written and verified failing",
+  "new_string": "**Stage:** implementation\n**Substage:** all tests passing\n**Automation:** autonomous\n**Last successful checkpoint:** cycle 1 implementation complete \u2014 all 21 tests passing",
+  "replace_all": false
+}

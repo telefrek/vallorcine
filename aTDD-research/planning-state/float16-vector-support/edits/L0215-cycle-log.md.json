@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/cycle-log.md",
+  "old_string": "4 encodeNode call sites, 4 decodeNode call sites)\n---",
+  "new_string": "4 encodeNode call sites, 4 decodeNode call sites)\n---\n## 2026-03-13 \u2014 refactor-complete\n**Agent:** \u2728 Refactor Agent\n**Cycle:** 1\n**Changes:**\n- Updated IvfFlat javadoc: posting-list entry size now reflects precision-dependent sizing\n- Updated Hnsw node encoding comment to reference VectorPrecision\n- Ran spotlessApply \u2014 formatter reflowed javadoc lines\n**Security findings:** none\n**Performance findings:** none\n**Missing tests found:** 0\n**Unit tests:** 21 passing, 0 failing\n**Integration tests:** all passing (S3Mock remote integration)\n---",
+  "replace_all": false
+}

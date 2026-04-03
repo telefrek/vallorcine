@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "**Stage:** domains\n**Substage:** complete\n**Last successful checkpoint:** domains.md written \u2014 all 4 domains resolved",
+  "new_string": "**Stage:** planning\n**Substage:** loading-context\n**Last successful checkpoint:** Loading context for work planning",
+  "replace_all": false
+}

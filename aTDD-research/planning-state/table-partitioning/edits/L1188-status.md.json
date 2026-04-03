@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "| Partitioning strategy | pending | \u2014 | \u2014 | \u2014 | \u2014 |\n| Scatter-gather query execution | pending | \u2014 | \u2014 | \u2014 | \u2014 |\n| Result fusion | pending | \u2014 | \u2014 | \u2014 | \u2014 |\n| Partition descriptor model | pending | \u2014 | \u2014 | \u2014 | \u2014 |",
+  "new_string": "| Partitioning strategy | resolved | table-partitioning | partitioning-strategies, vector-search-partitioning | \u2014 | 2026-03-16 |\n| Scatter-gather query execution | resolved | table-partitioning | vector-search-partitioning | \u2014 | 2026-03-16 |\n| Result fusion | resolved | \u2014 | vector-search-partitioning | \u2014 | 2026-03-16 |\n| Partition descriptor model | resolved | table-partitioning | partitioning-strategies | \u2014 | 2026-03-16 |",
+  "replace_all": false
+}

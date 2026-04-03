@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/cycle-log.md",
+  "old_string": "## 2026-03-18 \u2014 pr-drafted\n**Agent:** \ud83d\udccb PR Draft\n**Summary:** PR draft written and confirmed by user.\n**Token estimate:** ~8K (loaded: brief ~2K, work-plan ~4K, domains ~2K)\n---",
+  "new_string": "## 2026-03-18 \u2014 pr-drafted\n**Agent:** \ud83d\udccb PR Draft\n**Summary:** PR draft written and confirmed by user.\n**Token estimate:** ~8K (loaded: brief ~2K, work-plan ~4K, domains ~2K)\n---\n\n## 2026-03-18 \u2014 retro-complete\n**Agent:** \ud83d\udd0d Retro\n**Scope:** on-track\n**Assumptions:** 3 validated / 3 total (0 invalidated)\n**Domain gaps:** 0 issues found\n**Token accuracy:** estimates only \u2014 no actuals recorded\n**TDD efficiency:** 1 cycle, 0 escalations, 0 missing tests\n**Actions taken:**\n- No ADR reviews needed \u2014 all decisions held\n- No KB updates needed \u2014 implementation matched research\n- Process note: cycle-log missing implementation/refactor stage entries; stage-tracking was bypassed during TDD execution\n---",
+  "replace_all": false
+}

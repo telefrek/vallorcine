@@ -1,0 +1,6 @@
+{
+  "path": ".kb/CLAUDE.md",
+  "old_string": "| 2026-03-19 | algorithms | encryption | deterministic-encryption-performance |",
+  "new_string": "| 2026-03-19 | systems | database-engines | catalog-persistence-patterns |\n| 2026-03-19 | algorithms | encryption | deterministic-encryption-performance |",
+  "replace_all": false
+}

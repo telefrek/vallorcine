@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| Streaming block decompression | streaming-block-decompression | 2026-03-18 | domains | domains resolved |",
+  "new_string": "| Streaming block decompression | streaming-block-decompression | 2026-03-18 | planning | work-plan.md written |",
+  "replace_all": false
+}

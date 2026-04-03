@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/status.md",
+  "old_string": "| Float16 encoding/conversion | pending | \u2014 | \u2014 | \u2014 | \u2014 |\n| Float16 SIMD distance computation | pending | \u2014 | \u2014 | \u2014 | \u2014 |\n| VectorIndex precision API | pending | \u2014 | \u2014 | \u2014 | \u2014 |",
+  "new_string": "| Float16 encoding/conversion | resolved | \u2014 | \u2014 | \u2014 | 2026-03-12 |\n| Float16 SIMD distance computation | resolved | \u2014 | \u2014 | \u2014 | 2026-03-12 |\n| VectorIndex precision API | skipped | \u2014 | \u2014 | \u2014 | 2026-03-12 |",
+  "replace_all": false
+}

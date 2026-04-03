@@ -1,0 +1,6 @@
+{
+  "path": ".kb/distributed-systems/CLAUDE.md",
+  "old_string": "| data-partitioning | [data-partitioning/](data-partitioning/CLAUDE.md) | 0 | 2026-03-16 | Partitioning strategies, routing, rebalancing |",
+  "new_string": "| data-partitioning | [data-partitioning/](data-partitioning/CLAUDE.md) | 1 | 2026-03-16 | Partitioning strategies, routing, rebalancing |",
+  "replace_all": false
+}

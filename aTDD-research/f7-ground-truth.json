@@ -1,0 +1,402 @@
+{
+  "format": "file:construct:start_line",
+  "description": "Ground truth constructs for F7 (block-compression). Each entry is unambiguously identified by file + start line. Construct names are human-readable context, line numbers are the matching key.",
+  "constructs": [
+    {
+      "file": "CompressionCodec.java",
+      "construct": "CompressionCodec",
+      "line": 28,
+      "kind": "interface"
+    },
+    {
+      "file": "CompressionCodec.java",
+      "construct": "CompressionCodec.compress",
+      "line": 56,
+      "kind": "method"
+    },
+    {
+      "file": "CompressionCodec.java",
+      "construct": "CompressionCodec.decompress",
+      "line": 71,
+      "kind": "method"
+    },
+    {
+      "file": "CompressionCodec.java",
+      "construct": "CompressionCodec.none",
+      "line": 78,
+      "kind": "method"
+    },
+    {
+      "file": "CompressionCodec.java",
+      "construct": "CompressionCodec.deflate",
+      "line": 87,
+      "kind": "method"
+    },
+    {
+      "file": "CompressionCodec.java",
+      "construct": "CompressionCodec.deflate(int)",
+      "line": 98,
+      "kind": "method"
+    },
+    {
+      "file": "DeflateCodec.java",
+      "construct": "DeflateCodec",
+      "line": 34,
+      "kind": "class"
+    },
+    {
+      "file": "DeflateCodec.java",
+      "construct": "DeflateCodec.<constructor>",
+      "line": 44,
+      "kind": "constructor"
+    },
+    {
+      "file": "DeflateCodec.java",
+      "construct": "DeflateCodec.compress",
+      "line": 57,
+      "kind": "method"
+    },
+    {
+      "file": "DeflateCodec.java",
+      "construct": "DeflateCodec.decompress",
+      "line": 84,
+      "kind": "method"
+    },
+    {
+      "file": "NoneCodec.java",
+      "construct": "NoneCodec",
+      "line": 27,
+      "kind": "class"
+    },
+    {
+      "file": "NoneCodec.java",
+      "construct": "NoneCodec.compress",
+      "line": 41,
+      "kind": "method"
+    },
+    {
+      "file": "NoneCodec.java",
+      "construct": "NoneCodec.decompress",
+      "line": 52,
+      "kind": "method"
+    },
+    {
+      "file": "CompressionMap.java",
+      "construct": "CompressionMap",
+      "line": 30,
+      "kind": "class"
+    },
+    {
+      "file": "CompressionMap.java",
+      "construct": "CompressionMap.Entry",
+      "line": 43,
+      "kind": "record"
+    },
+    {
+      "file": "CompressionMap.java",
+      "construct": "CompressionMap.Entry.<compact_constructor>",
+      "line": 44,
+      "kind": "constructor"
+    },
+    {
+      "file": "CompressionMap.java",
+      "construct": "CompressionMap.serialize",
+      "line": 121,
+      "kind": "method"
+    },
+    {
+      "file": "CompressionMap.java",
+      "construct": "CompressionMap.deserialize",
+      "line": 150,
+      "kind": "method"
+    },
+    {
+      "file": "SSTableFormat.java",
+      "construct": "SSTableFormat",
+      "line": 51,
+      "kind": "class"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader",
+      "line": 55,
+      "kind": "class"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.open(Path,Deserializer)",
+      "line": 93,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.open(Path,Deserializer,BlockCache)",
+      "line": 98,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.openLazy(Path,Deserializer)",
+      "line": 124,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.openLazy(Path,Deserializer,BlockCache)",
+      "line": 129,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.open(Path,Deserializer,BlockCache,CompressionCodec...)",
+      "line": 163,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.openLazy(Path,Deserializer,BlockCache,CompressionCodec...)",
+      "line": 216,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.get",
+      "line": 263,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.scan()",
+      "line": 292,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.scan(MemorySegment,MemorySegment)",
+      "line": 305,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.close",
+      "line": 313,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.readAndDecompressBlock",
+      "line": 327,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.readAndDecompressBlockNoCache",
+      "line": 368,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.buildCodecMap",
+      "line": 391,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.validateCodecMap",
+      "line": 404,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.checkNotClosed",
+      "line": 418,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.readDataAtV1",
+      "line": 424,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.getAllDataV1",
+      "line": 451,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.Footer",
+      "line": 459,
+      "kind": "record"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.Footer.validate",
+      "line": 468,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.readFooterV1",
+      "line": 506,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.readFooter",
+      "line": 526,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.readKeyIndexV1",
+      "line": 569,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.readKeyIndexV2",
+      "line": 591,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.readBloomFilter",
+      "line": 616,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.buildMetadata",
+      "line": 628,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.readBytes",
+      "line": 654,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.DataRegionIterator",
+      "line": 688,
+      "kind": "inner_class"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.DataRegionIterator.advance",
+      "line": 702,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.CompressedBlockIterator",
+      "line": 752,
+      "kind": "inner_class"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.CompressedBlockIterator.advance",
+      "line": 766,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.IndexRangeIterator",
+      "line": 823,
+      "kind": "inner_class"
+    },
+    {
+      "file": "TrieSSTableReader.java",
+      "construct": "TrieSSTableReader.IndexRangeIterator.advance",
+      "line": 836,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter",
+      "line": 44,
+      "kind": "class"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter.State",
+      "line": 46,
+      "kind": "enum"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter.<constructor>(long,Level,Path)",
+      "line": 94,
+      "kind": "constructor"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter.<constructor>(long,Level,Path,BloomFilter.Factory)",
+      "line": 107,
+      "kind": "constructor"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter.<constructor>(long,Level,Path,BloomFilter.Factory,CompressionCodec)",
+      "line": 125,
+      "kind": "constructor"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter.append",
+      "line": 140,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter.flushCurrentBlock",
+      "line": 196,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter.finish",
+      "line": 234,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter.writeKeyIndexV1",
+      "line": 298,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter.writeKeyIndexV2",
+      "line": 320,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter.writeFooterV1",
+      "line": 343,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter.writeFooterV2",
+      "line": 356,
+      "kind": "method"
+    },
+    {
+      "file": "TrieSSTableWriter.java",
+      "construct": "TrieSSTableWriter.close",
+      "line": 402,
+      "kind": "method"
+    },
+    {
+      "file": "module-info.java",
+      "construct": "module jlsm.core",
+      "line": 1,
+      "kind": "module"
+    }
+  ]
+}

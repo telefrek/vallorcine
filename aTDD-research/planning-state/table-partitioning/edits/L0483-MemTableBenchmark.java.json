@@ -1,0 +1,6 @@
+{
+  "path": "src/jmh/java/jlsm/tree/bench/MemTableBenchmark.java",
+  "old_string": "import org.openjdk.jmh.annotations.*;\nimport org.openjdk.jmh.infra.Blackhole;",
+  "new_string": "import org.openjdk.jmh.annotations.Benchmark;\nimport org.openjdk.jmh.annotations.BenchmarkMode;\nimport org.openjdk.jmh.annotations.Fork;\nimport org.openjdk.jmh.annotations.Level;\nimport org.openjdk.jmh.annotations.Measurement;\nimport org.openjdk.jmh.annotations.Mode;\nimport org.openjdk.jmh.annotations.OutputTimeUnit;\nimport org.openjdk.jmh.annotations.Param;\nimport org.openjdk.jmh.annotations.Scope;\nimport org.openjdk.jmh.annotations.Setup;\nimport org.openjdk.jmh.annotations.State;\nimport org.openjdk.jmh.annotations.Warmup;\nimport org.openjdk.jmh.infra.Blackhole;",
+  "replace_all": false
+}

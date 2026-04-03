@@ -1,0 +1,6 @@
+{
+  "path": ".feature/streaming-block-decompression/status.md",
+  "old_string": "| Index scan patterns over LSM | pending-research | \u2014 | \u2014 | \u2014 | \u2014 |",
+  "new_string": "| Index scan patterns over LSM | resolved | \u2014 | systems/lsm-index-patterns/index-scan-patterns | 2026-03-18 | 2026-03-18 |",
+  "replace_all": false
+}

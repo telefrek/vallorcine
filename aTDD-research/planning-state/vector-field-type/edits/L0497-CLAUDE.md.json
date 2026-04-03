@@ -1,0 +1,6 @@
+{
+  "path": ".decisions/CLAUDE.md",
+  "old_string": "| Problem | Slug | Accepted | Recommendation |\n|---------|------|----------|----------------|",
+  "new_string": "| Problem | Slug | Accepted | Recommendation |\n|---------|------|----------|----------------|\n| VectorType serialization encoding | vector-type-serialization-encoding | 2026-03-17 | Flat Vector Encoding \u2014 contiguous d\u00d7sizeof(T) bytes, no per-vector metadata |",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".claude/skills/perf-review/SKILL.md",
+  "old_string": "**Action:** apply Decision gates 1 and 2 and proceed. State both gate\ndecisions briefly before executing so the user can correct them if needed,\nbut do not wait for explicit approval unless the run would take >5 minutes\n(sustained runs) \u2014 in that case, confirm before starting.",
+  "new_string": "**Action:** apply Decision gates 1 and 2 and proceed. State both gate\ndecisions briefly before executing so the user can correct them if needed,\nbut do not wait for explicit approval unless the run would take >5 minutes\n(sustained runs) \u2014 in that case, ask the user to type `yes` or `stop`\nbefore starting.",
+  "replace_all": false
+}

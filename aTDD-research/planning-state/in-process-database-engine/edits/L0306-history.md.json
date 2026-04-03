@@ -1,0 +1,6 @@
+{
+  "path": ".decisions/history.md",
+  "old_string": "| Problem | Slug | Accepted | Recommendation |\n|---------|------|----------|----------------|\n| Stripe Hash Function",
+  "new_string": "| Problem | Slug | Accepted | Recommendation |\n|---------|------|----------|----------------|\n| Index Definition API Simplification | index-definition-api-simplification | 2026-03-17 | Derive dimensions from schema VectorType \u2014 remove vectorDimensions from record |\n| Stripe Hash Function",
+  "replace_all": false
+}

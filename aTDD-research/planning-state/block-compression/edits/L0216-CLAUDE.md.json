@@ -1,0 +1,6 @@
+{
+  "path": ".kb/CLAUDE.md",
+  "old_string": "| 2026-03-17 | algorithms | vector-encoding | flat-vector-encoding |",
+  "new_string": "| 2026-03-17 | algorithms | compression | block-compression-algorithms |\n| 2026-03-17 | algorithms | vector-encoding | flat-vector-encoding |",
+  "replace_all": false
+}

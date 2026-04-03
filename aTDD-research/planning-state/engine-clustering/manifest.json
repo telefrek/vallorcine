@@ -1,0 +1,83 @@
+{
+  "operations": [
+    {
+      "op": "edit",
+      "path": ".feature/engine-clustering/status.md",
+      "edit_file": "edits/L0212-status.md.json",
+      "line": 212
+    },
+    {
+      "op": "edit",
+      "path": ".feature/engine-clustering/status.md",
+      "edit_file": "edits/L0215-status.md.json",
+      "line": 215
+    },
+    {
+      "op": "edit",
+      "path": ".feature/engine-clustering/status.md",
+      "edit_file": "edits/L0218-status.md.json",
+      "line": 218
+    },
+    {
+      "op": "edit",
+      "path": ".feature/engine-clustering/status.md",
+      "edit_file": "edits/L0221-status.md.json",
+      "line": 221
+    },
+    {
+      "op": "edit",
+      "path": ".feature/engine-clustering/status.md",
+      "edit_file": "edits/L0224-status.md.json",
+      "line": 224
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/InJvmTransport.java",
+      "edit_file": "edits/L0358-InJvmTransport.java.json",
+      "line": 358
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/InJvmDiscoveryProvider.java",
+      "edit_file": "edits/L0359-InJvmDiscoveryProvider.java.json",
+      "line": 359
+    },
+    {
+      "op": "edit",
+      "path": ".feature/engine-clustering/status.md",
+      "edit_file": "edits/L0389-status.md.json",
+      "line": 389
+    },
+    {
+      "op": "edit",
+      "path": ".feature/engine-clustering/status.md",
+      "edit_file": "edits/L0392-status.md.json",
+      "line": 392
+    },
+    {
+      "op": "edit",
+      "path": ".feature/engine-clustering/status.md",
+      "edit_file": "edits/L0395-status.md.json",
+      "line": 395
+    },
+    {
+      "op": "edit",
+      "path": ".feature/engine-clustering/status.md",
+      "edit_file": "edits/L0398-status.md.json",
+      "line": 398
+    },
+    {
+      "op": "write",
+      "path": ".claude/settings.local.json",
+      "line": 420,
+      "size": 889
+    },
+    {
+      "op": "write",
+      "path": ".claude/settings.local.json",
+      "line": 435,
+      "size": 445
+    }
+  ],
+  "total_ops": 13
+}

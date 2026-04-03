@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "**Substage:** paused-for-research\n**Last successful checkpoint:** Q1 answered \u2014 user wants research on partitioning models before committing",
+  "new_string": "**Substage:** interviewing\n**Last successful checkpoint:** Q1 resolved via ADR-001 (range partitioning confirmed); resuming interview",
+  "replace_all": false
+}

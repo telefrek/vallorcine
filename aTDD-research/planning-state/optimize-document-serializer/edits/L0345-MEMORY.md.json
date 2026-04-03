@@ -1,0 +1,6 @@
+{
+  "path": ".claude/projects/-home-nnorthcutt-Code-github-nathannorthcutt-jlsm/memory/MEMORY.md",
+  "old_string": "## User Feedback\n- [One question at a time](feedback_one_question_at_a_time.md) \u2014 ask scoping/clarification questions individually, not in batches\n- [No enter-to-continue prompts](feedback_no_enter_prompts.md) \u2014 empty Enter doesn't work in Claude Code; require typed responses",
+  "new_string": "## User Feedback\n- [One question at a time](feedback_one_question_at_a_time.md) \u2014 ask scoping/clarification questions individually, not in batches\n- [No enter-to-continue prompts](feedback_no_enter_prompts.md) \u2014 empty Enter doesn't work in Claude Code; require typed responses\n- [Fetch discipline](feedback_fetch_discipline.md) \u2014 limit WebFetch to 3 sources, never block on slow fetches, skip and note failures",
+  "replace_all": false
+}

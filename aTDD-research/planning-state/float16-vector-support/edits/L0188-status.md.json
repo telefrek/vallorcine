@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/status.md",
+  "old_string": "**Substage:** confirming-plan",
+  "new_string": "**Substage:** writing-tests",
+  "replace_all": false
+}

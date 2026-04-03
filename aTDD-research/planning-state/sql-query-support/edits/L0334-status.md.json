@@ -1,0 +1,6 @@
+{
+  "path": ".feature/sql-query-support/status.md",
+  "old_string": "## Work Units",
+  "new_string": "## Automation\nautomation_mode: autonomous\n\n## Work Units",
+  "replace_all": false
+}

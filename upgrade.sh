@@ -384,6 +384,23 @@ if [[ -f "$DECISIONS_INDEX" ]]; then
     fi
 fi
 
+# .spec/CLAUDE.md: skip if it has any domain rows
+SPEC_INDEX="$PROJECT_ROOT/.spec/CLAUDE.md"
+if [[ -f "$SPEC_INDEX" ]]; then
+    if grep -q "^| " "$SPEC_INDEX" 2>/dev/null; then
+        echo -e "  ${YELLOW}skip${NC}  .spec/CLAUDE.md  (has user domains — not overwritten)"
+        ((skipped_user++)) || true
+    else
+        apply_file "$KIT_ROOT_APPLY/spec/CLAUDE.md" "$SPEC_INDEX"
+    fi
+else
+    # First install of spec system — create seed
+    if [[ -f "$KIT_ROOT_APPLY/spec/CLAUDE.md" ]]; then
+        mkdir -p "$PROJECT_ROOT/.spec"
+        apply_file "$KIT_ROOT_APPLY/spec/CLAUDE.md" "$SPEC_INDEX"
+    fi
+fi
+
 # _refs are safe to update — they're reference fragments, not user content
 for f in "$KIT_ROOT_APPLY"/kb/_refs/*.md; do
     [[ -f "$f" ]] && apply_file "$f" "$PROJECT_ROOT/.kb/_refs/$(basename "$f")"

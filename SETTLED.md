@@ -166,6 +166,28 @@ SETTLED.md (graduated history), COMPETITIVE.md (market positioning).
 Different update cadences, different token costs. `/save-work` graduates
 aged entries.
 
+## 5-pass analysis pipeline (2026-03-27)
+
+Inventory → triage → clustering → per-cluster deep analysis → reconciliation.
+Each pass writes to disk; next pass reads the file, not the conversation history.
+416K tokens vs ~1M for equivalent coverage. Validated against 26 known bugs (92%).
+
+## Construct-level clustering (2026-03-27)
+
+Clusters follow data flow and shared state, not file boundaries. `shares_state`
+edges are unsplittable within a type. Cross-type bridges defer to reconciliation.
+No hard size limits — graph structure determines boundaries.
+
+## Attack-generation framing (2026-03-27)
+
+"What input breaks this?" not "does this look correct?" Per-cell independence
+prevents satisficing. Validated: doubled bug detection vs comprehension framing.
+
+## Write-and-return test writers (2026-03-27)
+
+Phase 4 breakers write tests and exit. No compile loops in test writing.
+Separate compile-check phase. Eliminates 50% post-write overhead.
+
 ## Escalation flags and re-entry logic (2026-03-13)
 
 Full Code Writer → Test Writer → Work Planner escalation chain with
@@ -545,3 +567,26 @@ Non-negotiable rule: never express preference before Step 6a deliberation.
 
 Step 1.5 checks README, EXAMPLES, DESIGN, CONTEXT against changes before
 release notes can be drafted.
+
+## aTDD as parallel path, not replacement (2026-03-23)
+
+Adversarial TDD is a second pipeline option alongside standard TDD. Three
+tiers: Quick (easy), Enhanced TDD + Audit (moderate), Full aTDD
+(complex/critical). Selection at scoping time.
+
+## Spec Analyst generates dynamic Breaker prompts (2026-03-23)
+
+Static adversarial prompts plateau at cycle 3-4. The Analyst reads
+implementation + tests + prior findings to generate a targeted prompt each
+round, avoiding redundant coverage.
+
+## Validate with hard numbers before shipping (2026-03-23)
+
+Run both pipelines against jlsm features from identical starting points.
+Measure: additional bugs found, tokens per round, convergence curve. Replace
+speculative cost estimates with real data.
+
+## Research bundle for reproducibility (2026-03-23)
+
+Sanitized JSONL logs, feature descriptions, git SHAs, automation scripts.
+Others can independently verify results.

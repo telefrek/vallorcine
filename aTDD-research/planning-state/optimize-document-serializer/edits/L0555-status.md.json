@@ -1,0 +1,6 @@
+{
+  "path": ".feature/streaming-block-decompression/status.md",
+  "old_string": "| Testing | not-started | \u2014 | \u2014 | \u2014 | cycle 0 |",
+  "new_string": "| Testing | in-progress | \u2014 | \u2014 | \u2014 | cycle 1 |",
+  "replace_all": false
+}

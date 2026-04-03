@@ -1,0 +1,6 @@
+{
+  "path": ".feature/streaming-block-decompression/status.md",
+  "old_string": "| Planning | not-started | \u2014 | \u2014 | \u2014 | |",
+  "new_string": "| Planning | in-progress | \u2014 | \u2014 | \u2014 | |",
+  "replace_all": false
+}

@@ -1,0 +1,77 @@
+{
+  "operations": [
+    {
+      "op": "edit",
+      "path": ".feature/table-indices-and-queries/status.md",
+      "edit_file": "edits/L0082-status.md.json",
+      "line": 82
+    },
+    {
+      "op": "edit",
+      "path": ".feature/table-indices-and-queries/status.md",
+      "edit_file": "edits/L0086-status.md.json",
+      "line": 86
+    },
+    {
+      "op": "edit",
+      "path": ".feature/table-indices-and-queries/status.md",
+      "edit_file": "edits/L0094-status.md.json",
+      "line": 94
+    },
+    {
+      "op": "write",
+      "path": ".feature/sql-query-support/brief.md",
+      "line": 111,
+      "size": 2924
+    },
+    {
+      "op": "write",
+      "path": ".feature/sql-query-support/status.md",
+      "line": 115,
+      "size": 328
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0123-CLAUDE.md.json",
+      "line": 123
+    },
+    {
+      "op": "write",
+      "path": ".feature/float16-vector-support/ARCHIVE.md",
+      "line": 203,
+      "size": 1468
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0208-CLAUDE.md.json",
+      "line": 208
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0211-CLAUDE.md.json",
+      "line": 211
+    },
+    {
+      "op": "write",
+      "path": ".feature/table-indices-and-queries/ARCHIVE.md",
+      "line": 234,
+      "size": 2089
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0239-CLAUDE.md.json",
+      "line": 239
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0242-CLAUDE.md.json",
+      "line": 242
+    }
+  ],
+  "total_ops": 12
+}

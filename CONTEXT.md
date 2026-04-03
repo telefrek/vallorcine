@@ -20,43 +20,76 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-03-23*
+*Last updated: 2026-04-03*
 
-**Adversarial TDD (aTDD) pipeline — designed, data extracted, validation harness
-built, ready to begin validation runs against jlsm features.**
+**Audit pipeline validation + spec ecosystem hardening + jlsm release prep.**
 
-**What happened this session:**
+Two sessions (2026-04-02 and 2026-04-03) validated the combined prove-fix
+pipeline on float16-vector-support and block-compression, hardened the full
+aTDD pipeline with adversarial fixes, built the spec conflict detection
+and extraction system, and started the jlsm release prep (2-week push).
 
-- **aTDD pipeline designed** — 3 new agents (Spec Analyst, Breaker, Constrained
-  Refactorer) and 3 new skills (`/atdd-round`, `/atdd-audit`, `/atdd-refactor`).
-  Reuses existing Code Writer as Implementer with `known_issues.md` injection.
-  Write authority and escalation paths added to `tdd-protocol.md`.
-- **jlsm validation data extracted** — 130 JSONL sessions mapped to 15 features.
-  Token usage extracted per-stage with TDD boundary detection. Git SHAs and parent
-  commits verified for state reconstruction. 84 session files sanitized (PII removed,
-  integrity verified with SHA256 checksums).
-- **Validation harness built** — `aTDD-research/harness/` with scripts to set up
-  worktrees at feature commits, collect results after Claude Code runs, and generate
-  comparison reports (standard TDD cost vs aTDD additional cost vs bugs found).
+**What happened (2026-04-02):**
+
+- **Combined prove-fix model validated** — merged separate Prove + Fix stages
+  into single per-finding subagent. Tested on float16: 40 findings, 20 fixed,
+  10 impossible, $207 total (with fixes included). Serial execution prevents
+  fix conflicts and enables fix cascade deduplication (7 of 10 impossibles
+  were prior fixes resolving later findings).
+
+- **All 5 release blockers cleared** — spec phase in /feature flow, /feature-test
+  consuming .spec/, /feature-audit using prove-fix, multi-language parity for
+  pipeline scripts (bash + Node), /feature-audit renamed to /audit.
+
+- **Pipeline hardened with 5 adversarial fixes** — spec-author prove/disprove
+  framing, architect falsification pass, KB confidence field, audit feedback
+  loop (reconcile-findings), feature-refactor delegation to /audit.
+
+- **Script audit** — ~55 fixes across 27 scripts (bash/Python/Node): atomic
+  writes, exit 0 guarantees, pipefail safety, empty array guards.
+
+**What happened (2026-04-03):**
+
+- **Block-compression audit complete** — 77 findings, 28 fixed, 49 impossible,
+  $550. 6 lenses, 11 clusters. Found real bugs: footer overflow guards,
+  int truncation, codec validation, state machine hardening, resource safety.
+
+- **Impossible category analysis** — 48 impossibles broken down: 19 fix cascade
+  (40%), 4 single-threaded false positive (8%), 3 idempotent false positive (6%),
+  22 genuine (46%). True bug rate: 52.2% (excluding preventable impossibles).
+
+- **Concurrency lens false positive prevention** — card construction captures
+  thread_sharing evidence, Suspect has mandatory concurrency clearings,
+  domain pruning excludes single-threaded constructs from concurrency clusters.
+
+- **Test deduplication** — prove-fix checks existing test coverage before writing
+  new tests. Suspect can clear findings as "already tested."
+
+- **Spec conflict resolution flow** — audit report detects fix-spec conflicts,
+  orchestrator presents 3 options (keep fix + update spec, revert fix, defer).
+  Standalone resolve-spec-conflict prompt for manual resolution.
+
+- **Spec extraction mode** — bottom-up spec authoring from existing implementation.
+  Auto-discovers source files, consuming specs, and tests. Cross-references
+  consuming specs for CONTRADICTED, UNGUARANTEED, MISSING findings.
+
+- **[ABSENT] requirement promotion** — extraction mode surfaces behaviors the
+  code does NOT do. Users promote (becomes implementation work), preserve
+  (becomes negative requirement), or defer (curate resurfaces later).
+
+- **Curate spec awareness** — 4 new signal types: unspecified shared types,
+  open obligations, spec-code drift, undecided [ABSENT] requirements. Each
+  routes to the appropriate spec command.
+
+- **Batch spec authoring** — 10 jlsm features got hardened specs via automated
+  two-pass process. ~$3.40/spec.
 
 **Where things stand:**
-First validation runs complete for `encrypt-memory-data` (both greenfield and audit).
-Results inform pipeline enhancements now shipping in standard TDD agents.
-
-**encrypt-memory-data validation results (2026-03-24):**
-- Greenfield aTDD: 3 rounds, 20 bugs, 2.2M billable tokens, 373 messages
-- Audit aTDD: 3 rounds, 8 bugs (7+1+0), 1.4M billable tokens, 259 messages
-- Greenfield: 9.1 bugs/M tokens. Audit: 5.7 bugs/M tokens (greenfield more efficient)
-- Both converged: greenfield round 3 found repeat tendency only, audit round 3 found 0
-- Round 2 valuable in audit — caught regression from round 1 fix (keySegment obfuscation)
-- Key finding: T2-HEAPCOPY tendency repeated 3x across greenfield rounds — Implementer
-  defaults to caching key material on heap, defeating off-heap threat model
-
-**Pipeline enhancements from validation findings:**
-- Test Writer: defensive test vectors (boundary values, error paths, security caching)
-- Code Writer: fix-forward rule (scan for same anti-pattern after fixing a bug)
-- Refactor Agent: assert-only validation check, exception swallowing check
-- tdd-protocol: 5-minute Bash timeout on all test execution
+Audit pipeline is validated on 2 features with real cost data. Spec ecosystem
+is comprehensive: authoring, extraction, conflict detection, resolution,
+curate integration. jlsm has 11 specs covering all features. Block-compression
+has a spec conflict (eager snapshot vs F08 streaming) being resolved. Next
+audit will validate the concurrency lens fix and test dedup improvements.
 
 ---
 
@@ -64,36 +97,46 @@ Results inform pipeline enhancements now shipping in standard TDD agents.
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **aTDD as parallel path, not replacement** (2026-03-23) — adversarial TDD is a
-  second pipeline option alongside standard TDD. Three tiers: Quick (easy), Standard
-  (moderate), Adversarial (complex/critical). Selection at scoping time.
+- **Combined prove-fix per-finding model** (2026-04-02) — merged Prove + Fix into
+  single subagent. Each finding gets fresh context. Test result determines path
+  (not agent's choice). Validated: same cost as prove-only with fixes included.
+  Fix cascade reduces total work via serial execution.
 
-- **Spec Analyst generates dynamic Breaker prompts** (2026-03-23) — static adversarial
-  prompts plateau at cycle 3-4. The Analyst reads implementation + tests + prior
-  findings to generate a targeted prompt each round, avoiding redundant coverage.
+- **Sequential execution for prove-fix** (2026-04-02) — one finding at a time,
+  no parallelism. Prevents fix conflicts on shared source files. Fix cascade
+  deduplication is a bonus. Wall-clock tradeoff acceptable.
 
-- **Constrained Refactorer is a separate agent** (2026-03-23) — distinct from the
-  standard Refactor Agent because it must honour `known_issues.md` as structural
-  invariants. Mixing both modes into one agent makes debugging harder.
+- **Effort asymmetry removal in prove-fix** (2026-04-02) — agent always writes
+  test regardless of outcome (confirmed or impossible). Test result chooses the
+  path. Prevents task-avoidance bias from sandbagging research.
 
-- **Implementer is the existing Code Writer** (2026-03-23) — no new agent needed.
-  `known_issues.md` injected as additional context (RESOLVED patterns as hard
-  constraints, TENDENCY as code review blockers).
+- **Concurrency lens per-construct filtering** (2026-04-02) — thread_sharing
+  field in cards (none/possible/explicit). Concurrency lens excludes
+  thread_sharing:none constructs. Prevents false positives on single-threaded
+  components.
 
-- **Inter-round human gate with convergence signal** (2026-03-23) — intra-round is
-  automated (Analyst → Breaker → Implementer). Between rounds, show confirmed bugs
-  vs theoretical concerns. When Breaker can only produce untriggerable vectors,
-  that's the convergence signal to stop.
+- **Spec conflict detection at resolution time** (2026-04-02) — spec-resolve.sh
+  checks for contradictions between included specs before emitting bundle.
+  Feature-plan blocks, feature-test marks UNTESTABLE, feature-implement
+  diagnoses spec conflicts instead of misdiagnosing as test/contract bugs.
 
-- **atdd-status.md separate from status.md** (2026-03-23) — aTDD runs after standard
-  TDD without clobbering pipeline state. Separate checkpoint file.
+- **DRAFT specs with conflicts blocked from bundles** (2026-04-02) — specs with
+  [UNRESOLVED]/[CONFLICT] markers or open_obligations excluded from resolved
+  context. Only APPROVED specs trusted as authoritative.
 
-- **Validate with hard numbers before shipping** (2026-03-23) — run both pipelines
-  against 15 jlsm features from identical starting points. Measure: additional bugs
-  found, tokens per round, convergence curve. Replace speculative 2-4x cost estimate.
+- **Spec extraction from implementation** (2026-04-03) — bottom-up spec
+  authoring for foundational types (JlsmSchema, JlsmDocument). Auto-discovery
+  of source, consuming specs, tests. [ABSENT] tag for behaviors code doesn't
+  have but specs may assume.
 
-- **Research bundle for reproducibility** (2026-03-23) — sanitized JSONL logs, feature
-  descriptions, git SHAs, automation scripts. Others can independently verify results.
+- **[ABSENT] requirement lifecycle** (2026-04-03) — promote (becomes
+  implementation work with [UNIMPLEMENTED] obligation), preserve (becomes
+  negative requirement), defer (curate resurfaces). No requirement falls
+  through the cracks.
+
+- **Fix-spec conflict resolution** (2026-04-03) — three options: keep fix +
+  update spec, revert fix + mark FIX_IMPOSSIBLE, split (keep fix + add new
+  requirement that invalidates old). Fourth option: defer with [UNRESOLVED].
 
 ---
 
@@ -104,67 +147,45 @@ Results inform pipeline enhancements now shipping in standard TDD agents.
 
 ### Do next (high priority, clear direction)
 
-- **aTDD validation runs** — run `/atdd-audit` against all 15 jlsm features,
-  collect metrics, determine real cost multiplier and convergence curve. Starting
-  with `striped-block-cache` (simplest). Time-sensitive: JSONL logs expire ~Apr 2.
+- **Spec-driven work planning** — two capabilities: (1) free-text search across
+  all specs to find applicable requirements for a problem description,
+  (2) spec-change-driven planning where the planner traces downstream impact
+  of requirement changes (tests, implementations, dependent specs). Entry
+  point: `/spec-plan` or extension of `/spec-author`.
 
-- **Three-tier analysis: TDD vs TDD+Audit vs full aTDD** — the validation should
-  measure not just aTDD vs TDD, but where a single audit pass falls on the
-  cost/quality curve. Three comparison points per feature:
-  1. **Standard TDD** — baseline bugs found, cost
-  2. **TDD + Audit** — single post-implementation audit pass, additional bugs, ~1.3-1.5x cost
-  3. **Full aTDD** — iterative rounds, additional bugs beyond audit, ~2-4x cost
+- **Validate concurrency lens fix** — run an audit on a concurrency-heavy
+  feature (striped-block-cache) with updated prompts. Verify single-threaded
+  false positives are eliminated and test dedup reduces cascade impossibles.
 
-  Key questions:
-  - What % of aTDD-found bugs does a single audit catch? If 80% at 30% cost,
-    most features should use TDD+Audit, not full aTDD.
-  - Does the "everything is wrong" mindset belong in the standard Test Writer
-    for high-risk domains (crypto, concurrency)? An enhanced prompt adding 2-3
-    "skeptical" tests per construct during standard test writing is nearly free.
-  - Where does the iterative convergence loop actually pay off? Likely only for
-    code where fixing bug A reveals bug B (state machines, invariant-heavy APIs).
-
-  Expected outcome: a decision framework for tier selection at scoping time,
-  informed by real data rather than intuition. Encryption features likely justify
-  full aTDD; most CRUD features should stop at TDD+Audit or enhanced Test Writer.
+- **JlsmSchema spec extraction** — running now. Will test the extraction mode
+  on the highest-fanout type (6 consuming specs). Results inform whether
+  extraction mode scales.
 
 ### Do soon (medium effort, clear designs)
 
-- **Large repo curation testing** — `/curate` dogfooded on JLSM (19 commits).
-  Needs testing on a larger repo (1000+ commits, 30+ contributors) to validate
-  the 500-commit cap and co-change analysis performance in bash.
+- **Architect/decision hardening** — apply adversarial authoring to the decision
+  deliberation layer. Falsification pass added (Step 6) but not yet tested
+  on real ADRs.
 
-- **Work unit split thresholds** — 15K crossover and 3.5K per-construct are
-  reasoned estimates, not measured. Token tracking is collecting actuals — needs
-  data review once enough features have run with tracking enabled.
+- **/curate cross-reference repair** — signal type that discovers missing
+  `related`/`decision_refs` in existing KB entries via tag overlap.
+
+- **Concurrency lens false positive rate tracking** — need multi-codebase data
+  to confirm thread_sharing field eliminates false positives. Block-compression
+  data shows 54% preventable impossibles.
 
 ### Do when needed (useful but workarounds exist)
 
-- **/feature-split** — split in-progress feature when scope expands. Workaround:
-  finish current feature, start a new one.
+- **/feature-split** — split in-progress feature when scope expands.
 
-- **HANDOFF.md convention** — `/save-work` mostly covers this. May just need
-  documentation rather than new code.
-
-- **KB coding agent** — third KB role that reads entries and implements against
-  them. Current workflow (read KB manually) works.
+- **Large repo curation testing** — `/curate` needs testing on a repo with
+  1000+ commits, 30+ contributors.
 
 ### Do when scale demands it (team/scale features)
 
-- **KB `depends-on` field** — frontmatter field for structural staleness. P2/P3
-  tension with fan-out reads on dependency chains. Date-based staleness sufficient
-  for current scale.
-
-- **Team KB commands** — `/kb sync`, `/kb consolidate`, `/kb status`. Useful for
-  teams but vallorcine is primarily single-developer today.
-
-- **LSP integration** — README documentation of companion plugins. Nice-to-have.
+- **Team KB commands** — `/kb sync`, `/kb consolidate`, `/kb status`.
 
 - **Pipeline observability** — velocity metrics, KB utilization tracking.
-  Premature until more projects use vallorcine.
-
-- **KB cross-referencing** — reverse mapping (decisions → KB). One-way exists.
-  Low urgency until KB is large enough to need it.
 
 ---
 
@@ -189,7 +210,7 @@ question or decision.
 the loop at every meaningful boundary. No silent chaining. No surprises.
 
 **Token awareness is a first-class concern.** Quantitative where possible.
-Not vibes-based.
+Not vibes-based. Always measure by API token pricing, never assume subscription.
 
 **No ceremony without value.** Resist adding steps that always run regardless
 of need. 0-signal complexity check is silent. 0-question scoping is valid.

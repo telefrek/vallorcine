@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/cycle-log.md",
+  "old_string": "## 2026-03-17 \u2014 pr-drafted\n**Agent:** \ud83d\udccb PR Draft\n**Summary:** PR draft written and confirmed by user.\n**Token estimate:** ~8K (loaded: brief ~2K, work-plan ~4K, cycle-log ~2K)\n---",
+  "new_string": "## 2026-03-17 \u2014 pr-drafted\n**Agent:** \ud83d\udccb PR Draft\n**Summary:** PR draft written and confirmed by user.\n**Token estimate:** ~8K (loaded: brief ~2K, work-plan ~4K, cycle-log ~2K)\n---\n\n## 2026-03-17 \u2014 pr-created\n**Agent:** \ud83d\udccb PR Draft\n**PR:** https://github.com/nathannorthcutt/jlsm/pull/13\n---",
+  "replace_all": false
+}

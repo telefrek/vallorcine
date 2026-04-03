@@ -1,0 +1,6 @@
+{
+  "path": ".gitignore",
+  "old_string": "perf-output/**/*-results.json\nperf-output/**/run-manifest.json\nperf-output/**/latest-*",
+  "new_string": "perf-output/**/results.json\nperf-output/**/*-results.json\nperf-output/**/run-manifest.json\nperf-output/**/latest-*\nperf-output/**/gc.log",
+  "replace_all": false
+}

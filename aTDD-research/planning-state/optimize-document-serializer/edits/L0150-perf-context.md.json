@@ -1,0 +1,6 @@
+{
+  "path": ".claude/skills/perf-review/perf-context.md",
+  "old_string": "- `jlsm-core#LruBlockCache#get/#put \u2014 Cache/Contention \u2014 1030761 \u2014 1T: 30.6M ops/s, 2T: 7.6M ops/s (75% drop), 8T: 12.7M ops/s (58% drop)`",
+  "new_string": "- `jlsm-core#LruBlockCache#get/#put \u2014 Cache/Contention \u2014 1030761 \u2014 1T: 30.6M ops/s, 2T: 7.6M ops/s (75% drop), 8T: 12.7M ops/s (58% drop)`\n- `jlsm-core#DeflateCodec#compress \u2192 zlib \u2014 SSTable write \u2014 1e70573 \u2014 90%+ of write-path CPU when compression enabled; write@10K: none 44.5, deflate1 38.0 (-15%), deflate6 27.7 (-38%) ops/s`\n- `jlsm-core#TrieSSTableReader#decompressAllBlocks \u2014 SSTable scan \u2014 1e70573 \u2014 scan@10K: none 169, deflate1 106 (-37%), deflate6 102 (-39%) ops/s`",
+  "replace_all": false
+}

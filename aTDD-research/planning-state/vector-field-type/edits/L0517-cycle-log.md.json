@@ -1,0 +1,6 @@
+{
+  "path": ".feature/vector-field-type/cycle-log.md",
+  "old_string": "**Summary:** Commissioned /architect for VectorType serialization encoding decision.\n---",
+  "new_string": "**Summary:** Commissioned /architect for VectorType serialization encoding decision.\n---\n## 2026-03-17 \u2014 domains-decision-commissioned\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** Commissioned /architect for IndexDefinition API simplification decision.\n---",
+  "replace_all": false
+}

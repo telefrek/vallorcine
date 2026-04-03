@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-core/src/main/java/jlsm/compaction/SpookyCompactor.java",
+  "old_string": "                readers.add(TrieSSTableReader.open(meta.path(), bloomDeserializer));",
+  "new_string": "                readers.add(TrieSSTableReader.openLazy(meta.path(), bloomDeserializer));",
+  "replace_all": false
+}

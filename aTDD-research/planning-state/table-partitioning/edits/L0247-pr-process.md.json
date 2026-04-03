@@ -1,0 +1,6 @@
+{
+  "path": ".claude/rules/pr-process.md",
+  "old_string": "## PR Readiness Checklist\n\nBefore marking a PR ready for review, complete all of the following:\n\n- `./gradlew check` passes cleanly with no failures or warnings",
+  "new_string": "## PR Readiness Checklist\n\nBefore marking a PR ready for review, complete all of the following:\n\n- Local `main` is up to date with `origin/main` and all changes from `main`\n  are merged into the feature branch \u2014 run `git fetch origin main` and merge\n  or rebase before creating the PR to avoid missing infrastructure or conflicts\n- `./gradlew check` passes cleanly with no failures or warnings",
+  "replace_all": false
+}

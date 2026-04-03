@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/status.md",
+  "old_string": "**Stage:** planning",
+  "new_string": "**Stage:** pr",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "**Substage:** pr-draft-written",
+  "new_string": "**Substage:** pr-created",
+  "replace_all": false
+}

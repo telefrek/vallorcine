@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| Block-level SSTable compression | block-compression | 2026-03-17 | scoping | brief confirmed |",
+  "new_string": "| Block-level SSTable compression | block-compression | 2026-03-17 | domains | domains resolved |",
+  "replace_all": false
+}

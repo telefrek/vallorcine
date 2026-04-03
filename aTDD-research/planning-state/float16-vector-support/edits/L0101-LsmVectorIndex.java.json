@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-vector/src/main/java/jlsm/vector/LsmVectorIndex.java",
+  "old_string": "                            .ofArray(encodeNode(nbId, updatedLayers, nbNode.vector())));",
+  "new_string": "                            .ofArray(encodeNode(nbId, updatedLayers, nbNode.vector(),\n                                    precision)));",
+  "replace_all": false
+}

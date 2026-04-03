@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/status.md",
+  "old_string": "**Stage:** domains\n**Substage:** complete\n**Last successful checkpoint:** domains.md written \u2014 3 domains resolved, 0 gaps",
+  "new_string": "**Stage:** planning\n**Substage:** loading-context\n**Last successful checkpoint:** domains.md written \u2014 3 domains resolved, 0 gaps",
+  "replace_all": false
+}

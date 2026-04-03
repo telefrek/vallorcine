@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "<!-- current_batch: 0 -->",
+  "new_string": "<!-- current_batch: 1 -->",
+  "replace_all": false
+}

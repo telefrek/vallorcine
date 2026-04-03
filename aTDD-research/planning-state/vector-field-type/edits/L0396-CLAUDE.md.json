@@ -1,0 +1,6 @@
+{
+  "path": ".kb/CLAUDE.md",
+  "old_string": "| Date | Topic | Category | Subject |\n|------|-------|----------|---------|",
+  "new_string": "| Date | Topic | Category | Subject |\n|------|-------|----------|---------|\n| 2026-03-17 | algorithms | vector-encoding | flat-vector-encoding |\n| 2026-03-17 | algorithms | vector-encoding | sparse-vector-encoding |\n| 2026-03-17 | algorithms | vector-encoding | lossless-vector-compression |",
+  "replace_all": false
+}

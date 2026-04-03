@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/status.md",
+  "old_string": "**Substage:** all tests passing",
+  "new_string": "**Substage:** refactor: coding-standards",
+  "replace_all": false
+}

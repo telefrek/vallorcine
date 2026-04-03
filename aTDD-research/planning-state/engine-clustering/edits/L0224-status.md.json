@@ -1,0 +1,6 @@
+{
+  "path": ".feature/engine-clustering/status.md",
+  "old_string": "| Cycle | Unit | Tests written | Tests passing | Refactor done | Missing tests |\n|-------|------|--------------|---------------|---------------|---------------|",
+  "new_string": "| Cycle | Unit | Tests written | Tests passing | Refactor done | Missing tests |\n|-------|------|--------------|---------------|---------------|---------------|\n| 1 | WU-1 | 2026-03-20 | 2026-03-20 | 2026-03-20 | 0 |",
+  "replace_all": false
+}

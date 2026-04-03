@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/InJvmDiscoveryProvider.java",
+  "old_string": "    static void clearRegistrations() {",
+  "new_string": "    public static void clearRegistrations() {",
+  "replace_all": false
+}

@@ -1,0 +1,299 @@
+{
+  "operations": [
+    {
+      "op": "write",
+      "path": ".feature/sql-query-support/brief.md",
+      "line": 111,
+      "size": 2924
+    },
+    {
+      "op": "write",
+      "path": ".feature/sql-query-support/status.md",
+      "line": 115,
+      "size": 328
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0123-CLAUDE.md.json",
+      "line": 123
+    },
+    {
+      "op": "write",
+      "path": ".feature/float16-vector-support/ARCHIVE.md",
+      "line": 203,
+      "size": 1468
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0208-CLAUDE.md.json",
+      "line": 208
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0211-CLAUDE.md.json",
+      "line": 211
+    },
+    {
+      "op": "write",
+      "path": ".feature/table-indices-and-queries/ARCHIVE.md",
+      "line": 234,
+      "size": 2089
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0239-CLAUDE.md.json",
+      "line": 239
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0242-CLAUDE.md.json",
+      "line": 242
+    },
+    {
+      "op": "write",
+      "path": ".feature/sql-query-support/ARCHIVE.md",
+      "line": 33,
+      "size": 2478
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0043-CLAUDE.md.json",
+      "line": 43
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0046-CLAUDE.md.json",
+      "line": 46
+    },
+    {
+      "op": "write",
+      "path": ".feature/table-partitioning/pr-draft.md",
+      "line": 84,
+      "size": 2381
+    },
+    {
+      "op": "edit",
+      "path": ".feature/table-partitioning/status.md",
+      "edit_file": "edits/L0091-status.md.json",
+      "line": 91
+    },
+    {
+      "op": "edit",
+      "path": ".feature/table-partitioning/cycle-log.md",
+      "edit_file": "edits/L0095-cycle-log.md.json",
+      "line": 95
+    },
+    {
+      "op": "edit",
+      "path": ".feature/sql-query-support/status.md",
+      "edit_file": "edits/L0032-status.md.json",
+      "line": 32
+    },
+    {
+      "op": "edit",
+      "path": ".feature/sql-query-support/status.md",
+      "edit_file": "edits/L0036-status.md.json",
+      "line": 36
+    },
+    {
+      "op": "write",
+      "path": ".kb/algorithms/sql-extensions/vector-similarity-sql-syntax.md",
+      "line": 117,
+      "size": 9375
+    },
+    {
+      "op": "write",
+      "path": ".kb/algorithms/sql-extensions/CLAUDE.md",
+      "line": 122,
+      "size": 1014
+    },
+    {
+      "op": "edit",
+      "path": ".kb/algorithms/CLAUDE.md",
+      "edit_file": "edits/L0129-CLAUDE.md.json",
+      "line": 129
+    },
+    {
+      "op": "edit",
+      "path": ".kb/CLAUDE.md",
+      "edit_file": "edits/L0136-CLAUDE.md.json",
+      "line": 136
+    },
+    {
+      "op": "edit",
+      "path": ".kb/CLAUDE.md",
+      "edit_file": "edits/L0139-CLAUDE.md.json",
+      "line": 139
+    },
+    {
+      "op": "edit",
+      "path": ".feature/sql-query-support/status.md",
+      "edit_file": "edits/L0147-status.md.json",
+      "line": 147
+    },
+    {
+      "op": "write",
+      "path": ".feature/sql-query-support/domains.md",
+      "line": 152,
+      "size": 3287
+    },
+    {
+      "op": "edit",
+      "path": ".feature/sql-query-support/status.md",
+      "edit_file": "edits/L0156-status.md.json",
+      "line": 156
+    },
+    {
+      "op": "write",
+      "path": ".feature/sql-query-support/cycle-log.md",
+      "line": 160,
+      "size": 769
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0167-CLAUDE.md.json",
+      "line": 167
+    },
+    {
+      "op": "edit",
+      "path": ".feature/sql-query-support/status.md",
+      "edit_file": "edits/L0179-status.md.json",
+      "line": 179
+    },
+    {
+      "op": "edit",
+      "path": ".feature/sql-query-support/status.md",
+      "edit_file": "edits/L0248-status.md.json",
+      "line": 248
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-sql/build.gradle",
+      "line": 255,
+      "size": 115
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-sql/src/main/java/module-info.java",
+      "line": 258,
+      "size": 79
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-sql/src/main/java/jlsm/sql/TokenType.java",
+      "line": 263,
+      "size": 890
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-sql/src/main/java/jlsm/sql/Token.java",
+      "line": 267,
+      "size": 890
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-sql/src/main/java/jlsm/sql/SqlParseException.java",
+      "line": 271,
+      "size": 1334
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-sql/src/main/java/jlsm/sql/SqlLexer.java",
+      "line": 275,
+      "size": 1403
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-sql/src/main/java/jlsm/sql/SqlAst.java",
+      "line": 279,
+      "size": 6449
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-sql/src/main/java/jlsm/sql/SqlParser.java",
+      "line": 283,
+      "size": 2197
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-sql/src/main/java/jlsm/sql/SqlQuery.java",
+      "line": 287,
+      "size": 2975
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-sql/src/main/java/jlsm/sql/SqlTranslator.java",
+      "line": 295,
+      "size": 2146
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-sql/src/main/java/jlsm/sql/JlsmSql.java",
+      "line": 299,
+      "size": 1563
+    },
+    {
+      "op": "edit",
+      "path": "settings.gradle",
+      "edit_file": "edits/L0304-settings.gradle.json",
+      "line": 304
+    },
+    {
+      "op": "write",
+      "path": ".feature/sql-query-support/work-plan.md",
+      "line": 311,
+      "size": 8510
+    },
+    {
+      "op": "edit",
+      "path": ".feature/sql-query-support/status.md",
+      "edit_file": "edits/L0315-status.md.json",
+      "line": 315
+    },
+    {
+      "op": "edit",
+      "path": ".feature/sql-query-support/status.md",
+      "edit_file": "edits/L0318-status.md.json",
+      "line": 318
+    },
+    {
+      "op": "edit",
+      "path": ".feature/sql-query-support/cycle-log.md",
+      "edit_file": "edits/L0324-cycle-log.md.json",
+      "line": 324
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0327-CLAUDE.md.json",
+      "line": 327
+    },
+    {
+      "op": "edit",
+      "path": ".feature/sql-query-support/status.md",
+      "edit_file": "edits/L0334-status.md.json",
+      "line": 334
+    },
+    {
+      "op": "edit",
+      "path": ".feature/sql-query-support/status.md",
+      "edit_file": "edits/L0342-status.md.json",
+      "line": 342
+    },
+    {
+      "op": "edit",
+      "path": ".feature/sql-query-support/status.md",
+      "edit_file": "edits/L0345-status.md.json",
+      "line": 345
+    }
+  ],
+  "total_ops": 49
+}

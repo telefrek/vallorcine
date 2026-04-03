@@ -1,0 +1,6 @@
+{
+  "path": ".claude/skills/perf-review/perf-context.md",
+  "old_string": "## Known hotpaths (snapshot \u2014 per-operation cost)\n\n> Format: `Module#Class#method \u2014 layer \u2014 confirmed on <commit> \u2014 <ops/s or ns/op>`\n\n*(none yet)*",
+  "new_string": "## Known hotpaths (snapshot \u2014 per-operation cost)\n\n> Format: `Module#Class#method \u2014 layer \u2014 confirmed on <commit> \u2014 <ops/s or ns/op>`\n\n- `jlsm-core#KeyComparator#compare \u2014 MemTable \u2014 543f0e3 \u2014 1363 profiler samples (dominant frame in all MemTable ops)`\n- `jlsm-core#ConcurrentSkipListMemTable#apply \u2014 MemTable \u2014 543f0e3 \u2014 put@100K: 349K ops/s (post-fix baseline)`",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "<!-- work_units: none  \u2190 set this if no split was done -->\n<!-- execution_strategy: not-set -->\n<!-- current_batch: 0 -->\n\n| Unit | Name | Constructs | Depends On | Status | Cycle |\n|------|------|------------|------------|--------|-------|",
+  "new_string": "<!-- work_units: 3 -->\n<!-- execution_strategy: balanced -->\n<!-- current_batch: 0 -->\n\n| Unit | Name | Constructs | Depends On | Status | Cycle |\n|------|------|------------|------------|--------|-------|\n| WU-1 | Data model + routing | PartitionDescriptor, PartitionConfig, PartitionClient, RangeMap | \u2014 | not-started | \u2014 |\n| WU-2 | Partition execution | InProcessPartitionClient, ResultMerger | WU-1 | blocked | \u2014 |\n| WU-3 | Coordinator | PartitionedTable | WU-1, WU-2 | blocked | \u2014 |",
+  "replace_all": false
+}

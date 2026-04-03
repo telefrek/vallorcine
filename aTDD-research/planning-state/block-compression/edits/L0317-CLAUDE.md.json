@@ -1,0 +1,6 @@
+{
+  "path": ".decisions/CLAUDE.md",
+  "old_string": "| VectorType serialization encoding | vector-type-serialization-encoding | 2026-03-17 | Flat Vector Encoding \u2014 contiguous d\u00d7sizeof(T) bytes, no per-vector metadata |",
+  "new_string": "| SSTable block compression format | sstable-block-compression-format | 2026-03-17 | Compression Offset Map \u2014 separate file section with per-block metadata array |\n| VectorType serialization encoding | vector-type-serialization-encoding | 2026-03-17 | Flat Vector Encoding \u2014 contiguous d\u00d7sizeof(T) bytes, no per-vector metadata |",
+  "replace_all": false
+}

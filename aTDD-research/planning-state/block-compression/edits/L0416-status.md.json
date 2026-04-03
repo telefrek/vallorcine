@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/status.md",
+  "old_string": "| Compression codec API design | pending | \u2014 | \u2014 | \u2014 | \u2014 |",
+  "new_string": "| Compression codec API design | resolved | .decisions/compression-codec-api-design/adr.md | \u2014 | 2026-03-17 | 2026-03-17 |",
+  "replace_all": false
+}

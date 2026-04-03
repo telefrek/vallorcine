@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/FieldValueCodec.java",
+  "old_string": "    public static MemorySegment encode(Object value, FieldType fieldType) {\n        Objects.requireNonNull(fieldType, \"fieldType\");\n        if (!(fieldType instanceof FieldType.Primitive p)) {\n            throw new IllegalArgumentException(\n                    \"Only primitive field types can be encoded, got: \" + fieldType);\n        }",
+  "new_string": "    public static MemorySegment encode(Object value, FieldType fieldType) {\n        Objects.requireNonNull(fieldType, \"fieldType\");\n        final FieldType.Primitive p;\n        if (fieldType instanceof FieldType.Primitive prim) {\n            p = prim;\n        } else if (fieldType instanceof FieldType.BoundedString) {\n            p = FieldType.Primitive.STRING;\n        } else {\n            throw new IllegalArgumentException(\n                    \"Only primitive field types can be encoded, got: \" + fieldType);\n        }",
+  "replace_all": false
+}

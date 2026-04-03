@@ -478,111 +478,42 @@ Update status.md substage → `refactor: final-lint`.
 
 ## Step 4b — Adversarial audit pass
 
-After the final lint, run a single adversarial audit to confirm the implementation
-handles edge cases the spec analysis identified. This is the "confirm rather than
-discover" pass — if the spec analyst pre-pass (Step 1c of /feature-test) did its
-job, this should find zero bugs.
-
-**Baseline requirement:** The full test suite was already run in Step 1 (load
-context) and must be all passing before this step begins. After every fix,
-re-run the full suite — ALL tests must still pass. Any new failure is caused
-by your changes — investigate regardless of which module it's in. Dependency
-chains mean fixes in one module can break consumers in another.
+Delegate the full adversarial audit to `/audit`. The audit orchestrator
+handles scoping, analysis, reconciliation, suspect identification, prove-fix
+cycles, and reporting.
 
 **Skip this step if:**
 - This is `/feature-quick` (status.md shows no spec analysis was performed)
-- The test plan has no "Defensive (from spec analysis)" section
 - This is a refactor cycle > 1 (audit runs once after the first clean refactor)
 
-### 4b.1 — Re-analyze implementation (Spec Analyst identity)
+### 4b.1 — Run the audit
 
-Read the implementation files listed in work-plan.md. Apply the same two lenses
-from the spec analyst pre-pass, but now against real code instead of stubs:
+Invoke `/audit <slug>` where `<slug>` is the current feature slug.
 
-- **Lens A — Contract gaps:** check whether the implementation handles the boundary
-  cases identified during planning. Focus on gaps that couldn't be predicted from
-  stubs alone (runtime branching, error recovery paths, resource cleanup sequences).
-- **Lens B — Implementation risk patterns:** trace the full data flow per construct:
-  - Level 1 (construct): byte[] identity, mutable references, float encoding,
-    non-atomic multi-step ops, unsealed type switches, silent truncation,
-    null interaction with not-equals, deferred validation
-  - Level 2 (inputs): are callers validated at trust boundaries? Should out-of-range
-    values be rejected at entry per project rules? Can callers pass semantically
-    wrong but technically valid values?
-  - Level 3 (outputs): do returned references expose mutable internal state? Are
-    accessors safe, not just constructors? Can return values be in unexpected states?
-  - Level 4 (data carriers): do records/DTOs enforce invariants at construction?
-    Do mutable-field records have correct equals/hashCode? Are carriers immutable?
-  Trace all 4 levels on every construct in the current work unit. Prioritize
-  depth on flagged constructs but do not skip levels entirely.
+Wait for the audit to complete. Do not intervene in the audit pipeline — it
+manages its own subagents and state.
 
-Also check `.kb/` for `type: adversarial-finding` entries in relevant domains —
-same KB integration as the test phase pre-pass.
+### 4b.2 — Read the audit report
 
-### 4b.2 — Write adversarial tests (Breaker identity)
+After the audit finishes, read `.feature/<slug>/audit-report.md` (the final
+output from the audit orchestrator).
 
-For each finding from 4b.1 that isn't already covered by existing tests:
-
-- Name adversarial tests `*AdversarialTest.java` / `test_adversarial_*` (language-appropriate)
-- Comment each test with the finding it targets
-- Do NOT write tests that conflict with validation contracts verified by existing tests
-- Read existing tests first to avoid duplicating coverage
-- Adversarial tests must pass all project quality gates (checkstyle, linters, static
-  analysis) — follow the project's coding standards
-
-Run the project's full verification command (5-minute timeout per tdd-protocol).
-This must include quality checks (linters, checkstyle), not just tests.
-
-Classify results:
-- **Confirmed failure** — test fails, implementation has a real bug
-- **Theoretical concern** — test passes, documents a risk worth watching
-
-### 4b.3 — Fix confirmed failures (Code Writer identity)
-
-For every confirmed failure:
-1. Fix the implementation (never modify tests)
-2. Apply fix-forward: scan ALL other constructs in scope for the same pattern
-3. Re-run full suite after each fix
-
-### 4b.4 — Write known_issues.md
-
-Write `.feature/<slug>/known_issues.md`:
-- RESOLVED entries for each confirmed bug (test reference + fix description)
-- TENDENCY entries for recurring implementation patterns worth tracking
-
-Update status.md substage → `audit-complete`.
+Update status.md substage to `audit-complete`.
 
 Append `audit-complete` to cycle-log.md:
 ```markdown
 ## <YYYY-MM-DD> — audit-complete
-**Agent:** ✨ Refactor Agent (audit pass)
+**Agent:** Refactor Agent (audit delegation)
 **Cycle:** <n>
-**Adversarial tests written:** <n>
-**Confirmed failures:** <n>
-**Bugs fixed:** <n>
-**Fix-forward instances:** <n>
-**TENDENCY patterns:** <list or "none">
+**Audit result:** <summary from audit-report.md>
 ---
 ```
 
-Display:
-```
-── Audit pass ─────────────────────────────────
-  Adversarial tests: <n> written
-  Confirmed bugs: <n> found and fixed
-  Fix-forward: <n> proactive fixes
-  Result: <all passing | see known_issues.md>
-```
+Display the audit summary to the user:
+- If the audit found and fixed bugs, list them with their test references
+- If zero findings, note that the refactored code passed adversarial audit
 
-If confirmed failures were found and fixed, and the fixes changed control flow in
-multi-construct operations, recommend a second audit round:
-```
-The audit found <n> bugs involving cross-construct interactions.
-Recommend another audit round to check for fix-induced regressions.
-  Type **yes** for another round · or: continue to PR
-```
-If "yes": re-run Step 4b (incrementally — only read changed files).
-If "continue" or no cross-construct bugs: proceed to Step 5.
+Proceed to Step 5.
 
 ---
 

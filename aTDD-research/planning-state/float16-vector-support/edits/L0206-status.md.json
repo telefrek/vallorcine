@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/status.md",
+  "old_string": "| Implementation | complete | 2026-03-13 | cycle 1 \u2014 all 21 tests passing |\n| Refactor | not-started | \u2014 | cycle 0 |",
+  "new_string": "| Implementation | complete | 2026-03-13 | cycle 1 \u2014 all 21 tests passing |\n| Refactor | complete | 2026-03-13 | cycle 1 \u2014 clean |",
+  "replace_all": false
+}

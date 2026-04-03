@@ -1,0 +1,6 @@
+{
+  "path": ".kb/CLAUDE.md",
+  "old_string": "## Topic Map\n\n| Topic | Path | Categories | Files | Last Updated |\n|-------|------|------------|-------|--------------|\n\n## Recently Added (last 10)\n| Date | Topic | Category | Subject |\n|------|-------|----------|---------|",
+  "new_string": "## Topic Map\n\n| Topic | Path | Categories | Files | Last Updated |\n|-------|------|------------|-------|--------------|\n| distributed-systems | [distributed-systems/](distributed-systems/CLAUDE.md) | 1 | 1 | 2026-03-16 |\n\n## Recently Added (last 10)\n| Date | Topic | Category | Subject |\n|------|-------|----------|---------|\n| 2026-03-16 | distributed-systems | data-partitioning | [partitioning-strategies](distributed-systems/data-partitioning/partitioning-strategies.md) |",
+  "replace_all": false
+}

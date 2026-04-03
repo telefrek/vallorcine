@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/status.md",
+  "old_string": "| Domains | not-started | \u2014 | |",
+  "new_string": "| Domains | in-progress | \u2014 | |",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldType.java",
+  "old_string": "public sealed interface FieldType permits FieldType.Primitive, FieldType.ArrayType,\n        FieldType.ObjectType, FieldType.VectorType {",
+  "new_string": "public sealed interface FieldType permits FieldType.Primitive, FieldType.ArrayType,\n        FieldType.ObjectType, FieldType.VectorType, FieldType.BoundedString {",
+  "replace_all": false
+}
