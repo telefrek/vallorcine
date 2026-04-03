@@ -20,76 +20,51 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-04-03*
+*Last updated: 2026-04-03 (evening)*
 
-**Audit pipeline validation + spec ecosystem hardening + jlsm release prep.**
+**Open question resolution + prove-fix cost optimization + jlsm release prep.**
 
-Two sessions (2026-04-02 and 2026-04-03) validated the combined prove-fix
-pipeline on float16-vector-support and block-compression, hardened the full
-aTDD pipeline with adversarial fixes, built the spec conflict detection
-and extraction system, and started the jlsm release prep (2-week push).
+Three sessions (2026-04-02, 2026-04-03 day, 2026-04-03 evening) validated the
+prove-fix pipeline on 3 features, resolved the high-priority open questions,
+and identified + fixed a major cost inefficiency in the prove-fix subagent.
 
-**What happened (2026-04-02):**
+**What happened (2026-04-02 and 2026-04-03 day):**
 
-- **Combined prove-fix model validated** — merged separate Prove + Fix stages
-  into single per-finding subagent. Tested on float16: 40 findings, 20 fixed,
-  10 impossible, $207 total (with fixes included). Serial execution prevents
-  fix conflicts and enables fix cascade deduplication (7 of 10 impossibles
-  were prior fixes resolving later findings).
+See previous session entries in SETTLED.md for: combined prove-fix model,
+release blockers, adversarial fixes, script audit, block-compression audit,
+impossible category analysis, concurrency lens, spec ecosystem, batch specs.
 
-- **All 5 release blockers cleared** — spec phase in /feature flow, /feature-test
-  consuming .spec/, /feature-audit using prove-fix, multi-language parity for
-  pipeline scripts (bash + Node), /feature-audit renamed to /audit.
+**What happened (2026-04-03 evening):**
 
-- **Pipeline hardened with 5 adversarial fixes** — spec-author prove/disprove
-  framing, architect falsification pass, KB confidence field, audit feedback
-  loop (reconcile-findings), feature-refactor delegation to /audit.
+- **Open questions resolved:**
+  - Spec-driven work planning → already implemented in `/spec` (discovery +
+    change impact modes). Graduated.
+  - Architect/decision hardening → 6 changes applied: scope verification
+    (Step 0.5), constraint falsification (Step 1b), inline score falsification
+    (scores >= 4 need "Would be a 2 if:"), prior ADR scores not evidence,
+    falsification subagent REQUIRED annotations, quality checklist converted
+    to write-and-justify narrative.
+  - Curate cross-reference repair → implemented: Analysis 11 in curate-scan.sh
+    (KB tag overlap, applies_to overlap, ADR eval→KB source gaps), Step 2i
+    in curate SKILL, pick list items 14-15, action handlers.
 
-- **Script audit** — ~55 fixes across 27 scripts (bash/Python/Node): atomic
-  writes, exit 0 guarantees, pipefail safety, empty array guards.
+- **Table-indices-and-queries audit data** — 68 findings: 38 fixed, 29
+  impossible, 1 fix_impossible. Real turn counts from JSONL: IMPOSSIBLE
+  findings averaged 35 turns each (1,155 total) vs CONFIRMED averaging
+  39.7 turns (1,748 total). 40% of total audit effort was waste.
 
-**What happened (2026-04-03):**
-
-- **Block-compression audit complete** — 77 findings, 28 fixed, 49 impossible,
-  $550. 6 lenses, 11 clusters. Found real bugs: footer overflow guards,
-  int truncation, codec validation, state machine hardening, resource safety.
-
-- **Impossible category analysis** — 48 impossibles broken down: 19 fix cascade
-  (40%), 4 single-threaded false positive (8%), 3 idempotent false positive (6%),
-  22 genuine (46%). True bug rate: 52.2% (excluding preventable impossibles).
-
-- **Concurrency lens false positive prevention** — card construction captures
-  thread_sharing evidence, Suspect has mandatory concurrency clearings,
-  domain pruning excludes single-threaded constructs from concurrency clusters.
-
-- **Test deduplication** — prove-fix checks existing test coverage before writing
-  new tests. Suspect can clear findings as "already tested."
-
-- **Spec conflict resolution flow** — audit report detects fix-spec conflicts,
-  orchestrator presents 3 options (keep fix + update spec, revert fix, defer).
-  Standalone resolve-spec-conflict prompt for manual resolution.
-
-- **Spec extraction mode** — bottom-up spec authoring from existing implementation.
-  Auto-discovers source files, consuming specs, and tests. Cross-references
-  consuming specs for CONTRADICTED, UNGUARANTEED, MISSING findings.
-
-- **[ABSENT] requirement promotion** — extraction mode surfaces behaviors the
-  code does NOT do. Users promote (becomes implementation work), preserve
-  (becomes negative requirement), or defer (curate resurfaces later).
-
-- **Curate spec awareness** — 4 new signal types: unspecified shared types,
-  open obligations, spec-code drift, undecided [ABSENT] requirements. Each
-  routes to the appropriate spec command.
-
-- **Batch spec authoring** — 10 jlsm features got hardened specs via automated
-  two-pass process. ~$3.40/spec.
+- **Phase 0 already-fixed check** — new mandatory pre-flight in prove-fix
+  subagent (max 3 turns). Reads current source before writing any test.
+  If the described vulnerability was already fixed by a prior finding in the
+  same run, short-circuits to IMPOSSIBLE without test writing. Expected
+  savings: ~900 turns (~30% of total audit cost) per feature.
 
 **Where things stand:**
-Audit pipeline is validated on 2 features with real cost data. Spec ecosystem
-is comprehensive: authoring, extraction, conflict detection, resolution,
-curate integration. jlsm has 11 specs covering all features. Block-compression
-has a spec conflict (eager snapshot vs F08 streaming) being resolved. Next
-audit will validate the concurrency lens fix and test dedup improvements.
+All high-priority open questions resolved. Architect pipeline hardened with
+research-backed adversarial patterns. Curate has cross-reference repair.
+Phase 0 installed in jlsm — next test: F08-streaming-block-decompression
+(same domain as block-compression, ideal cascade test). Table-indices audit
+completing test cleanup phase.
 
 ---
 
@@ -138,6 +113,16 @@ audit will validate the concurrency lens fix and test dedup improvements.
   update spec, revert fix + mark FIX_IMPOSSIBLE, split (keep fix + add new
   requirement that invalidates old). Fourth option: defer with [UNRESOLVED].
 
+- **Architect adversarial hardening** (2026-04-03) — 6 changes from aTDD
+  research: scope verification, constraint falsification, inline score
+  falsification, prior-scores-not-evidence, REQUIRED annotations, write-and-
+  justify checklist. Each change maps to a specific research finding.
+
+- **Phase 0 already-fixed check** (2026-04-03) — mandatory pre-flight in
+  prove-fix subagent. Reads current source before test writing. Short-circuits
+  cascade impossibles in 3 turns instead of 35. Evidence: 33 IMPOSSIBLE
+  findings in table-indices audit averaged 35 turns each.
+
 ---
 
 ## Open questions
@@ -147,32 +132,20 @@ audit will validate the concurrency lens fix and test dedup improvements.
 
 ### Do next (high priority, clear direction)
 
-- **Spec-driven work planning** — two capabilities: (1) free-text search across
-  all specs to find applicable requirements for a problem description,
-  (2) spec-change-driven planning where the planner traces downstream impact
-  of requirement changes (tests, implementations, dependent specs). Entry
-  point: `/spec-plan` or extension of `/spec-author`.
-
-- **Validate concurrency lens fix** — run an audit on a concurrency-heavy
-  feature (striped-block-cache) with updated prompts. Verify single-threaded
-  false positives are eliminated and test dedup reduces cascade impossibles.
-
-- **JlsmSchema spec extraction** — running now. Will test the extraction mode
-  on the highest-fanout type (6 consuming specs). Results inform whether
-  extraction mode scales.
-
-### Do soon (medium effort, clear designs)
-
-- **Architect/decision hardening** — apply adversarial authoring to the decision
-  deliberation layer. Falsification pass added (Step 6) but not yet tested
-  on real ADRs.
-
-- **/curate cross-reference repair** — signal type that discovers missing
-  `related`/`decision_refs` in existing KB entries via tag overlap.
+- **Validate Phase 0 on F08-streaming-block-decompression** — first real test
+  of the already-fixed check. Same domain as block-compression (28 prior fixes).
+  Measure: how many findings short-circuit at Phase 0, turn savings vs baseline.
 
 - **Concurrency lens false positive rate tracking** — need multi-codebase data
   to confirm thread_sharing field eliminates false positives. Block-compression
   data shows 54% preventable impossibles.
+
+### Do soon (medium effort, clear designs)
+
+- **Test architect hardening on a real ADR** — the 6 hardening changes are
+  in the prompt but untested on a real decision session. Next `/architect`
+  invocation will exercise scope verification, constraint falsification, and
+  inline score falsification.
 
 ### Do when needed (useful but workarounds exist)
 
