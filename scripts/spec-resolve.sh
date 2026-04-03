@@ -67,6 +67,7 @@ echo "[resolve] Domains matched: ${MATCHED_DOMAINS[*]}" >&2
 
 # ── Step 2: Collect candidate spec files via registry ────────────────────────
 CANDIDATE_FILES=()
+CONFLICT_OMITTED=()
 mapfile -t ALL_FEATURE_IDS < <(jq -r '.features | keys[]' "$MANIFEST")
 
 for fid in "${ALL_FEATURE_IDS[@]}"; do
@@ -89,11 +90,27 @@ for fid in "${ALL_FEATURE_IDS[@]}"; do
 
   spec_check_crlf "$spec_file" 2>/dev/null || continue
 
-  # Only include APPROVED or ACTIVE states
+  # Only include APPROVED or ACTIVE states; DRAFT only if no unresolved conflicts
   state=$(fm "$spec_file" '.state // "UNKNOWN"')
   status=$(fm "$spec_file" '.status // "UNKNOWN"')
   if [[ "$state" == "APPROVED" || "$status" == "ACTIVE" ]]; then
     CANDIDATE_FILES+=("$spec_file")
+  elif [[ "$state" == "DRAFT" ]]; then
+    # Check for unresolved conflict markers before including a DRAFT spec
+    has_conflicts=false
+    if grep -qE '\[UNRESOLVED\]' "$spec_file" 2>/dev/null; then
+      has_conflicts=true
+    elif grep -qE '\[CONFLICT\]' "$spec_file" 2>/dev/null; then
+      has_conflicts=true
+    elif [[ "$(fm "$spec_file" '.open_obligations | length // 0')" != "0" ]]; then
+      has_conflicts=true
+    fi
+    if [[ "$has_conflicts" == "true" ]]; then
+      CONFLICT_OMITTED+=("$fid")
+      echo "[resolve] Excluding $fid — DRAFT with unresolved conflicts" >&2
+    else
+      CANDIDATE_FILES+=("$spec_file")
+    fi
   fi
 done
 
@@ -175,12 +192,103 @@ for f in "${ALL_FILES[@]+"${ALL_FILES[@]}"}"; do
   done < <(fm "$f" '.kb_refs // [] | .[]')
 done
 
+# ── Step 7b: Conflict detection ─────────────────────────────────────────────
+# Check for invalidates cross-references and overlapping requirement subjects
+# between included specs. Structural checks only — no semantic analysis.
+
+CONFLICTS=""
+
+# Build a map of included spec IDs for fast lookup
+declare -A INCLUDED_IDS
+for f in "${ALL_FILES[@]+"${ALL_FILES[@]}"}"; do
+  sid=$(fm "$f" '.id')
+  [[ -n "$sid" ]] && INCLUDED_IDS["$sid"]=1
+done
+
+# Check 1: invalidates cross-references within the bundle
+for f in "${ALL_FILES[@]+"${ALL_FILES[@]}"}"; do
+  src_id=$(fm "$f" '.id')
+  while IFS= read -r inv_ref; do
+    [[ -z "$inv_ref" ]] && continue
+    # Extract the feature ID from FXX.RN format
+    target_fid=$(echo "$inv_ref" | grep -oE '^F[0-9]+' || true)
+    [[ -z "$target_fid" ]] && continue
+    if [[ -n "${INCLUDED_IDS[$target_fid]+x}" ]]; then
+      CONFLICTS+="INVALIDATES: $src_id invalidates $inv_ref, but $target_fid is also in this bundle"$'\n'
+    fi
+  done < <(fm "$f" '.invalidates // [] | .[]')
+done
+
+# Check 2: overlapping requirement subjects with contradictory language
+# Extract requirement lines from each spec and look for same-subject contradictions
+declare -A REQ_SUBJECTS  # key=subject_token, value="SPEC_ID.REQ_LINE"
+
+for f in "${ALL_FILES[@]+"${ALL_FILES[@]}"}"; do
+  src_id=$(fm "$f" '.id')
+  while IFS= read -r req_line; do
+    [[ -z "$req_line" ]] && continue
+    # Extract requirement ID (e.g., R1, R56)
+    req_id=$(echo "$req_line" | grep -oE '^R[0-9]+' || true)
+    [[ -z "$req_id" ]] && continue
+    req_lower=$(echo "$req_line" | tr '[:upper:]' '[:lower:]')
+
+    # Extract subject tokens: words that look like type/construct names (CamelCase or snake_case)
+    subject_tokens=$(echo "$req_line" | grep -oE '[A-Z][a-zA-Z0-9]+|[a-z_][a-z_0-9]+' | sort -u)
+    for token in $subject_tokens; do
+      # Skip common English words and short tokens
+      [[ ${#token} -lt 4 ]] && continue
+      case "$token" in
+        must|should|shall|will|when|then|that|this|with|from|into|each|have|does|been|also|only) continue ;;
+      esac
+
+      if [[ -n "${REQ_SUBJECTS[$token]+x}" ]]; then
+        prev="${REQ_SUBJECTS[$token]}"
+        prev_id="${prev%%|*}"
+        prev_line="${prev#*|}"
+        # Only flag if from different specs
+        prev_spec=$(echo "$prev_id" | grep -oE '^F[0-9]+' || true)
+        [[ "$prev_spec" == "$src_id" ]] && continue
+
+        prev_lower=$(echo "$prev_line" | tr '[:upper:]' '[:lower:]')
+        # Check for contradictory language patterns
+        contradiction=false
+        for pair in "must reject:must accept" "must accept:must reject" \
+                    "must be null:must not be null" "must not be null:must be null" \
+                    "must throw:must not throw" "must not throw:must throw" \
+                    "must fail:must succeed" "must succeed:must fail" \
+                    "must ignore:must require" "must require:must ignore" \
+                    "is immutable:is mutable" "is mutable:is immutable" \
+                    "must return null:must not return null" "must not return null:must return null" \
+                    "must be empty:must not be empty" "must not be empty:must be empty"; do
+          pat_a="${pair%%:*}"
+          pat_b="${pair#*:}"
+          if echo "$req_lower" | grep -q "$pat_a" && echo "$prev_lower" | grep -q "$pat_b"; then
+            contradiction=true
+            break
+          fi
+        done
+
+        if [[ "$contradiction" == "true" ]]; then
+          CONFLICTS+="CONFLICT: $prev_id references $token; $src_id.$req_id also references $token with different semantics"$'\n'
+        fi
+      else
+        REQ_SUBJECTS["$token"]="$src_id.$req_id|$req_line"
+      fi
+    done
+  done < <(machine_section "$f" | grep -E '^R[0-9]+\.')
+done
+
 # ── Step 8: Emit bundle ─────────────────────────────────────────────────────
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 if [[ ${#OMITTED[@]} -gt 0 ]]; then
     OMITTED_STR="${OMITTED[*]}"
 else
     OMITTED_STR="none"
+fi
+if [[ ${#CONFLICT_OMITTED[@]} -gt 0 ]]; then
+    CONFLICT_OMITTED_STR="${CONFLICT_OMITTED[*]}"
+else
+    CONFLICT_OMITTED_STR="none"
 fi
 
 cat <<EOF
@@ -190,6 +298,7 @@ Feature request: $FEATURE_DESC
 Domains matched: ${MATCHED_DOMAINS[*]}
 Token budget: $TOKEN_BUDGET | Tokens used: ~$RUNNING_TOKENS
 Omitted (budget): $OMITTED_STR
+Omitted (DRAFT with unresolved conflicts): $CONFLICT_OMITTED_STR
 
 ## Open Obligations (must be addressed in this feature)
 ${OBLIGATIONS:-none}
@@ -200,5 +309,15 @@ $(if [[ ${#BUNDLE_PARTS[@]} -gt 0 ]]; then printf '%s\n\n---\n\n' "${BUNDLE_PART
 ## Cross-References
 ${CROSS_REFS:-none}
 EOF
+
+# Emit conflicts section only if conflicts were found
+if [[ -n "$CONFLICTS" ]]; then
+  echo ""
+  echo "## Conflicts"
+  echo ""
+  echo -n "$CONFLICTS"
+  conflict_count=$(echo -n "$CONFLICTS" | grep -c '.')
+  echo "[resolve] WARNING: $conflict_count conflict(s) detected in bundle" >&2
+fi
 
 echo "[resolve] Done. ~$RUNNING_TOKENS tokens across ${#BUNDLE_PARTS[@]} specs." >&2

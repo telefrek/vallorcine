@@ -147,6 +147,29 @@ Read in order:
    If spec infrastructure does not exist, or the resolver returns no specs for
    this feature's domains, proceed as before — derive contracts from the brief
    and ADRs.
+
+   **Conflict gate:** After loading the resolved bundle, check if it contains
+   a `## Conflicts` section. If it does:
+
+   Display:
+   ```
+   ⚠️  Spec conflicts detected in resolved bundle:
+     <list each CONFLICT and INVALIDATES line from the section>
+
+   These must be resolved before planning can proceed.
+   Options: resolve via /spec-author, or type **override** to acknowledge and continue.
+   ```
+
+   Wait for user input:
+   - If the user runs /spec-author: stop and let them resolve.
+   - If the user types "override": proceed with planning, but record the
+     conflicts in work-plan.md under a `## Open Risks` section:
+     ```markdown
+     ## Open Risks
+     - Spec conflict override: <each conflict line>
+     ```
+     These are carried forward as open risks in the work plan.
+
 8. Read project coding conventions: `CONTRIBUTING.md`, `.claude/rules/`,
    and any language-specific style guides. These constrain the design space
    for construct shapes.

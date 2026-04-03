@@ -299,6 +299,22 @@ rules, architectural constraints, testing conventions, coding standards.
 
 ### Lens A — Requirement operationalization / Contract gaps
 
+**Conflict pre-check:** Before operationalizing requirements, check if
+SPEC_BUNDLE contains a `## Conflicts` section. If it does, extract all
+CONFLICT and INVALIDATES lines. For each conflicting requirement pair
+(e.g., F03.R8 and F07.R56), mark both requirements as:
+
+```
+UNTESTABLE: spec conflict — requirements <R_X> and <R_Y> contradict
+```
+
+Do NOT write tests for these requirements. Contradictory specs would produce
+contradictory tests — one asserting "must accept" while another asserts
+"must reject" for the same behavior. Include the UNTESTABLE entries in the
+test plan's defensive section so the conflict is visible but not acted upon.
+
+Proceed with operationalizing all non-conflicting requirements as normal.
+
 **If SPEC_BUNDLE is non-empty (hardened specs available):**
 
 The bundle contains behavioral requirements (R1, R2, ...) from hardened specs.
@@ -541,6 +557,43 @@ Read the most recent `code-escalation` entry from cycle-log.md. Extract:
 - The escalation count (N of 3)
 
 Read the test file and the relevant contract section from work-plan.md.
+
+### Step E1a — Check for spec conflict
+
+If the escalation entry's conflict description contains "SPEC CONFLICT" or
+the substage in status.md is `spec-conflict-detected`, this is a requirement
+contradiction — not a test or contract problem.
+
+**Do NOT rewrite the test.** Instead:
+
+1. Mark both the passing and failing tests as BLOCKED in cycle-log.md:
+   ```markdown
+   ## <YYYY-MM-DD> — tests-blocked-spec-conflict
+   **Agent:** 🧪 Test Writer
+   **Cycle:** <n>
+   **Blocked tests:** `<passing test>`, `<failing test>`
+   **Reason:** Contradictory spec requirements — <R_N> vs <R_N>
+   **Resolution:** Requires /spec-author to reconcile conflicting requirements
+   ---
+   ```
+
+2. Display:
+   ```
+   🧪 TEST WRITER · spec conflict · <slug>
+   ───────────────────────────────────────────────
+   This escalation is a spec conflict, not a test or contract problem.
+   Both tests are correct given their respective requirements — the
+   requirements themselves contradict each other.
+
+   Blocked tests:
+     - <passing test> (covers: <R_N>)
+     - <failing test> (covers: <R_N>)
+
+   Run /spec-author to resolve the conflicting requirements, then
+   re-run /feature-test "<slug>" to unblock.
+   ```
+
+3. Stop. Do not proceed to Step E2.
 
 ### Step E2 — Diagnose
 

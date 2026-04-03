@@ -196,6 +196,22 @@ R2. ...
   inputs and outputs, not by reading source code. Never reference specific
   class names, method names, file paths, or call chains.
 
+**State assignment rules:**
+
+The `state` field determines whether a spec enters resolved context bundles
+consumed by downstream pipeline stages (feature-plan, feature-test, etc.).
+
+- If all requirements are verified and no conflicts remain from the
+  arbitration phase: set `state: "APPROVED"`
+- If any conflict was deferred, dropped, or left unresolved during
+  arbitration: set `state: "DRAFT"` and add each unresolved conflict to
+  `open_obligations` — for example:
+  `"open_obligations": ["resolve conflict between R3 and F02.R1"]`
+- A DRAFT spec with `open_obligations` entries or `[UNRESOLVED]`/`[CONFLICT]`
+  markers in its requirements is **excluded from resolved bundles**. It will
+  not be consumed by downstream stages until the conflicts are resolved and
+  the state is changed to APPROVED.
+
 ---
 
 ## Step 8 — Normalize and validate
@@ -287,3 +303,5 @@ Next: run /spec-verify <feature-id> after implementation review
 - Requirements must be numbered R1, R2, R3 — never lettered or nested
 - If invalidates references cannot be confirmed against context bundle,
   leave the array empty and note it in open_obligations
+- Never set state to APPROVED if unresolved conflicts exist — use DRAFT with
+  open_obligations entries so the spec is excluded from resolved bundles
