@@ -2766,7 +2766,8 @@ def _render_phase_breakdown(story: Story) -> str:
         count_str = f'{a["count"]}' if a["count"] > 1 else "1"
 
         parts.append(
-            f'<tr><td style="color:{color}">{_esc(title)}</td>'
+            f'<tr><td><a href="#stage-{_esc(stage)}" style="color:{color}">'
+            f'{_esc(title)}</a></td>'
             f'<td style="text-align:center">{count_str}</td>'
             f'<td>{_esc(dur)}</td><td>{_esc(inp)}</td><td>{_esc(out)}</td>'
             f'<td>{_esc(cost)}</td><td>{pct:.0f}%</td></tr>'
