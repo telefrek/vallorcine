@@ -468,6 +468,82 @@ def _find_all_audited_features(base_dir: str = ".") -> list[str]:
     return features
 
 
+def _estimate_cost_from_sessions(run_dir: str, feature_slug: str) -> float:
+    """Estimate total API cost from JSONL session subagent logs.
+
+    Finds the audit session by looking for the session whose subagents
+    reference prove-fix files for this specific feature. Uses the feature
+    slug in prove-fix file paths as the discriminator.
+    Returns cost in dollars, or 0.0 if no session data found.
+    """
+    try:
+        import json as _json
+
+        project_dir = os.getcwd()
+        project_id = project_dir.lstrip("/").replace("/", "-")
+        session_base = Path.home() / ".claude" / "projects" / f"-{project_id}"
+        if not session_base.is_dir():
+            return 0.0
+
+        # The prove-fix files reference the feature slug in their paths
+        # e.g., ".feature/block-compression/audit/run-001/prove-fix-F-R1-cb-2-1.md"
+        # Find the session whose subagents write to this feature's audit dir
+        pf_path_marker = f".feature/{feature_slug}/audit/"
+
+        best_session = None
+        best_count = 0
+
+        for session_dir in session_base.iterdir():
+            subagent_dir = session_dir / "subagents"
+            if not subagent_dir.is_dir():
+                continue
+            subagent_count = len(list(subagent_dir.glob("*.jsonl")))
+            if subagent_count < 5:  # audit sessions have many subagents
+                continue
+
+            # Check first few subagent files for our feature's prove-fix paths
+            matches = 0
+            for jsonl_file in list(subagent_dir.glob("*.jsonl"))[:3]:
+                try:
+                    with open(jsonl_file) as f:
+                        chunk = f.read(5000)
+                    if pf_path_marker in chunk:
+                        matches += 1
+                except OSError:
+                    continue
+
+            if matches > 0 and subagent_count > best_count:
+                best_session = subagent_dir
+                best_count = subagent_count
+
+        if not best_session:
+            return 0.0
+
+        # Sum costs across all subagents in the matched session
+        total_cost = 0.0
+        for jsonl_file in best_session.glob("*.jsonl"):
+            try:
+                with open(jsonl_file) as f:
+                    for line in f:
+                        if '"usage"' not in line:
+                            continue
+                        try:
+                            obj = _json.loads(line)
+                            usage = obj.get("message", {}).get("usage", {})
+                            if usage:
+                                total_cost += usage.get("input_tokens", 0) * 15 / 1e6
+                                total_cost += usage.get("cache_creation_input_tokens", 0) * 18.75 / 1e6
+                                total_cost += usage.get("cache_read_input_tokens", 0) * 1.5 / 1e6
+                                total_cost += usage.get("output_tokens", 0) * 75 / 1e6
+                        except (_json.JSONDecodeError, KeyError):
+                            pass
+            except OSError:
+                continue
+        return total_cost
+    except Exception:
+        return 0.0
+
+
 def build_audit_story(run_dir: str, feature_slug: str = "") -> Story:
     """Build a Story AST from audit run data.
 
@@ -494,27 +570,59 @@ def build_audit_story(run_dir: str, feature_slug: str = "") -> Story:
         if pf_data and pf_data.get("finding_id"):
             prove_fixes[pf_data["finding_id"]] = pf_data
 
+    # Lens abbreviation map (finding ID contains abbreviated lens name)
+    lens_map = {
+        "dt": "data_transformation",
+        "ss": "shared_state",
+        "ct": "contracts",
+        "cb": "contract_boundaries",
+        "lc": "lifecycle",
+        "rl": "resource_lifecycle",
+        "rs": "resource",
+        "cc": "concurrency",
+        "conc": "concurrency",
+        "er": "error_handling",
+        "bd": "boundary",
+    }
+
+    def _extract_lens(finding_id: str) -> str:
+        """Extract full lens name from finding ID like F-R1.cb.2.1."""
+        parts = finding_id.replace("F-R", "").split(".")
+        if len(parts) >= 2:
+            abbrev = parts[1]
+            return lens_map.get(abbrev, abbrev)
+        return ""
+
     # Build finding nodes for confirmed/fixed bugs.
     # The report's bugs_fixed section is the authoritative list of fixed bugs,
     # even when a prove-fix has a non-standard result (e.g. FIX_IMPOSSIBLE
     # with spec conflict resolved via alternative approach).
     finding_nodes = []
     bugs_fixed_ids = set()
+    all_lenses = set()
     for bug in report.get("bugs_fixed", []):
         fid = bug.get("finding_id", "")
         bugs_fixed_ids.add(fid)
         pf = prove_fixes.get(fid, {})
+        lens = _extract_lens(fid)
+        if lens:
+            all_lenses.add(lens)
         node = Node(
             node_type=NodeType.AUDIT_FINDING,
             data={
                 "finding_id": fid,
                 "title": bug.get("title", ""),
+                "status": "CONFIRMED_AND_FIXED",
                 "construct": bug.get("construct", ""),
                 "concern": bug.get("concern", ""),
+                "lens": lens,
                 "fix_summary": bug.get("fix", ""),
+                "fix_description": bug.get("fix", ""),
+                "fix": bug.get("fix", ""),
                 "spec": bug.get("spec", ""),
                 "result": pf.get("result", "CONFIRMED_AND_FIXED"),
                 "report_section": "bugs_fixed",
+                "phase0": pf.get("phase0", {}).get("result") == "ALREADY_FIXED" if isinstance(pf.get("phase0"), dict) else False,
                 "phase1": pf.get("phase1"),
                 "phase2": pf.get("phase2"),
             },
@@ -523,20 +631,34 @@ def build_audit_story(run_dir: str, feature_slug: str = "") -> Story:
         finding_nodes.append(node)
 
     # Build finding nodes for impossible/removed tests
-    # These are tracked via prove-fix files with IMPOSSIBLE result
     for fid, pf in prove_fixes.items():
         if pf.get("result") in ("IMPOSSIBLE", "FIX_IMPOSSIBLE"):
-            # Check it wasn't already included in bugs_fixed
             if any(f.data.get("finding_id") == fid for f in finding_nodes):
                 continue
+            lens = _extract_lens(fid)
+            if lens:
+                all_lenses.add(lens)
+            # Try to get title from removed_tests in report
+            title = ""
+            reason = ""
+            for rt in report.get("removed_tests", []):
+                if rt.get("finding_id") == fid:
+                    title = rt.get("title", "")
+                    reason = rt.get("reasoning", "")
+                    break
             node = Node(
                 node_type=NodeType.AUDIT_FINDING,
                 data={
                     "finding_id": fid,
-                    "title": "",
+                    "title": title,
+                    "status": pf["result"],
                     "result": pf["result"],
+                    "lens": lens,
+                    "report_section": "removed_tests",
+                    "phase0": pf.get("phase0", {}).get("result") == "ALREADY_FIXED" if isinstance(pf.get("phase0"), dict) else False,
                     "phase1": pf.get("phase1"),
                     "impossibility": pf.get("impossibility"),
+                    "impossibility_reason": reason or (pf.get("impossibility", {}).get("structural_reason", "") if isinstance(pf.get("impossibility"), dict) else ""),
                 },
                 interesting=False,
             )
@@ -575,14 +697,34 @@ def build_audit_story(run_dir: str, feature_slug: str = "") -> Story:
         if n.data.get("report_section") != "bugs_fixed"
     )
 
+    # Extract constructs/clusters/lenses from scope line
+    scope_text = report.get("scope", "")
+    constructs_count = 0
+    clusters_count = 0
+    scope_match = re.search(r"(\d+)\s*constructs?", scope_text)
+    if scope_match:
+        constructs_count = int(scope_match.group(1))
+    cluster_match = re.search(r"(\d+)\s*clusters?", scope_text)
+    if cluster_match:
+        clusters_count = int(cluster_match.group(1))
+
+    # Try to get cost from JSONL session data
+    cost_estimate = _estimate_cost_from_sessions(run_dir, feature_slug)
+
     cycle_data = {
         "round": report.get("round", "1"),
-        "scope": report.get("scope", ""),
+        "scope": scope_text,
         "confirmed_count": confirmed_count,
         "impossible_count": impossible_count,
         "total_findings": confirmed_count + impossible_count,
         "cross_domain_count": len(xd_nodes),
+        "lenses": sorted(all_lenses),
+        "constructs": constructs_count,
+        "clusters": clusters_count,
+        "cost_estimate": f"{cost_estimate:.2f}" if cost_estimate else "unknown",
     }
+    if confirmed_count > 0 and cost_estimate:
+        cycle_data["cost_per_bug"] = f"{cost_estimate / confirmed_count:.2f}"
 
     # Add pipeline summary if present
     if report.get("pipeline_summary"):
