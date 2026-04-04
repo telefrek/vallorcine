@@ -637,27 +637,68 @@ def build_audit_story(run_dir: str, feature_slug: str = "") -> Story:
     return story
 
 
-def merge_feature_audit(feature_dir: str) -> Story:
-    """Build a combined Story from feature data + audit data.
+def _find_feature_ast(feature_dir: str) -> "Story | None":
+    """Search for a feature story AST in multiple locations.
 
-    If a .narrative-ast.json or story-ast.json exists for the feature,
-    load it and append audit phases. Otherwise build audit-only story
-    from all available run directories.
+    Checks: the feature dir itself, the archive dir, and attempts
+    on-demand generation from JSONL sessions if no AST exists.
     """
     feature_path = Path(feature_dir)
     feature_slug = feature_path.name
 
-    # Try to load existing feature story AST
-    feature_story = None
-    for ast_name in (".narrative-ast.json", "story-ast.json"):
-        ast_path = feature_path / ast_name
-        if ast_path.is_file():
-            try:
-                feature_story = Story.load(str(ast_path))
-                break
-            except (OSError, KeyError, ValueError) as e:
-                print(f"narrative-audit: failed to load {ast_path}: {e}",
+    # Search paths: active feature dir, archive dir
+    search_dirs = [feature_path]
+    archive_path = feature_path.parent / "_archive" / feature_slug
+    if archive_path.is_dir():
+        search_dirs.append(archive_path)
+
+    for search_dir in search_dirs:
+        for ast_name in (".narrative-ast.json", "story-ast.json"):
+            ast_path = search_dir / ast_name
+            if ast_path.is_file():
+                try:
+                    return Story.load(str(ast_path))
+                except (OSError, KeyError, ValueError) as e:
+                    print(f"narrative-audit: failed to load {ast_path}: {e}",
+                          file=sys.stderr)
+
+    # No pre-built AST — try to generate one from JSONL sessions
+    try:
+        script_dir = str(Path(__file__).resolve().parent)
+        if script_dir not in sys.path:
+            sys.path.insert(0, script_dir)
+        from generate import generate, _find_projects_dir
+
+        projects_dir = _find_projects_dir()
+        if projects_dir:
+            # Try active feature dir first, then archive
+            for target_dir in search_dirs:
+                print(f"narrative-audit: generating feature AST for {feature_slug}...",
                       file=sys.stderr)
+                success = generate(feature_slug, str(target_dir))
+                if success:
+                    # generate() now preserves .narrative-ast.json
+                    ast_path = target_dir / ".narrative-ast.json"
+                    if ast_path.is_file():
+                        return Story.load(str(ast_path))
+    except Exception as e:
+        print(f"narrative-audit: on-demand feature generation failed: {e}",
+              file=sys.stderr)
+
+    return None
+
+
+def merge_feature_audit(feature_dir: str) -> Story:
+    """Build a combined Story from feature data + audit data.
+
+    Searches for a feature AST (active dir, archive, or generates on-demand),
+    then appends audit phases. Falls back to audit-only if no feature data.
+    """
+    feature_path = Path(feature_dir)
+    feature_slug = feature_path.name
+
+    # Try to find or generate feature story
+    feature_story = _find_feature_ast(feature_dir)
 
     # Build audit stories from all runs
     run_dirs = _find_run_dirs(feature_dir)
@@ -691,8 +732,8 @@ def merge_feature_audit(feature_dir: str) -> Story:
 def _try_render_html(story: Story) -> str:
     """Try to use render_html module if available, fall back to built-in."""
     try:
-        from render_html import render_story_html
-        return render_story_html(story)
+        from render_html import render_story
+        return render_story(story)
     except ImportError:
         pass
     # Built-in minimal HTML rendering for audit stories
