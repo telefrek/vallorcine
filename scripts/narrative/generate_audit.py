@@ -793,76 +793,217 @@ def _render_phase_html(phase: Node) -> str:
 
 
 def _render_audit_cycle_html(cycle: Node) -> str:
-    """Render an AUDIT_CYCLE node to HTML."""
+    """Render an AUDIT_CYCLE node to HTML.
+
+    Layout priority (front-loaded):
+    1. Executive summary: cost, fix rate, critical findings, follow-ups
+    2. Domain lenses and timing breakdown
+    3. Cluster visualization with bug counts
+    4. Detailed findings (collapsed by default)
+    """
     parts = []
     data = cycle.data
     parts.append('<div class="audit-cycle">')
 
-    # Summary cards
-    parts.append('<div class="summary-cards">')
-    parts.append(_summary_card("Scope", data.get("scope", ""), "scope"))
-    parts.append(_summary_card(
-        "Findings",
-        f'{data.get("confirmed_count", 0)} fixed / '
-        f'{data.get("impossible_count", 0)} impossible / '
-        f'{data.get("total_findings", 0)} total',
-        "findings",
-    ))
-    if data.get("cross_domain_count"):
-        parts.append(_summary_card(
-            "Cross-Domain",
-            f'{data["cross_domain_count"]} compositions found',
-            "cross-domain",
-        ))
-    parts.append("</div>")
-
-    # Pipeline summary table
-    pipeline = data.get("pipeline_summary", [])
-    if pipeline:
-        parts.append('<h3>Pipeline Summary</h3>')
-        parts.append(_render_table_html(pipeline))
-
-    # Confirmed findings (from bugs_fixed section of the report)
+    # Classify findings
     confirmed = [c for c in cycle.children
                  if c.node_type == NodeType.AUDIT_FINDING
                  and not c.data.get("cross_domain")
                  and c.data.get("report_section") == "bugs_fixed"]
-    if confirmed:
-        parts.append(f'<h3>Bugs Fixed ({len(confirmed)})</h3>')
-        for finding in confirmed:
-            parts.append(_render_finding_html(finding))
-
-    # Cross-domain findings
-    xd_findings = [c for c in cycle.children
-                   if c.data.get("cross_domain")]
-    if xd_findings:
-        parts.append(f'<h3>Cross-Domain Findings ({len(xd_findings)})</h3>')
-        for finding in xd_findings:
-            parts.append(_render_xd_finding_html(finding))
-
-    # Impossible findings (collapsed) — everything not in bugs_fixed and not cross-domain
     impossible = [c for c in cycle.children
                   if c.node_type == NodeType.AUDIT_FINDING
                   and not c.data.get("cross_domain")
                   and c.data.get("report_section") != "bugs_fixed"]
+    xd_findings = [c for c in cycle.children
+                   if c.data.get("cross_domain")]
+
+    total = data.get("total_findings", len(confirmed) + len(impossible))
+    fix_rate = f"{len(confirmed) / total * 100:.0f}%" if total else "N/A"
+
+    # ── Section 1: Executive Summary ─────────────────────────────────
+    parts.append('<div class="executive-summary">')
+    parts.append('<h3>Executive Summary</h3>')
+
+    # Cost + metrics cards row
+    parts.append('<div class="summary-cards">')
+    parts.append(_summary_card(
+        "Cost",
+        f"${data.get('cost_estimate', 'unknown')}",
+        "cost",
+    ))
+    parts.append(_summary_card(
+        "Bugs Fixed",
+        f"{len(confirmed)} of {total} findings ({fix_rate})",
+        "findings",
+    ))
+    parts.append(_summary_card(
+        "Scope",
+        f"{data.get('constructs', '?')} constructs, "
+        f"{data.get('clusters', '?')} clusters",
+        "scope",
+    ))
+    if xd_findings:
+        parts.append(_summary_card(
+            "Cross-Domain",
+            f'{len(xd_findings)} compositions',
+            "cross-domain",
+        ))
+    parts.append("</div>")
+
+    # Critical findings brief (top 5 most important fixes, one line each)
+    if confirmed:
+        parts.append('<div class="critical-brief">')
+        parts.append(f'<h4>Key Fixes ({len(confirmed)} total)</h4>')
+        parts.append('<ul class="brief-list">')
+        for finding in confirmed[:8]:
+            d = finding.data
+            fid = d.get("finding_id", "")
+            title = d.get("title", "")
+            lens = d.get("lens", "")
+            lens_html = f' <span class="lens-tag lens-{_esc(lens)}">{_esc(lens)}</span>' if lens else ""
+            parts.append(f'<li><strong>{_esc(fid)}</strong>: {_esc(title)}{lens_html}</li>')
+        if len(confirmed) > 8:
+            parts.append(f'<li class="more">...and {len(confirmed) - 8} more (expand below)</li>')
+        parts.append('</ul>')
+        parts.append('</div>')
+
+    # Follow-up items
+    follow_ups = []
+    if data.get("spec_updates_count"):
+        follow_ups.append(f'{data["spec_updates_count"]} spec updates suggested')
+    if data.get("kb_patterns_count"):
+        follow_ups.append(f'{data["kb_patterns_count"]} KB patterns found')
+    if data.get("fix_impossible_count"):
+        follow_ups.append(f'{data["fix_impossible_count"]} fixes need test relaxation')
+    if follow_ups:
+        parts.append('<div class="follow-ups">')
+        parts.append('<h4>Follow-up Items</h4>')
+        parts.append('<ul class="brief-list">')
+        for item in follow_ups:
+            parts.append(f'<li>{_esc(item)}</li>')
+        parts.append('</ul>')
+        parts.append('</div>')
+
+    parts.append('</div>')  # executive-summary
+
+    # ── Section 2: Domain Lenses + Timing ────────────────────────────
+    lenses = data.get("lenses", [])
+    if lenses:
+        parts.append('<div class="domain-timing">')
+        parts.append('<h3>Domain Coverage</h3>')
+
+        # Lens tags with finding counts
+        parts.append('<div class="lens-tags">')
+        # Count findings per lens
+        lens_counts = {}
+        lens_fixed = {}
+        for c in cycle.children:
+            if c.node_type == NodeType.AUDIT_FINDING:
+                l = c.data.get("lens", "unknown")
+                lens_counts[l] = lens_counts.get(l, 0) + 1
+                if c.data.get("report_section") == "bugs_fixed":
+                    lens_fixed[l] = lens_fixed.get(l, 0) + 1
+        for lens in lenses:
+            count = lens_counts.get(lens, 0)
+            fixed = lens_fixed.get(lens, 0)
+            parts.append(
+                f'<span class="lens-tag lens-{_esc(lens)}">'
+                f'{_esc(lens)} '
+                f'<span class="lens-count">{fixed}/{count}</span>'
+                f'</span>'
+            )
+        parts.append('</div>')
+
+        # Timing breakdown from pipeline summary
+        pipeline = data.get("pipeline_summary", [])
+        if pipeline:
+            parts.append('<div class="timing-bar">')
+            for stage in pipeline:
+                stage_name = stage.get("Stage", stage.get("stage", ""))
+                if stage_name:
+                    parts.append(
+                        f'<span class="timing-stage">'
+                        f'{_esc(stage_name)}'
+                        f'</span>'
+                    )
+            parts.append('</div>')
+
+        parts.append('</div>')
+
+    # ── Section 3: Cluster Bug Counts ────────────────────────────────
+    # Group findings by cluster
+    cluster_bugs = {}
+    cluster_total = {}
+    for c in cycle.children:
+        if c.node_type != NodeType.AUDIT_FINDING:
+            continue
+        fid = c.data.get("finding_id", "")
+        # Extract cluster from finding ID: F-R1.lens.cluster.seq
+        id_parts = fid.replace("F-R", "").split(".")
+        if len(id_parts) >= 3:
+            cluster_key = f"{id_parts[1]}.{id_parts[2]}"
+        else:
+            cluster_key = "other"
+        cluster_total[cluster_key] = cluster_total.get(cluster_key, 0) + 1
+        if c.data.get("report_section") == "bugs_fixed":
+            cluster_bugs[cluster_key] = cluster_bugs.get(cluster_key, 0) + 1
+
+    if cluster_total:
+        parts.append('<div class="cluster-summary">')
+        parts.append('<h3>Clusters</h3>')
+        parts.append('<div class="cluster-grid">')
+        for cluster in sorted(cluster_total.keys()):
+            total_c = cluster_total[cluster]
+            fixed_c = cluster_bugs.get(cluster, 0)
+            pct = f"{fixed_c / total_c * 100:.0f}%" if total_c else "0%"
+            bar_width = fixed_c / total_c * 100 if total_c else 0
+            parts.append(
+                f'<div class="cluster-card">'
+                f'<div class="cluster-name">{_esc(cluster)}</div>'
+                f'<div class="cluster-bar">'
+                f'<div class="cluster-fill" style="width:{bar_width:.0f}%"></div>'
+                f'</div>'
+                f'<div class="cluster-stat">{fixed_c} fixed / {total_c} total ({pct})</div>'
+                f'</div>'
+            )
+        parts.append('</div>')
+        parts.append('</div>')
+
+    # ── Section 4: Detailed Findings (collapsed) ─────────────────────
+    if confirmed:
+        parts.append(f'<details class="findings-section">')
+        parts.append(f'<summary>Bugs Fixed &mdash; {len(confirmed)} findings (click to expand)</summary>')
+        for finding in confirmed:
+            parts.append(_render_finding_html(finding))
+        parts.append("</details>")
+
+    if xd_findings:
+        parts.append(f'<details class="findings-section">')
+        parts.append(f'<summary>Cross-Domain Findings &mdash; {len(xd_findings)} (click to expand)</summary>')
+        for finding in xd_findings:
+            parts.append(_render_xd_finding_html(finding))
+        parts.append("</details>")
+
     if impossible:
-        parts.append(f'<details class="impossible-section">')
-        parts.append(f'<summary>Removed Tests ({len(impossible)} impossible)</summary>')
+        parts.append(f'<details class="findings-section">')
+        parts.append(f'<summary>Removed Tests &mdash; {len(impossible)} impossible (click to expand)</summary>')
         for finding in impossible:
             parts.append(_render_impossible_html(finding))
         parts.append("</details>")
 
-    # Removed tests summary prose
-    if data.get("removed_tests_summary"):
-        parts.append('<details class="removed-summary">')
-        parts.append("<summary>Impossibility Categories</summary>")
-        parts.append(f'<div class="prose">{_esc(data["removed_tests_summary"])}</div>')
-        parts.append("</details>")
+    # ── Section 5: Pipeline Details (collapsed) ──────────────────────
+    pipeline = data.get("pipeline_summary", [])
+    if pipeline:
+        parts.append('<details class="pipeline-section">')
+        parts.append('<summary>Pipeline Summary (click to expand)</summary>')
+        parts.append(_render_table_html(pipeline))
+        parts.append('</details>')
 
-    # Spec coverage
+    # Spec coverage (collapsed)
     spec_cov = data.get("spec_coverage", [])
     if spec_cov:
-        parts.append('<h3>Spec Coverage</h3>')
+        parts.append('<details class="spec-section">')
+        parts.append('<summary>Spec Coverage (click to expand)</summary>')
         for spec in spec_cov:
             parts.append(f'<h4>{_esc(spec.get("title", ""))}</h4>')
             if spec.get("coverage"):
@@ -870,14 +1011,17 @@ def _render_audit_cycle_html(cycle: Node) -> str:
             reqs = spec.get("requirements", [])
             if reqs:
                 parts.append(_render_table_html(reqs))
+        parts.append('</details>')
 
-    # Pipeline health
+    # Pipeline health (collapsed)
     health = data.get("pipeline_health", [])
     if health:
-        parts.append('<h3>Pipeline Health</h3>')
+        parts.append('<details class="health-section">')
+        parts.append('<summary>Pipeline Health (click to expand)</summary>')
         parts.append(_render_table_html(health))
-    if data.get("health_notes"):
-        parts.append(f'<div class="health-notes">{_esc(data["health_notes"])}</div>')
+        if data.get("health_notes"):
+            parts.append(f'<div class="health-notes">{_esc(data["health_notes"])}</div>')
+        parts.append('</details>')
 
     parts.append("</div>")
     return "\n".join(parts)
@@ -1133,6 +1277,108 @@ code {
     padding: 0.15rem 0.4rem;
     border-radius: 3px;
     font-size: 0.85em;
+}
+/* Executive summary */
+.executive-summary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+}
+.brief-list { list-style: none; padding: 0; margin: 0.5rem 0; }
+.brief-list li {
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+}
+.brief-list li:last-child { border-bottom: none; }
+.brief-list .more { color: var(--text-muted); font-style: italic; }
+.follow-ups { margin-top: 1rem; }
+.follow-ups h4 { color: var(--amber); }
+.critical-brief h4 { color: var(--green); }
+/* Domain lens tags */
+.lens-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.8rem 0; }
+.lens-tag {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+}
+.lens-count {
+    font-weight: 400;
+    opacity: 0.7;
+    margin-left: 0.3rem;
+}
+.lens-concurrency { border-color: #f97583; color: #f97583; }
+.lens-contract_boundaries { border-color: #79c0ff; color: #79c0ff; }
+.lens-data_transformation { border-color: #d2a8ff; color: #d2a8ff; }
+.lens-resource_lifecycle { border-color: #56d364; color: #56d364; }
+.lens-shared_state { border-color: #e3b341; color: #e3b341; }
+/* Timing bar */
+.timing-bar {
+    display: flex;
+    gap: 0.3rem;
+    margin: 0.5rem 0;
+    flex-wrap: wrap;
+}
+.timing-stage {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+/* Cluster grid */
+.cluster-summary { margin: 1.5rem 0; }
+.cluster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.8rem;
+    margin: 0.8rem 0;
+}
+.cluster-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.8rem;
+}
+.cluster-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+    font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+.cluster-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    margin: 0.3rem 0;
+    overflow: hidden;
+}
+.cluster-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+.cluster-stat {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+/* Findings sections (collapsed by default) */
+.findings-section, .pipeline-section, .spec-section, .health-section {
+    margin-top: 1rem;
+}
+.findings-section > summary, .pipeline-section > summary,
+.spec-section > summary, .health-section > summary {
+    font-size: 1.05rem;
+    font-weight: 600;
+    padding: 0.6rem;
 }
 """
 
