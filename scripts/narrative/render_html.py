@@ -808,6 +808,17 @@ footer .cost-grid {
     color: var(--text-dim);
     margin: 0.75rem 0;
 }
+.hero-impact {
+    max-width: 700px;
+    margin: 1rem auto 0;
+    padding: 0.8rem 1.2rem;
+    background: var(--bg-card);
+    border-left: 3px solid var(--accent-amber);
+    border-radius: 4px;
+    font-size: 0.95rem;
+    color: var(--text);
+    line-height: 1.5;
+}
 
 /* Executive dashboard */
 .exec-dashboard {
@@ -1742,6 +1753,62 @@ def _select_notable(findings: list[Node], limit: int = 3) -> list[Node]:
     return confirmed[:limit]
 
 
+def _generate_impact_summary(confirmed: list[Node]) -> str:
+    """Generate a 2-3 line non-technical summary of what risks were prevented.
+
+    Maps technical bug categories to business-impact language:
+    - key/encryption/cipher → "security vulnerabilities that could expose sensitive data"
+    - corruption/truncation/overflow → "data corruption that could cause silent data loss"
+    - race/concurrent/thread → "concurrency issues that cause failures under load"
+    - null/crash/exception → "crash conditions affecting system reliability"
+    - validation/guard/check → "input validation gaps that could cause unexpected behavior"
+    """
+    impacts = set()
+    for f in confirmed:
+        text = (f.data.get("title", "") + " " +
+                f.data.get("fix", "") + " " +
+                f.data.get("fix_description", "") + " " +
+                f.data.get("fix_summary", "") + " " +
+                f.data.get("concern", "")).lower()
+
+        if any(k in text for k in ("key", "encrypt", "cipher", "secret",
+                                    "zero", "wipe", "plaintext", "nonce",
+                                    "gcm", "siv", "aes", "hmac")):
+            impacts.add("security vulnerabilities that could expose encryption keys or sensitive data")
+        if any(k in text for k in ("corrupt", "truncat", "overflow", "silent",
+                                    "data loss", "wrong value")):
+            impacts.add("data corruption that could cause silent data loss")
+        if any(k in text for k in ("race", "concurrent", "thread", "lock",
+                                    "atomic", "volatile")):
+            impacts.add("concurrency issues that cause failures under load")
+        if any(k in text for k in ("null", "crash", "exception", "throw",
+                                    "leak", "close", "resource")):
+            impacts.add("crash conditions and resource leaks affecting reliability")
+        if any(k in text for k in ("validat", "guard", "check", "bound",
+                                    "assert", "range")):
+            impacts.add("missing input validation that could cause unexpected behavior")
+
+    if not impacts:
+        return ""
+
+    # Take top 3 most important impacts (security > corruption > concurrency > crash > validation)
+    priority = [
+        "security vulnerabilities that could expose encryption keys or sensitive data",
+        "data corruption that could cause silent data loss",
+        "concurrency issues that cause failures under load",
+        "crash conditions and resource leaks affecting reliability",
+        "missing input validation that could cause unexpected behavior",
+    ]
+    ordered = [i for i in priority if i in impacts][:3]
+
+    if len(ordered) == 1:
+        return f"This audit prevented {ordered[0]}."
+    elif len(ordered) == 2:
+        return f"This audit prevented {ordered[0]} and {ordered[1]}."
+    else:
+        return f"This audit prevented {ordered[0]}, {ordered[1]}, and {ordered[2]}."
+
+
 # ---------------------------------------------------------------------------
 # Audit-specific renderers
 # ---------------------------------------------------------------------------
@@ -2368,8 +2435,28 @@ def _render_hero(story: Story, ctx: RenderContext) -> str:
         findings = _collect_audit_findings(story)
         confirmed = [f for f in findings
                      if "CONFIRMED" in (f.data.get("status", "") or "").upper()]
+        impossible = [f for f in findings
+                      if "IMPOSSIBLE" in (f.data.get("status", "") or "").upper()
+                      and "CONFIRMED" not in (f.data.get("status", "") or "").upper()]
+
+        # Get cost from cycle data (populated by generate_audit.py from JSONL)
+        # Falls back to story.tokens if available
         total_cost = _cost_value(story.tokens)
-        cost_per_bug = (total_cost / len(confirmed)) if confirmed else 0
+        cost_per_bug_str = ""
+        for phase in story.phases:
+            for child in phase.children:
+                if child.node_type == NodeType.AUDIT_CYCLE:
+                    if child.data.get("cost_estimate") and child.data["cost_estimate"] != "unknown":
+                        try:
+                            total_cost = float(child.data["cost_estimate"])
+                        except (ValueError, TypeError):
+                            pass
+                    if child.data.get("cost_per_bug"):
+                        cost_per_bug_str = child.data["cost_per_bug"]
+                    break
+
+        cost_per_bug = float(cost_per_bug_str) if cost_per_bug_str else (
+            total_cost / len(confirmed) if confirmed and total_cost > 0 else 0)
         fix_rate = (len(confirmed) / len(findings) * 100) if findings else 0
 
         parts.append('<div class="hero-stats">')
@@ -2381,17 +2468,18 @@ def _render_hero(story: Story, ctx: RenderContext) -> str:
                      f'<div class="big-label">bugs found &amp; fixed</div></div>')
 
         # Cost per bug
-        if confirmed:
+        if confirmed and cost_per_bug > 0:
             parts.append(f'<div class="hero-stat">'
                          f'<div class="big-number" style="color:var(--accent-amber)">'
                          f'${cost_per_bug:.2f}</div>'
                          f'<div class="big-label">cost per bug</div></div>')
 
         # Total cost
-        parts.append(f'<div class="hero-stat">'
-                     f'<div class="big-number" style="color:var(--text-dim)">'
-                     f'${total_cost:.2f}</div>'
-                     f'<div class="big-label">total cost</div></div>')
+        if total_cost > 0:
+            parts.append(f'<div class="hero-stat">'
+                         f'<div class="big-number" style="color:var(--text-dim)">'
+                         f'${total_cost:.2f}</div>'
+                         f'<div class="big-label">total cost</div></div>')
 
         # Fix rate
         if findings:
@@ -2409,6 +2497,14 @@ def _render_hero(story: Story, ctx: RenderContext) -> str:
                      f'<div class="big-label">total findings</div></div>')
 
         parts.append('</div>')  # hero-stats
+
+        # Non-technical impact summary — 2-3 lines covering main risks prevented
+        if confirmed:
+            impact_lines = _generate_impact_summary(confirmed)
+            if impact_lines:
+                parts.append('<div class="hero-impact">'
+                             f'<p>{_esc(impact_lines)}</p>'
+                             '</div>')
 
         # Severity summary in badge row
         severity_counts: dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0}
@@ -2657,17 +2753,19 @@ def _render_footer(story: Story) -> str:
     parts: list[str] = []
     parts.append('<footer>')
 
-    # Token breakdown
+    # Token breakdown — skip if no token data (audit stories from reports)
     u = story.tokens
-    parts.append('<h3>Token &amp; Cost Breakdown</h3>')
-    parts.append('<div class="cost-grid">')
-    parts.append(_metric_card("Billable Input", _abbreviate(u.billable_input)))
-    parts.append(_metric_card("Output", _abbreviate(u.output)))
-    parts.append(_metric_card("Cache Read", _abbreviate(u.cache_read)))
-    parts.append(_metric_card("Cache Create", _abbreviate(u.cache_create)))
-    parts.append(_metric_card("Total Context", _abbreviate(u.total_context)))
-    parts.append(_metric_card("Est. Total Cost", _cost_estimate(u)))
-    parts.append('</div>')
+    has_tokens = u.billable_input > 0 or u.output > 0
+    if has_tokens:
+        parts.append('<h3>Token &amp; Cost Breakdown</h3>')
+        parts.append('<div class="cost-grid">')
+        parts.append(_metric_card("Billable Input", _abbreviate(u.billable_input)))
+        parts.append(_metric_card("Output", _abbreviate(u.output)))
+        parts.append(_metric_card("Cache Read", _abbreviate(u.cache_read)))
+        parts.append(_metric_card("Cache Create", _abbreviate(u.cache_create)))
+        parts.append(_metric_card("Total Context", _abbreviate(u.total_context)))
+        parts.append(_metric_card("Est. Total Cost", _cost_estimate(u)))
+        parts.append('</div>')
 
     # Metadata
     meta_parts = []
