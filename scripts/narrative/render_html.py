@@ -2745,6 +2745,136 @@ def _render_phase_breakdown(story: Story) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Aggregated phase rendering (feature stories with many phases)
+# ---------------------------------------------------------------------------
+
+# Canonical stage display order
+_STAGE_ORDER = [
+    "scoping", "research", "domains", "architect", "decisions",
+    "planning", "testing", "implementation", "refactor",
+    "coordination", "pr", "retro", "complete", "resume",
+    "curation", "knowledge", "audit",
+]
+
+
+def _render_aggregated_phases(story: Story, ctx: RenderContext) -> str:
+    """Aggregate phases by stage and render one section per stage type.
+
+    For features with 87 phases across 13 stage types, this produces 13
+    compact sections instead of 87 full sections. Each section shows
+    aggregated metrics and only expands to show interesting children.
+    """
+    from collections import OrderedDict
+
+    if not story.phases:
+        return ""
+
+    # Group phases by stage
+    stage_groups: OrderedDict[str, list[Node]] = OrderedDict()
+    for phase in story.phases:
+        stage = phase.data.get("stage", "other")
+        if stage == "resume":
+            continue  # skip resume phases — they're session bookkeeping
+        if stage not in stage_groups:
+            stage_groups[stage] = []
+        stage_groups[stage].append(phase)
+
+    # Sort by canonical order
+    def _stage_sort_key(stage: str) -> int:
+        try:
+            return _STAGE_ORDER.index(stage)
+        except ValueError:
+            return len(_STAGE_ORDER)
+
+    sorted_stages = sorted(stage_groups.keys(), key=_stage_sort_key)
+
+    parts: list[str] = []
+
+    for stage in sorted_stages:
+        phases = stage_groups[stage]
+        color = PHASE_COLORS.get(stage, "#4a9eff")
+        total_dur = sum(p.duration_ms for p in phases)
+        total_in = sum(p.tokens.billable_input for p in phases)
+        total_out = sum(p.tokens.output for p in phases)
+        total_cost_val = sum(_cost_value(p.tokens) for p in phases)
+
+        # Count interesting children across all phases for this stage
+        interesting_children = []
+        tdd_count = 0
+        test_pass = 0
+        test_fail = 0
+        escalation_count = 0
+        for phase in phases:
+            for child in phase.children:
+                if child.node_type == NodeType.ESCALATION:
+                    escalation_count += 1
+                    interesting_children.append(child)
+                elif child.node_type == NodeType.TDD_CYCLE:
+                    tdd_count += 1
+                    test_pass += child.data.get("test_passed", 0)
+                    test_fail += child.data.get("test_failed", 0)
+                    if child.interesting:
+                        interesting_children.append(child)
+                elif child.node_type == NodeType.AUDIT_CYCLE:
+                    interesting_children.append(child)
+
+        # Section header with metrics
+        stage_title = stage.replace("_", " ").title()
+        session_count = len(phases)
+
+        parts.append(f'<section class="phase" id="stage-{_esc(stage)}">')
+        parts.append(f'<div class="phase-header" style="border-left-color:{color}">')
+        parts.append(f'<h2 style="color:{color}">{_esc(stage_title)}</h2>')
+
+        # Compact metric row
+        metrics = []
+        if session_count > 1:
+            metrics.append(f'{session_count} sessions')
+        if total_dur:
+            metrics.append(format_duration(total_dur))
+        if total_cost_val > 0:
+            metrics.append(f'${total_cost_val:.2f}')
+        if tdd_count:
+            metrics.append(f'{tdd_count} work units')
+        if test_pass or test_fail:
+            metrics.append(f'{test_pass} passed / {test_fail} failed')
+        if escalation_count:
+            metrics.append(f'{escalation_count} escalations')
+        if metrics:
+            parts.append(f'<div style="color:var(--text-dim);font-size:0.85rem">'
+                         f'{" &middot; ".join(metrics)}'
+                         f'</div>')
+
+        parts.append('</div>')  # phase-header
+
+        # Body: only show interesting children
+        if interesting_children:
+            parts.append('<div class="phase-body">')
+            # Escalations shown prominently
+            for child in interesting_children:
+                if child.node_type == NodeType.ESCALATION:
+                    parts.append(_render_node(child, ctx))
+            # Interesting TDD cycles
+            interesting_tdd = [c for c in interesting_children
+                               if c.node_type == NodeType.TDD_CYCLE]
+            if interesting_tdd:
+                parts.append(f'<details><summary>{len(interesting_tdd)} '
+                             f'notable work units</summary>')
+                for child in interesting_tdd:
+                    parts.append(_render_node(child, ctx))
+                parts.append('</details>')
+            # Audit cycles
+            for child in interesting_children:
+                if child.node_type == NodeType.AUDIT_CYCLE:
+                    parts.append(_render_node(child, ctx))
+            parts.append('</div>')  # phase-body
+
+        parts.append('</section>')
+
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
 # Footer
 # ---------------------------------------------------------------------------
 
@@ -3336,15 +3466,10 @@ def render_story(story: Story) -> str:
         if story.story_type == "feature":
             parts.append(_render_feature_dashboard(story, ctx))
 
-        # Phase nav
-        parts.append(_render_phase_nav(story))
-
-        # Phase breakdown (collapsed)
-        parts.append(_render_phase_breakdown(story))
-
-        # Phase sections
-        for phase in story.phases:
-            parts.append(_render_phase(phase, ctx))
+        # Aggregate phases by stage for compact display
+        # Instead of rendering 87 individual phase sections, group by stage
+        # and show one aggregated section per stage type
+        parts.append(_render_aggregated_phases(story, ctx))
 
     parts.append('</main>')
 
