@@ -3436,18 +3436,18 @@ def render_story(story: Story) -> str:
     # Main content (static view)
     parts.append('<main id="static-view">')
 
+    # Token/cost breakdown — show early for combined reports so users
+    # see what was spent before scrolling through stages
+    has_tokens = story.tokens.billable_input > 0 or story.tokens.output > 0
+    if has_tokens:
+        parts.append(_render_phase_breakdown(story))
+
     if is_audit:
         # --- AUDIT STATIC VIEW ---
         # Executive dashboard (always visible, right after hero)
         findings = _collect_audit_findings(story)
         if findings:
             parts.append(_render_audit_executive_dashboard(findings, story, ctx))
-
-        # Phase nav (compact)
-        parts.append(_render_phase_nav(story))
-
-        # Phase breakdown (collapsed)
-        parts.append(_render_phase_breakdown(story))
 
         # Phase sections with grouped findings
         for phase in story.phases:
@@ -3467,8 +3467,6 @@ def render_story(story: Story) -> str:
             parts.append(_render_feature_dashboard(story, ctx))
 
         # Aggregate phases by stage for compact display
-        # Instead of rendering 87 individual phase sections, group by stage
-        # and show one aggregated section per stage type
         parts.append(_render_aggregated_phases(story, ctx))
 
     parts.append('</main>')
