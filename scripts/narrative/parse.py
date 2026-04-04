@@ -13,11 +13,15 @@ fall back to Prose nodes rather than being dropped. New node types
 are added as we encounter new patterns.
 
 Usage:
-    from parse import parse_story
+    from parse import parse_story, enrich_story_with_audit, parse_audit_story
     from model import TokenStream
     stream = TokenStream.load("/tmp/tokens.json")
     story = parse_story(stream, feature_slug="encrypt-memory-data")
+    enrich_story_with_audit(story, ".feature/encrypt-memory-data")
     story.save("/tmp/story-ast.json")
+
+    # Standalone audit story (no JSONL needed):
+    audit_story = parse_audit_story(".feature/encrypt-memory-data", "encrypt-memory-data")
 """
 
 import os
@@ -55,6 +59,7 @@ COMMAND_TO_STAGE = {
     "/architect": "architect",
     "/kb": "knowledge",
     "/decisions": "decisions",
+    "/audit": "audit",
 }
 
 
@@ -92,6 +97,8 @@ def detect_story_type(commands: list[str]) -> str:
     for cmd in commands:
         if cmd.startswith("/feature"):
             return "feature"
+        if cmd == "/audit":
+            return "audit"
         if cmd == "/curate":
             return "curation"
         if cmd == "/research":
@@ -770,7 +777,7 @@ def parse_story(stream: TokenStream, feature_slug: Optional[str] = None,
                 # Resume without slug in title — different feature resumed
                 in_feature = False
                 continue
-            elif stage in ("research", "architect", "knowledge", "decisions"):
+            elif stage in ("research", "architect", "knowledge", "decisions", "audit"):
                 # These are invoked mid-pipeline, keep if we're in the feature
                 pass
             elif in_feature and stage in ("domains", "planning", "testing",
@@ -835,5 +842,452 @@ def parse_story(stream: TokenStream, feature_slug: Optional[str] = None,
                 active_sessions.add(current_session_id)
         if active_sessions:
             story.sessions = [s for s in story.sessions if s in active_sessions]
+
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Audit pipeline parsing
+# ---------------------------------------------------------------------------
+
+# Lens abbreviation → full lens name mapping for finding IDs like F-R1.dt.1.1
+_LENS_ABBREVS = {
+    "dt": "data_transformation",
+    "ss": "shared_state",
+    "ct": "contracts",
+    "lc": "lifecycle",
+    "rs": "resource",
+    "cc": "concurrency",
+    "er": "error_handling",
+    "bd": "boundary",
+}
+
+
+def _parse_lens_from_finding_id(finding_id: str) -> str:
+    """Extract the lens name from a finding ID like F-R1.dt.1.1.
+
+    The second dot-separated component is the lens abbreviation.
+    Returns the full lens name or the raw abbreviation if unknown.
+    """
+    parts = finding_id.split(".")
+    if len(parts) >= 2:
+        abbrev = parts[1]
+        return _LENS_ABBREVS.get(abbrev, abbrev)
+    return ""
+
+
+def parse_prove_fix_files(run_dir: str) -> dict:
+    """Parse all prove-fix-*.md files in a run directory.
+
+    Returns a dict mapping finding_id → {
+        verdict, test_method, test_class, fix_description,
+        impossibility_proof, phase0_result
+    }.
+    """
+    results = {}
+    try:
+        entries = os.listdir(run_dir)
+    except OSError:
+        return results
+
+    for fname in sorted(entries):
+        if not fname.startswith("prove-fix-") or not fname.endswith(".md"):
+            continue
+        fpath = os.path.join(run_dir, fname)
+        try:
+            with open(fpath) as f:
+                content = f.read()
+        except OSError:
+            continue
+
+        finding_id = ""
+        verdict = ""
+        test_method = ""
+        test_class = ""
+        fix_description = ""
+        impossibility_proof = ""
+        phase0_result = ""
+
+        for line in content.split("\n"):
+            line_stripped = line.strip()
+
+            # Finding ID from heading: # F-R1.dt.1.1: Title
+            if line_stripped.startswith("# F-") or line_stripped.startswith("# Finding "):
+                id_match = re.search(r"(F-R\d+\.\S+?)(?::|$)", line_stripped)
+                if id_match:
+                    finding_id = id_match.group(1)
+
+            # Result/Verdict line
+            if line_stripped.startswith("**Result:**") or line_stripped.startswith("- **Result:**"):
+                verdict_match = re.search(
+                    r"(CONFIRMED_AND_FIXED|IMPOSSIBLE|FIX_IMPOSSIBLE)", line_stripped
+                )
+                if verdict_match:
+                    verdict = verdict_match.group(1)
+
+            # Test method
+            if line_stripped.startswith("**Test method:**") or line_stripped.startswith("- **Test method:**"):
+                test_method = re.sub(r"^\*\*Test method:\*\*\s*", "", line_stripped.lstrip("- "))
+
+            # Test class
+            if line_stripped.startswith("**Test class:**") or line_stripped.startswith("- **Test class:**"):
+                test_class = re.sub(r"^\*\*Test class:\*\*\s*", "", line_stripped.lstrip("- "))
+
+            # Fix description
+            if line_stripped.startswith("**Fix:**") or line_stripped.startswith("- **Fix:**"):
+                fix_description = re.sub(r"^\*\*Fix:\*\*\s*", "", line_stripped.lstrip("- "))
+
+            # Impossibility proof
+            if line_stripped.startswith("**Impossibility proof:**") or \
+                    line_stripped.startswith("- **Impossibility proof:**"):
+                impossibility_proof = re.sub(
+                    r"^\*\*Impossibility proof:\*\*\s*", "", line_stripped.lstrip("- ")
+                )
+
+            # Phase 0 result
+            if line_stripped.startswith("**Phase 0:**") or line_stripped.startswith("- **Phase 0:**"):
+                phase0_result = re.sub(r"^\*\*Phase 0:\*\*\s*", "", line_stripped.lstrip("- "))
+
+        if finding_id:
+            results[finding_id] = {
+                "verdict": verdict,
+                "test_method": test_method,
+                "test_class": test_class,
+                "fix_description": fix_description,
+                "impossibility_proof": impossibility_proof,
+                "phase0_result": phase0_result,
+            }
+
+    return results
+
+
+def parse_audit_report(report_path: str) -> Optional[Node]:
+    """Parse an audit-report.md file into an AUDIT_CYCLE node with finding children.
+
+    Extracts:
+    - Header metadata (date, round, scope)
+    - Pipeline summary table (constructs, clusters, finding counts)
+    - Bugs Fixed sections → AUDIT_FINDING nodes with verdict CONFIRMED_AND_FIXED
+    - Removed Tests sections → AUDIT_FINDING nodes with verdict IMPOSSIBLE
+
+    Returns None if the file cannot be read or has no parseable content.
+    """
+    try:
+        with open(report_path) as f:
+            content = f.read()
+    except OSError:
+        return None
+
+    if not content.strip():
+        return None
+
+    # --- Header metadata ---
+    date = ""
+    round_num = 0
+    scope = ""
+
+    date_match = re.search(r"\*\*Date:\*\*\s*(.+)", content)
+    if date_match:
+        date = date_match.group(1).strip()
+
+    round_match = re.search(r"\*\*Round:\*\*\s*(\d+)", content)
+    if round_match:
+        round_num = int(round_match.group(1))
+
+    scope_match = re.search(r"\*\*Scope:\*\*\s*(.+)", content)
+    if scope_match:
+        scope = scope_match.group(1).strip()
+
+    # --- Pipeline summary table ---
+    total_findings = 0
+    fixed = 0
+    impossible = 0
+    fix_impossible = 0
+    constructs = 0
+    clusters = 0
+    lenses = set()
+
+    # Parse the pipeline summary table for key metrics
+    # Scope row: "| Scope | ... | N constructs, N clusters | ... |"
+    scope_row = re.search(
+        r"\|\s*Scope\s*\|[^|]*\|\s*(\d+)\s*constructs?,\s*(\d+)\s*clusters?\s*\|", content
+    )
+    if scope_row:
+        constructs = int(scope_row.group(1))
+        clusters = int(scope_row.group(2))
+
+    # Suspect row: "| Suspect | ... | N findings, N cleared | ... |"
+    suspect_row = re.search(
+        r"\|\s*Suspect\s*\|[^|]*\|\s*(\d+)\s*findings?", content
+    )
+    if suspect_row:
+        total_findings = int(suspect_row.group(1))
+
+    # Prove-Fix row: "| Prove-Fix | N findings | N fixed, N impossible | ... |"
+    provefix_row = re.search(
+        r"\|\s*Prove-Fix\s*\|[^|]*\|\s*(\d+)\s*fixed,?\s*(\d+)\s*impossible\s*\|", content
+    )
+    if provefix_row:
+        fixed = int(provefix_row.group(1))
+        impossible = int(provefix_row.group(2))
+
+    # --- Parse finding sections ---
+    finding_nodes = []
+
+    # Split into lines for section-based parsing
+    lines = content.split("\n")
+    i = 0
+    current_section = ""  # "bugs_fixed" or "removed_tests"
+
+    while i < len(lines):
+        line = lines[i]
+
+        # Detect section headers
+        if line.startswith("## Bugs Fixed"):
+            current_section = "bugs_fixed"
+            i += 1
+            continue
+        elif line.startswith("## Removed Tests"):
+            current_section = "removed_tests"
+            i += 1
+            continue
+        elif line.startswith("## ") and current_section:
+            # New top-level section ends the current one
+            current_section = ""
+            i += 1
+            continue
+
+        # Parse individual findings: ### F-R1.dt.1.1: Title
+        finding_match = re.match(
+            r"^###\s+(F-R\S+):\s*(.+)", line
+        )
+        if finding_match and current_section:
+            finding_id = finding_match.group(1)
+            title = finding_match.group(2).strip()
+            lens = _parse_lens_from_finding_id(finding_id)
+            if lens:
+                lenses.add(lens)
+
+            # Collect detail lines until next ### or ## or EOF
+            details = {}
+            i += 1
+            while i < len(lines) and not lines[i].startswith("##"):
+                detail_line = lines[i].strip()
+
+                # Parse "- **Key:** Value" lines
+                detail_match = re.match(r"^-\s+\*\*(\w+):\*\*\s*(.+)", detail_line)
+                if detail_match:
+                    key = detail_match.group(1).lower()
+                    value = detail_match.group(2).strip()
+                    details[key] = value
+                i += 1
+
+            if current_section == "bugs_fixed":
+                # Extract construct and file from "Name (file:lines)"
+                construct = ""
+                file_path = ""
+                construct_raw = details.get("construct", "")
+                construct_match = re.match(r"(.+?)\s*\(([^)]+)\)", construct_raw)
+                if construct_match:
+                    construct = construct_match.group(1).strip()
+                    file_path = construct_match.group(2).strip()
+                else:
+                    construct = construct_raw
+
+                # Extract spec refs from "R41, R40" or similar
+                spec_refs = []
+                spec_raw = details.get("spec", "")
+                if spec_raw:
+                    spec_refs = [s.strip() for s in re.findall(r"R\d+", spec_raw)]
+
+                finding_nodes.append(Node(
+                    node_type=NodeType.AUDIT_FINDING,
+                    data={
+                        "finding_id": finding_id,
+                        "title": title,
+                        "construct": construct,
+                        "file_path": file_path,
+                        "lens": lens,
+                        "concern": details.get("concern", ""),
+                        "fix": details.get("fix", ""),
+                        "spec_refs": spec_refs,
+                        "verdict": "CONFIRMED_AND_FIXED",
+                    },
+                    interesting=True,
+                ))
+
+            elif current_section == "removed_tests":
+                # Parse classification from "IMPOSSIBLE (reason)"
+                classification = ""
+                class_raw = details.get("classification", "")
+                class_match = re.match(r"IMPOSSIBLE\s*\(([^)]+)\)", class_raw)
+                if class_match:
+                    classification = class_match.group(1).strip()
+                elif "IMPOSSIBLE" in class_raw:
+                    classification = class_raw.replace("IMPOSSIBLE", "").strip(" ()")
+
+                finding_nodes.append(Node(
+                    node_type=NodeType.AUDIT_FINDING,
+                    data={
+                        "finding_id": finding_id,
+                        "title": title,
+                        "verdict": "IMPOSSIBLE",
+                        "classification": classification,
+                        "reasoning": details.get("reasoning", ""),
+                    },
+                ))
+
+            continue
+
+        i += 1
+
+    # If no findings were parsed from sections, fall back to summary counts
+    if not finding_nodes and total_findings == 0 and fixed == 0:
+        return None
+
+    # Recount from parsed findings if summary table wasn't found
+    if not total_findings:
+        total_findings = len(finding_nodes)
+    if not fixed:
+        fixed = sum(1 for n in finding_nodes if n.data.get("verdict") == "CONFIRMED_AND_FIXED")
+    if not impossible:
+        impossible = sum(1 for n in finding_nodes if n.data.get("verdict") == "IMPOSSIBLE")
+
+    # Count FIX_IMPOSSIBLE from prove-fix files (not in report sections)
+    # — will be enriched by enrich_story_with_audit if prove-fix files exist
+
+    cycle = Node(
+        node_type=NodeType.AUDIT_CYCLE,
+        data={
+            "date": date,
+            "round": round_num,
+            "scope": scope,
+            "total_findings": total_findings,
+            "fixed": fixed,
+            "impossible": impossible,
+            "fix_impossible": fix_impossible,
+            "lenses": sorted(lenses),
+            "constructs": constructs,
+            "clusters": clusters,
+        },
+        children=finding_nodes,
+        interesting=fixed > 0,
+    )
+
+    return cycle
+
+
+def enrich_findings_with_prove_fix(cycle: Node, run_dir: str):
+    """Enrich AUDIT_FINDING nodes with data from prove-fix files.
+
+    Merges test_method, test_class, fix_description, and impossibility_proof
+    from prove-fix-*.md files into the corresponding finding nodes.
+    Updates the cycle's fix_impossible count.
+    """
+    pf_data = parse_prove_fix_files(run_dir)
+    if not pf_data:
+        return
+
+    fix_impossible_count = 0
+    for child in cycle.children:
+        fid = child.data.get("finding_id", "")
+        if fid in pf_data:
+            pf = pf_data[fid]
+            # Override verdict if prove-fix has a different one
+            if pf["verdict"]:
+                child.data["verdict"] = pf["verdict"]
+            if pf["test_method"]:
+                child.data["test_method"] = pf["test_method"]
+            if pf["test_class"]:
+                child.data["test_class"] = pf["test_class"]
+            if pf["fix_description"]:
+                child.data["fix_description"] = pf["fix_description"]
+            if pf["impossibility_proof"]:
+                child.data["impossibility_proof"] = pf["impossibility_proof"]
+            if pf["phase0_result"]:
+                child.data["phase0_result"] = pf["phase0_result"]
+            if pf["verdict"] == "FIX_IMPOSSIBLE":
+                fix_impossible_count += 1
+
+    if fix_impossible_count:
+        cycle.data["fix_impossible"] = fix_impossible_count
+
+
+def enrich_story_with_audit(story: Story, feature_dir: str):
+    """Append audit phases to a story from on-disk audit data.
+
+    Scans <feature_dir>/audit/ for run-NNN/ directories. For each run,
+    parses the audit report and prove-fix files, builds an "audit" PHASE
+    node containing the AUDIT_CYCLE, and appends it to story.phases.
+
+    Safe to call when no audit directory exists — returns silently.
+    """
+    audit_dir = os.path.join(feature_dir, "audit")
+    if not os.path.isdir(audit_dir):
+        return
+
+    try:
+        run_dirs = sorted(
+            d for d in os.listdir(audit_dir)
+            if d.startswith("run-") and os.path.isdir(os.path.join(audit_dir, d))
+        )
+    except OSError:
+        return
+
+    for run_name in run_dirs:
+        run_path = os.path.join(audit_dir, run_name)
+        report_path = os.path.join(run_path, "audit-report.md")
+
+        if not os.path.isfile(report_path):
+            continue
+
+        cycle = parse_audit_report(report_path)
+        if not cycle:
+            continue
+
+        # Enrich with prove-fix detail
+        enrich_findings_with_prove_fix(cycle, run_path)
+
+        # Build phase wrapper
+        round_num = cycle.data.get("round", 0)
+        phase = Node(
+            node_type=NodeType.PHASE,
+            data={
+                "stage": "audit",
+                "command": "/audit",
+                "title": f"Audit — Round {round_num}" if round_num else "Audit",
+                "run_dir": run_name,
+            },
+            children=[cycle],
+            interesting=cycle.data.get("fixed", 0) > 0,
+        )
+
+        story.phases.append(phase)
+
+
+def parse_audit_story(feature_dir: str, feature_slug: str = "") -> Optional[Story]:
+    """Create a standalone audit Story directly from on-disk audit data.
+
+    Unlike parse_story() which requires JSONL session data, this builds
+    a Story purely from audit-report.md and prove-fix-*.md files. Useful
+    for generating audit narratives without a corresponding JSONL session
+    (e.g., standalone audit runs or retrospective analysis).
+
+    Args:
+        feature_dir: Path to .feature/<slug>/ directory.
+        feature_slug: Feature slug for the story title.
+
+    Returns a Story with story_type="audit" and audit phases, or None
+    if no audit data was found.
+    """
+    story = Story(
+        story_type="audit",
+        title=feature_slug,
+    )
+
+    enrich_story_with_audit(story, feature_dir)
+
+    if not story.phases:
+        return None
 
     return story

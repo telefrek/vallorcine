@@ -156,6 +156,7 @@ class NodeType:
         PHASE           — pipeline stage (scoping, domains, planning, etc.)
         CONVERSATION    — sequence of exchanges between user and agent
         TDD_CYCLE       — one work unit's test→implement→refactor cycle
+        AUDIT_CYCLE     — audit round (contains AUDIT_FINDING children)
 
     Leaf nodes (data in .data dict):
         EXCHANGE        — single question + answer pair
@@ -172,6 +173,7 @@ class NodeType:
         ESCALATION      — contract conflict, test failure requiring intervention
         PROSE           — unclassified agent output (fallback)
         METRIC          — computed metric (tokens, duration, test count)
+        AUDIT_FINDING   — individual audit finding (confirmed fix or impossible)
     """
     PHASE = "phase"
     CONVERSATION = "conversation"
@@ -190,6 +192,8 @@ class NodeType:
     ESCALATION = "escalation"
     PROSE = "prose"
     METRIC = "metric"
+    AUDIT_CYCLE = "audit_cycle"
+    AUDIT_FINDING = "audit_finding"
 
 
 @dataclass
