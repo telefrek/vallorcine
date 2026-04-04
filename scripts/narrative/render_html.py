@@ -2705,36 +2705,69 @@ def _render_phase_nav(story: Story) -> str:
 # ---------------------------------------------------------------------------
 
 def _render_phase_breakdown(story: Story) -> str:
-    """Render the phase breakdown table shown between nav and content."""
+    """Render the phase breakdown table, aggregated by stage type.
+
+    Instead of one row per phase (which can be 87 rows), groups by stage
+    and shows: stage name, session count, total duration, tokens, cost, %.
+    """
     if not story.phases:
         return ""
 
     total_tokens = (story.tokens.billable_input + story.tokens.output) or 1
 
+    # Aggregate by stage
+    from collections import OrderedDict
+    stage_agg: OrderedDict[str, dict] = OrderedDict()
+    for phase in story.phases:
+        stage = phase.data.get("stage", "other")
+        if stage == "resume":
+            continue
+        if stage not in stage_agg:
+            stage_agg[stage] = {
+                "count": 0, "duration_ms": 0,
+                "input": 0, "output": 0, "cost": 0.0,
+            }
+        a = stage_agg[stage]
+        a["count"] += 1
+        a["duration_ms"] += phase.duration_ms
+        a["input"] += phase.tokens.billable_input
+        a["output"] += phase.tokens.output
+        a["cost"] += _cost_value(phase.tokens)
+
+    # Sort by canonical stage order
+    def _sort_key(stage: str) -> int:
+        try:
+            return _STAGE_ORDER.index(stage)
+        except ValueError:
+            return len(_STAGE_ORDER)
+
+    sorted_stages = sorted(stage_agg.keys(), key=_sort_key)
+
     parts: list[str] = []
-    parts.append('<details><summary><strong>Phase Breakdown</strong></summary>')
+    parts.append('<details open><summary><strong>Cost Breakdown by Phase</strong></summary>')
     parts.append('<div class="detail-body">')
     parts.append('<table><thead><tr>')
-    parts.append('<th>Phase</th><th>Duration</th><th>Tokens (in)</th>'
-                 '<th>Tokens (out)</th><th>Est. Cost</th><th>% of total</th>')
+    parts.append('<th>Phase</th><th>Sessions</th><th>Duration</th>'
+                 '<th>Tokens (in)</th><th>Tokens (out)</th>'
+                 '<th>Est. Cost</th><th>% of total</th>')
     parts.append('</tr></thead><tbody>')
 
-    for i, phase in enumerate(story.phases):
-        stage = phase.data.get("stage", "\u2014")
-        title = phase.data.get("title", stage.title())
-        if story.title and f"\u2014 {story.title}" in title:
-            title = title.replace(f" \u2014 {story.title}", "").strip()
+    for stage in sorted_stages:
+        a = stage_agg[stage]
         color = PHASE_COLORS.get(stage, "#4a9eff")
-        dur = format_duration(phase.duration_ms)
-        inp = _abbreviate(phase.tokens.billable_input)
-        out = _abbreviate(phase.tokens.output)
-        cost = _cost_estimate(phase.tokens)
-        phase_total = phase.tokens.billable_input + phase.tokens.output
+        title = stage.replace("_", " ").title()
+        dur = format_duration(a["duration_ms"])
+        inp = _abbreviate(a["input"])
+        out = _abbreviate(a["output"])
+        cost = f'${a["cost"]:.2f}' if a["cost"] > 0 else "\u2014"
+        phase_total = a["input"] + a["output"]
         pct = (phase_total / total_tokens) * 100
 
+        count_str = f'{a["count"]}' if a["count"] > 1 else "1"
+
         parts.append(
-            f'<tr><td><a href="#phase-{i}" style="color:{color}">'
-            f'{_esc(title)}</a></td>'
+            f'<tr><td style="color:{color}">{_esc(title)}</td>'
+            f'<td style="text-align:center">{count_str}</td>'
             f'<td>{_esc(dur)}</td><td>{_esc(inp)}</td><td>{_esc(out)}</td>'
             f'<td>{_esc(cost)}</td><td>{pct:.0f}%</td></tr>'
         )
