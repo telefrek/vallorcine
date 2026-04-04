@@ -80,22 +80,25 @@ def _abbreviate(n: int) -> str:
     return str(n)
 
 
-def _cost_estimate(usage: TokenUsage) -> str:
-    """Estimate API cost from token counts using Opus pricing.
+def _cost_value(usage: TokenUsage) -> float:
+    """Compute raw cost in dollars from token counts using Opus pricing.
 
     Pricing (per million tokens, as of 2025):
         Input:        $15.00
         Output:       $75.00
         Cache read:    $1.50
         Cache create: $18.75
-
-    Billable input = input + cache_create (each at their own rate).
     """
     input_cost = (usage.input / 1_000_000) * 15.00
     output_cost = (usage.output / 1_000_000) * 75.00
     cache_read_cost = (usage.cache_read / 1_000_000) * 1.50
     cache_create_cost = (usage.cache_create / 1_000_000) * 18.75
-    total = input_cost + output_cost + cache_read_cost + cache_create_cost
+    return input_cost + output_cost + cache_read_cost + cache_create_cost
+
+
+def _cost_estimate(usage: TokenUsage) -> str:
+    """Format API cost estimate as a string."""
+    total = _cost_value(usage)
     if total < 0.01:
         return "< $0.01"
     return f"${total:.2f}"
@@ -770,6 +773,314 @@ footer .cost-grid {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* ===== Dashboard additions ===== */
+
+/* Hero big-number cards */
+.hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin: 1.5rem 0 1rem;
+}
+.hero-stat {
+    background: var(--bg-elevated);
+    border-radius: 10px;
+    padding: 1rem 1.5rem;
+    min-width: 130px;
+    text-align: center;
+}
+.hero-stat .big-number {
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+.hero-stat .big-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-top: 0.25rem;
+}
+.hero-tagline {
+    font-size: 1.15rem;
+    color: var(--text-dim);
+    margin: 0.75rem 0;
+}
+
+/* Executive dashboard */
+.exec-dashboard {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+}
+.exec-dashboard h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+
+/* Error category list */
+.error-categories {
+    list-style: none;
+    padding: 0;
+    margin: 0.75rem 0;
+}
+.error-categories li {
+    padding: 0.4rem 0.6rem;
+    margin: 0.3rem 0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+.error-categories .cat-count {
+    font-weight: 700;
+    font-size: 1.1rem;
+    min-width: 2ch;
+    text-align: center;
+}
+.error-categories .cat-label {
+    font-weight: 600;
+    color: var(--text-bright);
+}
+.error-categories .cat-detail {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+}
+
+/* Category colors */
+.cat-concurrency { background: #3d1f1f; border-left: 3px solid var(--accent-red); }
+.cat-resource { background: #1a3a2a; border-left: 3px solid var(--accent-green); }
+.cat-contract { background: #1e3a5f; border-left: 3px solid var(--accent-blue); }
+.cat-state { background: #2f1f3d; border-left: 3px solid var(--accent-purple); }
+.cat-transformation { background: #3d2f1f; border-left: 3px solid var(--accent-amber); }
+.cat-lifecycle { background: #1a3a3a; border-left: 3px solid var(--accent-teal); }
+.cat-other { background: var(--bg-elevated); border-left: 3px solid var(--text-dim); }
+
+/* Severity indicators */
+.severity-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.3rem;
+}
+.severity-critical { background: #f85149; }
+.severity-high { background: #f0883e; }
+.severity-medium { background: #d29922; }
+.severity-low { background: #6e7681; }
+
+.severity-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 0.75rem 0;
+}
+.severity-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+}
+.severity-item .sev-count {
+    font-weight: 700;
+    color: var(--text-bright);
+}
+
+/* Notable findings */
+.notable-findings {
+    margin: 0.75rem 0;
+}
+.notable-finding {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+}
+.notable-finding:last-child { border-bottom: none; }
+.notable-rank {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--accent-amber);
+    min-width: 1.5rem;
+}
+.notable-title {
+    font-weight: 600;
+    color: var(--text-bright);
+    font-size: 0.9rem;
+}
+.notable-desc {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+}
+
+/* Progress bar (spec coverage) */
+.progress-bar-container {
+    margin: 0.5rem 0;
+}
+.progress-bar-label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 0.25rem;
+}
+.progress-bar-track {
+    background: var(--bg-elevated);
+    border-radius: 6px;
+    height: 20px;
+    overflow: hidden;
+    position: relative;
+}
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    min-width: 2rem;
+}
+
+/* Cluster grid */
+.cluster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.6rem;
+    margin: 0.75rem 0;
+}
+.cluster-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem 0.8rem;
+}
+.cluster-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-bright);
+    margin-bottom: 0.3rem;
+}
+.cluster-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.cluster-bar .progress-bar-track {
+    flex: 1;
+    height: 14px;
+}
+.cluster-bar .cluster-count {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+
+/* Domain lens pills row */
+.lens-pills-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+.lens-pill-lg {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3em 0.7em;
+    border-radius: 14px;
+}
+.lens-pill-lg .pill-count {
+    font-weight: 800;
+    font-size: 0.9rem;
+}
+
+/* Follow-ups section */
+.follow-ups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+.follow-up-chip {
+    background: var(--bg-elevated);
+    border-radius: 4px;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+/* Compact finding card (collapsed) */
+.finding-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.finding-compact summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.finding-compact summary::before { content: none; }
+.finding-compact[open] summary::before { content: none; }
+.finding-expand-icon::before { content: "\\25B6\\00A0"; font-size: 0.65em; color: var(--text-dim); }
+.finding-compact[open] .finding-expand-icon::before { content: "\\25BC\\00A0"; }
+
+/* Phase compact timeline bar (feature) */
+.phase-timeline-bar {
+    display: flex;
+    border-radius: 6px;
+    overflow: hidden;
+    height: 28px;
+    margin: 0.75rem 0;
+}
+.phase-timeline-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-bright);
+    overflow: hidden;
+    white-space: nowrap;
+    min-width: 2px;
+}
+
+/* Feature dashboard */
+.feature-dashboard {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+}
+.feature-dashboard h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    margin-bottom: 0.75rem;
+}
+.dashboard-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
 """
 
 
@@ -1311,48 +1622,216 @@ def _render_retro(node: Node, ctx: RenderContext) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Audit classification helpers
+# ---------------------------------------------------------------------------
+
+# Maps lens/concern keywords to a category for grouping
+_CATEGORY_MAP = {
+    "concurrency": "concurrency",
+    "race": "concurrency",
+    "thread": "concurrency",
+    "synchron": "concurrency",
+    "lock": "concurrency",
+    "atomic": "concurrency",
+    "resource": "resource",
+    "leak": "resource",
+    "close": "resource",
+    "cleanup": "resource",
+    "dispose": "resource",
+    "contract": "contract",
+    "null": "contract",
+    "validation": "contract",
+    "guard": "contract",
+    "boundary": "contract",
+    "input": "contract",
+    "precondition": "contract",
+    "state": "state",
+    "rollback": "state",
+    "lifecycle": "lifecycle",
+    "init": "lifecycle",
+    "shutdown": "lifecycle",
+    "transform": "transformation",
+    "data-flow": "transformation",
+    "conversion": "transformation",
+    "encoding": "transformation",
+}
+
+_CATEGORY_CSS = {
+    "concurrency": "cat-concurrency",
+    "resource": "cat-resource",
+    "contract": "cat-contract",
+    "state": "cat-state",
+    "transformation": "cat-transformation",
+    "lifecycle": "cat-lifecycle",
+}
+
+_CATEGORY_LABELS = {
+    "concurrency": "Concurrency",
+    "resource": "Resource Management",
+    "contract": "Contract Violations",
+    "state": "State Management",
+    "transformation": "Data Transformation",
+    "lifecycle": "Lifecycle",
+}
+
+# Severity inference from finding descriptions / concerns
+_SEVERITY_CRITICAL_KW = {"corruption", "data loss", "security", "injection", "overflow"}
+_SEVERITY_HIGH_KW = {"crash", "exception", "deadlock", "race condition", "null pointer",
+                      "oom", "infinite", "denial"}
+_SEVERITY_MEDIUM_KW = {"incorrect", "wrong", "silent", "ignored", "missing guard",
+                       "contract violation", "validation"}
+
+
+def _classify_category(finding: Node) -> str:
+    """Classify a finding into an error category."""
+    lens = (finding.data.get("lens", "") or "").lower()
+    concern = (finding.data.get("concern", "") or "").lower()
+    title = (finding.data.get("title", "") or "").lower()
+    text = f"{lens} {concern} {title}"
+    for keyword, cat in _CATEGORY_MAP.items():
+        if keyword in text:
+            return cat
+    return "other"
+
+
+def _classify_severity(finding: Node) -> str:
+    """Infer severity from finding description keywords."""
+    title = (finding.data.get("title", "") or "").lower()
+    concern = (finding.data.get("concern", "") or "").lower()
+    fix = (finding.data.get("fix", "") or "").lower()
+    text = f"{title} {concern} {fix}"
+    for kw in _SEVERITY_CRITICAL_KW:
+        if kw in text:
+            return "critical"
+    for kw in _SEVERITY_HIGH_KW:
+        if kw in text:
+            return "high"
+    for kw in _SEVERITY_MEDIUM_KW:
+        if kw in text:
+            return "medium"
+    return "low"
+
+
+# Priority for notable finding selection
+_NOTABLE_PRIORITY = {
+    "concurrency": 0,
+    "resource": 1,
+    "state": 2,
+    "transformation": 3,
+    "contract": 4,
+    "lifecycle": 5,
+    "other": 6,
+}
+
+
+def _select_notable(findings: list[Node], limit: int = 3) -> list[Node]:
+    """Pick the most interesting/impactful confirmed findings."""
+    confirmed = [f for f in findings
+                 if "CONFIRMED" in (f.data.get("status", "") or "").upper()]
+    if not confirmed:
+        confirmed = findings[:limit]
+
+    def _priority(f: Node) -> tuple:
+        cat = _classify_category(f)
+        sev = _classify_severity(f)
+        sev_rank = {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(sev, 3)
+        cat_rank = _NOTABLE_PRIORITY.get(cat, 6)
+        return (sev_rank, cat_rank)
+
+    confirmed.sort(key=_priority)
+    return confirmed[:limit]
+
+
+# ---------------------------------------------------------------------------
 # Audit-specific renderers
 # ---------------------------------------------------------------------------
 
 def _render_audit_cycle(node: Node, ctx: RenderContext) -> str:
-    """Render an audit cycle with its findings and pipeline summary."""
+    """Render an audit cycle as a compact section with grouped findings."""
     parts: list[str] = []
     stage = _esc(node.data.get("stage", ""))
     target = _esc(node.data.get("target", ""))
-    finding_count = node.data.get("finding_count", 0)
 
-    parts.append('<div class="card">')
+    # Collect findings from children
+    cycle_findings = [c for c in node.children
+                      if c.node_type == NodeType.AUDIT_FINDING]
+    confirmed = [f for f in cycle_findings
+                 if "CONFIRMED" in (f.data.get("status", "") or "").upper()]
+    impossible = [f for f in cycle_findings
+                  if "IMPOSSIBLE" in (f.data.get("status", "") or "").upper()]
+
     title = "Audit Cycle"
     if stage:
         title += f": {stage}"
     if target:
         title += f" &mdash; {target}"
+
+    parts.append(f'<div class="card">')
     parts.append(f'<div class="card-title">&#x1F6E1; {title}</div>')
 
-    # Metric row
+    # Compact metric row with cost/bug
     metrics = []
-    if finding_count:
-        metrics.append(_metric_card("Findings", str(finding_count)))
+    if cycle_findings:
+        metrics.append(_metric_card("Findings", str(len(cycle_findings))))
+    if confirmed:
+        metrics.append(_metric_card("Fixed", str(len(confirmed))))
+    if impossible:
+        metrics.append(_metric_card("Impossible", str(len(impossible))))
     if node.duration_ms:
         metrics.append(_metric_card("Duration", format_duration(node.duration_ms)))
-    tok_str = format_tokens_detail(node.tokens)
-    if tok_str:
-        metrics.append(_metric_card("Tokens", tok_str))
+    cost = _cost_value(node.tokens)
+    if cost >= 0.01:
+        metrics.append(_metric_card("Cost", f"${cost:.2f}"))
+        if len(confirmed) > 0:
+            cpb = cost / len(confirmed)
+            metrics.append(_metric_card("Cost/Bug", f"${cpb:.2f}"))
     if metrics:
         parts.append(f'<div class="metric-row">{"".join(metrics)}</div>')
 
-    # Render children (findings, prose, etc.)
-    for child in node.children:
-        rendered = _render_node(child, ctx)
-        if rendered:
-            parts.append(rendered)
+    # Group findings by category
+    if cycle_findings:
+        by_cat: dict[str, list[Node]] = {}
+        for f in cycle_findings:
+            cat = _classify_category(f)
+            by_cat.setdefault(cat, []).append(f)
+
+        parts.append('<ul class="error-categories">')
+        for cat, items in sorted(by_cat.items(),
+                                  key=lambda x: -len(x[1])):
+            css = _CATEGORY_CSS.get(cat, "cat-other")
+            label = _CATEGORY_LABELS.get(cat, cat.title())
+            confirmed_in_cat = sum(1 for f in items
+                                    if "CONFIRMED" in (f.data.get("status", "") or "").upper())
+            examples = []
+            for f in items[:3]:
+                t = f.data.get("title", "")
+                if t:
+                    examples.append(t[:60])
+            detail = ", ".join(examples) if examples else ""
+            parts.append(
+                f'<li class="{css}">'
+                f'<span class="cat-count">{len(items)}</span>'
+                f'<span><span class="cat-label">{_esc(label)}</span>'
+                f' ({confirmed_in_cat} fixed)'
+                + (f'<br><span class="cat-detail">{_esc(detail)}</span>' if detail else "")
+                + '</span></li>'
+            )
+        parts.append('</ul>')
+
+    # Collapsed findings list
+    if cycle_findings:
+        parts.append(f'<details><summary>{len(cycle_findings)} findings (expand)</summary>')
+        parts.append('<div class="detail-body findings-grid">')
+        for f in cycle_findings:
+            parts.append(_render_audit_finding(f, ctx))
+        parts.append('</div></details>')
 
     parts.append('</div>')
     return "\n".join(parts)
 
 
 def _render_audit_finding(node: Node, ctx: RenderContext) -> str:
-    """Render an individual audit finding as a card."""
+    """Render an individual audit finding as a compact collapsed card."""
     finding_id = _esc(node.data.get("finding_id", ""))
     title = _esc(node.data.get("title", node.data.get("description", "")))
     status = node.data.get("status", "")
@@ -1360,38 +1839,50 @@ def _render_audit_finding(node: Node, ctx: RenderContext) -> str:
     file_path = _esc(node.data.get("file_path", node.data.get("file", "")))
     lens = node.data.get("lens", "")
     fix_desc = node.data.get("fix_description", node.data.get("fix", ""))
-    impossibility = node.data.get("impossibility_reason", node.data.get("reason", ""))
+    fix_summary = node.data.get("fix_summary", "")
+    impossibility = node.data.get("impossibility_reason",
+                                  node.data.get("reason",
+                                                (node.data.get("impossibility") or {}).get("reason", "")))
     phase0 = node.data.get("phase0", False)
+    severity = _classify_severity(node)
 
-    parts = ['<div class="finding-card">']
-
-    # Header line: ID + status + lens
-    header = ""
+    # Build compact summary line: severity dot + ID + lens pill + status + title
+    summary_parts = []
+    summary_parts.append(f'<span class="severity-dot severity-{severity}"></span>')
     if finding_id:
-        header += f'<span class="finding-id">{finding_id}</span> '
-    if status:
-        header += _status_badge(status) + " "
+        summary_parts.append(f'<span class="finding-id">{finding_id}</span>')
     if lens:
-        header += _lens_pill(lens)
+        summary_parts.append(_lens_pill(lens))
+    if status:
+        summary_parts.append(_status_badge(status))
     if phase0:
-        header += ' <span class="status-badge status-phase0">Phase 0</span>'
-    if header:
-        parts.append(f'<div>{header}</div>')
+        summary_parts.append('<span class="status-badge status-phase0">P0</span>')
+    summary_parts.append(f'<span class="finding-title" style="margin:0">{title}</span>')
 
-    if title:
-        parts.append(f'<div class="finding-title">{title}</div>')
+    summary_line = " ".join(summary_parts)
+
+    # Expanded detail
+    detail_parts: list[str] = []
     if construct:
-        parts.append(f'<div class="construct">{construct}</div>')
+        detail_parts.append(f'<div class="construct">{construct}</div>')
     if file_path:
-        parts.append(f'<div class="file-path">{file_path}</div>')
+        detail_parts.append(f'<div class="file-path">{file_path}</div>')
     if fix_desc:
-        parts.append(f'<div class="fix-desc">{_esc(str(fix_desc))}</div>')
+        detail_parts.append(f'<div class="fix-desc">{_esc(str(fix_desc))}</div>')
+    if fix_summary and fix_summary != fix_desc:
+        detail_parts.append(f'<div class="fix-desc" style="color:var(--text-dim)">'
+                           f'{_esc(str(fix_summary))}</div>')
     if impossibility:
-        parts.append(f'<div class="impossibility-reason" style="color:var(--accent-red)">'
-                     f'{_esc(str(impossibility))}</div>')
+        detail_parts.append(f'<div class="impossibility-reason" style="color:var(--accent-red)">'
+                           f'{_esc(str(impossibility))}</div>')
 
-    parts.append('</div>')
-    return "\n".join(parts)
+    if detail_parts:
+        return (f'<details class="finding-card finding-compact">'
+                f'<summary><span class="finding-expand-icon"></span>{summary_line}</summary>'
+                f'<div class="detail-body">{"".join(detail_parts)}</div>'
+                f'</details>')
+    else:
+        return f'<div class="finding-card finding-compact"><div>{summary_line}</div></div>'
 
 
 # ---------------------------------------------------------------------------
@@ -1451,11 +1942,17 @@ _BACKGROUND_TYPES = frozenset({
 # ---------------------------------------------------------------------------
 
 def _render_phase(node: Node, ctx: RenderContext) -> str:
-    """Render a complete phase section."""
+    """Render a complete phase section.
+
+    For audit stories: shows audit cycles with grouped findings.
+    For feature stories: compact dashboard with TDD summary tables,
+    omitting conversation transcripts (the replay covers those).
+    """
     stage = node.data.get("stage", "")
     title = node.data.get("title", stage.title())
     duration = format_duration(node.duration_ms)
     ctx.current_phase = stage
+    is_audit = ctx.story.story_type == "audit"
 
     # Strip feature slug from title
     story_title = ctx.story.title
@@ -1469,48 +1966,57 @@ def _render_phase(node: Node, ctx: RenderContext) -> str:
     phase_id = f"phase-{ctx.phase_index}"
     ctx.phase_index += 1
 
+    cost = _cost_estimate(node.tokens)
+
     parts: list[str] = []
     parts.append(f'<section class="phase" id="{phase_id}">')
     parts.append(f'<div class="phase-header" style="background:{color}15;'
                  f'border-bottom:2px solid {color}">')
     parts.append(f'<h2>{emoji} {_esc(title)}</h2>')
     parts.append(f'<span style="color:var(--text-dim);font-size:0.85rem">'
-                 f'{_esc(duration)}</span>')
+                 f'{_esc(duration)}'
+                 + (f' &middot; {_esc(cost)}' if cost != "< $0.01" else "")
+                 + '</span>')
     parts.append('</div>')
     parts.append('<div class="phase-body">')
 
-    # Metric cards
-    metrics: list[str] = []
-    metrics.append(_metric_card("Duration", duration))
-    tok_str = format_tokens_detail(node.tokens)
-    if tok_str:
-        metrics.append(_metric_card("Tokens", tok_str))
-    cost = _cost_estimate(node.tokens)
-    if cost != "< $0.01":
-        metrics.append(_metric_card("Est. Cost", cost))
-    if metrics:
-        parts.append(f'<div class="metric-row">{"".join(metrics)}</div>')
+    # Categorize children — skip CONVERSATION/EXCHANGE in static view
+    # (replay covers the full transcript)
+    _STATIC_SKIP = frozenset({NodeType.CONVERSATION, NodeType.EXCHANGE})
 
-    # Categorize children
     routine_cycles: list[Node] = []
     interesting_cycles: list[Node] = []
+    audit_cycles: list[Node] = []
     prominent: list[Node] = []
     background: list[Node] = []
 
     for child in node.children:
+        if child.node_type in _STATIC_SKIP:
+            continue  # replay covers these
         if child.node_type == NodeType.TDD_CYCLE:
             if child.interesting:
                 interesting_cycles.append(child)
             else:
                 routine_cycles.append(child)
-        elif child.node_type in _PROMINENT_TYPES:
+        elif child.node_type == NodeType.AUDIT_CYCLE:
+            audit_cycles.append(child)
+        elif child.node_type == NodeType.AUDIT_FINDING:
+            # Standalone findings outside a cycle
             prominent.append(child)
-        elif child.node_type == NodeType.BRIEF or child.node_type == NodeType.WORK_PLAN:
+        elif child.node_type in (NodeType.ESCALATION, NodeType.SESSION_BREAK,
+                                  NodeType.RESEARCH, NodeType.ARCHITECT):
             prominent.append(child)
-        elif child.node_type == NodeType.PR or child.node_type == NodeType.RETRO:
+        elif child.node_type in (NodeType.BRIEF, NodeType.WORK_PLAN,
+                                  NodeType.PR, NodeType.RETRO):
             prominent.append(child)
         else:
             background.append(child)
+
+    # Audit cycles (the main content for audit phases)
+    for cycle in audit_cycles:
+        rendered = _render_audit_cycle(cycle, ctx)
+        if rendered:
+            parts.append(rendered)
 
     # Prominent children inline
     for child in prominent:
@@ -1524,7 +2030,7 @@ def _render_phase(node: Node, ctx: RenderContext) -> str:
         if rendered:
             parts.append(rendered)
 
-    # Routine TDD cycles as table
+    # Routine TDD cycles as summary table
     if routine_cycles:
         parts.append(_render_tdd_summary_table(routine_cycles, ctx))
 
@@ -1577,46 +2083,226 @@ def _collect_audit_findings(story: Story) -> list[Node]:
     return findings
 
 
-def _render_audit_lens_summary(findings: list[Node]) -> str:
-    """Render a lens-grouped summary of audit findings."""
+def _render_audit_executive_dashboard(findings: list[Node], story: Story,
+                                       ctx: RenderContext) -> str:
+    """Render the executive dashboard for audit stories.
+
+    Shows error categories, severity breakdown, notable findings,
+    spec coverage, cluster grid, and domain lens pills.
+    """
     if not findings:
         return ""
 
+    confirmed = [f for f in findings
+                 if "CONFIRMED" in (f.data.get("status", "") or "").upper()]
+    impossible = [f for f in findings
+                  if "IMPOSSIBLE" in (f.data.get("status", "") or "").upper()]
+
+    parts: list[str] = ['<div class="exec-dashboard">']
+    parts.append('<h3>Executive Summary</h3>')
+
+    # --- Error categories ---
+    by_cat: dict[str, list[Node]] = {}
+    for f in findings:
+        cat = _classify_category(f)
+        by_cat.setdefault(cat, []).append(f)
+
+    parts.append('<ul class="error-categories">')
+    for cat, items in sorted(by_cat.items(), key=lambda x: -len(x[1])):
+        css = _CATEGORY_CSS.get(cat, "cat-other")
+        label = _CATEGORY_LABELS.get(cat, cat.title())
+        conf_count = sum(1 for f in items
+                         if "CONFIRMED" in (f.data.get("status", "") or "").upper())
+        # Gather example descriptions
+        examples = []
+        for f in items[:3]:
+            t = f.data.get("title", "")
+            if t:
+                examples.append(t[:65])
+        detail = ", ".join(examples)
+        parts.append(
+            f'<li class="{css}">'
+            f'<span class="cat-count">{len(items)}</span>'
+            f'<span><span class="cat-label">{_esc(label)}</span>'
+            f' ({conf_count} fixed)'
+            + (f'<br><span class="cat-detail">{_esc(detail)}</span>' if detail else "")
+            + '</span></li>'
+        )
+    parts.append('</ul>')
+
+    # --- Severity breakdown ---
+    severity_counts: dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    for f in findings:
+        sev = _classify_severity(f)
+        severity_counts[sev] = severity_counts.get(sev, 0) + 1
+
+    sev_colors = {"critical": "#f85149", "high": "#f0883e",
+                  "medium": "#d29922", "low": "#6e7681"}
+    parts.append('<div class="severity-row">')
+    for sev in ("critical", "high", "medium", "low"):
+        count = severity_counts[sev]
+        if count > 0:
+            parts.append(
+                f'<span class="severity-item">'
+                f'<span class="severity-dot severity-{sev}"></span>'
+                f'<span class="sev-count">{count}</span> {sev}'
+                f'</span>'
+            )
+    parts.append('</div>')
+
+    # --- Notable findings (top 3) ---
+    notables = _select_notable(findings, 3)
+    if notables:
+        parts.append('<div class="notable-findings">')
+        parts.append('<div style="font-size:0.85rem;font-weight:600;'
+                     'color:var(--text-bright);margin-bottom:0.3rem">'
+                     'Notable Findings</div>')
+        for i, f in enumerate(notables, 1):
+            fid = f.data.get("finding_id", "")
+            title = f.data.get("title", "")
+            fix = f.data.get("fix", f.data.get("fix_summary", ""))
+            desc = fix if fix else title
+            parts.append(
+                f'<div class="notable-finding">'
+                f'<span class="notable-rank">#{i}</span>'
+                f'<span>'
+                f'<span class="notable-title">{_esc(title[:80])}</span>'
+                + (f' <span class="finding-id">{_esc(fid)}</span>' if fid else "")
+                + (f'<br><span class="notable-desc">{_esc(str(desc)[:120])}</span>'
+                   if desc and desc != title else "")
+                + '</span></div>'
+            )
+        parts.append('</div>')
+
+    # --- Spec coverage ---
+    all_specs: set[str] = set()
+    for f in findings:
+        spec_str = f.data.get("spec", "")
+        if spec_str:
+            for s in spec_str.replace(",", " ").split():
+                s = s.strip()
+                if s:
+                    all_specs.add(s)
+    if all_specs:
+        # We know how many specs were exercised; total comes from story metadata
+        # if available, otherwise show just the count
+        exercised = len(all_specs)
+        parts.append('<div class="progress-bar-container">')
+        parts.append(f'<div class="progress-bar-label">'
+                     f'{exercised} spec requirements exercised</div>')
+        parts.append(f'<div style="font-size:0.8rem;color:var(--text-dim)">'
+                     f'Specs: {_esc(", ".join(sorted(all_specs)[:15]))}'
+                     + (" ..." if len(all_specs) > 15 else "")
+                     + '</div>')
+        parts.append('</div>')
+
+    # --- Domain lens pills ---
     by_lens: dict[str, list[Node]] = {}
     for f in findings:
         lens = f.data.get("lens", "unknown")
         by_lens.setdefault(lens, []).append(f)
 
-    parts = ['<h3>Findings by Lens</h3>', '<div class="lens-summary">']
-    for lens, items in sorted(by_lens.items()):
+    parts.append('<div class="lens-pills-row">')
+    for lens, items in sorted(by_lens.items(), key=lambda x: -len(x[1])):
         color = LENS_COLORS.get(lens, "#8892a0")
-        confirmed = sum(1 for i in items
-                       if "CONFIRMED" in (i.data.get("status", "")).upper())
-        impossible = sum(1 for i in items
-                        if "IMPOSSIBLE" in (i.data.get("status", "")).upper())
+        conf_count = sum(1 for i in items
+                         if "CONFIRMED" in (i.data.get("status", "") or "").upper())
         parts.append(
-            f'<div class="lens-group" style="border-top:3px solid {color}">'
-            f'<div class="lens-name" style="color:{color}">{_esc(lens)}</div>'
-            f'<div class="lens-count">{len(items)}</div>'
-            f'<div style="font-size:0.8rem;color:var(--text-dim)">'
+            f'<span class="lens-pill-lg" '
+            f'style="background:{color}22;color:{color};border:1px solid {color}44">'
+            f'<span class="pill-count">{conf_count}/{len(items)}</span> {_esc(lens)}'
+            f'</span>'
         )
-        if confirmed:
-            parts.append(f'&#x2705; {confirmed} fixed ')
-        if impossible:
-            parts.append(f'&#x274C; {impossible} impossible ')
-        parts.append('</div></div>')
     parts.append('</div>')
+
+    # --- Cluster grid ---
+    # Group by construct (file or class) to show cluster density
+    by_construct: dict[str, list[Node]] = {}
+    for f in findings:
+        key = f.data.get("construct", f.data.get("file_path", "unknown"))
+        if key:
+            by_construct.setdefault(key, []).append(f)
+
+    # Show clusters with 2+ findings
+    clusters = {k: v for k, v in by_construct.items() if len(v) >= 2}
+    if clusters:
+        parts.append('<div style="font-size:0.85rem;font-weight:600;'
+                     'color:var(--text-bright);margin:0.75rem 0 0.3rem">'
+                     'Bug Clusters</div>')
+        parts.append('<div class="cluster-grid">')
+        for construct, items in sorted(clusters.items(),
+                                        key=lambda x: -len(x[1])):
+            total = len(items)
+            fixed = sum(1 for f in items
+                        if "CONFIRMED" in (f.data.get("status", "") or "").upper())
+            pct = (fixed / total * 100) if total > 0 else 0
+            bar_color = "var(--accent-green)" if pct > 70 else "var(--accent-amber)"
+            # Shorten construct name
+            short_name = construct.split(".")[-1] if "." in construct else construct
+            if "/" in short_name:
+                short_name = short_name.rsplit("/", 1)[-1]
+            parts.append(
+                f'<div class="cluster-card">'
+                f'<div class="cluster-name" title="{_esc(construct)}">'
+                f'{_esc(short_name)}</div>'
+                f'<div class="cluster-bar">'
+                f'<div class="progress-bar-track">'
+                f'<div class="progress-bar-fill" '
+                f'style="width:{pct:.0f}%;background:{bar_color}">'
+                f'{fixed}/{total}</div></div>'
+                f'<span class="cluster-count">{fixed} fixed</span>'
+                f'</div></div>'
+            )
+        parts.append('</div>')
+
+    # --- Follow-ups ---
+    follow_ups: list[str] = []
+    # Check for spec update suggestions, KB patterns in findings
+    spec_updates = set()
+    kb_patterns = set()
+    for f in findings:
+        if f.data.get("spec"):
+            spec_updates.add(f.data["spec"])
+        lens = f.data.get("lens", "")
+        if lens:
+            kb_patterns.add(lens)
+    if spec_updates:
+        follow_ups.append(f"{len(spec_updates)} spec requirements touched")
+    if kb_patterns:
+        follow_ups.append(f"{len(kb_patterns)} KB lens patterns identified")
+    if impossible:
+        follow_ups.append(f"{len(impossible)} findings marked impossible")
+
+    if follow_ups:
+        parts.append('<div class="follow-ups">')
+        for fu in follow_ups:
+            parts.append(f'<span class="follow-up-chip">{_esc(fu)}</span>')
+        parts.append('</div>')
+
+    parts.append('</div>')  # exec-dashboard
     return "\n".join(parts)
 
 
 def _render_audit_findings_grid(findings: list[Node], ctx: RenderContext) -> str:
-    """Render all findings in a grid layout."""
+    """Render all findings in a compact collapsed grid."""
     if not findings:
         return ""
-    parts = ['<h3>All Findings</h3>', '<div class="findings-grid">']
+    # Group by category for organized browsing
+    by_cat: dict[str, list[Node]] = {}
     for f in findings:
-        parts.append(_render_audit_finding(f, ctx))
-    parts.append('</div>')
+        cat = _classify_category(f)
+        by_cat.setdefault(cat, []).append(f)
+
+    parts = ['<h3>All Findings by Category</h3>']
+    for cat, items in sorted(by_cat.items(), key=lambda x: -len(x[1])):
+        label = _CATEGORY_LABELS.get(cat, cat.title())
+        css = _CATEGORY_CSS.get(cat, "cat-other")
+        parts.append(f'<details><summary><strong>{_esc(label)}</strong>'
+                     f' ({len(items)} findings)</summary>')
+        parts.append(f'<div class="detail-body findings-grid">')
+        for f in items:
+            parts.append(_render_audit_finding(f, ctx))
+        parts.append('</div></details>')
     return "\n".join(parts)
 
 
@@ -1646,29 +2332,20 @@ def count_new_tests(story: Story) -> int:
 # ---------------------------------------------------------------------------
 
 def _render_hero(story: Story, ctx: RenderContext) -> str:
-    """Render the hero header section."""
-    parts: list[str] = []
+    """Render the hero header section.
 
-    # Title
+    Audit stories get big-number hero cards (bugs fixed, cost/bug, etc.).
+    Feature stories get outcome-focused hero (duration, cost, work units).
+    """
+    parts: list[str] = []
+    is_audit = story.story_type == "audit"
+
     title = story.title or "Session"
     story_type = story.story_type
-    if story_type == "feature":
-        heading = f"Building <code>{_esc(title)}</code> with vallorcine"
-    elif story_type == "curation":
-        heading = f"Curating <code>{_esc(title)}</code>"
-    elif story_type == "research":
-        heading = f"Researching <code>{_esc(title)}</code>"
-    elif story_type == "architect":
-        heading = f"Architecture: <code>{_esc(title)}</code>"
-    elif story_type == "audit":
-        heading = f"Audit: <code>{_esc(title)}</code>"
-    else:
-        heading = f"<code>{_esc(title)}</code>"
 
     parts.append('<header class="hero">')
-    parts.append(f'<h1>{heading}</h1>')
 
-    # Subtitle with project/branch
+    # Subtitle line (project, branch, date) — shown first for context
     subtitle_parts = []
     if story.project:
         subtitle_parts.append(_esc(story.project))
@@ -1676,40 +2353,223 @@ def _render_hero(story: Story, ctx: RenderContext) -> str:
         subtitle_parts.append(f'<code>{_esc(story.branch)}</code>')
     if story.started:
         subtitle_parts.append(_esc(story.started))
-    if subtitle_parts:
-        parts.append(f'<div class="subtitle">{" &middot; ".join(subtitle_parts)}</div>')
 
-    # Badge row
-    duration = format_duration(story.duration_ms)
-    tokens_short = format_tokens_short(story.tokens)
-    new_tests = count_new_tests(story)
-    model = story.model or "unknown"
-    sessions = len(story.sessions)
+    if is_audit:
+        # --- AUDIT HERO ---
+        parts.append(f'<h1>Audit: <code>{_esc(title)}</code></h1>')
+        if subtitle_parts:
+            parts.append(f'<div class="subtitle">{" &middot; ".join(subtitle_parts)}</div>')
 
-    parts.append('<div class="badge-row">')
+        parts.append('<div class="hero-tagline">'
+                     'Automated bug detection, adversarial test generation, and verified fixes'
+                     '</div>')
 
-    def _badge(label: str, value: str, color: str) -> str:
-        return f'<span class="badge" style="background:{color}">{_esc(label)}: {_esc(value)}</span>'
+        # Collect audit findings for big numbers
+        findings = _collect_audit_findings(story)
+        confirmed = [f for f in findings
+                     if "CONFIRMED" in (f.data.get("status", "") or "").upper()]
+        total_cost = _cost_value(story.tokens)
+        cost_per_bug = (total_cost / len(confirmed)) if confirmed else 0
+        fix_rate = (len(confirmed) / len(findings) * 100) if findings else 0
 
-    parts.append(_badge("Duration", duration, "#1e3a5f"))
-    parts.append(_badge("Tokens", tokens_short, "#3a1e5f"))
-    parts.append(_badge("Model", model, "#3a3a3a"))
-    cost = _cost_estimate(story.tokens)
-    parts.append(_badge("Est. Cost", cost, "#5f3a1e"))
-    if story.cli_version:
-        parts.append(_badge("Claude Code", f"v{story.cli_version}", "#3a3a3a"))
-    if story.vallorcine_version:
-        parts.append(_badge("vallorcine", f"v{story.vallorcine_version}", "#5f3a1e"))
-    if new_tests:
-        parts.append(_badge("New Tests", str(new_tests), "#1e3a2a"))
-    if sessions > 1:
-        parts.append(_badge("Sessions", f"{sessions} (crash recovery)", "#5f5f1e"))
-    parts.append('</div>')
+        parts.append('<div class="hero-stats">')
 
-    # SVG Timeline
-    timeline = _render_timeline_svg(story)
-    if timeline:
-        parts.append(f'<div class="timeline-container">{timeline}</div>')
+        # Big number: bugs fixed
+        parts.append(f'<div class="hero-stat">'
+                     f'<div class="big-number" style="color:var(--accent-green)">'
+                     f'{len(confirmed)}</div>'
+                     f'<div class="big-label">bugs found &amp; fixed</div></div>')
+
+        # Cost per bug
+        if confirmed:
+            parts.append(f'<div class="hero-stat">'
+                         f'<div class="big-number" style="color:var(--accent-amber)">'
+                         f'${cost_per_bug:.2f}</div>'
+                         f'<div class="big-label">cost per bug</div></div>')
+
+        # Total cost
+        parts.append(f'<div class="hero-stat">'
+                     f'<div class="big-number" style="color:var(--text-dim)">'
+                     f'${total_cost:.2f}</div>'
+                     f'<div class="big-label">total cost</div></div>')
+
+        # Fix rate
+        if findings:
+            rate_color = ("var(--accent-green)" if fix_rate >= 50
+                          else "var(--accent-amber)")
+            parts.append(f'<div class="hero-stat">'
+                         f'<div class="big-number" style="color:{rate_color}">'
+                         f'{fix_rate:.0f}%</div>'
+                         f'<div class="big-label">confirmation rate</div></div>')
+
+        # Total findings
+        parts.append(f'<div class="hero-stat">'
+                     f'<div class="big-number" style="color:var(--accent-blue)">'
+                     f'{len(findings)}</div>'
+                     f'<div class="big-label">total findings</div></div>')
+
+        parts.append('</div>')  # hero-stats
+
+        # Severity summary in badge row
+        severity_counts: dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+        for f in findings:
+            sev = _classify_severity(f)
+            severity_counts[sev] = severity_counts.get(sev, 0) + 1
+
+        parts.append('<div class="badge-row">')
+        sev_bg = {"critical": "#5f1e1e", "high": "#5f3a1e",
+                  "medium": "#5f5f1e", "low": "#3a3a3a"}
+        for sev in ("critical", "high", "medium", "low"):
+            c = severity_counts[sev]
+            if c > 0:
+                parts.append(f'<span class="badge" style="background:{sev_bg[sev]}">'
+                             f'{c} {sev}</span>')
+        # Duration and model badges
+        duration = format_duration(story.duration_ms)
+        parts.append(f'<span class="badge" style="background:#1e3a5f">'
+                     f'{_esc(duration)}</span>')
+        if story.model:
+            parts.append(f'<span class="badge" style="background:#3a3a3a">'
+                         f'{_esc(story.model)}</span>')
+        sessions = len(story.sessions)
+        if sessions > 1:
+            parts.append(f'<span class="badge" style="background:#5f5f1e">'
+                         f'{sessions} sessions</span>')
+        if story.vallorcine_version:
+            parts.append(f'<span class="badge" style="background:#5f3a1e">'
+                         f'vallorcine v{_esc(story.vallorcine_version)}</span>')
+        parts.append('</div>')
+
+    elif story_type == "feature":
+        # --- FEATURE HERO ---
+        parts.append(f'<h1>Building <code>{_esc(title)}</code></h1>')
+        if subtitle_parts:
+            parts.append(f'<div class="subtitle">{" &middot; ".join(subtitle_parts)}</div>')
+
+        duration = format_duration(story.duration_ms)
+        total_cost = _cost_value(story.tokens)
+        new_tests = count_new_tests(story)
+        sessions = len(story.sessions)
+
+        # Count TDD cycles (work units)
+        work_units = 0
+        escalation_count = 0
+
+        def _count_wu(nodes: list[Node]):
+            nonlocal work_units, escalation_count
+            for n in nodes:
+                if n.node_type == NodeType.TDD_CYCLE:
+                    work_units += 1
+                elif n.node_type == NodeType.ESCALATION:
+                    escalation_count += 1
+                if n.children:
+                    _count_wu(n.children)
+
+        for phase in story.phases:
+            _count_wu(phase.children)
+
+        parts.append('<div class="hero-stats">')
+
+        # Duration
+        parts.append(f'<div class="hero-stat">'
+                     f'<div class="big-number" style="color:var(--accent-blue)">'
+                     f'{_esc(duration)}</div>'
+                     f'<div class="big-label">duration</div></div>')
+
+        # Total cost
+        parts.append(f'<div class="hero-stat">'
+                     f'<div class="big-number" style="color:var(--accent-amber)">'
+                     f'${total_cost:.2f}</div>'
+                     f'<div class="big-label">total cost</div></div>')
+
+        # Work units
+        if work_units:
+            parts.append(f'<div class="hero-stat">'
+                         f'<div class="big-number" style="color:var(--accent-green)">'
+                         f'{work_units}</div>'
+                         f'<div class="big-label">work units</div></div>')
+
+        # Tests
+        if new_tests:
+            parts.append(f'<div class="hero-stat">'
+                         f'<div class="big-number" style="color:var(--accent-teal)">'
+                         f'{new_tests}</div>'
+                         f'<div class="big-label">tests passing</div></div>')
+
+        # Sessions
+        if sessions > 1:
+            parts.append(f'<div class="hero-stat">'
+                         f'<div class="big-number" style="color:var(--accent-red)">'
+                         f'{sessions}</div>'
+                         f'<div class="big-label">sessions</div></div>')
+
+        parts.append('</div>')  # hero-stats
+
+        # Badge row for model/version info
+        parts.append('<div class="badge-row">')
+        if story.model:
+            parts.append(f'<span class="badge" style="background:#3a3a3a">'
+                         f'{_esc(story.model)}</span>')
+        if story.cli_version:
+            parts.append(f'<span class="badge" style="background:#3a3a3a">'
+                         f'Claude Code v{_esc(story.cli_version)}</span>')
+        if story.vallorcine_version:
+            parts.append(f'<span class="badge" style="background:#5f3a1e">'
+                         f'vallorcine v{_esc(story.vallorcine_version)}</span>')
+        if escalation_count:
+            parts.append(f'<span class="badge" style="background:#5f1e1e">'
+                         f'{escalation_count} escalations</span>')
+        parts.append('</div>')
+
+        # Compact phase timeline bar
+        if len(story.phases) > 1:
+            total_ms = story.duration_ms or sum(p.duration_ms for p in story.phases) or 1
+            parts.append('<div class="phase-timeline-bar">')
+            for phase in story.phases:
+                stage = phase.data.get("stage", "")
+                color = PHASE_COLORS.get(stage, "#4a9eff")
+                pms = max(phase.duration_ms, total_ms // 100)
+                pct = (pms / total_ms) * 100
+                label = stage.title() if pct > 8 else ""
+                parts.append(
+                    f'<div class="phase-timeline-segment" '
+                    f'style="width:{pct:.1f}%;background:{color}" '
+                    f'title="{_esc(stage.title())} - {format_duration(phase.duration_ms)}">'
+                    f'{_esc(label)}</div>'
+                )
+            parts.append('</div>')
+
+    else:
+        # --- OTHER TYPES ---
+        if story_type == "curation":
+            heading = f"Curating <code>{_esc(title)}</code>"
+        elif story_type == "research":
+            heading = f"Researching <code>{_esc(title)}</code>"
+        elif story_type == "architect":
+            heading = f"Architecture: <code>{_esc(title)}</code>"
+        else:
+            heading = f"<code>{_esc(title)}</code>"
+
+        parts.append(f'<h1>{heading}</h1>')
+        if subtitle_parts:
+            parts.append(f'<div class="subtitle">{" &middot; ".join(subtitle_parts)}</div>')
+
+        # Standard badge row
+        duration = format_duration(story.duration_ms)
+        parts.append('<div class="badge-row">')
+
+        def _badge(label: str, value: str, color: str) -> str:
+            return (f'<span class="badge" style="background:{color}">'
+                    f'{_esc(label)}: {_esc(value)}</span>')
+
+        parts.append(_badge("Duration", duration, "#1e3a5f"))
+        cost = _cost_estimate(story.tokens)
+        parts.append(_badge("Est. Cost", cost, "#5f3a1e"))
+        if story.model:
+            parts.append(_badge("Model", story.model, "#3a3a3a"))
+        if story.vallorcine_version:
+            parts.append(_badge("vallorcine", f"v{story.vallorcine_version}", "#5f3a1e"))
+        parts.append('</div>')
 
     parts.append('</header>')
     return "\n".join(parts)
@@ -2238,6 +3098,77 @@ def _render_replay_section(story: Story) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Feature dashboard
+# ---------------------------------------------------------------------------
+
+def _render_feature_dashboard(story: Story, ctx: RenderContext) -> str:
+    """Render a compact dashboard for feature stories.
+
+    Shows phase summary, work unit summary, escalations, session count.
+    """
+    parts: list[str] = ['<div class="feature-dashboard">']
+    parts.append('<h3>Session Dashboard</h3>')
+
+    # Collect summary stats
+    work_units = 0
+    interesting_units = 0
+    escalation_count = 0
+    escalation_summaries: list[str] = []
+    total_passed = 0
+    total_failed = 0
+
+    def _walk(nodes: list[Node]):
+        nonlocal work_units, interesting_units, escalation_count, total_passed, total_failed
+        for n in nodes:
+            if n.node_type == NodeType.TDD_CYCLE:
+                work_units += 1
+                if n.interesting:
+                    interesting_units += 1
+                total_passed += n.data.get("test_passed", 0)
+                total_failed += n.data.get("test_failed", 0)
+            elif n.node_type == NodeType.ESCALATION:
+                escalation_count += 1
+                content = n.content or ""
+                if content.strip():
+                    escalation_summaries.append(content[:100])
+            if n.children:
+                _walk(n.children)
+
+    for phase in story.phases:
+        _walk(phase.children)
+
+    # Metric row
+    parts.append('<div class="dashboard-row">')
+    parts.append(_metric_card("Phases", str(len(story.phases))))
+    if work_units:
+        parts.append(_metric_card("Work Units", str(work_units)))
+    if total_passed or total_failed:
+        test_str = f"{total_passed} passed"
+        if total_failed:
+            test_str += f", {total_failed} failed"
+        parts.append(_metric_card("Tests", test_str))
+    sessions = len(story.sessions)
+    if sessions > 1:
+        parts.append(_metric_card("Sessions", f"{sessions} (crash/resume)"))
+    parts.append('</div>')
+
+    # Escalations
+    if escalation_count:
+        parts.append(f'<div style="margin:0.5rem 0">'
+                     f'<span style="color:var(--accent-red);font-weight:600">'
+                     f'{escalation_count} escalation{"s" if escalation_count != 1 else ""}'
+                     f'</span>')
+        if escalation_summaries:
+            for es in escalation_summaries[:3]:
+                parts.append(f'<div style="font-size:0.8rem;color:var(--text-dim);'
+                             f'margin-left:0.5rem">&bull; {_esc(es)}</div>')
+        parts.append('</div>')
+
+    parts.append('</div>')  # feature-dashboard
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
 # Main render function
 # ---------------------------------------------------------------------------
 
@@ -2277,27 +3208,45 @@ def render_story(story: Story) -> str:
     # Main content (static view)
     parts.append('<main id="static-view">')
 
-    # Phase nav
-    parts.append(_render_phase_nav(story))
-
-    # Phase breakdown table
-    parts.append(_render_phase_breakdown(story))
-
-    # Audit-specific summary sections
     if is_audit:
+        # --- AUDIT STATIC VIEW ---
+        # Executive dashboard (always visible, right after hero)
         findings = _collect_audit_findings(story)
         if findings:
-            parts.append(_render_audit_lens_summary(findings))
-            # Findings grid is collapsed — serves as navigable index
-            # Per-phase rendering below shows findings in full context
+            parts.append(_render_audit_executive_dashboard(findings, story, ctx))
+
+        # Phase nav (compact)
+        parts.append(_render_phase_nav(story))
+
+        # Phase breakdown (collapsed)
+        parts.append(_render_phase_breakdown(story))
+
+        # Phase sections with grouped findings
+        for phase in story.phases:
+            parts.append(_render_phase(phase, ctx))
+
+        # Full findings index (collapsed, by category)
+        if findings:
             parts.append('<details class="findings-index">')
             parts.append(f'<summary>All {len(findings)} findings (expand to browse)</summary>')
             parts.append(_render_audit_findings_grid(findings, ctx))
             parts.append('</details>')
 
-    # Phase sections
-    for phase in story.phases:
-        parts.append(_render_phase(phase, ctx))
+    else:
+        # --- FEATURE / OTHER STATIC VIEW ---
+        # Feature dashboard (compact summary)
+        if story.story_type == "feature":
+            parts.append(_render_feature_dashboard(story, ctx))
+
+        # Phase nav
+        parts.append(_render_phase_nav(story))
+
+        # Phase breakdown (collapsed)
+        parts.append(_render_phase_breakdown(story))
+
+        # Phase sections
+        for phase in story.phases:
+            parts.append(_render_phase(phase, ctx))
 
     parts.append('</main>')
 
