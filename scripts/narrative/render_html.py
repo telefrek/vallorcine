@@ -20,6 +20,7 @@ Usage:
 
 import argparse
 import html
+import json
 import sys
 from typing import Callable
 
@@ -596,6 +597,178 @@ footer .cost-grid {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-bright);
+}
+
+/* View toggle */
+.view-toggle {
+    display: flex;
+    gap: 0;
+    margin: 1.5rem 0 0;
+    justify-content: center;
+}
+.view-toggle button {
+    padding: 0.5rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.view-toggle button:first-child { border-radius: 6px 0 0 6px; }
+.view-toggle button:last-child { border-radius: 0 6px 6px 0; }
+.view-toggle button.active {
+    background: var(--accent-blue);
+    color: var(--text-bright);
+    border-color: var(--accent-blue);
+}
+
+/* Replay section */
+.replay-container { display: none; margin: 1.5rem 0; }
+.replay-container.visible { display: block; }
+.replay-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px 8px 0 0;
+    flex-wrap: wrap;
+}
+.replay-controls button {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.4rem 0.7rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    transition: background 0.12s;
+}
+.replay-controls button:hover { background: var(--border); }
+.replay-controls select {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.35rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+.replay-progress {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-left: auto;
+    font-family: "SF Mono", Consolas, monospace;
+}
+.replay-timeline {
+    display: flex;
+    gap: 0;
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    overflow-x: auto;
+    padding: 0.25rem 0.5rem;
+}
+.replay-timeline button {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.15s, color 0.15s;
+}
+.replay-timeline button:hover { border-bottom-color: var(--text-dim); }
+.replay-timeline button.active { border-bottom-color: currentColor; }
+.replay-terminal {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 0 0 8px 8px;
+    padding: 1rem;
+    font-family: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    max-height: 600px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    min-height: 200px;
+}
+.replay-terminal .r-user {
+    color: #58a6ff;
+    margin: 0.5rem 0;
+    padding: 0.4rem 0.6rem;
+    border-left: 2px solid #58a6ff;
+}
+.replay-terminal .r-user .r-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+    display: block;
+    margin-bottom: 0.15rem;
+}
+.replay-terminal .r-assistant {
+    color: #e6edf3;
+    margin: 0.5rem 0;
+    padding: 0.4rem 0.6rem;
+    border-left: 2px solid #484f58;
+}
+.replay-terminal .r-assistant .r-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #8b949e;
+    display: block;
+    margin-bottom: 0.15rem;
+}
+.replay-terminal .r-tool {
+    color: #7ee787;
+    font-size: 12px;
+    opacity: 0.7;
+    margin: 0.25rem 0 0.25rem 1rem;
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+}
+.replay-terminal .r-tool::before { content: "\\25B6 "; font-size: 0.7em; }
+.replay-terminal .r-tool.expanded::before { content: "\\25BC "; }
+.replay-terminal .r-tool .r-tool-detail {
+    display: none;
+    margin-top: 0.25rem;
+    padding: 0.3rem 0.5rem;
+    background: #161b22;
+    border-radius: 3px;
+    color: #8b949e;
+    white-space: pre-wrap;
+}
+.replay-terminal .r-tool.expanded .r-tool-detail { display: block; }
+.replay-terminal .r-phase-marker {
+    color: #f0883e;
+    font-weight: bold;
+    border-top: 1px solid #30363d;
+    padding-top: 0.5rem;
+    margin-top: 1rem;
+    font-size: 14px;
+}
+.replay-terminal .r-escalation {
+    color: #f85149;
+    margin: 0.5rem 0;
+    padding: 0.4rem 0.6rem;
+    border-left: 2px solid #f85149;
+    background: #1a0f0f;
+}
+.replay-step-enter {
+    animation: stepFadeIn 0.2s ease-out;
+}
+@keyframes stepFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 """
 
@@ -1660,6 +1833,411 @@ def _render_footer(story: Story) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Replay section
+# ---------------------------------------------------------------------------
+
+def _extract_replay_steps(story: Story) -> list[dict]:
+    """Walk the Story AST and extract an ordered list of replay steps.
+
+    Each step is a dict with:
+        type:      user | assistant | tool_call | phase_change | escalation
+        content:   display text
+        phase:     current phase slug
+        label:     (phase_change only) display label
+        tool:      (tool_call only) tool name
+        timestamp: (if available)
+    """
+    steps: list[dict] = []
+    current_phase = ""
+
+    def _walk_children(children: list[Node], phase: str):
+        for child in children:
+            _walk_node(child, phase)
+
+    def _walk_node(node: Node, phase: str):
+        nt = node.node_type
+
+        if nt == NodeType.CONVERSATION:
+            for ex in node.children:
+                _walk_exchange(ex, phase)
+
+        elif nt == NodeType.EXCHANGE:
+            _walk_exchange(node, phase)
+
+        elif nt == NodeType.TDD_CYCLE:
+            name = node.data.get("unit_name", "Work unit")
+            dur = format_duration(node.duration_ms or node.data.get("duration_ms", 0))
+            summary = node.data.get("summary", "")
+            text = f"[subagent] {name} ({dur})"
+            if summary:
+                text += f" — {summary}"
+            steps.append({"type": "assistant", "content": text, "phase": phase})
+            # Walk children for any nested exchanges
+            _walk_children(node.children, phase)
+
+        elif nt == NodeType.STAGE_TRANSITION:
+            cmd = node.data.get("command", "")
+            args = node.data.get("args", "")
+            if cmd:
+                content = f"/{cmd}"
+                if args:
+                    content += f" {args}"
+                steps.append({"type": "user", "content": content, "phase": phase})
+
+        elif nt == NodeType.SESSION_BREAK:
+            gap = format_duration(node.data.get("gap_duration_ms", 0))
+            steps.append({
+                "type": "escalation",
+                "content": f"Session crashed. Resumed {gap} later.",
+                "phase": phase,
+            })
+
+        elif nt == NodeType.ESCALATION:
+            content = node.content or "Escalation"
+            short, _ = _truncate(content, 300)
+            steps.append({
+                "type": "escalation", "content": short, "phase": phase,
+            })
+
+        elif nt == NodeType.ACTION_GROUP:
+            if "unit_name" in node.data:
+                name = node.data.get("unit_name", "Action")
+                dur = format_duration(node.duration_ms or node.data.get("duration_ms", 0))
+                steps.append({
+                    "type": "tool_call",
+                    "tool": "Agent",
+                    "content": f"{name} ({dur})",
+                    "phase": phase,
+                })
+            else:
+                actions = node.data.get("actions", [])
+                if actions:
+                    summaries = [a.get("summary", f"{a.get('verb', '?')} {a.get('target', '')}")
+                                 for a in actions[:5]]
+                    text = "; ".join(summaries)
+                    if len(actions) > 5:
+                        text += f" (+{len(actions) - 5} more)"
+                    steps.append({
+                        "type": "tool_call",
+                        "tool": actions[0].get("verb", "Edit"),
+                        "content": text,
+                        "phase": phase,
+                    })
+
+        elif nt == NodeType.TEST_RESULT:
+            passed = node.data.get("passed", 0)
+            failed = node.data.get("failed", 0)
+            if failed:
+                steps.append({
+                    "type": "tool_call", "tool": "Test",
+                    "content": f"{passed} passed, {failed} failed",
+                    "phase": phase,
+                })
+            elif passed:
+                steps.append({
+                    "type": "tool_call", "tool": "Test",
+                    "content": f"{passed} passed",
+                    "phase": phase,
+                })
+
+        elif nt == NodeType.RESEARCH:
+            topic = node.data.get("topic", "")
+            findings = node.data.get("findings_summary", "")
+            text = f"Research: {topic}" if topic else "Research"
+            if findings:
+                short, _ = _truncate(findings, 200)
+                text += f" — {short}"
+            steps.append({"type": "assistant", "content": text, "phase": phase})
+
+        elif nt == NodeType.ARCHITECT:
+            question = node.data.get("question", "")
+            decision = node.data.get("decision", "")
+            text = f"Architecture: {question}" if question else "Architecture Decision"
+            if decision:
+                short, _ = _truncate(decision, 200)
+                text += f" => {short}"
+            steps.append({"type": "assistant", "content": text, "phase": phase})
+
+        elif nt == NodeType.BRIEF:
+            content = node.content or node.data.get("content", "")
+            if content:
+                short, _ = _truncate(content, 300)
+                steps.append({"type": "assistant", "content": f"Brief: {short}", "phase": phase})
+
+        elif nt == NodeType.WORK_PLAN:
+            units = node.data.get("units", [])
+            if units:
+                names = [u.get("name", u.get("unit_name", "?")) for u in units[:6]]
+                text = "Work Plan: " + ", ".join(names)
+                if len(units) > 6:
+                    text += f" (+{len(units) - 6} more)"
+                steps.append({"type": "assistant", "content": text, "phase": phase})
+
+        elif nt == NodeType.PR:
+            url = node.data.get("url", "")
+            title = node.data.get("title", "Pull Request")
+            text = f"PR: {title}"
+            if url:
+                text += f" — {url}"
+            steps.append({"type": "assistant", "content": text, "phase": phase})
+
+        elif nt == NodeType.RETRO:
+            content = node.content or ""
+            if content.strip():
+                short, _ = _truncate(content, 300)
+                steps.append({"type": "assistant", "content": f"Retro: {short}", "phase": phase})
+
+        elif nt == NodeType.AUDIT_CYCLE:
+            stage = node.data.get("stage", "")
+            target = node.data.get("target", "")
+            label = "Audit"
+            if stage:
+                label += f": {stage}"
+            if target:
+                label += f" — {target}"
+            steps.append({"type": "assistant", "content": label, "phase": phase})
+            _walk_children(node.children, phase)
+
+        elif nt == NodeType.AUDIT_FINDING:
+            fid = node.data.get("finding_id", "")
+            title = node.data.get("title", node.data.get("description", ""))
+            status = node.data.get("status", "")
+            text = f"Finding {fid}: {title}" if fid else f"Finding: {title}"
+            if status:
+                text += f" [{status}]"
+            steps.append({"type": "assistant", "content": text, "phase": phase})
+
+        elif nt == NodeType.PROSE:
+            content = node.content or ""
+            if content.strip():
+                short, _ = _truncate(content, 200)
+                steps.append({"type": "assistant", "content": short, "phase": phase})
+
+        elif nt == NodeType.METRIC:
+            # Skip metrics in replay — they're visual noise
+            pass
+
+        else:
+            # Unknown node with content
+            if node.content:
+                short, _ = _truncate(node.content, 200)
+                steps.append({"type": "assistant", "content": short, "phase": phase})
+
+    def _walk_exchange(node: Node, phase: str):
+        q = node.data.get("question", "")
+        a = node.data.get("answer", "")
+        if q and q.strip():
+            short, _ = _truncate(q, 400)
+            steps.append({"type": "assistant", "content": short, "phase": phase})
+        if a and a.strip() and not _is_confirmation(a):
+            short, _ = _truncate(a, 400)
+            steps.append({"type": "user", "content": short, "phase": phase})
+
+    for phase_node in story.phases:
+        stage = phase_node.data.get("stage", "")
+        title = phase_node.data.get("title", stage.title())
+        # Emit phase_change marker
+        steps.append({
+            "type": "phase_change",
+            "phase": stage,
+            "label": title,
+            "content": "",
+        })
+        current_phase = stage
+        _walk_children(phase_node.children, stage)
+
+    return steps
+
+
+def _render_replay_section(story: Story) -> str:
+    """Generate the interactive replay section HTML + embedded JS."""
+    steps = _extract_replay_steps(story)
+    if not steps:
+        return ""
+
+    # Build phase list for timeline
+    phases: list[dict] = []
+    for i, step in enumerate(steps):
+        if step["type"] == "phase_change":
+            color = PHASE_COLORS.get(step["phase"], "#4a9eff")
+            phases.append({
+                "index": i,
+                "label": step["label"],
+                "phase": step["phase"],
+                "color": color,
+            })
+
+    # Sanitize steps for JSON embedding — only keep safe keys
+    safe_steps = []
+    for s in steps:
+        safe = {
+            "type": s["type"],
+            "content": s.get("content", ""),
+            "phase": s.get("phase", ""),
+        }
+        if "label" in s:
+            safe["label"] = s["label"]
+        if "tool" in s:
+            safe["tool"] = s["tool"]
+        safe_steps.append(safe)
+
+    total = len(safe_steps)
+
+    # Timeline buttons
+    timeline_html = ""
+    for p in phases:
+        color = p["color"]
+        label = _esc(p["label"])
+        idx = p["index"]
+        timeline_html += (
+            f'<button onclick="replayJumpTo({idx})" '
+            f'style="color:{color}" data-phase="{_esc(p["phase"])}">'
+            f'{label}</button>'
+        )
+
+    return f"""
+<section id="replay" class="replay-container">
+  <div class="replay-controls">
+    <button id="replay-prev" title="Previous step">&#x23EE;</button>
+    <button id="replay-play" title="Play / Pause">&#x25B6;</button>
+    <button id="replay-next" title="Next step">&#x23ED;</button>
+    <select id="replay-speed" title="Playback speed">
+      <option value="2000">0.5x</option>
+      <option value="1000" selected>1x</option>
+      <option value="500">2x</option>
+      <option value="250">4x</option>
+    </select>
+    <span class="replay-progress" id="replay-progress">0 / {total}</span>
+  </div>
+  <div class="replay-timeline">{timeline_html}</div>
+  <div class="replay-terminal" id="replay-terminal"></div>
+</section>
+<script>
+(function() {{
+  var STEPS = {json.dumps(safe_steps, separators=(',', ':'))};
+  var term = document.getElementById('replay-terminal');
+  var progressEl = document.getElementById('replay-progress');
+  var playBtn = document.getElementById('replay-play');
+  var prevBtn = document.getElementById('replay-prev');
+  var nextBtn = document.getElementById('replay-next');
+  var speedSel = document.getElementById('replay-speed');
+  var idx = 0, playing = false, timer = null;
+  var total = STEPS.length;
+
+  function esc(s) {{
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }}
+
+  function renderStep(step) {{
+    var el = document.createElement('div');
+    el.className = 'replay-step-enter';
+    if (step.type === 'phase_change') {{
+      el.className += ' r-phase-marker';
+      el.textContent = '\\u2501\\u2501 ' + (step.label || step.phase) + ' \\u2501\\u2501';
+    }} else if (step.type === 'user') {{
+      el.className += ' r-user';
+      el.innerHTML = '<span class="r-label">User</span>' + esc(step.content);
+    }} else if (step.type === 'assistant') {{
+      el.className += ' r-assistant';
+      el.innerHTML = '<span class="r-label">Claude</span>' + esc(step.content);
+    }} else if (step.type === 'tool_call') {{
+      el.className += ' r-tool';
+      var toolLabel = step.tool ? ('[' + step.tool + '] ') : '';
+      el.innerHTML = toolLabel + esc(step.content);
+      el.onclick = function() {{ el.classList.toggle('expanded'); }};
+    }} else if (step.type === 'escalation') {{
+      el.className += ' r-escalation';
+      el.innerHTML = '\\u26A0 ' + esc(step.content);
+    }}
+    return el;
+  }}
+
+  function showUpTo(n) {{
+    term.innerHTML = '';
+    for (var i = 0; i <= n && i < total; i++) {{
+      var el = renderStep(STEPS[i]);
+      if (i === n) el.className += ' replay-step-enter';
+      else {{
+        // Remove animation for already-shown steps
+        el.className = el.className.replace('replay-step-enter', '');
+      }}
+      term.appendChild(el);
+    }}
+    term.scrollTop = term.scrollHeight;
+    progressEl.textContent = (n + 1) + ' / ' + total;
+    // Highlight active phase in timeline
+    var phase = STEPS[n].phase;
+    var btns = document.querySelectorAll('.replay-timeline button');
+    var lastMatch = null;
+    for (var i = 0; i < btns.length; i++) {{
+      btns[i].classList.remove('active');
+      if (btns[i].getAttribute('data-phase') === phase) lastMatch = btns[i];
+    }}
+    if (lastMatch) lastMatch.classList.add('active');
+  }}
+
+  function stepForward() {{
+    if (idx < total - 1) {{
+      idx++;
+      showUpTo(idx);
+    }} else {{
+      pause();
+    }}
+  }}
+
+  function stepBack() {{
+    if (idx > 0) {{
+      idx--;
+      showUpTo(idx);
+    }}
+  }}
+
+  function play() {{
+    if (playing) return;
+    playing = true;
+    playBtn.innerHTML = '&#x23F8;';
+    tick();
+  }}
+
+  function pause() {{
+    playing = false;
+    playBtn.innerHTML = '&#x25B6;';
+    if (timer) {{ clearTimeout(timer); timer = null; }}
+  }}
+
+  function tick() {{
+    if (!playing) return;
+    stepForward();
+    if (idx >= total - 1) {{ pause(); return; }}
+    var delay = parseInt(speedSel.value, 10) || 1000;
+    // Phase changes get a longer pause
+    if (STEPS[idx] && STEPS[idx].type === 'phase_change') delay *= 1.5;
+    timer = setTimeout(tick, delay);
+  }}
+
+  playBtn.onclick = function() {{ playing ? pause() : play(); }};
+  nextBtn.onclick = function() {{ pause(); stepForward(); }};
+  prevBtn.onclick = function() {{ pause(); stepBack(); }};
+  speedSel.onchange = function() {{
+    if (playing) {{ pause(); play(); }}
+  }};
+
+  window.replayJumpTo = function(n) {{
+    pause();
+    idx = Math.min(n, total - 1);
+    showUpTo(idx);
+  }};
+
+  // Show initial state — first phase marker
+  if (total > 0) showUpTo(0);
+}})();
+</script>
+"""
+
+
+# ---------------------------------------------------------------------------
 # Main render function
 # ---------------------------------------------------------------------------
 
@@ -1685,8 +2263,19 @@ def render_story(story: Story) -> str:
     # Hero
     parts.append(_render_hero(story, ctx))
 
-    # Main content
-    parts.append('<main>')
+    # View toggle (Static | Replay)
+    parts.append("""
+<div class="view-toggle">
+  <button id="toggle-static" class="active" onclick="switchView('static')">Static View</button>
+  <button id="toggle-replay" onclick="switchView('replay')">Replay</button>
+</div>
+""")
+
+    # Replay section (hidden by default)
+    parts.append(_render_replay_section(story))
+
+    # Main content (static view)
+    parts.append('<main id="static-view">')
 
     # Phase nav
     parts.append(_render_phase_nav(story))
@@ -1714,6 +2303,29 @@ def render_story(story: Story) -> str:
 
     # Footer
     parts.append(_render_footer(story))
+
+    # View switching script
+    parts.append("""
+<script>
+function switchView(view) {
+  var staticEl = document.getElementById('static-view');
+  var replayEl = document.getElementById('replay');
+  var btnStatic = document.getElementById('toggle-static');
+  var btnReplay = document.getElementById('toggle-replay');
+  if (view === 'replay') {
+    staticEl.style.display = 'none';
+    if (replayEl) replayEl.classList.add('visible');
+    btnStatic.classList.remove('active');
+    btnReplay.classList.add('active');
+  } else {
+    staticEl.style.display = '';
+    if (replayEl) replayEl.classList.remove('visible');
+    btnStatic.classList.add('active');
+    btnReplay.classList.remove('active');
+  }
+}
+</script>
+""")
 
     parts.append('</body>')
     parts.append('</html>')
