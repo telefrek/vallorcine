@@ -100,6 +100,30 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
   (timing channel = needs manual review). Promote to Open questions when
   ready to design the lens prompt and advisory output format.
 
+- **`/decisions roadmap` — bulk planning pass for deferred decision backlogs** —
+  When a project accumulates many deferred decisions (10-70+), `/decisions triage`
+  processes them one at a time which misses the strategic picture. `/decisions roadmap`
+  reads all deferred decision stubs, clusters them by theme (using parent ADR
+  relationships + problem statement similarity), classifies each by effort level
+  (gap-fill: 1-2 sessions, minor-feature: 2-4 sessions, full-feature: 5+), identifies
+  dependencies between clusters, checks which resume conditions are now met, and
+  presents a prioritized sequence. For small backlogs (5-10 items): surfaces related
+  decisions, flags met resume conditions, suggests research topics before committing
+  to `/architect`. For large backlogs (30+): full clustering, classification table,
+  dependency chain analysis, and phased ordering. Planning only — recommends and
+  routes to `/architect`, `/feature`, `/feature-quick`, or `/research` but never
+  executes. Implementation: `decisions-scan.sh` does mechanical clustering (parent
+  grouping, counting, resume condition checking), LLM reads scan output + samples
+  problem statements to classify and present. Found via jlsm dogfood: 68 deferred
+  decisions needed bulk analysis that no existing skill could provide.
+
+- **`/project-context` evolution — "what should I work on next?"** — broader version
+  of `/decisions roadmap` that synthesizes across all project signals (deferred
+  decisions, deferred audit findings, spec-code drift, KB staleness, open obligations,
+  git churn, recently completed features) to recommend the highest-value next work
+  unit. Routes to the appropriate skill per item type. Deferred until `/decisions
+  roadmap` validates the planning-only approach on a narrower scope.
+
 - **Pipeline observability** — velocity metrics (time/tokens per stage across
   features), KB utilization (which entries get read), pipeline trends. Token
   tracking exists but is narrow. Premature until more projects use vallorcine.
