@@ -265,12 +265,16 @@ worth exploring:
   3. <Area> (<files>) — <observation>.
      → I'll explore this area and surface anything worth documenting
 
-Pick a number to start, or:
-  all   — work through each item in order
-  done  — note remaining items for next /curate run
-
 Items you don't address are saved automatically — run /curate anytime to pick them up.
 ```
+
+Use AskUserQuestion to let the user choose. Build options dynamically:
+- If 4 or fewer items: one option per item (labeled with its number and
+  short description), plus `All` (description: "Work through each item in
+  order") and `Done` (description: "Note remaining items for next /curate run").
+- If more than 4 items: use `All`, `Done`, and `Other` (description: "Type
+  a number to start with"). If the user selects "Other", wait for them to
+  provide the item number as free text.
 
 ### Warm repo (has existing artifacts)
 
@@ -325,12 +329,16 @@ I scanned <N> commits since last review and found <N> items:
  15. <adr-slug> — evaluation references <N> KB entries not in its Sources table
      → I'll add the missing references to the ADR
 
-Pick a number to start, or:
-  all   — work through each item in order
-  done  — note remaining items for next /curate run
-
 Items you don't address are saved automatically — run /curate anytime to pick them up.
 ```
+
+Use AskUserQuestion to let the user choose. Build options dynamically:
+- If 4 or fewer items: one option per item (labeled with its number and
+  short description), plus `All` (description: "Work through each item in
+  order") and `Done` (description: "Note remaining items for next /curate run").
+- If more than 4 items: use `All`, `Done`, and `Other` (description: "Type
+  a number to start with"). If the user selects "Other", wait for them to
+  provide the item number as free text.
 
 ### After completing an item
 
@@ -345,8 +353,15 @@ Done. <N> items remaining:
 
   2. ...
 
-Pick a number, or: done
 ```
+
+Use AskUserQuestion to let the user choose. Build options dynamically:
+- If 4 or fewer remaining items: one option per item (labeled with its number
+  and short description), plus `Done` (description: "Note remaining items for
+  next /curate run").
+- If more than 4 remaining items: use `Done` and `Other` (description: "Type
+  a number to continue with"). If the user selects "Other", wait for them to
+  provide the item number as free text.
 
 ### Nothing found
 

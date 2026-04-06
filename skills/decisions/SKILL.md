@@ -160,15 +160,16 @@ to browse all decisions."
 
 If one match: proceed directly to Step 2 with that decision.
 
-If multiple matches, present them:
+If multiple matches, present them using AskUserQuestion. Build the options
+dynamically — one option per match, plus an "All" option:
+
 ```
 Found <N> decisions matching "<argument>":
-
-  [1] <slug-1> — <recommendation summary> (accepted <date>)
-  [2] <slug-2> — <recommendation summary> (accepted <date>)
-
-Pick a number to start with, or: all
 ```
+
+Use AskUserQuestion with:
+- One option per match, labeled `<slug> — <recommendation summary> (accepted <date>)`
+- A final option: `All` (description: "Revisit all matching decisions in order")
 
 ### Step 2 — Understand the motivation
 
@@ -508,16 +509,15 @@ Deferred topics (<n> total)
 [2] ...
 
 ───────────────────────────────────────────────
-For each item:
-  e  — evaluate now  (start /architect session)
-  c  — close         (move to Closed, remove from Deferred)
-  u  — update        (refresh resume condition or add context)
-  d  — delete        (remove stub entirely)
-  s  — skip
-
-Enter choices: 1=e 2=s 3=c  (or type: skip  to skip all)
-───────────────────────────────────────────────
 ```
+
+Process items one at a time. For each item, use AskUserQuestion with these
+options:
+- `Evaluate` (description: "Start /architect session for this topic")
+- `Close` (description: "Move to Closed, remove from Deferred")
+- `Update` (description: "Refresh resume condition or add context")
+- `Delete` (description: "Remove stub entirely")
+- `Skip` (description: "Leave as-is for now")
 
 ### Step 2 — Process choices
 
@@ -758,8 +758,11 @@ Present each candidate one at a time:
   Session: <date>
   Suggested: <suggested_problem>
 
-  Type: decide · draft · defer · dismiss
-```
+Use AskUserQuestion with these options:
+- `Decide` (description: "Start full /architect deliberation for this candidate")
+- `Draft` (description: "Write a partial ADR with rationale, to formalize later")
+- `Defer` (description: "Park for later with context")
+- `Dismiss` (description: "Not a real decision — mark as dismissed")
 
 Wait for user response. Process identically to `/decisions backfill` Step 4:
 - **decide** → invoke `/architect "<suggested_problem>"` as a sub-agent
@@ -992,9 +995,13 @@ Present each candidate one at a time:
   <2-3 sentences describing the implicit decision. For archived features,
   quote the guidance text from domains.md. For source patterns, describe
   what the structure implies.>
-
-  Type: decide · draft · defer · dismiss
 ```
+
+Use AskUserQuestion with these options:
+- `Decide` (description: "Start full /architect deliberation for this candidate")
+- `Draft` (description: "Write a partial ADR with rationale, to formalize later")
+- `Defer` (description: "Park for later with context")
+- `Dismiss` (description: "Not a real decision — won't resurface")
 
 Wait for user response.
 

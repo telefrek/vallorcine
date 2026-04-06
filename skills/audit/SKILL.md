@@ -88,14 +88,14 @@ Parse the argument to determine what kind of audit this is:
 - **Spec reference** (e.g., "spec:F01"): audit code against spec
 - **Prior report** (e.g., "audit-report.md" path): incremental audit
 
-If the argument is ambiguous, ask the user:
-```
-What would you like to audit?
-  1. A feature (provide the feature slug)
-  2. Specific files (provide file paths or globs)
-  3. Code against a spec (provide spec ID)
-  4. Re-run from a prior audit report
-```
+If the argument is ambiguous, ask the user using AskUserQuestion:
+
+- Question: "What would you like to audit?"
+- Options:
+  1. "Feature" — audit a feature by slug (you'll ask for the slug next)
+  2. "Specific files" — audit files by path or glob pattern
+  3. "Spec coverage" — audit code against a spec (provide spec ID)
+  4. "Prior report" — incremental audit from a previous report
 
 Store the entry point type and value for the Classification subagent.
 
@@ -600,32 +600,33 @@ Launch a subagent:
 
 Expected return: stale test count + regression count.
 
-If spec ambiguities found, display them and ask the user to decide:
-```
-<N> spec ambiguity detected — a requirement allows conflicting interpretations:
+If spec ambiguities found, ask the user using AskUserQuestion for each
+ambiguity. Include the spec requirement and conflicting test behaviors as
+context in the question text:
 
-  <spec>.<requirement>: "<requirement text>"
-    Test A (<method>) expects: <behavior A>
-    Test B (<method>) expects: <behavior B>
-
-  The requirement needs tightening. Which interpretation should the code follow?
-    1. <behavior A> (update Test B)
-    2. <behavior B> (update Test A)
-    3. Defer — leave both tests, resolve in /spec-author
-```
+- Question: "<N> spec ambiguity detected — a requirement allows conflicting
+  interpretations:\n\n  <spec>.<requirement>: \"<requirement text>\"\n
+  Test A (<method>) expects: <behavior A>\n  Test B (<method>) expects:
+  <behavior B>\n\nWhich interpretation should the code follow?"
+- Options:
+  1. "<behavior A>" — update Test B to match this interpretation
+  2. "<behavior B>" — update Test A to match this interpretation
+  3. "Defer" — leave both tests, resolve in /spec-author
 
 Apply the user's decision: update the losing test and add a comment
 noting the decision. If deferred, note both tests as conflicting in
 the audit report.
 
-If regressions found, display them and ask the user before proceeding
-to Report:
-```
-<N> pre-existing tests broke as regressions (not stale assertions):
-  <test method> — broken by <finding ID>
+If regressions found, ask the user using AskUserQuestion before
+proceeding to Report. Include the regression details as context in the
+question text:
 
-These fixes may need revision. Continue to Report? (yes / review)
-```
+- Question: "<N> pre-existing tests broke as regressions (not stale
+  assertions):\n  <test method> — broken by <finding ID>\n\nThese fixes
+  may need revision."
+- Options:
+  1. "Continue to Report" — proceed to the report phase as-is
+  2. "Review regressions" — examine the regressions before continuing
 
 If zero failures in the full suite, skip this step entirely — no
 subagent needed.
@@ -681,21 +682,19 @@ had valid reasons. A decision is needed.
     Fix: <finding ID> — <what the fix changed>
     Spec: <spec>.<req> — <requirement text>
     Tradeoff: <why this is a tension>
-
-Options for each conflict:
-  1. Keep the fix, update the spec
-     → I'll update the spec requirement to match the new behavior
-       and check if other specs depend on the old behavior
-
-  2. Revert the fix, keep the spec
-     → I'll revert the source change and mark the finding as
-       FIX_IMPOSSIBLE with the spec requirement as the reason
-
-  3. Defer — decide later
-     → I'll log the conflict as an open obligation on the spec
-
-Which option for CONFLICT-1? (1 / 2 / 3)
 ```
+
+Ask the user using AskUserQuestion for each conflict:
+
+- Question: "CONFLICT-1: <description>\n  Fix: <finding ID> — <what the
+  fix changed>\n  Spec: <spec>.<req> — <requirement text>\n  Tradeoff:
+  <why this is a tension>\n\nHow should this conflict be resolved?"
+- Options:
+  1. "Keep fix, update spec" — update the spec requirement to match the
+     new behavior and check if other specs depend on the old behavior
+  2. "Revert fix, keep spec" — revert the source change and mark the
+     finding as FIX_IMPOSSIBLE with the spec requirement as the reason
+  3. "Defer" — log the conflict as an open obligation on the spec
 
 For option 1: read the conflicting spec, update the requirement to match
 the fix, and run `spec-resolve.sh` to check if any other spec's `requires`
@@ -708,13 +707,15 @@ architectural constraint.
 For option 3: add `[UNRESOLVED]` marker to the spec requirement and add
 an `open_obligations` entry. The spec becomes DRAFT if it was APPROVED.
 
-If cross-cluster unresolved findings exist, suggest a follow-up round:
+If cross-cluster unresolved findings exist, ask the user using
+AskUserQuestion:
 
-```
-<n> cross-cluster findings could not be analyzed in this round.
-Recommend another round with co-clustered constructs.
-  Type yes for another round · or: done
-```
+- Question: "<n> cross-cluster findings could not be analyzed in this
+  round. Recommend another round with co-clustered constructs."
+- Options:
+  1. "Another round" — run an additional audit round with co-clustered
+     constructs
+  2. "Done" — finish the audit as-is
 
 ---
 

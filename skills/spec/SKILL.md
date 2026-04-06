@@ -40,13 +40,9 @@ Parse the user's input to determine the mode:
 - References a specific requirement ID, or uses change language
   ("what if", "change", "remove", "add", "update")
 
-If ambiguous, ask one clarifying question:
-```
-Are you looking for existing requirements about this area,
-or exploring what would change if we modified something?
-  1. Find requirements (discovery)
-  2. Explore a change (impact analysis)
-```
+If ambiguous, use AskUserQuestion with these options:
+- `Find requirements (discovery)` (description: "Search for existing requirements about this area")
+- `Explore a change (impact analysis)` (description: "See what would break or need updating if something changed")
 
 ---
 
@@ -92,12 +88,12 @@ After showing matches, check for gaps:
 **No specs match at all:**
 ```
 No spec requirements cover this area. This may be a spec gap.
-
-  explore  — I'll search the codebase to see if this behavior exists
-             without a spec (candidate for /spec-extract)
-  create   — start authoring a spec for this area (/spec-author)
-  done     — just wanted to check
 ```
+
+Use AskUserQuestion with these options:
+- `Explore` (description: "Search the codebase to see if this behavior exists without a spec")
+- `Create` (description: "Start authoring a spec for this area via /spec-author")
+- `Done` (description: "Just wanted to check — no action needed")
 
 **Partial coverage (some specs mention it but no spec owns it):**
 ```
@@ -127,6 +123,10 @@ Want to explore changing any of these requirements?
   Type a requirement ID (e.g. R31) to see the impact of changing it.
   Type done to finish.
 ```
+
+Note: Use AskUserQuestion with options for "Done" and "Other" (description:
+"Type a requirement ID to explore its change impact"). If the user selects
+"Other", wait for them to provide the requirement ID as free text.
 
 If the user provides a requirement ID, transition to Change Mode with
 that requirement as the target.
@@ -179,9 +179,11 @@ If conflicts found:
   F01.R5 references encoding offsets that may be affected
 
 These conflicts must be resolved alongside the change.
-  continue — proceed with impact analysis (conflicts included)
-  stop     — reconsider the change
 ```
+
+Use AskUserQuestion with these options:
+- `Continue` (description: "Proceed with impact analysis — conflicts will be included")
+- `Stop` (description: "Reconsider the change before analyzing further")
 
 ### C3. Trace downstream impact
 

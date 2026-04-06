@@ -127,10 +127,14 @@ Tests are already written for cycle <n><  · WU-<n>>.
 Test plan: .feature/<slug>/test-plan.md
 All tests verified failing.
 
-  Type **yes**  to proceed to implementation  ·  or: stop
 ```
-If "yes": invoke /feature-implement "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
-If "stop": display `Next: /feature-implement "<slug>"` and stop.
+
+Use AskUserQuestion with two options:
+- "Proceed to implementation"
+- "Stop"
+
+If "Proceed to implementation": invoke /feature-implement "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
+If "Stop": display `Next: /feature-implement "<slug>"` and stop.
 
 If Testing is `in-progress`:
 - Check which test files already exist
@@ -775,13 +779,14 @@ Display:
 ───────────────────────────────────────────────
 Tests written and verified failing. Cycle <n><  · WU-<n>>.
 
-───────────────────────────────────────────────
-  Type **yes**  ·  or: stop
-───────────────────────────────────────────────
 ```
 
-If "yes": invoke /feature-implement "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
-If "stop":
+Use AskUserQuestion with two options:
+- "Continue"
+- "Stop"
+
+If "Continue": invoke /feature-implement "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
+If "Stop":
 ```
 When you're ready:
   /feature-implement "<slug>"<  --unit WU-<n>>

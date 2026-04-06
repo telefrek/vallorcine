@@ -83,10 +83,14 @@ Invoke /feature-refactor "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
 Implementation is already complete for cycle <n>.
 All tests were passing as of: <date from status.md>
 
-  Type **yes**  to proceed to refactor  ·  or: stop
 ```
-If "yes": invoke /feature-refactor "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
-If "stop": display `Next: /feature-refactor "<slug>"` and stop.
+
+Use AskUserQuestion with two options:
+- "Proceed to refactor"
+- "Stop"
+
+If "Proceed to refactor": invoke /feature-refactor "<slug>"<  --unit WU-<n>> as a sub-agent immediately.
+If "Stop": display `Next: /feature-refactor "<slug>"` and stop.
 
 **If Implementation is `in-progress`:**
 - Say: "Implementation was in progress for cycle <n> — checking current test state."
@@ -126,12 +130,14 @@ Display:
 
   manual  — I'll stop after each stage and wait for your command.
 
-Type: auto  or  manual
 ```
 
-Wait for input:
-- "auto" (or "autonomous"): set `automation_mode: autonomous` in status.md
-- "manual": set `automation_mode: manual` in status.md
+Use AskUserQuestion with two options:
+- "Auto" (description: cycles run without stopping, pauses only if input needed)
+- "Manual" (description: stop after each stage, wait for command)
+
+- If "Auto": set `automation_mode: autonomous` in status.md
+- If "Manual": set `automation_mode: manual` in status.md
 
 ---
 
@@ -410,13 +416,14 @@ Work unit progress:
   → WU-2: <n> — ready (unblocked)
   ○ WU-3: <n> — blocked (waiting on WU-2)
 
-───────────────────────────────────────────────
-  Type **yes**  ·  or: stop
-───────────────────────────────────────────────
 ```
 
-If "yes": invoke `/feature-refactor "<slug>"<  --unit WU-<n>>` as a sub-agent.
-If "stop":
+Use AskUserQuestion with two options:
+- "Continue"
+- "Stop"
+
+If "Continue": invoke `/feature-refactor "<slug>"<  --unit WU-<n>>` as a sub-agent.
+If "Stop":
 ```
 When you're ready:
   /feature-refactor "<slug>"<  --unit WU-<n>>

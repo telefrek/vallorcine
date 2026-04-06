@@ -70,12 +70,15 @@ After the user responds: echo confirmed values, then proceed.
 Existing topics: <list from .kb/CLAUDE.md Topic Map>
 
 To add it: /kb topic "<topic>" "<one-line description>"
-  Type **yes**  to create the topic now  ·  or: manual
 ```
 
-   If "yes": invoke `/kb topic "<topic>" "<description>"` as a sub-agent,
+   Use AskUserQuestion with these options:
+   - `Create topic` (description: "Create the topic now and continue with research")
+   - `Manual` (description: "Stop here — you will create the topic yourself")
+
+   If "Create topic": invoke `/kb topic "<topic>" "<description>"` as a sub-agent,
    wait for it to complete, then proceed with the research session.
-   If "manual": stop and let the user run it manually.
+   If "Manual": stop and let the user run it manually.
 
 4. Never add a topic row to .kb/CLAUDE.md directly from /research —
    that is /kb topic's job.
@@ -110,10 +113,9 @@ Report to user:
 - What research gaps are noted in the category index
 - What you plan to research
 
-If category already has content, display:
-```
-  Type **yes**  to proceed anyway  ·  or: stop
-```
+If category already has content, use AskUserQuestion with these options:
+- `Proceed` (description: "Continue with research despite existing content")
+- `Stop` (description: "Cancel — this category already has coverage")
 
 ---
 

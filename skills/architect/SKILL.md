@@ -204,10 +204,14 @@ Cross-references found:
   · .decisions/<slug>/adr.md: "<related decision summary>"
     → This prior decision constrains the same <concept>
 
-Should the scope include these?  Type **yes** to widen  ·  or: proceed with original scope
+Should the scope include these?
 ```
 
-If **yes**: append the additional scope to the problem statement. The widened scope
+Use AskUserQuestion with these options:
+- `Widen scope` (description: "Include the cross-referenced specs and decisions in the evaluation")
+- `Proceed with original scope` (description: "Keep the narrower scope — this is a deliberate choice")
+
+If **Widen scope**: append the additional scope to the problem statement. The widened scope
 carries through to constraint collection and KB survey.
 
 If **proceed**: note the narrower scope was a deliberate choice. Record a
@@ -298,14 +302,18 @@ Confirmed complete:
   · <dimension> — checked <N> sources, no implied constraints
   · <dimension> — checked <N> sources, no implied constraints
 
-Add the implied constraints?  Type **yes** to add all  ·  or: select individual items
+Add the implied constraints?
 ```
 
-If **yes**: update `constraints.md` with the newly surfaced constraints. Append a
+Use AskUserQuestion with these options:
+- `Add all` (description: "Add all implied constraints to the constraint profile")
+- `Select individual` (description: "Choose which implied constraints to add")
+
+If **Add all**: update `constraints.md` with the newly surfaced constraints. Append a
 `## Constraint Falsification — <YYYY-MM-DD>` section to constraints.md noting what
 was checked and what was added.
 
-If user selects individual items: add only the selected constraints.
+If **Select individual**: add only the selected constraints.
 
 If user declines all: record that the agent checked and the user declined. The
 constraint file should note: "Falsification checked <N> sources. User declined
@@ -474,10 +482,13 @@ before loading subject files to control token cost:
      · vamana.md          — scored 2/5 complexity in <related-adr-slug>
      · brute-force.md     — scored 1/5 scalability in <related-adr-slug>
 
-     Load more?  Type **yes**  ·  or: proceed with these
    ```
 
-   If "yes": load the next batch. If proceed: continue with loaded candidates.
+   Use AskUserQuestion with these options:
+   - `Load more` (description: "Load the next batch of candidates for evaluation")
+   - `Proceed` (description: "Continue with the candidates already loaded")
+
+   If **Load more**: load the next batch. If **Proceed**: continue with loaded candidates.
 
 > **IMPORTANT: Prior scores are not evidence for current scoring.**
 >
@@ -580,10 +591,13 @@ satisfy constraints better than any single candidate. This is common when:
   Boundary: <routing rule — e.g. "A for hot path, B for cold storage">
   Why: <A scores 5 on X but 2 on Y; B scores 2 on X but 5 on Y; together they cover both>
 
-  Include this composite in the evaluation?  Type **yes**  ·  or: skip
 ```
 
-If "yes": add the composite to evaluation.md as a candidate row with a
+Use AskUserQuestion with these options:
+- `Include composite` (description: "Add this composite to the evaluation alongside individual candidates")
+- `Skip` (description: "Don't evaluate this composite — proceed with individual candidates only")
+
+If **Include composite**: add the composite to evaluation.md as a candidate row with a
 `(composite)` marker. Score each dimension using the component that handles
 that sub-problem. The ADR's Decision section should describe both components
 and the boundary rule.
@@ -619,10 +633,13 @@ I'd like to research additional approaches before making a recommendation:
   - <subject 1> (<topic>/<category>) — <why this might help>
   - <subject 2> (<topic>/<category>) — <why this might help>
 
-Commission research?  Type **yes**  ·  or: proceed with current candidates
 ```
 
-If "yes":
+Use AskUserQuestion with these options:
+- `Commission research` (description: "Research additional approaches before making a recommendation")
+- `Proceed` (description: "Evaluate with current candidates despite the coverage gap")
+
+If **Commission research**:
 - Write `research-brief.md` (append to existing if one was written at Step 3)
 - Invoke `/research` as a sub-agent for each subject
 - After research completes, re-run Step 4b (score the new candidates)
@@ -892,14 +909,17 @@ Decision written: .decisions/<slug>/adr.md
 ```
 Feature "<slug>" is paused waiting for this decision.
 
-  Type **yes**  to resume scoping  ·  or: stop
 ```
 
-If yes: invoke `/feature "<original description>"` to resume the scoping
+Use AskUserQuestion with these options:
+- `Resume scoping` (description: "Continue the paused feature's scoping interview")
+- `Stop` (description: "Leave the feature paused — resume manually later")
+
+If **Resume scoping**: invoke `/feature "<original description>"` to resume the scoping
 interview where it left off (the scoping agent reads status.md and continues
 from its checkpoint).
 
-If stop: display the manual command and stop.
+If **Stop**: display the manual command and stop.
 
 **If no paused feature found:** display the decision path and stop:
 ```
