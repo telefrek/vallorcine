@@ -47,6 +47,9 @@
 .claude/prompts/audit/phase4c-compile-check.md
 .claude/prompts/audit/phase4d-implementer.md
 .claude/prompts/audit/reconcile-findings.md
+.claude/prompts/audit/prove-fix.md
+.claude/prompts/audit/prove-fix-orchestrator.md
+.claude/scripts/audit-budget.sh
 .claude/agents/architect-agent.md
 .claude/agents/code-writer-agent.md
 .claude/agents/domain-scout-agent.md

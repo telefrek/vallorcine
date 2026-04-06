@@ -1,13 +1,19 @@
 ---
 description: "Run adversarial audit pipeline against shipped code"
-argument-hint: "<entry-point>"
+argument-hint: "<entry-point> [--budget <dollars>]"
 ---
 
-# /audit "<entry-point>"
+# /audit "<entry-point>" [--budget <dollars>]
 
 Runs the adversarial audit pipeline. Accepts any entry point: feature slug,
 file list, spec reference, or prior audit report path. Finds bugs, proves
 them with failing tests, fixes the code, and leaves the codebase clean.
+
+**Budget control:** `--budget 200` sets a dollar cap on the prove-fix phase.
+The orchestrator checks the running API cost after each finding and stops
+dispatching when the budget is reached. Discovery, suspect analysis, test
+cleanup, and reporting always run regardless of budget. Remaining findings
+are marked DEFERRED and reported in the summary.
 
 ---
 
@@ -78,9 +84,17 @@ Reconcile:  Single subagent → spec-updates.md + kb-suggestions.md
 
 ---
 
+## Parse flags
+
+Extract optional flags from the argument before parsing the entry point:
+
+- **`--budget <N>`** — dollar cap on the prove-fix phase. Extract the number
+  and store as `AUDIT_BUDGET`. Remove the flag from the argument string before
+  parsing the entry point. If not specified, `AUDIT_BUDGET` is empty (no limit).
+
 ## Determine entry point
 
-Parse the argument to determine what kind of audit this is:
+Parse the (flag-stripped) argument to determine what kind of audit this is:
 
 - **Feature slug** (e.g., "float16-vector-support"): look for
   `.feature/<slug>/` directory
@@ -496,9 +510,35 @@ If zero confirmed findings, skip to Report.
 
 ### Budget control
 
-If the user specified a budget limit, stop dispatching when the limit
-is reached. Mark remaining findings as DEFERRED. Report the deferral
-count in the job label.
+If `AUDIT_BUDGET` is set (from `--budget <N>` flag):
+
+1. After each prove-fix subagent completes, run the cost check:
+   ```bash
+   bash .claude/scripts/audit-budget.sh
+   ```
+   This returns the running session cost as a single number (e.g., `247.50`).
+
+2. Compare the returned cost against `AUDIT_BUDGET`:
+   - **>= budget:** Stop dispatching. Mark all remaining findings as DEFERRED.
+     Report: `Budget reached ($X of $Y). N findings deferred.`
+   - **>= 80% of budget:** Warn: `Budget 80% consumed ($X of $Y). N remaining.`
+     Continue dispatching.
+
+3. In the completion summary, include:
+   `Budget: $X spent of $Y limit (N findings deferred)`
+
+4. Budget does NOT affect Jobs 3b (test cleanup), 4 (report), or 5
+   (reconciliation). Those always run regardless of budget.
+
+When passing the budget to the prove-fix orchestrator subagent prompt, add:
+```
+Budget limit: $<AUDIT_BUDGET>. After each finding, run:
+  bash .claude/scripts/audit-budget.sh
+Stop dispatching if the result >= <AUDIT_BUDGET>.
+```
+
+If `AUDIT_BUDGET` is not set, omit the budget lines from the orchestrator
+prompt entirely — the orchestrator runs unbounded.
 
 ---
 
