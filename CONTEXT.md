@@ -142,6 +142,14 @@ completing test cleanup phase.
 
 ### Do soon (medium effort, clear designs)
 
+- **Audit budget controls** — dollar cap on the prove-fix loop. Design:
+  a cost-tracking script that sums JSONL token usage after each subagent.
+  The prove-fix orchestrator calls it after each finding, stops dispatching
+  when the running total hits the budget. Remaining findings marked DEFERRED
+  in the report. Budget does NOT affect assembly, suspect, test cleanup,
+  reporting, or feedback loop — those always run. CLI: `/audit --budget 200`.
+  Needed before running the 7 remaining jlsm audits (~$3-5K total).
+
 - **Test architect hardening on a real ADR** — the 6 hardening changes are
   in the prompt but untested on a real decision session. Next `/architect`
   invocation will exercise scope verification, constraint falsification, and
