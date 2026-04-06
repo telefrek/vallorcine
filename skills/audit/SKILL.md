@@ -1,19 +1,13 @@
 ---
 description: "Run adversarial audit pipeline against shipped code"
-argument-hint: "<entry-point> [--budget <dollars>]"
+argument-hint: "<entry-point>"
 ---
 
-# /audit "<entry-point>" [--budget <dollars>]
+# /audit "<entry-point>"
 
 Runs the adversarial audit pipeline. Accepts any entry point: feature slug,
 file list, spec reference, or prior audit report path. Finds bugs, proves
 them with failing tests, fixes the code, and leaves the codebase clean.
-
-**Budget control:** `--budget 200` sets a dollar cap on the prove-fix phase.
-The orchestrator checks the running API cost after each finding and stops
-dispatching when the budget is reached. Discovery, suspect analysis, test
-cleanup, and reporting always run regardless of budget. Remaining findings
-are marked DEFERRED and reported in the summary.
 
 ---
 
@@ -84,17 +78,9 @@ Reconcile:  Single subagent → spec-updates.md + kb-suggestions.md
 
 ---
 
-## Parse flags
-
-Extract optional flags from the argument before parsing the entry point:
-
-- **`--budget <N>`** — dollar cap on the prove-fix phase. Extract the number
-  and store as `AUDIT_BUDGET`. Remove the flag from the argument string before
-  parsing the entry point. If not specified, `AUDIT_BUDGET` is empty (no limit).
-
 ## Determine entry point
 
-Parse the (flag-stripped) argument to determine what kind of audit this is:
+Parse the argument to determine what kind of audit this is:
 
 - **Feature slug** (e.g., "float16-vector-support"): look for
   `.feature/<slug>/` directory
@@ -112,6 +98,29 @@ What would you like to audit?
 ```
 
 Store the entry point type and value for the Classification subagent.
+
+---
+
+## Budget
+
+After determining the entry point, ask the user for a budget:
+
+```
+What's your budget for this audit?
+
+  Discovery and analysis run first (~$20-30) to identify findings.
+  The prove-fix phase (testing + fixing each finding) is where most
+  cost goes — roughly $5-7 per finding.
+
+  Enter a dollar amount, or press Enter for the default ($300):
+```
+
+- If the user provides a number: store as `AUDIT_BUDGET`
+- If the user presses Enter or says "default": set `AUDIT_BUDGET=300`
+- If the user says "unlimited" or "no limit": leave `AUDIT_BUDGET` empty
+
+The budget applies **only to the prove-fix phase**. Discovery, suspect
+analysis, test cleanup, and reporting always run regardless of budget.
 
 ---
 
