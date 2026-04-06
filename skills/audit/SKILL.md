@@ -103,21 +103,20 @@ Store the entry point type and value for the Classification subagent.
 
 ## Budget
 
-After determining the entry point, ask the user for a budget:
+After determining the entry point, ask the user for a budget using
+AskUserQuestion:
 
-```
-What's your budget for this audit?
+- Question: "What's your budget for this audit? Discovery + analysis
+  runs first (~$20-30). Prove-fix is ~$5-7 per finding."
+- Options:
+  1. "$300 (default)" — standard budget, covers most features
+  2. "$150" — smaller scope or cost-conscious run
+  3. "Unlimited" — no cap on prove-fix spending
 
-  Discovery and analysis run first (~$20-30) to identify findings.
-  The prove-fix phase (testing + fixing each finding) is where most
-  cost goes — roughly $5-7 per finding.
+The user can also type a custom dollar amount via "Other".
 
-  Enter a dollar amount, or press Enter for the default ($300):
-```
-
-- If the user provides a number: store as `AUDIT_BUDGET`
-- If the user presses Enter or says "default": set `AUDIT_BUDGET=300`
-- If the user says "unlimited" or "no limit": leave `AUDIT_BUDGET` empty
+- If the user picks a dollar amount: store as `AUDIT_BUDGET`
+- If the user picks "Unlimited": leave `AUDIT_BUDGET` empty
 
 The budget applies **only to the prove-fix phase**. Discovery, suspect
 analysis, test cleanup, and reporting always run regardless of budget.
