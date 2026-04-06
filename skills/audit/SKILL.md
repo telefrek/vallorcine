@@ -856,6 +856,8 @@ user wants full details) and for `/curate` to pick up later if skipped.
 Extract the `SPEC_UPDATES:` section from the reconciliation return.
 If updates were suggested (count > 0), present inline:
 
+Display the spec updates to the user:
+
 ```
 ── Feedback loop: spec updates ────────────────
 
@@ -864,14 +866,14 @@ Spec updates (<n> suggested):
   1. <requirement text — one line, observable behavior>
   2. <requirement text>
   ...
-
-  apply  — add all <n> requirements to their specs now
-  review — show full details before deciding
-  skip   — defer (resurfaces via /curate spec-code drift)
 ```
 
-**STOP and wait for the user to choose.** Do not present the KB menu or
-proceed until the user responds to this menu.
+Then use AskUserQuestion to get the user's choice:
+- "Apply all" — add all requirements to their specs now
+- "Review" — show full details before deciding
+- "Skip" — defer (resurfaces via /curate)
+
+Do not present the KB menu or proceed until the user has responded.
 
 If **apply**: for each suggested requirement, read the target spec file,
 append the requirement to the appropriate category section, and run
@@ -897,6 +899,8 @@ Only present this menu **after the user has responded to 5a** (or if no
 spec updates exist). Extract the `KB_PATTERNS:` section from the
 reconciliation return. If patterns were found (count > 0), present inline:
 
+Display the KB patterns to the user:
+
 ```
 ── Feedback loop: KB patterns ─────────────────
 
@@ -905,14 +909,14 @@ KB patterns (<n> updates + <n> new):
   1. <Update/New> <pattern name> — <one-line description>
   2. <Update/New> <pattern name> — <one-line description>
   ...
-
-  create  — create/update all <n> KB entries now
-  select  — choose which to create
-  skip    — defer (patterns stay in kb-suggestions.md for later)
 ```
 
-**STOP and wait for the user to choose.** Do not proceed until the user
-responds.
+Then use AskUserQuestion to get the user's choice:
+- "Create all" — create/update all KB entries now
+- "Select" — choose which to create
+- "Skip" — defer (patterns stay in kb-suggestions.md for later)
+
+Do not proceed until the user has responded.
 
 If **create**: for each pattern, invoke
 `/research <topic> <category> "<subject>"` as a sub-agent with the pattern's
