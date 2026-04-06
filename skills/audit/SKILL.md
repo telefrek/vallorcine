@@ -869,14 +869,15 @@ append the requirement to the appropriate category section, and run
 `spec-resolve.sh "<feature slug>"` to check whether the new requirements
 conflict with or invalidate requirements in other specs. If conflicts are
 found, display them and ask the user to resolve before continuing.
-Report what was added.
+Report what was added. After all applies complete, rename the file:
+`mv spec-updates.md spec-updates.applied.md`
 
 If **review**: display the full requirement blocks with notes, then re-offer
-apply/skip per item. Run the same validation after any applies.
+apply/skip per item. Run the same validation after any applies. If all
+items were applied or skipped individually, rename the file.
 
 If **skip**: note in the audit report that suggestions were deferred. They
-will resurface when `/curate` detects spec-code drift (the code was fixed
-but the spec wasn't updated).
+will resurface when `/curate` detects the deferred feedback file.
 
 ### 5b. Present and process KB patterns
 
@@ -903,11 +904,13 @@ responds.
 
 If **create**: for each pattern, invoke
 `/research <topic> <category> "<subject>"` as a sub-agent with the pattern's
-description and affected constructs as context.
+description and affected constructs as context. After all creates complete,
+rename: `mv kb-suggestions.md kb-suggestions.applied.md`
 
-If **select**: present each pattern individually for create/skip.
+If **select**: present each pattern individually for create/skip. After all
+items are processed, rename the file.
 
-If **skip**: note as deferred.
+If **skip**: note as deferred. The file remains for `/curate` to pick up.
 
 ### 5c. Show spec coverage
 

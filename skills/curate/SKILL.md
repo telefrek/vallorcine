@@ -239,6 +239,29 @@ From "Cross-Reference Candidates" in the scan summary:
    evaluation but doesn't formally reference it
 3. Fix is straightforward: add the missing row to the KB Sources table
 
+### 2j — Deferred audit feedback
+
+**Guard:** Only run this step if "Deferred Audit Feedback" section exists
+in the scan summary. If absent, skip entirely.
+
+From "Deferred Audit Feedback" in the scan summary:
+
+1. Each row is a `spec-updates.md` or `kb-suggestions.md` file from a
+   completed audit where the user skipped or deferred the feedback loop
+2. These contain ready-made spec requirements and KB pattern suggestions
+   that a prior audit produced — they don't need re-analysis, just review
+   and application
+3. Present as high-priority pick list items — the work is already done,
+   applying it is cheap
+
+When the user picks one of these items:
+- Read the file at the path shown in the scan summary
+- Present the contents using the same apply/review/skip (for specs) or
+  create/select/skip (for KB) menus from the audit feedback loop
+  (see audit SKILL.md Job 5a/5b for the exact flow)
+- After applying: rename the file from `<name>.md` to `<name>.applied.md`
+  so it won't be picked up by future curate scans or audit feedback loops
+
 ---
 
 ## Step 3 — Present findings as a numbered pick list

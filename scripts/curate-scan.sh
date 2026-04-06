@@ -883,6 +883,27 @@ if [[ -d ".decisions" ]]; then
     done
 fi
 
+# ── Analysis 12: Deferred audit feedback ─────────────────────────────────────
+# Find spec-updates.md and kb-suggestions.md left behind by audits where the
+# user skipped the feedback loop (or the feedback loop didn't wait).
+
+touch "$TMPDIR_SCAN/audit-feedback.txt"
+
+if [[ -d ".feature" ]]; then
+    # Skip .applied.md files — those were already processed
+    (find .feature -path "*/audit/run-*/spec-updates.md" -o -path "*/audit/run-*/kb-suggestions.md" 2>/dev/null || true) | grep -v '\.applied\.md$' | while IFS= read -r feedback_file; do
+        [[ -f "$feedback_file" ]] || continue
+        # Extract feature slug from path: .feature/<slug>/audit/run-NNN/<file>
+        slug="$(echo "$feedback_file" | sed 's|^\.feature/||; s|/audit/.*||')"
+        run="$(echo "$feedback_file" | grep -oE 'run-[0-9]+' || echo 'unknown')"
+        filename="$(basename "$feedback_file")"
+        # Count items (lines starting with ## or ### that look like suggestions)
+        item_count="$( (grep -cE '^##+ ' "$feedback_file" 2>/dev/null || true) )"
+        [[ "$item_count" -eq 0 ]] && item_count=1
+        echo "AUDIT_FEEDBACK|$slug|$run|$filename|$item_count|$feedback_file" >> "$TMPDIR_SCAN/audit-feedback.txt"
+    done
+fi
+
 # ── Write summary file ──────────────────────────────────────────────────────
 
 SCAN_DATE="$(date +%Y-%m-%d)"
@@ -1160,6 +1181,21 @@ if [[ -s "$TMPDIR_SCAN/spec-absent.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+# Deferred audit feedback
+if [[ -s "$TMPDIR_SCAN/audit-feedback.txt" ]]; then
+    echo "## Deferred Audit Feedback" >> "$SUMMARY_FILE"
+    echo "Audit feedback files that were skipped or deferred:" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Feature | Run | Type | Items | Path |" >> "$SUMMARY_FILE"
+    echo "|---------|-----|------|-------|------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ slug run filename item_count path; do
+        type_label="spec updates"
+        [[ "$filename" == "kb-suggestions.md" ]] && type_label="KB patterns"
+        echo "| $slug | $run | $type_label | $item_count | $path |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/audit-feedback.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
 # ── Report ───────────────────────────────────────────────────────────────────
 
 echo "Scan complete: $COMMIT_COUNT commits analyzed"
@@ -1181,6 +1217,7 @@ echo "  Specs with obligations: $(wc -l < "$TMPDIR_SCAN/spec-obligations.txt" 2>
 echo "  Spec-code drift: $(wc -l < "$TMPDIR_SCAN/spec-drift.txt" 2>/dev/null || echo 0)"
 echo "  Specs with [ABSENT] reqs: $(wc -l < "$TMPDIR_SCAN/spec-absent.txt" 2>/dev/null || echo 0)"
 xref_total=$(( $(wc -l < "$TMPDIR_SCAN/xref-kb-tags.txt" 2>/dev/null || echo 0) + $(wc -l < "$TMPDIR_SCAN/xref-kb-applies.txt" 2>/dev/null || echo 0) + $(wc -l < "$TMPDIR_SCAN/xref-adr-kb.txt" 2>/dev/null || echo 0) ))
+echo "  Deferred audit feedback: $(wc -l < "$TMPDIR_SCAN/audit-feedback.txt" 2>/dev/null || echo 0)"
 echo "  Cross-ref candidates: $xref_total"
 
 # ── Update curation state ─────────────────────────────────────────────────
