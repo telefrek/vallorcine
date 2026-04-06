@@ -260,6 +260,8 @@ install_file "$SCRIPT_DIR/scripts/kb-freshness-check.sh" "$TARGET/.claude/script
 install_file "$SCRIPT_DIR/scripts/adr-validate.sh" "$TARGET/.claude/scripts/adr-validate.sh"
 install_file "$SCRIPT_DIR/scripts/token-stop-hook.sh" "$TARGET/.claude/scripts/token-stop-hook.sh"
 install_file "$SCRIPT_DIR/scripts/curate-scan.sh" "$TARGET/.claude/scripts/curate-scan.sh"
+install_file "$SCRIPT_DIR/scripts/decisions-scan.sh" "$TARGET/.claude/scripts/decisions-scan.sh"
+install_file "$SCRIPT_DIR/scripts/extract-findings.sh" "$TARGET/.claude/scripts/extract-findings.sh"
 install_file "$SCRIPT_DIR/scripts/index-verify.sh" "$TARGET/.claude/scripts/index-verify.sh"
 install_file "$SCRIPT_DIR/scripts/statusline.sh" "$TARGET/.claude/scripts/statusline.sh"
 install_file "$SCRIPT_DIR/scripts/statusline.py" "$TARGET/.claude/scripts/statusline.py"
