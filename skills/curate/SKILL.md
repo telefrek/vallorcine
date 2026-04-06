@@ -262,6 +262,19 @@ When the user picks one of these items:
 - After applying: rename the file from `<name>.md` to `<name>.applied.md`
   so it won't be picked up by future curate scans or audit feedback loops
 
+### 2k — Decisions roadmap needed
+
+**Guard:** Only run this step if "Decisions Roadmap Needed" section exists
+in the scan summary. If absent, skip entirely.
+
+From "Decisions Roadmap Needed" in the scan summary:
+
+1. There are 10+ deferred decisions with no current roadmap
+2. Present as a high-priority pick list item: "N deferred decisions need
+   planning — run `/decisions roadmap` to cluster and prioritize"
+3. When the user picks this item: suggest running `/decisions roadmap` in
+   a separate session (roadmap is a planning skill, not a curate action)
+
 ---
 
 ## Step 3 — Present findings as a numbered pick list

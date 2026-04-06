@@ -171,6 +171,21 @@ Stop.
 Before collecting constraints, verify the problem scope is complete by
 cross-referencing the problem statement against existing specs and decisions.
 
+**Dependency check:** If `.decisions/<slug>/adr.md` exists and has a
+`depends_on` field with entries, check whether those dependencies are
+resolved (status: confirmed). If any dependency is still deferred, warn:
+
+```
+This decision depends on <slug> which is still deferred.
+Evaluating out of order may produce a design that conflicts
+with the dependency's eventual resolution.
+```
+
+Use AskUserQuestion:
+- "Proceed anyway" — evaluate despite unresolved dependency
+- "Evaluate dependency first" — switch to evaluating the dependency
+- "Cancel" — stop
+
 ### 0.5a — Extract keywords
 
 Extract 3-5 keywords from the problem statement. These should be core technical

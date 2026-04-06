@@ -72,6 +72,7 @@
 .claude/scripts/adr-validate.sh
 .claude/scripts/token-stop-hook.sh
 .claude/scripts/curate-scan.sh
+.claude/scripts/decisions-scan.sh
 .claude/scripts/index-verify.sh
 .claude/scripts/statusline.sh
 .claude/scripts/statusline.py

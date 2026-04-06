@@ -904,6 +904,49 @@ if [[ -d ".feature" ]]; then
     done
 fi
 
+# ── Analysis 13: Decisions roadmap needed ────────────────────────────────────
+# Check if there are enough deferred decisions to warrant a roadmap pass.
+
+touch "$TMPDIR_SCAN/roadmap-needed.txt"
+
+if [[ -d ".decisions" ]]; then
+    deferred_count=0
+    while IFS= read -r slug_dir; do
+        adr_file="$slug_dir/adr.md"
+        [[ -f "$adr_file" ]] || continue
+        if grep -qE 'status:.*"?deferred"?' "$adr_file" 2>/dev/null; then
+            deferred_count=$((deferred_count + 1))
+        fi
+    done < <(find .decisions -mindepth 1 -maxdepth 1 -type d 2>/dev/null || true)
+
+    if [[ $deferred_count -ge 10 ]]; then
+        roadmap_status="none"
+        if [[ -f ".decisions/roadmap.md" ]]; then
+            # Check staleness: is roadmap older than newest deferred ADR?
+            roadmap_ts="$(date -r ".decisions/roadmap.md" '+%s' 2>/dev/null || echo 0)"
+            newest_deferred_ts=0
+            while IFS= read -r slug_dir; do
+                adr_file="$slug_dir/adr.md"
+                [[ -f "$adr_file" ]] || continue
+                if grep -qE 'status:.*"?deferred"?' "$adr_file" 2>/dev/null; then
+                    adr_ts="$(date -r "$adr_file" '+%s' 2>/dev/null || echo 0)"
+                    [[ "$adr_ts" -gt "$newest_deferred_ts" ]] && newest_deferred_ts="$adr_ts"
+                fi
+            done < <(find .decisions -mindepth 1 -maxdepth 1 -type d 2>/dev/null || true)
+
+            if [[ "$newest_deferred_ts" -gt "$roadmap_ts" ]]; then
+                roadmap_status="stale"
+            else
+                roadmap_status="current"
+            fi
+        fi
+
+        if [[ "$roadmap_status" != "current" ]]; then
+            echo "ROADMAP_NEEDED|$deferred_count|$roadmap_status" >> "$TMPDIR_SCAN/roadmap-needed.txt"
+        fi
+    fi
+fi
+
 # ── Write summary file ──────────────────────────────────────────────────────
 
 SCAN_DATE="$(date +%Y-%m-%d)"
@@ -1196,6 +1239,17 @@ if [[ -s "$TMPDIR_SCAN/audit-feedback.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+# Decisions roadmap needed
+if [[ -s "$TMPDIR_SCAN/roadmap-needed.txt" ]]; then
+    echo "## Decisions Roadmap Needed" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ count status; do
+        echo "$count deferred decisions with no current roadmap (status: $status)." >> "$SUMMARY_FILE"
+        echo "Run \`/decisions roadmap\` to cluster, classify, and prioritize." >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/roadmap-needed.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
 # ── Report ───────────────────────────────────────────────────────────────────
 
 echo "Scan complete: $COMMIT_COUNT commits analyzed"
@@ -1219,6 +1273,7 @@ echo "  Specs with [ABSENT] reqs: $(wc -l < "$TMPDIR_SCAN/spec-absent.txt" 2>/de
 xref_total=$(( $(wc -l < "$TMPDIR_SCAN/xref-kb-tags.txt" 2>/dev/null || echo 0) + $(wc -l < "$TMPDIR_SCAN/xref-kb-applies.txt" 2>/dev/null || echo 0) + $(wc -l < "$TMPDIR_SCAN/xref-adr-kb.txt" 2>/dev/null || echo 0) ))
 echo "  Deferred audit feedback: $(wc -l < "$TMPDIR_SCAN/audit-feedback.txt" 2>/dev/null || echo 0)"
 echo "  Cross-ref candidates: $xref_total"
+echo "  Roadmap needed: $(wc -l < "$TMPDIR_SCAN/roadmap-needed.txt" 2>/dev/null || echo 0)"
 
 # ── Update curation state ─────────────────────────────────────────────────
 
