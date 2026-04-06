@@ -525,9 +525,12 @@ bash .claude/scripts/extract-findings.sh .feature/<slug>/audit/<run-dir>
 This produces `finding-list.txt` — one line per finding, pipe-delimited:
 `<finding-id>|<title>|<construct>|<lens>|<cluster>|<suspect-file>`
 
-Read `finding-list.txt` to build the dispatch queue. **Do NOT read suspect
-files directly** — the script already extracted what you need and reading
-suspect files would add thousands of tokens to your context.
+Read `finding-list.txt` to build the dispatch queue. The script
+automatically filters out findings that already have `prove-fix-*.md`
+output files — so on resume, only unprocessed/deferred findings appear.
+**Do NOT read suspect files directly** — the script already extracted
+what you need and reading suspect files would add thousands of tokens
+to your context.
 
 ### Lens → test class mapping
 

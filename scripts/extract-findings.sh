@@ -63,8 +63,29 @@ for suspect_file in "$RUN_DIR"/suspect-*.md; do
     done < "$suspect_file"
 done
 
+# Filter out findings that already have prove-fix output files
+# (resume scenario — don't re-process completed findings)
+FILTERED="$RUN_DIR/finding-list.filtered.txt"
+: > "$FILTERED"
+already_done=0
+
+while IFS='|' read -r fid title construct lens cluster suspect; do
+    # Convert finding ID to output filename: F-R1.cb.1.1 → prove-fix-F-R1-cb-1-1.md
+    short_id="$(echo "$fid" | tr '.' '-')"
+    output_file="$RUN_DIR/prove-fix-${short_id}.md"
+    if [[ -f "$output_file" ]]; then
+        already_done=$((already_done + 1))
+    else
+        echo "${fid}|${title}|${construct}|${lens}|${cluster}|${suspect}" >> "$FILTERED"
+    fi
+done < "$OUTPUT"
+
+# Replace output with filtered list
+mv "$FILTERED" "$OUTPUT"
+
 # Sort by finding ID for stable ordering
 sort -t'|' -k1,1 -o "$OUTPUT" "$OUTPUT"
 
 count="$(wc -l < "$OUTPUT" 2>/dev/null || echo 0)"
-echo "Extracted $count findings to $OUTPUT"
+total=$((count + already_done))
+echo "Extracted $count findings to $OUTPUT ($already_done already processed, $count remaining)"
