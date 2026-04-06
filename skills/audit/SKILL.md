@@ -172,13 +172,30 @@ the output — all pipeline artifacts for this run go in that directory.
 
 ### When resuming
 
-Display to the user:
+If resuming at prove-fix, run `extract-findings.sh` first to get the
+accurate remaining count (the script filters out findings with existing
+output files):
+
+```bash
+bash .claude/scripts/extract-findings.sh <RUN_DIR>
+```
+
+Parse the "N remaining" count from the script output. Display to the user
+with the actual remaining count:
+
 ```
 Resuming audit — picking up at <RESUME_AT>.
 Run directory: <RUN_DIR>
+<N already processed>, <M remaining> findings to prove-fix.
 ```
-Wait for user confirmation. Initialize TodoWrite with completed steps
-already checked. Start from the resume step.
+
+Use AskUserQuestion to confirm:
+- "Resume" — process the remaining findings
+- "Restart fresh" — discard this run and start a new audit
+- "Cancel" — stop
+
+Initialize TodoWrite with completed steps already checked. Start from
+the resume step.
 
 ### After each step completes
 
