@@ -94,7 +94,40 @@ orchestrator can display to the user:
 Do NOT wait for confirmation. The orchestrator handles user confirmation
 after reading your return summary.
 
-### 6. Partition recommendation (if scope is large)
+### 6. Priority-order the file list
+
+The Initial files list MUST be ordered by audit priority — highest-risk
+files first. The orchestrator may truncate this list to fit a budget, so
+the top files must be the most valuable to analyze.
+
+Determine priority autonomously using these signals (check each):
+
+- **Construct density** — files with more classes/interfaces/inner types
+  have more attack surface. Count constructs by scanning class/interface
+  declarations.
+- **API surface** — public-facing types over internal helpers. Types used
+  by other files in scope rank higher.
+- **Spec coverage** — files referenced by spec requirements have known
+  behavioral contracts to verify. More spec references = higher priority.
+- **KB references** — files mentioned in KB entries (known bug patterns,
+  prior findings). These have demonstrated vulnerability.
+- **Churn** — files with more recent or frequent changes. Run
+  `git log --oneline -- <file> | head -20 | wc -l` for each file.
+  Higher churn = higher priority.
+- **Dependency centrality** — files imported by many other files in scope
+  are load-bearing. A bug here cascades.
+
+For each file, write a one-line rationale explaining its rank:
+
+```
+## Initial files (priority ordered)
+1. <path> — <rationale: e.g., "core dispatch, 6 constructs, 3 spec refs, high churn">
+2. <path> — <rationale>
+3. <path> — <rationale>
+...
+```
+
+### 7. Partition recommendation (if scope is large)
 
 If the file list contains more than ~15 files or you estimate >80
 constructs, add a partition recommendation to classification.md:
@@ -122,8 +155,10 @@ Write `.feature/<slug>/classification.md` (or `<run-dir>/classification.md`):
 **Build command:** <command>
 **Test command:** <command>
 
-## Initial files
-<list of file paths to explore from>
+## Initial files (priority ordered)
+1. <path> — <rationale>
+2. <path> — <rationale>
+...
 
 ## Prior work summary
 <prior clearings, removed test classifications, frontier — or "none">

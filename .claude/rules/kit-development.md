@@ -85,3 +85,19 @@ When making a change, ask:
 3. **Not sure?**
    → Ask. The cost of shipping an internal change to users (confusion, bloated
    rules files, leaked dev workflow) is higher than the cost of pausing to check.
+
+## Interactive prompt standard
+
+All user-facing interactive prompts in skills and agents MUST use
+AskUserQuestion with labeled options. Never use "Type yes", "press Enter",
+numbered text menus, or other patterns that require the user to type a
+specific keyword.
+
+- Binary choices: AskUserQuestion with 2 options (e.g., "Proceed" / "Stop")
+- Multi-choice: AskUserQuestion with 2-4 options + Other for custom input
+- Dynamic lists (variable item count): build AskUserQuestion from available
+  items. If >4 items, use summary options (e.g., "All", "Done") with Other
+  for specific selection.
+
+This ensures a consistent UX across all skills and avoids users having to
+guess the expected input format.

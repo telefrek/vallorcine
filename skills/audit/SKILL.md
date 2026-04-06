@@ -106,20 +106,36 @@ Store the entry point type and value for the Classification subagent.
 After determining the entry point, ask the user for a budget using
 AskUserQuestion:
 
-- Question: "What's your budget for this audit? Discovery + analysis
-  runs first (~$20-30). Prove-fix is ~$5-7 per finding."
+- Question: "What's your budget? Budget is split proportionally:
+  ~30% discovery, ~45% prove-fix, ~15% reporting. Discovery costs
+  ~$8-12 per file; prove-fix costs ~$5 per finding."
 - Options:
-  1. "$300 (default)" — standard budget, covers most features
-  2. "$150" — smaller scope or cost-conscious run
-  3. "Unlimited" — no cap on prove-fix spending
+  1. "$300 (default)" — full scope for most features
+  2. "$150" — may narrow to 4-5 files on larger features
+  3. "$80 (focused)" — 2-3 files, ~7 findings
+  4. "Unlimited" — no cap on spending
 
-The user can also type a custom dollar amount via "Other".
+The user can type a custom dollar amount via "Other". If the custom
+amount is below $50, display a note: "Budgets under $50 typically
+cover only 1-2 files. Consider $80+ for meaningful results." Still
+allow the user to proceed.
 
 - If the user picks a dollar amount: store as `AUDIT_BUDGET`
 - If the user picks "Unlimited": leave `AUDIT_BUDGET` empty
 
-The budget applies **only to the prove-fix phase**. Discovery, suspect
-analysis, test cleanup, and reporting always run regardless of budget.
+**Budget allocation model** (computed when `AUDIT_BUDGET` is set):
+
+```
+DISCOVERY_ALLOC  = AUDIT_BUDGET * 0.30
+SUSPECT_ALLOC    = AUDIT_BUDGET * 0.10
+PROVE_FIX_ALLOC  = AUDIT_BUDGET * 0.45
+POST_RESERVE     = max(AUDIT_BUDGET * 0.15, 10)
+```
+
+The budget is a **planning target**, not a hard wall. Each phase scopes
+its work to fit its allocation. Post phases (test cleanup, report,
+reconciliation) always run regardless of budget. See "Budget control"
+in Job 3 for the soft cap mechanism.
 
 ---
 
@@ -242,19 +258,59 @@ Expected return format:
 "Classification complete — <n> initial files, <n> specs resolved,
 prior_round=<yes|no>, language=<lang>"
 
-**After Classification returns, confirm scope with the user:**
+**After Classification returns, apply the budget scope gate:**
 
-Display the return summary and ask:
+Parse the file count from the return summary. If `AUDIT_BUDGET` is set,
+compute the discovery allocation and maximum affordable files:
 
 ```
-Audit scope resolved:
-  <paste the Classification return summary>
-
-Proceed? (yes / adjust scope / cancel)
+max_files = floor(DISCOVERY_ALLOC / 10)   # ~$10 per file
 ```
 
-If the user wants to adjust, note their changes and re-run Classification
-with the adjusted entry point. If they cancel, stop the pipeline.
+**Case 1: Budget fits the scope** (`max_files >= file_count` or no budget):
+
+Display the return summary and use AskUserQuestion:
+- Question: "Audit scope: `<n>` files, budget `$<budget>`.
+  Estimated total: ~$`<file_count * 30>` (within budget)."
+- Options:
+  1. "Proceed" — explore all files
+  2. "Adjust scope" — change which files to include
+  3. "Cancel" — stop the pipeline
+
+**Case 2: Budget requires narrowing** (`max_files < file_count`):
+
+The orchestrator narrows scope automatically to the top `max_files`
+files from classification's priority-ordered list. Display:
+
+```
+Audit scope: <n> files, budget $<budget>
+  Budget covers ~<max_files> of <n> files for full analysis.
+  Focusing on the <max_files> highest-risk files:
+    1. <file> — <rationale from classification>
+    2. <file> — <rationale>
+    ...
+  Remaining <n - max_files> files deferred to a follow-up round.
+```
+
+Use AskUserQuestion:
+- Question: (the text above)
+- Options:
+  1. "Proceed" — explore the selected files (recommended)
+  2. "Override" — choose different files to include
+  3. "Raise budget to $`<suggested>`" — increase budget to cover all files
+  4. "Cancel" — stop the pipeline
+
+If "Override": ask which files to include/exclude and adjust. This is
+the escape hatch for when the user knows something classification
+doesn't.
+
+If "Raise budget": update `AUDIT_BUDGET` and recompute allocations.
+Proceed with the full file list.
+
+**Passing scope to Exploration:** When scope was narrowed, pass ONLY the
+selected files to the Exploration subagent (not the full list). Include
+a note in the subagent prompt: "Scope narrowed to <n> of <total> files
+for budget. Explore only these files."
 
 Mark **Step 1.1: Classification** complete.
 
@@ -383,6 +439,17 @@ constructs clustered, <n> constructs in multiple lenses, <n> excluded"
 Parse the lens count and total cluster count from the return. You need
 these to dispatch Suspect subagents.
 
+**Cost checkpoint:** If `AUDIT_BUDGET` is set, run:
+```bash
+bash .claude/scripts/audit-budget.sh
+```
+Display to the user:
+```
+Discovery complete — $<cost> of $<budget> spent
+  <n> clusters across <n> lenses identified
+  Remaining: ~$<budget - cost - POST_RESERVE> for suspect + prove-fix
+```
+
 Mark **Step 1.7: Assembly** complete.
 
 ---
@@ -423,7 +490,20 @@ After each subagent returns:
 3. Update **Job 2** label: "Suspect (<completed>/<total> clusters,
    <accumulated> findings)"
 
-After all Suspect subagents complete, mark **Job 2: Suspect** complete.
+After all Suspect subagents complete:
+
+**Cost checkpoint:** If `AUDIT_BUDGET` is set, run:
+```bash
+bash .claude/scripts/audit-budget.sh
+```
+Display to the user:
+```
+Suspect complete — $<cost> of $<budget> spent
+  <n> findings to prove-fix (~$<findings * 5> estimated)
+  Prove-fix capacity: ~<floor((budget - cost - POST_RESERVE) / 5)> of <n> findings within budget
+```
+
+Mark **Job 2: Suspect** complete.
 If zero total findings, skip to Job 4 (Report).
 
 ---
@@ -508,45 +588,51 @@ file written):
 After each subagent returns successfully:
 1. Parse the result from the return summary
 2. Accumulate totals (fixed, impossible, fix_impossible, deferred)
-3. Report progress to the user:
-   `[N/total] <finding ID>: <result> — <summary>`
-4. Update **Job 3** label: "Prove-Fix (<completed>/<total>, <fixed>
-   fixed, <impossible> impossible, <deferred> deferred)"
+3. If `AUDIT_BUDGET` is set, run `bash .claude/scripts/audit-budget.sh`
+   to get the running cost.
+4. Report progress to the user (include cost if budget is set):
+   `[N/total] <finding ID>: <result> — <summary> ($<cost>/$<budget>)`
+5. Update **Job 3** label: "Prove-Fix (<completed>/<total>, <fixed>
+   fixed, <impossible> impossible) — $<cost>/$<budget>"
+   (omit cost portion if no budget set)
 
 After all findings are processed, mark **Job 3: Prove-Fix** complete.
 If zero confirmed findings, skip to Report.
 
 ### Budget control
 
-If `AUDIT_BUDGET` is set (from `--budget <N>` flag):
+If `AUDIT_BUDGET` is set:
 
-1. After each prove-fix subagent completes, run the cost check:
-   ```bash
-   bash .claude/scripts/audit-budget.sh
-   ```
-   This returns the running session cost as a single number (e.g., `247.50`).
+The budget is a **soft cap**. The goal is to stop prove-fix dispatch
+near the budget while guaranteeing post phases always run.
 
-2. Compare the returned cost against `AUDIT_BUDGET`:
-   - **>= budget:** Stop dispatching. Mark all remaining findings as DEFERRED.
+```
+STOP_THRESHOLD = AUDIT_BUDGET - POST_RESERVE - 5
+```
+
+The `-5` allows one more prove-fix finding (~$5) before stopping.
+This means overshoot is bounded to at most one prove-fix cycle plus
+post costs.
+
+1. The cost check runs as part of the per-finding progress reporting
+   (step 3 above: `bash .claude/scripts/audit-budget.sh`).
+
+2. Compare the returned cost against `STOP_THRESHOLD`:
+   - **cost >= STOP_THRESHOLD:** Dispatch the current finding (already
+     in progress), then stop. Mark all remaining findings as DEFERRED.
      Report: `Budget reached ($X of $Y). N findings deferred.`
-   - **>= 80% of budget:** Warn: `Budget 80% consumed ($X of $Y). N remaining.`
-     Continue dispatching.
+   - **cost < STOP_THRESHOLD:** Continue dispatching normally.
 
 3. In the completion summary, include:
    `Budget: $X spent of $Y limit (N findings deferred)`
 
-4. Budget does NOT affect Jobs 3b (test cleanup), 4 (report), or 5
-   (reconciliation). Those always run regardless of budget.
+4. **Post phases always run.** Jobs 3b (test cleanup), 4 (report),
+   and 5 (reconciliation) execute regardless of budget. The budget
+   controls only prove-fix dispatch — it never skips post activities
+   since those ensure a clean codebase.
 
-When passing the budget to the prove-fix orchestrator subagent prompt, add:
-```
-Budget limit: $<AUDIT_BUDGET>. After each finding, run:
-  bash .claude/scripts/audit-budget.sh
-Stop dispatching if the result >= <AUDIT_BUDGET>.
-```
-
-If `AUDIT_BUDGET` is not set, omit the budget lines from the orchestrator
-prompt entirely — the orchestrator runs unbounded.
+If `AUDIT_BUDGET` is not set, omit budget checks entirely — the
+pipeline runs unbounded.
 
 ---
 
