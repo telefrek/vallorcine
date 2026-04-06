@@ -51,6 +51,7 @@
 .claude/prompts/audit/prove-fix.md
 .claude/prompts/audit/prove-fix-orchestrator.md
 .claude/scripts/audit-budget.sh
+.claude/scripts/extract-findings.sh
 .claude/agents/architect-agent.md
 .claude/agents/code-writer-agent.md
 .claude/agents/domain-scout-agent.md

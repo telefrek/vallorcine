@@ -516,10 +516,18 @@ the bug, then fixes the source code if confirmed.
 
 ### Build the finding list
 
-After Suspect completes, enumerate all findings across all suspect files.
-Read the first line of each `### F-R` heading in each suspect file to
-build the ordered list. **Do not read the finding details — just the IDs
-and titles.**
+After Suspect completes, run the finding list extraction script:
+
+```bash
+bash .claude/scripts/extract-findings.sh .feature/<slug>/audit/<run-dir>
+```
+
+This produces `finding-list.txt` — one line per finding, pipe-delimited:
+`<finding-id>|<title>|<construct>|<lens>|<cluster>|<suspect-file>`
+
+Read `finding-list.txt` to build the dispatch queue. **Do NOT read suspect
+files directly** — the script already extracted what you need and reading
+suspect files would add thousands of tokens to your context.
 
 ### Lens → test class mapping
 
@@ -834,17 +842,19 @@ If `.spec/` exists, launch a single subagent:
 >
 > Return a summary line when done.
 
-Expected return format:
-"Reconciliation: <n> spec updates suggested, <n> KB patterns found,
-spec coverage: <n>/<total> requirements exercised"
+Expected return format: a structured `RECONCILIATION_SUMMARY_START` block
+containing spec update summaries, KB pattern summaries, and spec coverage
+(see `reconcile-findings.md` for the exact format).
 
-Parse the counts from the return summary. Then read the generated files
-to present actionable content — not just file paths.
+Parse the summary block from the return. **Do NOT read spec-updates.md or
+kb-suggestions.md** — the subagent's return contains everything needed to
+present the feedback menus. The files exist for "review" mode (when the
+user wants full details) and for `/curate` to pick up later if skipped.
 
 ### 5a. Present and process spec updates
 
-If spec updates were suggested (count > 0), read `.feature/<slug>/spec-updates.md`.
-Extract each suggested requirement and present inline:
+Extract the `SPEC_UPDATES:` section from the reconciliation return.
+If updates were suggested (count > 0), present inline:
 
 ```
 ── Feedback loop: spec updates ────────────────
@@ -872,7 +882,9 @@ found, display them and ask the user to resolve before continuing.
 Report what was added. After all applies complete, rename the file:
 `mv spec-updates.md spec-updates.applied.md`
 
-If **review**: display the full requirement blocks with notes, then re-offer
+If **review**: read `.feature/<slug>/spec-updates.md` NOW (this is the one
+case where reading the file is justified — the user explicitly asked for
+full details). Display the full requirement blocks with notes, then re-offer
 apply/skip per item. Run the same validation after any applies. If all
 items were applied or skipped individually, rename the file.
 
@@ -882,8 +894,8 @@ will resurface when `/curate` detects the deferred feedback file.
 ### 5b. Present and process KB patterns
 
 Only present this menu **after the user has responded to 5a** (or if no
-spec updates exist). If KB patterns were found (count > 0), read
-`.feature/<slug>/kb-suggestions.md`. Present inline:
+spec updates exist). Extract the `KB_PATTERNS:` section from the
+reconciliation return. If patterns were found (count > 0), present inline:
 
 ```
 ── Feedback loop: KB patterns ─────────────────

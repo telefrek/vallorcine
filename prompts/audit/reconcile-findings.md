@@ -157,8 +157,31 @@ Write two files:
 - `.feature/<slug>/kb-suggestions.md` (Task 2, or "No recurring patterns
   found" if none qualify)
 
-Return a single summary line:
-"Reconciliation: <n> spec updates suggested, <n> KB patterns found, spec coverage: <n>/<total> requirements exercised"
+Return a structured summary block. The orchestrator displays this directly
+to the user — it does NOT re-read the files you wrote. Include enough
+detail for the user to make apply/skip decisions without the orchestrator
+needing to open spec-updates.md or kb-suggestions.md.
 
-If no specs exist, use:
-"Reconciliation: no specs in scope, <n> KB patterns found"
+```
+RECONCILIATION_SUMMARY_START
+counts: <n> spec updates, <n> KB patterns, coverage: <n>/<total>
+
+SPEC_UPDATES:
+1. <requirement text — one line> (source: <finding ID>, spec: <spec ID>)
+2. <requirement text> (source: <finding ID>, spec: <spec ID>)
+...
+<or "none" if no spec updates>
+
+KB_PATTERNS:
+1. <Update/New> <pattern name> — <one-line description> (seen in: <n> findings)
+2. <Update/New> <pattern name> — <one-line description> (seen in: <n> findings)
+...
+<or "none" if no KB patterns>
+
+SPEC_COVERAGE: <exercised>/<total> requirements exercised
+RECONCILIATION_SUMMARY_END
+```
+
+The orchestrator parses this block to present the feedback loop menus.
+The full details remain in spec-updates.md and kb-suggestions.md for
+when the user chooses "review" instead of "apply".
