@@ -37,6 +37,7 @@
 .claude/skills/spec-author/extraction-mode.md
 .claude/skills/spec/SKILL.md
 .claude/skills/audit/SKILL.md
+.claude/skills/capabilities/SKILL.md
 .claude/prompts/audit/pass1-inventory.md
 .claude/prompts/audit/pass2-triage.md
 .claude/prompts/audit/pass2.5-clustering.md
