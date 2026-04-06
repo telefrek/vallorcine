@@ -17,12 +17,16 @@ The orchestrator provides:
 - Test class path (shared adversarial test class for this lens)
 - Cluster packet path (for construct context)
 
-## Phase 0 — ALREADY-FIXED CHECK (mandatory, max 3 turns)
+## Phase 0 — ALREADY-FIXED CHECK (mandatory, max 2 turns)
 
 Before writing any test, check whether prior fixes in this audit run have
 already resolved this finding. Findings are processed sequentially — earlier
 fixes may have added guards, rollback logic, or exception handling that
 make later findings moot.
+
+**Budget: 2 turns maximum.** Turn 1: read the source. Turn 2: write the
+output file (if ALREADY_FIXED) or proceed to Phase 1 (if STILL_VULNERABLE).
+Do NOT read any file other than the construct source in Phase 0.
 
 ### 0a. Read current source
 
@@ -51,22 +55,22 @@ current source code **already has the defense** the finding says is missing:
 source. Proceed to Phase 1.
 
 **Vulnerability already fixed:** The current source already has the
-defense. Short-circuit to IMPOSSIBLE:
+defense. Short-circuit to IMPOSSIBLE immediately — do NOT read any
+other files, do NOT run git blame, do NOT check test classes:
 
-1. Identify which defense exists and at which lines
-2. Check git blame or prove-fix output files to identify which prior
-   finding added the fix (if determinable in 1 turn — otherwise skip)
-3. Write the output file with:
+1. Note which lines contain the defense (you already see them from 0a)
+2. Write the output file with:
    - Result: IMPOSSIBLE
+   - Phase 0 result: ALREADY_FIXED
+   - Phase 0 detail: "<defense type> at lines <N-M>" (one sentence)
    - Phase 1 result: "Skipped — vulnerability already fixed in current source"
-   - Impossibility proof: cite the specific lines that provide the defense,
-     describe what the defense does, and state why the finding's attack
-     vector can no longer reach the vulnerable path
-4. STOP. Do not write a test. Do not proceed to Phase 1.
+3. STOP. Do not write a test. Do not proceed to Phase 1. Do not
+   investigate which prior finding added the fix — that is the
+   orchestrator's concern, not yours.
 
-**Uncertain:** If you cannot determine in 2-3 turns whether the vulnerability
-still exists, proceed to Phase 1. Do not spend more than 3 turns on this
-check — the test will determine the truth.
+**Uncertain:** If the source read in 0a doesn't make the answer obvious,
+proceed to Phase 1 immediately. Do not investigate further — the test
+will determine the truth.
 
 ---
 
@@ -304,9 +308,10 @@ FIX_IMPOSSIBLE with:
 
 ## Hard rules
 
-- **Phase 0 is mandatory.** Always check the current source before writing
-  a test. If the vulnerability is already fixed, short-circuit to IMPOSSIBLE
-  without writing a test (saves 30+ turns per finding).
+- **Phase 0 is mandatory and limited to 2 turns.** Read the source, decide.
+  If ALREADY_FIXED: write the output file and STOP — do not read any other
+  file, do not run git blame, do not check tests. Saves 30+ turns per
+  finding.
 - **Phase 1 is mandatory (unless Phase 0 short-circuits).** You cannot skip
   to Phase 2 or mark a finding as impossible without either a Phase 0
   already-fixed proof or a test that compiles and runs.

@@ -758,7 +758,10 @@ to present actionable content — not just file paths.
 ### 5a. Read and present spec updates
 
 If spec updates were suggested (count > 0), read `.feature/<slug>/spec-updates.md`.
-Extract each suggested requirement and present them inline:
+Also read `.feature/<slug>/kb-suggestions.md` if KB patterns were found.
+
+Present BOTH menus together in a single output block so the user sees
+everything at once:
 
 ```
 ── Feedback loop ──────────────────────────────
@@ -766,58 +769,52 @@ Extract each suggested requirement and present them inline:
 Spec updates (<n> suggested):
 
   1. <requirement text — one line, observable behavior>
-     Source: <finding ID> — <bug description>
-     Spec: <spec ID>
-
   2. <requirement text>
-     Source: <finding ID> — <bug description>
-     Spec: <spec ID>
+  ...
 
   apply  — add all <n> requirements to their specs now
   review — show full details before deciding
   skip   — defer (resurfaces via /curate spec-code drift)
-```
 
-If **apply**: for each suggested requirement, read the target spec file,
-append the requirement to the appropriate category section, and run
-`spec-validate.sh` to verify the spec is still valid. Report what was added.
+KB patterns (<n> updates + <n> new):
 
-If **review**: display the full requirement blocks with notes, then re-offer
-apply/skip per item.
+  1. <Update/New> <pattern name> — <one-line description>
+  2. <Update/New> <pattern name> — <one-line description>
+  ...
 
-If **skip**: note in the audit report that suggestions were deferred. They
-will resurface when `/curate` detects spec-code drift (the code was fixed
-but the spec wasn't updated).
-
-### 5b. Read and present KB patterns
-
-If KB patterns were found (count > 0), read `.feature/<slug>/kb-suggestions.md`.
-Extract each pattern and present inline:
-
-```
-KB patterns (<n> found):
-
-  1. <pattern name> — <one-line description>
-     Seen in: <N> findings (<finding IDs>)
-     Category: <suggested KB category>
-
-  2. <pattern name> — <one-line description>
-     Seen in: <N> findings (<finding IDs>)
-     Category: <suggested KB category>
-
-  create  — create KB entries for all <n> patterns now
-  select  — choose which patterns to create
+  create  — create/update all <n> KB entries now
+  select  — choose which to create
   skip    — defer (patterns stay in kb-suggestions.md for later)
 ```
 
-If **create**: for each pattern, invoke `/research <topic> <category> "<subject>"`
-as a sub-agent with the pattern's description and affected constructs as context.
+**STOP here and wait for the user to respond.** Do not proceed until the
+user tells you what to do with the spec updates and KB patterns. The user
+may respond to one or both menus in any order. Process each choice as it
+comes.
 
-If **select**: present each pattern individually for create/skip.
+If **apply** (specs): for each suggested requirement, read the target spec
+file, append the requirement to the appropriate category section, and run
+`spec-validate.sh` to verify the spec is still valid. Report what was added.
 
-If **skip**: note as deferred.
+If **review** (specs): display the full requirement blocks with notes, then
+re-offer apply/skip per item.
 
-### 5c. Show spec coverage
+If **skip** (specs): note in the audit report that suggestions were deferred.
+They will resurface when `/curate` detects spec-code drift (the code was
+fixed but the spec wasn't updated).
+
+If **create** (KB): for each pattern, invoke
+`/research <topic> <category> "<subject>"` as a sub-agent with the pattern's
+description and affected constructs as context.
+
+If **select** (KB): present each pattern individually for create/skip.
+
+If **skip** (KB): note as deferred.
+
+### 5b. Show spec coverage
+
+After the user has responded to both menus (or if no updates/patterns
+were found), show spec coverage:
 
 ```
 Spec coverage: <exercised>/<total> <spec-ID> requirements exercised
