@@ -1,0 +1,6 @@
+{
+  "path": ".claude/skills/perf-review/perf-context.md",
+  "old_string": "## Regression benchmark baselines\n\n> Updated when a regression benchmark is promoted or re-run.\n> Format: class \u2014 run mode \u2014 metric \u2014 baseline value \u2014 threshold \u2014 commit\n\n*(none yet)*",
+  "new_string": "## Regression benchmark baselines\n\n> Updated when a regression benchmark is promoted or re-run.\n> Format: class \u2014 run mode \u2014 metric \u2014 baseline value \u2014 threshold \u2014 commit\n\n- `MemTableBenchmark` \u2014 snapshot \u2014 put@1K: 171K ops/s \u2014 10% threshold \u2014 543f0e3\n- `MemTableBenchmark` \u2014 snapshot \u2014 put@10K: 227K ops/s \u2014 10% threshold \u2014 543f0e3\n- `MemTableBenchmark` \u2014 snapshot \u2014 put@100K: 349K ops/s \u2014 10% threshold \u2014 543f0e3\n- `MemTableBenchmark` \u2014 snapshot \u2014 getHit@1K: 2.14M ops/s \u2014 10% threshold \u2014 543f0e3\n- `MemTableBenchmark` \u2014 snapshot \u2014 getHit@10K: 1.52M ops/s \u2014 10% threshold \u2014 543f0e3\n- `MemTableBenchmark` \u2014 snapshot \u2014 getHit@100K: 1.39M ops/s \u2014 10% threshold \u2014 543f0e3\n- `MemTableBenchmark` \u2014 snapshot \u2014 scan: 4.60M ops/s \u2014 10% threshold \u2014 543f0e3",
+  "replace_all": false
+}

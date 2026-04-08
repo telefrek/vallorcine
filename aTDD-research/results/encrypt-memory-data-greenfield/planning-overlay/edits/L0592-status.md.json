@@ -1,0 +1,6 @@
+{
+  "path": ".feature/extract-core-encryption/status.md",
+  "old_string": "**Last successful checkpoint:** brief.md written and confirmed",
+  "new_string": "**Last successful checkpoint:** domains.md written, all 3 domains resolved",
+  "replace_all": false
+}

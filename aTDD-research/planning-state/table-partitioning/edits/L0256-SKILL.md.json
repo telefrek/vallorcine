@@ -1,0 +1,6 @@
+{
+  "path": ".claude/skills/perf-review/SKILL.md",
+  "old_string": "5. If finding is significant \u2192 record in `findings.md`, ask user:\n   \"Want me to promote this to a regression benchmark?\"",
+  "new_string": "5. If finding is significant \u2192 record in `findings.md`, ask user:\n   \"Type `promote` to make this a regression benchmark, or `next` to continue.\"",
+  "replace_all": false
+}

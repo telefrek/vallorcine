@@ -1,0 +1,6 @@
+{
+  "path": ".feature/in-process-database-engine/status.md",
+  "old_string": "| Engine API surface design | pending-decision | \u2014 | \u2014 | \u2014 | \u2014 |",
+  "new_string": "| Engine API surface design | resolved | .decisions/engine-api-surface-design/adr.md | \u2014 | 2026-03-19 | 2026-03-19 |",
+  "replace_all": false
+}

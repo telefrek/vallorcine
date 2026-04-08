@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/status.md",
+  "old_string": "**Stage:** domains\n**Substage:** complete",
+  "new_string": "**Stage:** planning\n**Substage:** loading-context",
+  "replace_all": false
+}

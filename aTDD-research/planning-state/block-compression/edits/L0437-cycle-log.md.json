@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/cycle-log.md",
+  "old_string": "**Token estimate:** ~5K (loaded: project-config ~1K / wrote: brief ~2K, status ~1K, cycle-log ~1K)\n---",
+  "new_string": "**Token estimate:** ~5K (loaded: project-config ~1K / wrote: brief ~2K, status ~1K, cycle-log ~1K)\n---\n\n## 2026-03-17 \u2014 domains-research-commissioned\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** Research commissioned for block compression algorithms.\n**Topic:** algorithms / compression / block-compression-algorithms\n---\n\n## 2026-03-17 \u2014 domains-decision-commissioned\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** Architect session commissioned for SSTable block compression format.\n**Decision:** sstable-block-compression-format \u2014 Compression Offset Map chosen\n---\n\n## 2026-03-17 \u2014 domains-decision-commissioned\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** Architect session commissioned for compression codec API design.\n**Decision:** compression-codec-api-design \u2014 Open interface + explicit codec list chosen\n---\n\n## 2026-03-17 \u2014 domains-resolved\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** 3 domains resolved, 0 gaps noted.\n**Files read:** brief ~2K, .kb/CLAUDE.md ~1K, .decisions/CLAUDE.md ~1K, algorithms/CLAUDE.md ~1K\n**Token estimate:** ~15K\n---",
+  "replace_all": false
+}

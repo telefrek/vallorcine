@@ -1,0 +1,6 @@
+{
+  "path": ".decisions/cross-stripe-eviction/log.md",
+  "old_string": "**KB files read:**\n- None (KB is empty)\n\n---",
+  "new_string": "**KB files read:**\n- None (KB is empty)\n\n---\n\n## 2026-03-17 \u2014 decision-confirmed\n\n**Agent:** Architect Agent\n**Event:** decision-confirmed\n**Summary:** Sequential loop confirmed for cross-stripe eviction; simplest approach, one lock at a time.\n\n### Deliberation Summary\n\n**Rounds of deliberation:** 1\n**Recommendation presented:** Sequential loop\n**Final decision:** Sequential loop *(same as presented)*\n\n**Topics raised during deliberation:**\n- None \u2014 user confirmed immediately\n\n**Constraints updated during deliberation:**\n- None\n\n**Assumptions explicitly confirmed by user:**\n- Evict is infrequent (compaction background path)\n- Momentary inconsistency during sweep is acceptable\n- Stripe count stays small (2\u201316)\n\n**Override:** None\n\n**Confirmation:** User confirmed with: \"yes\"\n\n**Files written after confirmation:**\n- `adr.md` \u2014 decision record v1\n- `constraints.md` \u2014 no changes\n\n**KB files read during evaluation:**\n- None (KB is empty \u2014 all candidates evaluated from domain knowledge)\n\n---",
+  "replace_all": false
+}

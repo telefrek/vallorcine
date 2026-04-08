@@ -1,0 +1,122 @@
+[
+  {
+    "file": "DeflateCodec.java",
+    "construct": "DeflateCodec.compress",
+    "line": 57,
+    "pattern": "integer-overflow-in-arithmetic",
+    "description": "INTEGER-OVERFLOW-BOUNDS-CHECK: offset+length overflow bypassed bounds check",
+    "run": 1
+  },
+  {
+    "file": "DeflateCodec.java",
+    "construct": "DeflateCodec.decompress",
+    "line": 84,
+    "pattern": "integer-overflow-in-arithmetic",
+    "description": "INTEGER-OVERFLOW-BOUNDS-CHECK: offset+length overflow bypassed bounds check (decompress)",
+    "run": 1
+  },
+  {
+    "file": "NoneCodec.java",
+    "construct": "NoneCodec.compress",
+    "line": 41,
+    "pattern": "integer-overflow-in-arithmetic",
+    "description": "INTEGER-OVERFLOW-BOUNDS-CHECK: offset+length overflow bypassed bounds check (NoneCodec)",
+    "run": 1
+  },
+  {
+    "file": "NoneCodec.java",
+    "construct": "NoneCodec.decompress",
+    "line": 52,
+    "pattern": "integer-overflow-in-arithmetic",
+    "description": "INTEGER-OVERFLOW-BOUNDS-CHECK: offset+length overflow bypassed bounds check (NoneCodec decompress)",
+    "run": 1
+  },
+  {
+    "file": "DeflateCodec.java",
+    "construct": "DeflateCodec.decompress",
+    "line": 84,
+    "pattern": "fail-fast-violation",
+    "description": "NEGATIVE-UNCOMPRESSED-LENGTH: wrong exception for negative uncompressedLength",
+    "run": 1
+  },
+  {
+    "file": "CompressionMap.java",
+    "construct": "CompressionMap.Entry",
+    "line": 43,
+    "pattern": "carrier-invariant-enforcement",
+    "description": "COMPRESSION-MAP-ENTRY-NO-VALIDATION: record accepted negative sizes",
+    "run": 1
+  },
+  {
+    "file": "CompressionMap.java",
+    "construct": "CompressionMap.deserialize",
+    "line": 116,
+    "pattern": "fail-fast-violation",
+    "description": "COMPRESSION-MAP-NEGATIVE-BLOCK-COUNT: silently returned empty map for negative count",
+    "run": 1
+  },
+  {
+    "file": "TrieSSTableReader.java",
+    "construct": "TrieSSTableReader.buildCodecMap",
+    "line": 382,
+    "pattern": "error-exhaustiveness",
+    "description": "V2-READER-MISSING-NONE-CODEC: reader didn't auto-include NoneCodec for incompressible fallback",
+    "run": 1
+  },
+  {
+    "file": "CompressionMap.java",
+    "construct": "CompressionMap.deserialize",
+    "line": 116,
+    "pattern": "integer-overflow-in-arithmetic",
+    "description": "COMPRESSION-MAP-DESERIALIZE-OVERFLOW: 4 + blockCount * ENTRY_SIZE overflows int",
+    "run": 2
+  },
+  {
+    "file": "CompressionMap.java",
+    "construct": "CompressionMap.serialize",
+    "line": 93,
+    "pattern": "integer-overflow-in-arithmetic",
+    "description": "COMPRESSION-MAP-SERIALIZE-OVERFLOW: same overflow in serialize (fix-forward from deserialize)",
+    "run": 2
+  },
+  {
+    "file": "CompressionMap.java",
+    "construct": "CompressionMap.Entry",
+    "line": 43,
+    "pattern": "carrier-invariant-enforcement",
+    "description": "COMPRESSION-MAP-ENTRY-ZERO-SIZE-INVARIANT: compressedSize=0 with uncompressedSize>0 accepted",
+    "run": 2
+  },
+  {
+    "file": "TrieSSTableReader.java",
+    "construct": "TrieSSTableReader.Footer",
+    "line": 445,
+    "pattern": "carrier-invariant-enforcement",
+    "description": "FOOTER-NO-FIELD-VALIDATION: readFooter constructed Footer without validating field consistency",
+    "run": 2
+  },
+  {
+    "file": "TrieSSTableReader.java",
+    "construct": "TrieSSTableReader.readBytes",
+    "line": 583,
+    "pattern": "non-atomic-mutation",
+    "description": "LAZY-CHANNEL-CONCURRENT-READ-RACE: position-then-read not synchronized",
+    "run": 2
+  },
+  {
+    "file": "TrieSSTableReader.java",
+    "construct": "TrieSSTableReader.readAndDecompressBlock",
+    "line": 328,
+    "pattern": "deferred-validation",
+    "description": "ASSERT-ONLY-CODEC-GUARD: assert for codec null check disabled in production",
+    "run": 2
+  },
+  {
+    "file": "TrieSSTableReader.java",
+    "construct": "TrieSSTableReader.buildCodecMap",
+    "line": 382,
+    "pattern": "null-handling",
+    "description": "CODEC-MAP-NULL-ELEMENT: null elements in codec varargs not checked",
+    "run": 2
+  }
+]

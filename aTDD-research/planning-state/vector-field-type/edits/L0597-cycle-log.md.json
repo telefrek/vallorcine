@@ -1,0 +1,6 @@
+{
+  "path": ".feature/vector-field-type/cycle-log.md",
+  "old_string": "**Summary:** Commissioned /architect for IndexDefinition API simplification decision.\n---",
+  "new_string": "**Summary:** Commissioned /architect for IndexDefinition API simplification decision.\n---\n## 2026-03-17 \u2014 domains-resolved\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** 2 domains resolved, 0 gaps noted. Both ADRs confirmed (flat vector encoding, derive dimensions from schema).\n**Files read:** brief ~2K, .kb/CLAUDE.md ~1K, .decisions/CLAUDE.md ~1K, 3 KB subject files ~8K, 2 ADR sessions\n**Token estimate:** ~15K\n---",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/in-process-database-engine/status.md",
+  "old_string": "**Stage:** planning\n**Substage:** writing-stubs\n**Last successful checkpoint:** domains.md written",
+  "new_string": "**Stage:** testing\n**Substage:**\n**Last successful checkpoint:** work-plan.md written, 13 stubs created",
+  "replace_all": false
+}

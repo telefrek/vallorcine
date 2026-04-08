@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-core/src/main/java/jlsm/sstable/TrieSSTableWriter.java",
+  "old_string": "        // Build bloom filter\n        bloomFilter = bloomFactory.create((int) Math.max(1, entryCount));\n        for (MemorySegment key : indexKeys) {\n            bloomFilter.add(key);\n        }",
+  "new_string": "        // Build bloom filter\n        bloomFilter = bloomFactory.create((int) Math.max(1, entryCount));\n        for (byte[] key : indexKeys) {\n            bloomFilter.add(MemorySegment.ofArray(key));\n        }",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/JlsmDocument.java",
+  "old_string": "            case FieldType.ObjectType _ -> expect(fieldName, value, JlsmDocument.class, \"OBJECT\");\n        }\n    }",
+  "new_string": "            case FieldType.ObjectType _ -> expect(fieldName, value, JlsmDocument.class, \"OBJECT\");\n            case FieldType.BoundedString bs -> {\n                expect(fieldName, value, String.class, \"STRING\");\n                final int byteLen = ((String) value).getBytes(java.nio.charset.StandardCharsets.UTF_8).length;\n                if (byteLen > bs.maxLength()) {\n                    throw new IllegalArgumentException(\"Field '\" + fieldName\n                            + \"' value exceeds BoundedString maxLength \" + bs.maxLength()\n                            + \" (got \" + byteLen + \" bytes)\");\n                }\n            }\n        }\n    }",
+  "replace_all": false
+}

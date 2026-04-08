@@ -1,0 +1,6 @@
+{
+  "path": ".feature/streaming-block-decompression/cycle-log.md",
+  "old_string": "**Token estimate:** ~5K (loaded: project-config ~1K / wrote: brief ~2K, status ~1K, cycle-log ~1K)\n---",
+  "new_string": "**Token estimate:** ~5K (loaded: project-config ~1K / wrote: brief ~2K, status ~1K, cycle-log ~1K)\n---\n## 2026-03-18 \u2014 domains-research-commissioned\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** Research commissioned for index scan patterns over LSM storage. Invoked /research to fill KB gap.\n---\n## 2026-03-18 \u2014 domains-resolved\n**Agent:** \ud83d\uddfa\ufe0f Domain Scout\n**Summary:** 3 domains resolved, 0 gaps noted. SSTable block compression format (ADR confirmed), Compression codec API (ADR confirmed), Index scan patterns (research completed \u2014 confirms iterator-local buffer approach).\n**Files read:** brief ~2K, .kb/CLAUDE.md ~1K, .decisions/CLAUDE.md ~1K, 2 ADR files ~2K, 1 KB research written ~3K\n**Token estimate:** ~8K\n---",
+  "replace_all": false
+}

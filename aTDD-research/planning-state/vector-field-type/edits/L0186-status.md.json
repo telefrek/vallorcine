@@ -1,0 +1,6 @@
+{
+  "path": ".feature/vector-field-type/status.md",
+  "old_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|",
+  "new_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|\n| VectorType serialization encoding | pending-decision | none | none | \u2014 | \u2014 |\n| IndexDefinition API simplification | pending-decision | none | none | \u2014 | \u2014 |",
+  "replace_all": false
+}

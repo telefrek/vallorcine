@@ -1,0 +1,6 @@
+{
+  "path": ".feature/sql-query-support/status.md",
+  "old_string": "- [x] scoping \u2014 brief written\n- [x] domains \u2014 domains.md written\n\n## Pending Stages\n- [x] domains\n- [ ] work-plan",
+  "new_string": "- [x] scoping \u2014 brief written\n- [x] domains \u2014 domains.md written\n- [x] planning \u2014 work-plan.md written, 9 stubs created\n\n## Pending Stages\n- [x] domains\n- [x] work-plan",
+  "replace_all": false
+}

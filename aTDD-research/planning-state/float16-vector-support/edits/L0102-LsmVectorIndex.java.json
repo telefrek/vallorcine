@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-vector/src/main/java/jlsm/vector/LsmVectorIndex.java",
+  "old_string": "import jlsm.core.indexing.SimilarityFunction;\nimport jlsm.core.indexing.VectorIndex;",
+  "new_string": "import jlsm.core.indexing.SimilarityFunction;\nimport jlsm.core.indexing.VectorIndex;\nimport jlsm.core.indexing.VectorPrecision;",
+  "replace_all": false
+}

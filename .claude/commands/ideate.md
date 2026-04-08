@@ -10,8 +10,11 @@ If `$ARGUMENTS` is "continue" (case-insensitive): check if `WIP.md` exists.
 - If WIP.md exists: the session goal is to continue the in-progress work
   described there. Skip Step 1.5 entirely (WIP.md already has the state).
   Proceed to Step 2.
-- If WIP.md does not exist: tell the user "No WIP.md found — nothing to
-  continue." Then ask for a session goal as if `$ARGUMENTS` were empty.
+- If WIP.md does not exist: read CONTEXT.md's "Current focus" section and
+  derive the session goal from its "Where things stand" / next-steps content.
+  Use that as the session goal and proceed to Step 1.5. CONTEXT.md is the
+  canonical state when no WIP.md exists — a clean session end means the
+  state was captured there.
 
 If `$ARGUMENTS` is non-empty (and not "continue"), use it as the session goal
 verbatim.

@@ -1,0 +1,6 @@
+{
+  "path": ".decisions/engine-api-surface-design/constraints.md",
+  "old_string": "## Unknown / Not Specified\nNone \u2014 full profile captured.",
+  "new_string": "## Updates 2026-03-19\n\n### Handle lifecycle constraints (added during deliberation)\n- Callers will NOT reliably close handles \u2014 engine must be self-protecting\n- Handles must be tracked with source attribution (thread/caller in embedded, client/connection in remote)\n- Under handle pressure, evict the greediest source's handles first (protect well-behaved clients)\n- Evicted handles must provide diagnostic information to the client: source identity, handle counts, allocation site, eviction reason\n- Configurable limits: per-source-per-table, per-table total, engine-wide handle budget\n\n## Unknown / Not Specified\nNone \u2014 full profile captured.",
+  "replace_all": false
+}

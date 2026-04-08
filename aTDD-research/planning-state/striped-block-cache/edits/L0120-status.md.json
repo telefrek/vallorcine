@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/status.md",
+  "old_string": "**Execution strategy:** not-set",
+  "new_string": "**Execution strategy:** cost",
+  "replace_all": false
+}

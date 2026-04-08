@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/cycle-log.md",
+  "old_string": "**Summary:** Commissioned architect for stripe hash function decision.\n---",
+  "new_string": "**Summary:** Commissioned architect for stripe hash function decision.\n---\n## 2026-03-17 \u2014 domains-decision-commissioned\n**Agent:** Domain Scout\n**Summary:** Commissioned architect for cross-stripe eviction strategy decision.\n---",
+  "replace_all": false
+}

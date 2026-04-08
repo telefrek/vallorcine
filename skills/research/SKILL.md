@@ -156,6 +156,13 @@ Display: `── Writing KB entries ──────────────�
   relevant to (if known from the research context, commissioning ADR, or feature
   work). Leave empty if no specific files are known — `/curate` will help
   populate this over time as correlations are discovered.
+- Populate `related:` with paths to other KB entries this research connects to
+  (e.g. `["algorithms/concurrency/lock-free-queues", "systems/storage/wal-segments"]`).
+  These are entries in different topics/categories that cover related concepts.
+  Only add links you can verify exist. Leave empty if no cross-topic links are known.
+- Populate `decision_refs:` with ADR slugs from `.decisions/` that commissioned
+  or depend on this research (e.g. `["vector-encoding", "cache-strategy"]`).
+  Only add slugs where `.decisions/<slug>/adr.md` exists.
 
 Use the Subject File Template below.
 
@@ -197,8 +204,11 @@ complexity:
   time_query: "<e.g. O(log n)>"
   space: "<e.g. O(n * M)>"
 research_status: "<active | mature | stable | deprecated>"
+confidence: "<high | medium | low>"
 last_researched: "<YYYY-MM-DD>"
 applies_to: []
+related: []
+decision_refs: []
 sources:
   - url: "<URL>"
     title: "<title>"
@@ -280,15 +290,32 @@ class SubjectName:
 *Researched: <YYYY-MM-DD> | Next review: <YYYY-MM-DD + 180 days>*
 ```
 
+### Confidence field guidance
+
+Set `confidence` based on the strength of the sources backing the entry's claims:
+
+- **high** — claims backed by peer-reviewed papers, official documentation, or verified benchmarks
+- **medium** — claims from reputable blog posts, conference talks, or the model's training knowledge that aligns with multiple sources
+- **low** — claims from a single unverified source, the model's general knowledge without corroboration, or extrapolations
+
+When updating an existing entry, reassess confidence if new sources materially
+change the evidence base. Confidence can go up (new paper corroborates a blog
+claim) or down (a cited benchmark turns out to be synthetic).
+
 ---
 
 ## Category CLAUDE.md Template
 
-Created when the first subject in a category is written.
+Created when the first subject in a category is written. The `Tags:` line
+lists keywords that the cross-topic keyword scan uses for discovery. Include
+synonyms, abbreviations, and domain-specific terms that someone searching
+for this category's content might use. Example: a compression category might
+have `Tags: lz4, zstd, snappy, entropy, codec, deflate, block-compression`.
 
 ```markdown
 # <Category> — Category Index
 *Topic: <topic>*
+*Tags: <keyword1>, <keyword2>, <keyword3>, ...*
 
 <1 paragraph describing this category and why it matters>
 

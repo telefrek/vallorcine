@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+  "old_string": "package jlsm.table.internal;",
+  "new_string": "package jlsm.table;",
+  "replace_all": false
+}

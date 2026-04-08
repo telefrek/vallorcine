@@ -91,6 +91,11 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 - **KB cross-referencing** — reverse mapping from decisions to KB entries. One-way
   (KB → decisions) exists in `/kb query`. Low urgency until KB is large enough.
 
+- **Internal research KB for vallorcine development** — ~~structure and capture
+  mechanism~~ **done** (2026-03-26): `.claude/research/` directory + /save-work
+  Step 3.5 learnings capture. Remaining: bootstrap by scanning recent session
+  history for key learnings from the aTDD research sessions.
+
 - ~~`/decisions backfill`~~ — **subsumed by `/curate`** (2026-03-18). Curation's
   analysis 8 (backfill candidates) + analysis 3b-3d (ADR pressure/gravity/hubs)
   cover all five signal sources. Archived feature domains (source 1) are scanned

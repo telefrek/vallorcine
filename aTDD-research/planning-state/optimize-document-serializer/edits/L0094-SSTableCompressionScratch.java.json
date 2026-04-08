@@ -1,0 +1,6 @@
+{
+  "path": "SSTableCompressionScratch.java",
+  "old_string": "import jlsm.bloom.blocked.BlockedBloomFilter;",
+  "new_string": "package jlsm.perf.scratch;\n\nimport jlsm.bloom.blocked.BlockedBloomFilter;",
+  "replace_all": false
+}

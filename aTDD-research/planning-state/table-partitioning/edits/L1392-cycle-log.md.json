@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/cycle-log.md",
+  "old_string": "**Token estimate:** ~6K\n---",
+  "new_string": "**Token estimate:** ~6K\n---\n\n## 2026-03-16 \u2014 planned\n**Agent:** \ud83c\udfd7\ufe0f Work Planner\n**Summary:** 8 new constructs (PartitionDescriptor, PartitionConfig, ScoredEntry, PartitionClient, RangeMap, InProcessPartitionClient, ResultMerger, PartitionedTable). Split into 3 work units (balanced strategy). All stubs compile.\n**Files read:** brief ~2K, domains ~3K, ADR ~2K, jlsm-table API scan ~3K\n**Token estimate:** ~10K\n---",
+  "replace_all": false
+}

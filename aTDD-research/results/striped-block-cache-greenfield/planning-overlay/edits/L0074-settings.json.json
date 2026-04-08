@@ -1,0 +1,6 @@
+{
+  "path": ".claude/settings.json",
+  "old_string": "  \"enabledPlugins\": {\n    \"vallorcine@vallorcine\": true\n  }",
+  "new_string": "",
+  "replace_all": false
+}

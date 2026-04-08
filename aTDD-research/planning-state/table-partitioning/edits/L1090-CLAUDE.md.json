@@ -1,0 +1,6 @@
+{
+  "path": ".decisions/CLAUDE.md",
+  "old_string": "## Recently Accepted (last 5)\n<!-- Once this section exceeds 5 rows, oldest row moves to history.md -->\n\n| Problem | Slug | Accepted | Recommendation |\n|---------|------|----------|----------------|",
+  "new_string": "## Recently Accepted (last 5)\n<!-- Once this section exceeds 5 rows, oldest row moves to history.md -->\n\n| Problem | Slug | Accepted | Recommendation |\n|---------|------|----------|----------------|\n| Table partitioning strategy | table-partitioning | 2026-03-16 | Range partitioning with per-partition co-located indices |",
+  "replace_all": false
+}

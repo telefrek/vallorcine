@@ -1,0 +1,6 @@
+{
+  "path": ".kb/algorithms/CLAUDE.md",
+  "old_string": "| vector-quantization | [vector-quantization/](vector-quantization/CLAUDE.md) | 5 | 2026-03-16 | Compression techniques for high-dimensional vectors in ANN search |",
+  "new_string": "| sql-extensions | [sql-extensions/](sql-extensions/CLAUDE.md) | 1 | 2026-03-16 | SQL syntax extensions for vector search, full-text, and domain-specific queries |\n| vector-quantization | [vector-quantization/](vector-quantization/CLAUDE.md) | 5 | 2026-03-16 | Compression techniques for high-dimensional vectors in ANN search |",
+  "replace_all": false
+}

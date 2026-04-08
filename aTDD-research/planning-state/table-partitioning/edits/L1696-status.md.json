@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "**Stage:** planning\n**Substage:** complete\n**Last successful checkpoint:** work-plan.md written, 8 stubs created, 3 work units defined",
+  "new_string": "**Stage:** refactor\n**Substage:** complete\n**Last successful checkpoint:** All 3 WUs complete, 85 tests passing, full check clean",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/status.md",
+  "old_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|",
+  "new_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|\n| Float16 encoding/conversion | pending | \u2014 | \u2014 | \u2014 | \u2014 |\n| Float16 SIMD distance computation | pending | \u2014 | \u2014 | \u2014 | \u2014 |\n| VectorIndex precision API | pending | \u2014 | \u2014 | \u2014 | \u2014 |",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/in-process-database-engine/status.md",
+  "old_string": "**Stage:** scoping\n**Substage:** interviewing\n**Last successful checkpoint:** feature directory created",
+  "new_string": "**Stage:** scoping\n**Substage:** complete\n**Last successful checkpoint:** brief confirmed and written",
+  "replace_all": false
+}

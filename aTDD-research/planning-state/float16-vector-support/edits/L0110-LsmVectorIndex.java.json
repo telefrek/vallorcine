@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-vector/src/main/java/jlsm/vector/LsmVectorIndex.java",
+  "old_string": "    private abstract static class AbstractBuilder<D, B extends AbstractBuilder<D, B>> {\n\n        LsmTree lsmTree;\n        MemorySerializer<D> docIdSerializer;\n        int dimensions; // 0 = not set\n        SimilarityFunction similarityFunction;",
+  "new_string": "    private abstract static class AbstractBuilder<D, B extends AbstractBuilder<D, B>> {\n\n        LsmTree lsmTree;\n        MemorySerializer<D> docIdSerializer;\n        int dimensions; // 0 = not set\n        SimilarityFunction similarityFunction;\n        VectorPrecision precision = VectorPrecision.FLOAT32;",
+  "replace_all": false
+}

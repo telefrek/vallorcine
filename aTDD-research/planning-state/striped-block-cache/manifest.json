@@ -1,0 +1,425 @@
+{
+  "operations": [
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0070-status.md.json",
+      "line": 70
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0078-status.md.json",
+      "line": 78
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0082-status.md.json",
+      "line": 82
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-core/src/main/java/jlsm/cache/StripedBlockCache.java",
+      "line": 86,
+      "size": 4062
+    },
+    {
+      "op": "edit",
+      "path": "modules/jlsm-core/src/main/java/jlsm/cache/LruBlockCache.java",
+      "edit_file": "edits/L0091-LruBlockCache.java.json",
+      "line": 91
+    },
+    {
+      "op": "write",
+      "path": ".feature/striped-block-cache/work-plan.md",
+      "line": 96,
+      "size": 4361
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0102-status.md.json",
+      "line": 102
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0105-status.md.json",
+      "line": 105
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0108-status.md.json",
+      "line": 108
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0044-status.md.json",
+      "line": 44
+    },
+    {
+      "op": "edit",
+      "path": ".claude/settings.json",
+      "edit_file": "edits/L0074-settings.json.json",
+      "line": 74
+    },
+    {
+      "op": "edit",
+      "path": ".claude/settings.json",
+      "edit_file": "edits/L0077-settings.json.json",
+      "line": 77
+    },
+    {
+      "op": "edit",
+      "path": ".claude/settings.local.json",
+      "edit_file": "edits/L0087-settings.local.json.json",
+      "line": 87
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0086-status.md.json",
+      "line": 86
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0109-status.md.json",
+      "line": 109
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0113-status.md.json",
+      "line": 113
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0117-status.md.json",
+      "line": 117
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0121-status.md.json",
+      "line": 121
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0129-status.md.json",
+      "line": 129
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0130-status.md.json",
+      "line": 130
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/cycle-log.md",
+      "edit_file": "edits/L0138-cycle-log.md.json",
+      "line": 138
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0057-status.md.json",
+      "line": 57
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0102-status.md.json",
+      "line": 102
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0113-status.md.json",
+      "line": 113
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0117-status.md.json",
+      "line": 117
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0120-status.md.json",
+      "line": 120
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0027-status.md.json",
+      "line": 27
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0104-status.md.json",
+      "line": 104
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0148-status.md.json",
+      "line": 148
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0165-status.md.json",
+      "line": 165
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0168-status.md.json",
+      "line": 168
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0189-status.md.json",
+      "line": 189
+    },
+    {
+      "op": "write",
+      "path": "modules/jlsm-core/src/main/java/jlsm/cache/StripedBlockCache.java",
+      "line": 28,
+      "size": 6820
+    },
+    {
+      "op": "write",
+      "path": ".feature/striped-block-cache/work-plan.md",
+      "line": 31,
+      "size": 4706
+    },
+    {
+      "op": "write",
+      "path": ".feature/striped-block-cache/status.md",
+      "line": 35,
+      "size": 1775
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/cycle-log.md",
+      "edit_file": "edits/L0038-cycle-log.md.json",
+      "line": 38
+    },
+    {
+      "op": "write",
+      "path": ".feature/striped-block-cache/status.md",
+      "line": 39,
+      "size": 1558
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0080-status.md.json",
+      "line": 80
+    },
+    {
+      "op": "write",
+      "path": ".feature/striped-block-cache/brief.md",
+      "line": 96,
+      "size": 3503
+    },
+    {
+      "op": "write",
+      "path": ".feature/striped-block-cache/cycle-log.md",
+      "line": 100,
+      "size": 493
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0109-status.md.json",
+      "line": 109
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0112-status.md.json",
+      "line": 112
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0116-CLAUDE.md.json",
+      "line": 116
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0123-status.md.json",
+      "line": 123
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0142-status.md.json",
+      "line": 142
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0145-status.md.json",
+      "line": 145
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0160-status.md.json",
+      "line": 160
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0170-status.md.json",
+      "line": 170
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/cycle-log.md",
+      "edit_file": "edits/L0176-cycle-log.md.json",
+      "line": 176
+    },
+    {
+      "op": "write",
+      "path": ".decisions/stripe-hash-function/constraints.md",
+      "line": 192,
+      "size": 2216
+    },
+    {
+      "op": "write",
+      "path": ".decisions/stripe-hash-function/log.md",
+      "line": 196,
+      "size": 400
+    },
+    {
+      "op": "write",
+      "path": ".decisions/stripe-hash-function/evaluation.md",
+      "line": 201,
+      "size": 7592
+    },
+    {
+      "op": "write",
+      "path": ".decisions/stripe-hash-function/adr.md",
+      "line": 212,
+      "size": 4573
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/stripe-hash-function/log.md",
+      "edit_file": "edits/L0218-log.md.json",
+      "line": 218
+    },
+    {
+      "op": "write",
+      "path": ".decisions/stripe-hash-function/CLAUDE.md",
+      "line": 222,
+      "size": 1610
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/CLAUDE.md",
+      "edit_file": "edits/L0229-CLAUDE.md.json",
+      "line": 229
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0233-status.md.json",
+      "line": 233
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0243-status.md.json",
+      "line": 243
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/cycle-log.md",
+      "edit_file": "edits/L0249-cycle-log.md.json",
+      "line": 249
+    },
+    {
+      "op": "write",
+      "path": ".decisions/cross-stripe-eviction/constraints.md",
+      "line": 261,
+      "size": 2330
+    },
+    {
+      "op": "write",
+      "path": ".decisions/cross-stripe-eviction/log.md",
+      "line": 265,
+      "size": 402
+    },
+    {
+      "op": "write",
+      "path": ".decisions/cross-stripe-eviction/evaluation.md",
+      "line": 270,
+      "size": 5738
+    },
+    {
+      "op": "write",
+      "path": ".decisions/cross-stripe-eviction/adr.md",
+      "line": 281,
+      "size": 3610
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/cross-stripe-eviction/log.md",
+      "edit_file": "edits/L0284-log.md.json",
+      "line": 284
+    },
+    {
+      "op": "write",
+      "path": ".decisions/cross-stripe-eviction/CLAUDE.md",
+      "line": 288,
+      "size": 1456
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/CLAUDE.md",
+      "edit_file": "edits/L0294-CLAUDE.md.json",
+      "line": 294
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0298-status.md.json",
+      "line": 298
+    },
+    {
+      "op": "write",
+      "path": ".feature/striped-block-cache/domains.md",
+      "line": 303,
+      "size": 2486
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0306-status.md.json",
+      "line": 306
+    },
+    {
+      "op": "edit",
+      "path": ".feature/striped-block-cache/status.md",
+      "edit_file": "edits/L0309-status.md.json",
+      "line": 309
+    }
+  ],
+  "total_ops": 70
+}

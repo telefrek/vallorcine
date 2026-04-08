@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/status.md",
+  "old_string": "| Block compression algorithms | pending | \u2014 | \u2014 | \u2014 | \u2014 |",
+  "new_string": "| Block compression algorithms | resolved | \u2014 | .kb/algorithms/compression/block-compression-algorithms.md | 2026-03-17 | 2026-03-17 |",
+  "replace_all": false
+}

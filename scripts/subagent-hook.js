@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+'use strict';
 /**
  * vallorcine SubagentStart/SubagentStop hook — Node.js implementation.
  *
@@ -31,7 +32,9 @@ function main() {
       description: data.description || '',
       started: nowUtc(),
     };
-    fs.writeFileSync(stateFile, JSON.stringify(state) + '\n');
+    const tmpFile = stateFile + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(state) + '\n');
+    fs.renameSync(tmpFile, stateFile);
   } else if (event === 'SubagentStop') {
     try { fs.unlinkSync(stateFile); } catch {}
   }

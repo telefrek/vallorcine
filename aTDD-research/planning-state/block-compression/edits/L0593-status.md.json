@@ -1,0 +1,6 @@
+{
+  "path": ".feature/block-compression/units/WU-1/status.md",
+  "old_string": "**Substage:** planning",
+  "new_string": "**Substage:** writing-tests",
+  "replace_all": false
+}

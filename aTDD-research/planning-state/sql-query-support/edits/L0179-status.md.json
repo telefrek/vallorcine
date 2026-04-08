@@ -1,0 +1,6 @@
+{
+  "path": ".feature/sql-query-support/status.md",
+  "old_string": "## Current Stage\ndomains/complete",
+  "new_string": "## Current Stage\nplanning/in-progress",
+  "replace_all": false
+}

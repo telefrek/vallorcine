@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/cycle-log.md",
+  "old_string": "**Token estimate:** ~5K (loaded: project-config ~1K, LruBlockCache source ~1K, BlockCache interface ~1K, benchmark ~1K, findings ~2K / wrote: brief ~2K, status ~1K, cycle-log ~1K)\n---",
+  "new_string": "**Token estimate:** ~5K (loaded: project-config ~1K, LruBlockCache source ~1K, BlockCache interface ~1K, benchmark ~1K, findings ~2K / wrote: brief ~2K, status ~1K, cycle-log ~1K)\n---\n## 2026-03-17 \u2014 domains-decision-commissioned\n**Agent:** Domain Scout\n**Summary:** Commissioned architect for stripe hash function decision.\n---",
+  "replace_all": false
+}

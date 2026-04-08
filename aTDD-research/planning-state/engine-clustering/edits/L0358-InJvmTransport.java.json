@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/InJvmTransport.java",
+  "old_string": "    static void clearRegistry() {",
+  "new_string": "    public static void clearRegistry() {",
+  "replace_all": false
+}

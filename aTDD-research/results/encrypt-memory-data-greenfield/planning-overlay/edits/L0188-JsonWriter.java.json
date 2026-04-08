@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/JsonWriter.java",
+  "old_string": "            case FieldType.Primitive p -> writePrimitive(p, value, sb, indent, depth);\n            case FieldType.ArrayType at -> writeArray(at, (Object[]) value, sb, indent, depth);\n            case FieldType.VectorType vt -> writeVector(vt, value, sb, indent, depth);\n            case FieldType.ObjectType _ -> writeDocument((JlsmDocument) value, sb, indent, depth);",
+  "new_string": "            case FieldType.Primitive p -> writePrimitive(p, value, sb, indent, depth);\n            case FieldType.BoundedString _ -> writePrimitive(FieldType.Primitive.STRING, value, sb, indent, depth);\n            case FieldType.ArrayType at -> writeArray(at, (Object[]) value, sb, indent, depth);\n            case FieldType.VectorType vt -> writeVector(vt, value, sb, indent, depth);\n            case FieldType.ObjectType _ -> writeDocument((JlsmDocument) value, sb, indent, depth);",
+  "replace_all": false
+}

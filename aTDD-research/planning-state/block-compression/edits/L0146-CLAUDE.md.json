@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "## Active Features\n\n| Feature | Slug | Started | Stage | Last Checkpoint |\n|---------|------|---------|-------|-----------------|\n| Block-level SSTable compression | block-compression | 2026-03-17 | planning | work-plan.md written, 4 stubs created |\n\n## Completed / Archived\n\n| Feature | Slug | Completed | Archive |\n|---------|------|-----------|---------|\n| Float16 vector support | float16-vector-support | 2026-03-16 | .feature/_archive/float16-vector-support/ |",
+  "new_string": "## Active Features\n\n| Feature | Slug | Started | Stage | Last Checkpoint |\n|---------|------|---------|-------|-----------------|\n\n## Completed / Archived\n\n| Feature | Slug | Completed | Archive |\n|---------|------|-----------|---------|\n| Block-level SSTable compression | block-compression | 2026-03-18 | .feature/_archive/block-compression/ |\n| Float16 vector support | float16-vector-support | 2026-03-16 | .feature/_archive/float16-vector-support/ |",
+  "replace_all": false
+}

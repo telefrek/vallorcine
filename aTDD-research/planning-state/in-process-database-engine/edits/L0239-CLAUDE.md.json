@@ -1,0 +1,6 @@
+{
+  "path": ".kb/systems/CLAUDE.md",
+  "old_string": "| security | [security/](security/CLAUDE.md) | 1 | 2026-03-18 | Key management, encryption integration, in-memory data protection for JVM |",
+  "new_string": "| security | [security/](security/CLAUDE.md) | 1 | 2026-03-18 | Key management, encryption integration, in-memory data protection for JVM |\n| database-engines | [database-engines/](database-engines/CLAUDE.md) | 1 | 2026-03-19 | Persistence patterns, metadata management, and recovery strategies for database engines |",
+  "replace_all": false
+}

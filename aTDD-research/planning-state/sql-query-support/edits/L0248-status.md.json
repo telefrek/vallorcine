@@ -1,0 +1,6 @@
+{
+  "path": ".feature/sql-query-support/status.md",
+  "old_string": "## Domain Resolution Tracker",
+  "new_string": "## Work Units\n\n| Unit | Name | Constructs | Depends On | Status | Cycle |\n|------|------|------------|------------|--------|-------|\n| WU-1 | Lexer + Parser + AST | TokenType, Token, SqlLexer, SqlAst, SqlParser, SqlParseException | \u2014 | not-started | \u2014 |\n| WU-2 | Translator + Public API | SqlQuery, SqlTranslator, JlsmSql | WU-1 | blocked | \u2014 |\n\n## Domain Resolution Tracker",
+  "replace_all": false
+}

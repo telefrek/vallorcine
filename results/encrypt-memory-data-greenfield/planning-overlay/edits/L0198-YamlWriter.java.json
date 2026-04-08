@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/internal/YamlWriter.java",
+  "old_string": "            case FieldType.Primitive p -> writePrimitive(p, value, sb);\n            case FieldType.ArrayType _ ->\n                throw new UnsupportedOperationException(\"Nested arrays not supported in YAML\");\n            case FieldType.VectorType _ ->\n                throw new UnsupportedOperationException(\"Nested vectors not supported in YAML\");\n            case FieldType.ObjectType _ -> {",
+  "new_string": "            case FieldType.Primitive p -> writePrimitive(p, value, sb);\n            case FieldType.BoundedString _ -> writePrimitive(FieldType.Primitive.STRING, value, sb);\n            case FieldType.ArrayType _ ->\n                throw new UnsupportedOperationException(\"Nested arrays not supported in YAML\");\n            case FieldType.VectorType _ ->\n                throw new UnsupportedOperationException(\"Nested vectors not supported in YAML\");\n            case FieldType.ObjectType _ -> {",
+  "replace_all": false
+}

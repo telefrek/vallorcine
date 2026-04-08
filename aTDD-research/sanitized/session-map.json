@@ -1,0 +1,3318 @@
+{
+  "project_dir": "/home/user/.claude/projects/-home-user-Code-github-nathauser-jlsm/",
+  "total_sessions": 130,
+  "features": {
+    "float16-vector-support": {
+      "sessions": [
+        "09f49eda-40b7-4b55-9e5e-d2f326192ca3",
+        "1bd34b34-cbe1-4432-b435-cc65e2a020e0",
+        "1bd34b34-cbe1-4432-b435-cc65e2a020e0",
+        "8f552097-1087-44e1-a180-50223cc0b3aa",
+        "cb3cf634-bf9f-474b-9ba1-af012e2b01f8",
+        "dc948056-82c9-4957-8fe1-b54f29c1c986"
+      ],
+      "branches": [
+        "add-float16-support",
+        "main"
+      ],
+      "total_tokens": {
+        "input": 6303,
+        "output": 87649,
+        "cache_read": 17307147,
+        "cache_create": 410590
+      },
+      "total_messages": 302,
+      "first_timestamp": "2026-03-12T13:14:43.794Z",
+      "last_timestamp": "2026-03-16T09:55:32.736Z",
+      "all_commands": [
+        "/clear",
+        "/feature-init",
+        "/upgrade-vallorcine",
+        "/feature-resume --list",
+        "/feature-complete float16-vector-support",
+        "/feature-complete table-indices-and-queries",
+        "/feature-resume sql-query-support",
+        "/feature-resume float16-support",
+        "/feature add float16 support to vector indexing \u2014 store and query float16 vectors alongside existing float32 support (not replacing it), targeting ~50% memory reduction for large collections, acceptable recall tradeoff TBD during architecture, no migration of existing indices required",
+        "/feature-resume float16-vector-support",
+        "/feature-domains float16-vector-support",
+        "/feature-plan float16-vector-support",
+        "/feature-implement float16-vector-support"
+      ],
+      "tracked_files": [
+        ".feature/CLAUDE.md",
+        ".feature/float16-support/status.md",
+        ".feature/float16-vector-support/ARCHIVE.md",
+        ".feature/float16-vector-support/brief.md",
+        ".feature/float16-vector-support/cycle-log.md",
+        ".feature/float16-vector-support/domains.md",
+        ".feature/float16-vector-support/pr-draft.md",
+        ".feature/float16-vector-support/status.md",
+        ".feature/float16-vector-support/test-plan.md",
+        ".feature/float16-vector-support/work-plan.md",
+        ".feature/sql-query-support/brief.md",
+        ".feature/sql-query-support/status.md",
+        ".feature/table-indices-and-queries/ARCHIVE.md",
+        "/home/user/.claude/projects/-home-user-Code-github-nathauser-jlsm/memory/MEMORY.md",
+        "/home/user/.claude/projects/-home-user-Code-github-nathauser-jlsm/memory/feedback_one_question_at_a_time.md",
+        "modules/jlsm-core/src/main/java/jlsm/core/indexing/VectorIndex.java",
+        "modules/jlsm-core/src/main/java/jlsm/core/indexing/VectorPrecision.java",
+        "modules/jlsm-core/src/test/java/jlsm/core/indexing/VectorPrecisionTest.java",
+        "modules/jlsm-vector/src/main/java/jlsm/vector/LsmVectorIndex.java",
+        "modules/jlsm-vector/src/test/java/jlsm/vector/LsmVectorIndexFloat16Test.java"
+      ]
+    },
+    "sql-query-support": {
+      "sessions": [
+        "09f49eda-40b7-4b55-9e5e-d2f326192ca3",
+        "a4fcd182-0cf7-4262-8e3e-94a076919312",
+        "c1313304-f721-4f72-abaa-811c2e5b1324"
+      ],
+      "branches": [
+        "main",
+        "table-partitioning"
+      ],
+      "total_tokens": {
+        "input": 1324,
+        "output": 79147,
+        "cache_read": 20350740,
+        "cache_create": 308670
+      },
+      "total_messages": 209,
+      "first_timestamp": "2026-03-16T09:13:21.395Z",
+      "last_timestamp": "2026-03-17T01:11:49.122Z",
+      "all_commands": [
+        "/clear",
+        "/feature-init",
+        "/upgrade-vallorcine",
+        "/feature-resume --list",
+        "/feature-complete float16-vector-support",
+        "/feature-complete table-indices-and-queries",
+        "/feature-resume sql-query-support",
+        "/feature-complete sql-query-support",
+        "/feature-resume table-partitioning",
+        "/feature-domains sql-query-support"
+      ],
+      "tracked_files": [
+        ".feature/CLAUDE.md",
+        ".feature/float16-vector-support/ARCHIVE.md",
+        ".feature/sql-query-support/ARCHIVE.md",
+        ".feature/sql-query-support/brief.md",
+        ".feature/sql-query-support/cycle-log.md",
+        ".feature/sql-query-support/domains.md",
+        ".feature/sql-query-support/pr-draft.md",
+        ".feature/sql-query-support/status.md",
+        ".feature/sql-query-support/work-plan.md",
+        ".feature/table-indices-and-queries/ARCHIVE.md",
+        ".feature/table-partitioning/cycle-log.md",
+        ".feature/table-partitioning/pr-draft.md",
+        ".feature/table-partitioning/status.md",
+        ".kb/CLAUDE.md",
+        ".kb/algorithms/CLAUDE.md",
+        ".kb/algorithms/sql-extensions/CLAUDE.md",
+        ".kb/algorithms/sql-extensions/vector-similarity-sql-syntax.md",
+        "modules/jlsm-sql/build.gradle",
+        "modules/jlsm-sql/src/main/java/jlsm/sql/JlsmSql.java",
+        "modules/jlsm-sql/src/main/java/jlsm/sql/SqlAst.java",
+        "modules/jlsm-sql/src/main/java/jlsm/sql/SqlLexer.java",
+        "modules/jlsm-sql/src/main/java/jlsm/sql/SqlParseException.java",
+        "modules/jlsm-sql/src/main/java/jlsm/sql/SqlParser.java",
+        "modules/jlsm-sql/src/main/java/jlsm/sql/SqlQuery.java",
+        "modules/jlsm-sql/src/main/java/jlsm/sql/SqlTranslator.java",
+        "modules/jlsm-sql/src/main/java/jlsm/sql/Token.java",
+        "modules/jlsm-sql/src/main/java/jlsm/sql/TokenType.java",
+        "modules/jlsm-sql/src/main/java/module-info.java",
+        "modules/jlsm-sql/src/test/java/jlsm/sql/JlsmSqlTest.java",
+        "modules/jlsm-sql/src/test/java/jlsm/sql/SqlLexerTest.java",
+        "modules/jlsm-sql/src/test/java/jlsm/sql/SqlParserTest.java",
+        "modules/jlsm-sql/src/test/java/jlsm/sql/SqlTranslatorTest.java",
+        "modules/jlsm-sql/src/test/java/jlsm/sql/TokenTest.java",
+        "settings.gradle"
+      ]
+    },
+    "table-indices-and-queries": {
+      "sessions": [
+        "09f49eda-40b7-4b55-9e5e-d2f326192ca3",
+        "655dabe1-5734-4c74-bfed-72e87070449a"
+      ],
+      "branches": [
+        "main"
+      ],
+      "total_tokens": {
+        "input": 171,
+        "output": 55386,
+        "cache_read": 10308303,
+        "cache_create": 187204
+      },
+      "total_messages": 124,
+      "first_timestamp": "2026-03-16T08:30:22.000Z",
+      "last_timestamp": "2026-03-16T09:55:32.736Z",
+      "all_commands": [
+        "/clear",
+        "/feature-init",
+        "/upgrade-vallorcine",
+        "/feature-resume --list",
+        "/feature-complete float16-vector-support",
+        "/feature-complete table-indices-and-queries",
+        "/feature-resume sql-query-support",
+        "/feature-resume table-indices-and-queries"
+      ],
+      "tracked_files": [
+        ".feature/CLAUDE.md",
+        ".feature/float16-vector-support/ARCHIVE.md",
+        ".feature/sql-query-support/brief.md",
+        ".feature/sql-query-support/status.md",
+        ".feature/table-indices-and-queries/ARCHIVE.md",
+        ".feature/table-indices-and-queries/cycle-log.md",
+        ".feature/table-indices-and-queries/pr-draft.md",
+        ".feature/table-indices-and-queries/status.md",
+        ".feature/table-indices-and-queries/test-plan.md",
+        "modules/jlsm-table/src/main/java/jlsm/table/TableQuery.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/internal/IndexRegistry.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/internal/QueryExecutor.java",
+        "modules/jlsm-table/src/test/java/jlsm/table/PredicateTest.java",
+        "modules/jlsm-table/src/test/java/jlsm/table/QueryExecutorTest.java",
+        "modules/jlsm-table/src/test/java/jlsm/table/TableQueryTest.java"
+      ]
+    },
+    "engine-clustering": {
+      "sessions": [
+        "0bff2655-4eae-4162-b0ea-91aefba21796",
+        "6cc12dfb-dad8-44a9-a3d2-5ce385d54a6a",
+        "72fd0a62-3b13-43bf-b58d-0961827ea33a"
+      ],
+      "branches": [
+        "engine-clustering"
+      ],
+      "total_tokens": {
+        "input": 740,
+        "output": 54187,
+        "cache_read": 17181474,
+        "cache_create": 456196
+      },
+      "total_messages": 173,
+      "first_timestamp": "2026-03-20T12:32:53.522Z",
+      "last_timestamp": "2026-03-23T06:58:20.917Z",
+      "all_commands": [
+        "/upgrade-vallorcine",
+        "/feature-resume --list",
+        "/feature-resume engine-clustering",
+        "/clear",
+        "/feature-complete engine-clustering"
+      ],
+      "tracked_files": [
+        ".claude/settings.local.json",
+        ".feature/CLAUDE.md",
+        ".feature/engine-clustering/cycle-log.md",
+        ".feature/engine-clustering/pr-draft.md",
+        ".feature/engine-clustering/status.md",
+        "CHANGELOG.md",
+        "modules/jlsm-engine/CLAUDE.md",
+        "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/ClusteredEngine.java",
+        "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/ClusteredTable.java",
+        "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/InJvmDiscoveryProvider.java",
+        "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/InJvmTransport.java",
+        "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/ClusteredTableTest.java"
+      ]
+    },
+    "block-compression": {
+      "sessions": [
+        "14bfa0b5-c472-4538-9f59-77600b7bb698",
+        "3dadbc7c-6fc0-4a2c-92d9-905c4d0d30c2",
+        "912407f8-3033-4827-96f8-c3789571bf61",
+        "a97a393c-d147-4b9a-9c01-286424ee51e2",
+        "dc5ecc15-4bee-4336-84fd-1ef197fa6747"
+      ],
+      "branches": [
+        "block-compression",
+        "main"
+      ],
+      "total_tokens": {
+        "input": 2073,
+        "output": 132299,
+        "cache_read": 29156153,
+        "cache_create": 694637
+      },
+      "total_messages": 255,
+      "first_timestamp": "2026-03-17T14:02:23.756Z",
+      "last_timestamp": "2026-03-18T07:47:47.268Z",
+      "all_commands": [
+        "/feature-resume block-compression",
+        "/feature-retro block-compression",
+        "/feature-complete block-compression",
+        "/feature",
+        "/upgrade-vallorcine"
+      ],
+      "tracked_files": [
+        ".decisions/CLAUDE.md",
+        ".decisions/compression-codec-api-design/CLAUDE.md",
+        ".decisions/compression-codec-api-design/adr.md",
+        ".decisions/compression-codec-api-design/constraints.md",
+        ".decisions/compression-codec-api-design/evaluation.md",
+        ".decisions/compression-codec-api-design/log.md",
+        ".decisions/sstable-block-compression-format/CLAUDE.md",
+        ".decisions/sstable-block-compression-format/adr.md",
+        ".decisions/sstable-block-compression-format/constraints.md",
+        ".decisions/sstable-block-compression-format/evaluation.md",
+        ".decisions/sstable-block-compression-format/log.md",
+        ".feature/CLAUDE.md",
+        ".feature/block-compression/ARCHIVE.md",
+        ".feature/block-compression/brief.md",
+        ".feature/block-compression/cycle-log.md",
+        ".feature/block-compression/domains.md",
+        ".feature/block-compression/pr-draft.md",
+        ".feature/block-compression/status.md",
+        ".feature/block-compression/units/WU-1/cycle-log.md",
+        ".feature/block-compression/units/WU-1/status.md",
+        ".feature/block-compression/units/WU-2/cycle-log.md",
+        ".feature/block-compression/units/WU-2/status.md",
+        ".kb/CLAUDE.md",
+        ".kb/algorithms/CLAUDE.md",
+        ".kb/algorithms/compression/CLAUDE.md",
+        ".kb/algorithms/compression/block-compression-algorithms.md",
+        "modules/jlsm-core/src/main/java/jlsm/core/compression/DeflateCodec.java",
+        "modules/jlsm-core/src/main/java/jlsm/core/compression/NoneCodec.java",
+        "modules/jlsm-core/src/main/java/jlsm/sstable/TrieSSTableReader.java",
+        "modules/jlsm-core/src/main/java/jlsm/sstable/TrieSSTableWriter.java",
+        "modules/jlsm-core/src/main/java/jlsm/sstable/internal/CompressionMap.java",
+        "modules/jlsm-core/src/main/java/jlsm/sstable/internal/SSTableFormat.java",
+        "modules/jlsm-core/src/main/java/module-info.java",
+        "modules/jlsm-core/src/test/java/jlsm/core/compression/CompressionCodecTest.java",
+        "modules/jlsm-core/src/test/java/jlsm/sstable/SSTableCompressionTest.java",
+        "modules/jlsm-core/src/test/java/jlsm/sstable/internal/CompressionMapTest.java"
+      ]
+    },
+    "table-partitioning": {
+      "sessions": [
+        "1ca16c5f-0f8f-464b-b4be-fcd9e94a12f3",
+        "a2eb9636-1712-4e7b-9736-f13a267309d4",
+        "a4fcd182-0cf7-4262-8e3e-94a076919312",
+        "bd6a1af2-9571-460e-a07d-6809e905f636"
+      ],
+      "branches": [
+        "main",
+        "striped-block-cache",
+        "table-partitioning"
+      ],
+      "total_tokens": {
+        "input": 9225,
+        "output": 176652,
+        "cache_read": 91570318,
+        "cache_create": 1088057
+      },
+      "total_messages": 490,
+      "first_timestamp": "2026-03-16T12:51:15.361Z",
+      "last_timestamp": "2026-03-17T12:03:50.147Z",
+      "all_commands": [
+        "/clear",
+        "/upgrade-vallorcine",
+        "/feature",
+        "/feature-resume table-partitioning",
+        "/architect table-partitioning",
+        "/feature table partitioning",
+        "/feature-pr table-partitioning",
+        "/feature-resume --list",
+        "/feature-complete sql-query-support",
+        "/feature-resume striped-block-cache",
+        "/feature-complete striped-block-cache",
+        "/feature-complete table-partitioning"
+      ],
+      "tracked_files": [
+        ".claude/rules/pr-process.md",
+        ".claude/rules/tdd-protocol.md",
+        ".claude/skills/perf-review/SKILL.md",
+        ".claude/skills/perf-review/perf-context.md",
+        ".decisions/CLAUDE.md",
+        ".decisions/table-partitioning/CLAUDE.md",
+        ".decisions/table-partitioning/adr.md",
+        ".decisions/table-partitioning/constraints.md",
+        ".decisions/table-partitioning/evaluation.md",
+        ".decisions/table-partitioning/log.md",
+        ".feature/CLAUDE.md",
+        ".feature/sql-query-support/ARCHIVE.md",
+        ".feature/striped-block-cache/ARCHIVE.md",
+        ".feature/striped-block-cache/cycle-log.md",
+        ".feature/striped-block-cache/pr-draft.md",
+        ".feature/striped-block-cache/status.md",
+        ".feature/table-partitioning/ARCHIVE.md",
+        ".feature/table-partitioning/brief.md",
+        ".feature/table-partitioning/cycle-log.md",
+        ".feature/table-partitioning/domains.md",
+        ".feature/table-partitioning/pr-draft.md",
+        ".feature/table-partitioning/status.md",
+        ".feature/table-partitioning/units/WU-1/cycle-log.md",
+        ".feature/table-partitioning/units/WU-1/status.md",
+        ".feature/table-partitioning/units/WU-2/cycle-log.md",
+        ".feature/table-partitioning/units/WU-2/status.md",
+        ".feature/table-partitioning/units/WU-3/cycle-log.md",
+        ".feature/table-partitioning/units/WU-3/status.md",
+        ".feature/table-partitioning/work-plan.md",
+        ".gitignore",
+        ".kb/CLAUDE.md",
+        ".kb/distributed-systems/CLAUDE.md",
+        ".kb/distributed-systems/data-partitioning/CLAUDE.md",
+        ".kb/distributed-systems/data-partitioning/partitioning-strategies.md",
+        ".kb/distributed-systems/data-partitioning/vector-search-partitioning.md",
+        "/home/user/.claude/projects/-home-user-Code-github-nathauser-jlsm/memory/MEMORY.md",
+        "/home/user/.claude/projects/-home-user-Code-github-nathauser-jlsm/memory/feedback_no_enter_prompts.md",
+        "benchmarks/jlsm-bloom-benchmarks/build.gradle",
+        "benchmarks/jlsm-perf-scratch/build.gradle",
+        "benchmarks/jlsm-tree-benchmarks/build.gradle",
+        "benchmarks/jlsm-tree-benchmarks/src/jmh/java/jlsm/tree/bench/MemTableBenchmark.java",
+        "benchmarks/jmh-common.gradle",
+        "modules/jlsm-core/src/main/java/jlsm/compaction/SpookyCompactor.java",
+        "modules/jlsm-core/src/main/java/jlsm/memtable/ConcurrentSkipListMemTable.java",
+        "modules/jlsm-core/src/main/java/jlsm/sstable/TrieSSTableWriter.java",
+        "modules/jlsm-core/src/main/java/jlsm/sstable/internal/EntryCodec.java",
+        "modules/jlsm-core/src/test/java/jlsm/cache/StripedBlockCacheTest.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/PartitionClient.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/PartitionConfig.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/PartitionDescriptor.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/PartitionedTable.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/ScoredEntry.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/internal/InProcessPartitionClient.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/internal/RangeMap.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/internal/ResultMerger.java",
+        "perf-output/findings.md",
+        "perf-scratch/CompactionMergeScratch.java",
+        "perf-scratch/MemTableScratch.java",
+        "perf-scratch/SSTableReadScratch.java",
+        "perf-scratch/SSTableWriteScratch.java",
+        "perf-scratch/SmokeTestScratch.java",
+        "perf-scratch/WalAppendScratch.java",
+        "settings.gradle"
+      ]
+    },
+    "striped-block-cache": {
+      "sessions": [
+        "23dcc14d-f9e7-451b-9022-810057e3d952",
+        "34693f1b-74c4-42d3-b59a-c741b95fda10",
+        "4d326205-43e7-4a5e-83de-c1e4321400e6",
+        "8c568b09-86f2-4788-b6a3-37c27e2aa9c6",
+        "8d724052-234a-47b6-ad5a-4b30c2a94fa0",
+        "ac4a1b91-36f1-4434-8b87-f39e23a94c8b",
+        "bd6a1af2-9571-460e-a07d-6809e905f636",
+        "c2c4bbc7-c23c-46df-b558-ad19ab3e0ebf",
+        "cc10d562-d545-4c19-965d-10df88bc5ad7",
+        "ef0d2e3f-36ea-4c05-9a88-779c7a02461f"
+      ],
+      "branches": [
+        "striped-block-cache"
+      ],
+      "total_tokens": {
+        "input": 1882,
+        "output": 99907,
+        "cache_read": 20932432,
+        "cache_create": 574928
+      },
+      "total_messages": 316,
+      "first_timestamp": "2026-03-17T09:13:17.342Z",
+      "last_timestamp": "2026-03-17T12:03:50.147Z",
+      "all_commands": [
+        "/feature-resume --list",
+        "/exit",
+        "/feature-resume striped-block-cache",
+        "/vallorcine:dashboard",
+        "/upgrade-vallorcine",
+        "/dashboard",
+        "/plugin",
+        "/reload-plugins",
+        "/feature-complete striped-block-cache",
+        "/feature-complete table-partitioning",
+        "/dashboard off",
+        "/feature I would like to implement a striped/shared pattern for the LruBlockCache to fix a performance issue that was identified during testing."
+      ],
+      "tracked_files": [
+        ".claude/settings.json",
+        ".claude/settings.local.json",
+        ".decisions/CLAUDE.md",
+        ".decisions/cross-stripe-eviction/CLAUDE.md",
+        ".decisions/cross-stripe-eviction/adr.md",
+        ".decisions/cross-stripe-eviction/constraints.md",
+        ".decisions/cross-stripe-eviction/evaluation.md",
+        ".decisions/cross-stripe-eviction/log.md",
+        ".decisions/stripe-hash-function/CLAUDE.md",
+        ".decisions/stripe-hash-function/adr.md",
+        ".decisions/stripe-hash-function/constraints.md",
+        ".decisions/stripe-hash-function/evaluation.md",
+        ".decisions/stripe-hash-function/log.md",
+        ".feature/CLAUDE.md",
+        ".feature/striped-block-cache/ARCHIVE.md",
+        ".feature/striped-block-cache/brief.md",
+        ".feature/striped-block-cache/cycle-log.md",
+        ".feature/striped-block-cache/domains.md",
+        ".feature/striped-block-cache/pr-draft.md",
+        ".feature/striped-block-cache/status.md",
+        ".feature/striped-block-cache/test-plan.md",
+        ".feature/striped-block-cache/work-plan.md",
+        ".feature/table-partitioning/ARCHIVE.md",
+        "modules/jlsm-core/src/main/java/jlsm/cache/LruBlockCache.java",
+        "modules/jlsm-core/src/main/java/jlsm/cache/StripedBlockCache.java",
+        "modules/jlsm-core/src/test/java/jlsm/cache/StripedBlockCacheTest.java"
+      ]
+    },
+    "optimize-document-serializer": {
+      "sessions": [
+        "43347015-3e7a-4a07-bfd1-e75765fe8dcb",
+        "ea5188cc-90f1-4aef-8d17-c20b449422e0"
+      ],
+      "branches": [
+        "test-curation",
+        "verify-perf-and-identify-targets"
+      ],
+      "total_tokens": {
+        "input": 3076,
+        "output": 219028,
+        "cache_read": 130686690,
+        "cache_create": 755845
+      },
+      "total_messages": 590,
+      "first_timestamp": "2026-03-18T09:13:01.100Z",
+      "last_timestamp": "2026-03-19T00:18:59.915Z",
+      "all_commands": [
+        "/clear",
+        "/feature-resume optimize-document-serializer",
+        "/perf-review please evaluate the changes to the DocumentSerializer.deserialize() changes that were made to reduce CPU usage as part of this PR",
+        "/feature-complete optimize-document-serializer",
+        "/upgrade-vallorcine",
+        "/curate",
+        "/feature",
+        "/feature-complete streaming-block-decompression",
+        "/perf-review block compression scan throughput"
+      ],
+      "tracked_files": [
+        ".claude/skills/perf-review/perf-context.md",
+        ".claude/skills/research/SKILL.md",
+        ".curate/curation-state.md",
+        ".decisions/CLAUDE.md",
+        ".decisions/encrypted-index-strategy/CLAUDE.md",
+        ".decisions/encrypted-index-strategy/adr.md",
+        ".decisions/encrypted-index-strategy/constraints.md",
+        ".decisions/encrypted-index-strategy/evaluation.md",
+        ".decisions/encrypted-index-strategy/log.md",
+        ".decisions/field-encryption-api-design/CLAUDE.md",
+        ".decisions/field-encryption-api-design/adr.md",
+        ".decisions/field-encryption-api-design/constraints.md",
+        ".decisions/field-encryption-api-design/evaluation.md",
+        ".decisions/field-encryption-api-design/log.md",
+        ".decisions/history.md",
+        ".feature/CLAUDE.md",
+        ".feature/encrypt-memory-data/brief.md",
+        ".feature/encrypt-memory-data/cycle-log.md",
+        ".feature/encrypt-memory-data/domains.md",
+        ".feature/encrypt-memory-data/status.md",
+        ".feature/optimize-document-serializer/ARCHIVE.md",
+        ".feature/optimize-document-serializer/brief.md",
+        ".feature/optimize-document-serializer/cycle-log.md",
+        ".feature/optimize-document-serializer/domains.md",
+        ".feature/optimize-document-serializer/pr-draft.md",
+        ".feature/optimize-document-serializer/status.md",
+        ".feature/streaming-block-decompression/ARCHIVE.md",
+        ".feature/streaming-block-decompression/brief.md",
+        ".feature/streaming-block-decompression/cycle-log.md",
+        ".feature/streaming-block-decompression/domains.md",
+        ".feature/streaming-block-decompression/pr-draft.md",
+        ".feature/streaming-block-decompression/status.md",
+        ".feature/streaming-block-decompression/test-plan.md",
+        ".kb/CLAUDE.md",
+        ".kb/algorithms/CLAUDE.md",
+        ".kb/algorithms/encryption/CLAUDE.md",
+        ".kb/algorithms/encryption/searchable-encryption-schemes.md",
+        ".kb/algorithms/encryption/vector-encryption-approaches.md",
+        ".kb/systems/CLAUDE.md",
+        ".kb/systems/lsm-index-patterns/CLAUDE.md",
+        ".kb/systems/lsm-index-patterns/index-scan-patterns.md",
+        ".kb/systems/security/CLAUDE.md",
+        ".kb/systems/security/jvm-key-handling-patterns.md",
+        "/home/user/.claude/projects/-home-user-Code-github-nathauser-jlsm/memory/MEMORY.md",
+        "/home/user/.claude/projects/-home-user-Code-github-nathauser-jlsm/memory/feedback_fetch_discipline.md",
+        "modules/jlsm-core/src/main/java/jlsm/sstable/TrieSSTableReader.java",
+        "modules/jlsm-core/src/test/java/jlsm/sstable/StreamingBlockDecompressionTest.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+        "modules/jlsm-table/src/test/java/jlsm/table/DocumentSerializerOptimizationTest.java",
+        "perf-output/findings.md",
+        "perf-scratch/DocumentDeserializeScratch.java",
+        "perf-scratch/SSTableCompressionScratch.java",
+        "perf-scratch/jlsm/perf/scratch/PartitionedTableScratch.java",
+        "perf-scratch/jlsm/perf/scratch/PartitionedTableSustainedScratch.java",
+        "perf-scratch/jlsm/perf/scratch/SSTableCompressionScratch.java"
+      ]
+    },
+    "in-process-database-engine": {
+      "sessions": [
+        "6296fbfb-a299-42b0-9c81-ff383abc0293"
+      ],
+      "branches": [
+        "main"
+      ],
+      "total_tokens": {
+        "input": 403,
+        "output": 39685,
+        "cache_read": 11727357,
+        "cache_create": 156568
+      },
+      "total_messages": 107,
+      "first_timestamp": "2026-03-19T13:30:28.902Z",
+      "last_timestamp": "2026-03-19T14:45:58.302Z",
+      "all_commands": [
+        "/clear",
+        "/feature-resume in-process-database-engine",
+        "/feature-complete in-process-database-engine"
+      ],
+      "tracked_files": [
+        ".claude/rules/documentation.md",
+        ".claude/rules/pr-process.md",
+        ".feature/in-process-database-engine/cycle-log.md",
+        ".feature/in-process-database-engine/pr-draft.md",
+        ".feature/in-process-database-engine/status.md",
+        "CHANGELOG.md",
+        "README.md",
+        "modules/jlsm-engine/CLAUDE.md",
+        "modules/jlsm-engine/src/test/java/jlsm/engine/internal/HandleTrackerTest.java",
+        "modules/jlsm-engine/src/test/java/jlsm/engine/internal/TableCatalogTest.java"
+      ]
+    },
+    "vector-field-type": {
+      "sessions": [
+        "a56b57eb-786d-47bd-b104-1132ff9ae45f"
+      ],
+      "branches": [
+        "main"
+      ],
+      "total_tokens": {
+        "input": 5330,
+        "output": 92795,
+        "cache_read": 46273830,
+        "cache_create": 297055
+      },
+      "total_messages": 233,
+      "first_timestamp": "2026-03-17T12:05:59.565Z",
+      "last_timestamp": "2026-03-17T14:02:11.454Z",
+      "all_commands": [
+        "/feature",
+        "/research I would like to research vector encoding approaches and algorithms that would be useful for building high volume vector indices.",
+        "/feature-resume vector-field-type",
+        "/feature-complete vector-field-type"
+      ],
+      "tracked_files": [
+        ".decisions/CLAUDE.md",
+        ".decisions/index-definition-api-simplification/CLAUDE.md",
+        ".decisions/index-definition-api-simplification/adr.md",
+        ".decisions/index-definition-api-simplification/constraints.md",
+        ".decisions/index-definition-api-simplification/evaluation.md",
+        ".decisions/index-definition-api-simplification/log.md",
+        ".decisions/vector-type-serialization-encoding/CLAUDE.md",
+        ".decisions/vector-type-serialization-encoding/adr.md",
+        ".decisions/vector-type-serialization-encoding/constraints.md",
+        ".decisions/vector-type-serialization-encoding/evaluation.md",
+        ".decisions/vector-type-serialization-encoding/log.md",
+        ".feature/CLAUDE.md",
+        ".feature/vector-field-type/ARCHIVE.md",
+        ".feature/vector-field-type/brief.md",
+        ".feature/vector-field-type/cycle-log.md",
+        ".feature/vector-field-type/domains.md",
+        ".feature/vector-field-type/pr-draft.md",
+        ".feature/vector-field-type/status.md",
+        ".feature/vector-field-type/test-plan.md",
+        ".kb/CLAUDE.md",
+        ".kb/algorithms/CLAUDE.md",
+        ".kb/algorithms/vector-encoding/CLAUDE.md",
+        ".kb/algorithms/vector-encoding/flat-vector-encoding.md",
+        ".kb/algorithms/vector-encoding/lossless-vector-compression.md",
+        ".kb/algorithms/vector-encoding/sparse-vector-encoding.md",
+        "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/FieldType.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/IndexDefinition.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/JlsmDocument.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/JlsmSchema.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/internal/IndexRegistry.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/internal/JsonParser.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/internal/JsonWriter.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/internal/VectorFieldIndex.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/internal/YamlParser.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/internal/YamlWriter.java",
+        "modules/jlsm-table/src/test/java/jlsm/table/IndexDefinitionTest.java",
+        "modules/jlsm-table/src/test/java/jlsm/table/VectorTypeTest.java"
+      ]
+    },
+    "encrypt-memory-data": {
+      "sessions": [
+        "df284f0c-69ea-4b63-b328-f79ad2f6f774"
+      ],
+      "branches": [
+        "encrypt-memory-data"
+      ],
+      "total_tokens": {
+        "input": 503,
+        "output": 125790,
+        "cache_read": 64297281,
+        "cache_create": 507344
+      },
+      "total_messages": 311,
+      "first_timestamp": "2026-03-19T00:20:34.288Z",
+      "last_timestamp": "2026-03-19T11:38:45.493Z",
+      "all_commands": [
+        "/feature-resume encrypt-memory-data",
+        "/feature"
+      ],
+      "tracked_files": [
+        ".claude/skills/perf-review/perf-context.md",
+        ".feature/CLAUDE.md",
+        ".feature/encrypt-memory-data/ARCHIVE.md",
+        ".feature/encrypt-memory-data/cycle-log.md",
+        ".feature/encrypt-memory-data/pr-draft.md",
+        ".feature/encrypt-memory-data/status.md",
+        ".feature/extract-core-encryption/brief.md",
+        ".feature/extract-core-encryption/cycle-log.md",
+        ".feature/extract-core-encryption/domains.md",
+        ".feature/extract-core-encryption/status.md",
+        ".feature/fix-encryption-performance/brief.md",
+        ".feature/fix-encryption-performance/cycle-log.md",
+        ".feature/fix-encryption-performance/domains.md",
+        ".feature/fix-encryption-performance/status.md",
+        ".feature/ope-type-aware-bounds/brief.md",
+        ".feature/ope-type-aware-bounds/cycle-log.md",
+        ".feature/ope-type-aware-bounds/status.md",
+        "/tmp/pr-body.md",
+        "modules/jlsm-core/src/main/java/jlsm/encryption/AesGcmEncryptor.java",
+        "modules/jlsm-core/src/main/java/jlsm/encryption/AesSivEncryptor.java",
+        "modules/jlsm-core/src/main/java/jlsm/encryption/BoldyrevaOpeEncryptor.java",
+        "modules/jlsm-core/src/main/java/jlsm/encryption/README.md",
+        "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+        "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+        "modules/jlsm-table/src/test/java/jlsm/table/FieldEncryptionDispatchTest.java",
+        "perf-output/findings.md",
+        "perf-scratch/EncryptionScratch.java",
+        "perf-scratch/OpeBoundsScratch.java"
+      ]
+    },
+    "streaming-block-decompression": {
+      "sessions": [
+        "ea5188cc-90f1-4aef-8d17-c20b449422e0"
+      ],
+      "branches": [
+        "test-curation"
+      ],
+      "total_tokens": {
+        "input": 408,
+        "output": 107231,
+        "cache_read": 73505282,
+        "cache_create": 416197
+      },
+      "total_messages": 300,
+      "first_timestamp": "2026-03-18T09:13:01.100Z",
+      "last_timestamp": "2026-03-18T13:37:15.693Z",
+      "all_commands": [
+        "/clear",
+        "/feature",
+        "/feature-complete streaming-block-decompression",
+        "/perf-review block compression scan throughput",
+        "/upgrade-vallorcine",
+        "/feature-resume optimize-document-serializer"
+      ],
+      "tracked_files": [
+        ".claude/skills/perf-review/perf-context.md",
+        ".claude/skills/research/SKILL.md",
+        ".feature/CLAUDE.md",
+        ".feature/optimize-document-serializer/brief.md",
+        ".feature/optimize-document-serializer/cycle-log.md",
+        ".feature/optimize-document-serializer/domains.md",
+        ".feature/optimize-document-serializer/status.md",
+        ".feature/streaming-block-decompression/ARCHIVE.md",
+        ".feature/streaming-block-decompression/brief.md",
+        ".feature/streaming-block-decompression/cycle-log.md",
+        ".feature/streaming-block-decompression/domains.md",
+        ".feature/streaming-block-decompression/pr-draft.md",
+        ".feature/streaming-block-decompression/status.md",
+        ".feature/streaming-block-decompression/test-plan.md",
+        ".kb/CLAUDE.md",
+        ".kb/systems/CLAUDE.md",
+        ".kb/systems/lsm-index-patterns/CLAUDE.md",
+        ".kb/systems/lsm-index-patterns/index-scan-patterns.md",
+        "/home/user/.claude/projects/-home-user-Code-github-nathauser-jlsm/memory/MEMORY.md",
+        "/home/user/.claude/projects/-home-user-Code-github-nathauser-jlsm/memory/feedback_fetch_discipline.md",
+        "modules/jlsm-core/src/main/java/jlsm/sstable/TrieSSTableReader.java",
+        "modules/jlsm-core/src/test/java/jlsm/sstable/StreamingBlockDecompressionTest.java",
+        "modules/jlsm-table/src/test/java/jlsm/table/DocumentSerializerOptimizationTest.java",
+        "perf-output/findings.md",
+        "perf-scratch/SSTableCompressionScratch.java",
+        "perf-scratch/jlsm/perf/scratch/PartitionedTableScratch.java",
+        "perf-scratch/jlsm/perf/scratch/PartitionedTableSustainedScratch.java",
+        "perf-scratch/jlsm/perf/scratch/SSTableCompressionScratch.java"
+      ]
+    }
+  },
+  "unmatched_sessions": [
+    "05f7d701-5cd4-484a-b9ee-c81f45719b6a",
+    "088f4096-a285-4615-aa0f-2af2eabc87fb",
+    "094368d1-9ecb-4103-8501-40e780f280b1",
+    "0ac159a1-0a00-4542-9658-011f348bbabb",
+    "0bf909e2-65bb-4ac8-acee-537e4694749f",
+    "0c968c76-e22a-43e2-ad49-35c95b6522c6",
+    "0ce4630c-f15b-44a5-a383-96e3ae3e8f37",
+    "107ec999-94e8-4684-9d9b-e38dd43baf71",
+    "11a0f899-f555-43f3-adee-9a19d3905b31",
+    "127cfd22-8e86-4d56-9f4e-1a0d5147c000",
+    "16c38883-531e-4eda-b377-7f9e4d9a93b6",
+    "183bd28c-705d-4389-aafe-86852c6c53e1",
+    "1b5eb630-4e95-4d96-8718-ccb851ff6ccb",
+    "1da776e7-519e-4eb5-89cf-97c951fa41db",
+    "213ce0c1-8d8e-400c-b5e8-40cbb4a70a84",
+    "233eb0c4-c401-49ad-92ca-6b9a1540c9e9",
+    "2627b612-e870-46da-8a53-85bd973751da",
+    "26317e0f-dc7f-40c8-b7ed-6fc604051f2e",
+    "27574fb2-1639-4c02-8fbb-4ca947ffea18",
+    "31212911-e368-4880-a11c-2b542cf0fdaf",
+    "35a0a976-aad8-414f-8722-2e19c6b77911",
+    "37978dca-14c3-4293-ab32-66cf874c322b",
+    "38187d3d-0167-4d36-8fa1-7ac2d92cc3c8",
+    "43cab2a2-77ab-4f22-bf1e-67a8e39469be",
+    "4424e25a-8536-4efb-af03-f7f56161a386",
+    "4906ce6d-016f-44f2-aadb-a930741ac42b",
+    "4fcfa443-35eb-4c42-b142-10c0298c5ca0",
+    "52b09ab9-01c3-447f-960f-6c190220906f",
+    "573c738f-be29-4174-8c0b-ff46860bfe01",
+    "5bb83856-7b02-44af-8b0f-c3da83569824",
+    "5d9b098e-0d07-4d2e-aa25-0e2fe3bf5752",
+    "5fc50390-2827-404a-8578-1a0ee4f60caa",
+    "60757779-6661-4e82-b2b3-b2a8551af7d1",
+    "62896470-ca7f-47ca-8b18-3392dcba1414",
+    "62923c8e-3b7b-446b-a9ee-6240ff1c6e97",
+    "644e2675-db5a-4b03-8730-121c528eecfc",
+    "64a73e15-4ed6-4004-a3b3-8f2566ccb824",
+    "65928e85-734f-469d-a80a-bd5178e7bc1a",
+    "6d007d11-4c12-409a-8fa0-38250fe887b2",
+    "70d6f028-2877-4855-a282-3ee0124bc356",
+    "767e8f6a-4bb5-4d98-81c8-f86a311f30d2",
+    "76e9324c-d515-4276-8d50-365a86ba1efd",
+    "78e698b3-3744-49b5-93cc-a15812fd4c82",
+    "78ec8c98-ea6d-4c38-b5f4-9015d96a2b7c",
+    "7bceb7c7-4d22-434c-8e69-715741e45cdd",
+    "88cfbfb8-327e-4de4-a460-7dea6737fc79",
+    "8972aa9d-ab18-4c99-9c9c-6075e1425d70",
+    "8eebbb93-b159-47d8-a4f5-8f8d051dcf42",
+    "9012777d-eac7-43b8-911d-f09d6236685d",
+    "917dffe9-7628-4aec-9ab0-ddb9bf0886ed",
+    "92ca007e-26a9-4e8f-bd0b-b121e51abb49",
+    "936b96eb-316f-4ddd-b05c-0b5094a76251",
+    "9457d685-9da5-4abd-9593-716ef147e957",
+    "9473bf39-f514-4ef9-b36d-e2006c95190c",
+    "9490a5e1-7427-46da-a1f9-49ef554ba54e",
+    "950fed15-ed7c-4db8-9167-bab38d48eb0e",
+    "9682a6af-2cbb-4b5b-86e8-94b885caabf5",
+    "96c1cec4-18dd-4491-b544-720d69a5b852",
+    "9806a9fd-27d9-4f42-bbeb-77e7b28114cb",
+    "9868db72-7a61-44f4-a2b8-948e409983df",
+    "9b23a445-d22d-4c38-b063-8ce83a58e5b9",
+    "9bf72617-ee92-4c7a-8dce-c55f11da6f41",
+    "9dbc9dbd-ca16-43cb-89f1-265384f82dac",
+    "9e6b6301-e4ed-40c2-aa9f-e78a9533b623",
+    "9e7e7156-f4c0-423a-9d6c-44ad66874799",
+    "a028f9ac-dee7-4dd7-a4aa-0ef7769e9267",
+    "a3da75e9-ca0f-4dcf-8465-d01cdd504424",
+    "a53a06f5-5c10-41db-95cd-7f13845e594b",
+    "a9bc7692-583b-4e30-ba19-3f99db29bc78",
+    "af4cbaf6-9847-44ac-925d-cc13065a18a3",
+    "afc9a80b-b83f-4cd9-993f-dfb10506dd70",
+    "ba11c0f9-466d-4376-a30e-68e90430ea58",
+    "bb14a2c2-d566-4928-b9f6-b63bc1b5d462",
+    "bc9772c4-d227-431b-adad-65b74efc5fd8",
+    "be3325e5-dd45-4164-8c00-734c75f33d29",
+    "bed8b831-7699-454d-a573-97bf842942a0",
+    "c099afe4-e4bf-4686-b838-62001949e9f7",
+    "c229eaa1-9a59-4594-83eb-b76f9b68f2db",
+    "c5cc6786-d606-418c-8aa7-bb1f175eb7c7",
+    "ca1c25e9-0eb6-46b6-9ee6-3921cd5221eb",
+    "ce92e596-8074-47c3-b890-13ea702076cc",
+    "cecd3f56-439f-4bd4-8356-74dc45a9e5ad",
+    "cf9522ae-945a-439b-8d0f-d22b5ff0e0d5",
+    "dda2bd08-a86a-43ec-8b5c-22b1a947f10c",
+    "df70db85-d993-484e-a094-967685fdf611",
+    "e12dc75d-b139-485b-bff9-88644591c2e5",
+    "e3965043-5dd1-45a2-8211-79cf3a729c0b",
+    "e5cec454-1888-4f31-8b2d-ac0bd6417e6d",
+    "e6974797-883c-4a05-8ea1-e24968137b04",
+    "e783bef6-24ee-4b47-bf51-b2678a3d7a8a",
+    "efb231b2-85c2-4465-8538-131b1ea38133",
+    "f14d5cf1-45a7-4597-8267-d24d9504cb73",
+    "f49bd6f0-d225-40b9-9bb5-ff2c745cf459",
+    "fa15ddf7-da2e-415a-a369-72219ae330cd",
+    "fb4c9576-5e51-4a53-a4b3-6855c431f347",
+    "fb7fd8d0-a1f1-4fe9-b274-843f3f3ec698",
+    "fe3fc39c-71c5-4f35-955a-c36085860204"
+  ],
+  "sessions": {
+    "05f7d701-5cd4-484a-b9ee-c81f45719b6a": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T05:42:09.987Z",
+      "last_timestamp": "2026-03-09T06:47:18.018Z",
+      "commands": [
+        "/commit-changes",
+        "/compact"
+      ],
+      "tokens": {
+        "input": 3074,
+        "output": 104863,
+        "cache_read": 4366251,
+        "cache_create": 258728
+      },
+      "message_count": 76,
+      "file_snapshot_count": 20,
+      "tracked_file_count": 15,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "088f4096-a285-4615-aa0f-2af2eabc87fb": {
+      "branch": "main",
+      "first_timestamp": "2026-03-16T06:58:14.184Z",
+      "last_timestamp": "2026-03-16T07:10:05.873Z",
+      "commands": [
+        "/kb What types of quantization exist for vectors and what are their strengths and weaknesses?",
+        "/research algorithms vector-quantization Product quantization"
+      ],
+      "tokens": {
+        "input": 732,
+        "output": 14798,
+        "cache_read": 1870459,
+        "cache_create": 57742
+      },
+      "message_count": 38,
+      "file_snapshot_count": 7,
+      "tracked_file_count": 5,
+      "cli_version": "2.1.76",
+      "model": "claude-opus-4-6"
+    },
+    "094368d1-9ecb-4103-8501-40e780f280b1": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-10T08:29:30.440Z",
+      "last_timestamp": "2026-03-10T08:40:13.629Z",
+      "commands": [],
+      "tokens": {
+        "input": 3336,
+        "output": 19091,
+        "cache_read": 220583,
+        "cache_create": 55123
+      },
+      "message_count": 6,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "09f49eda-40b7-4b55-9e5e-d2f326192ca3": {
+      "branch": "main",
+      "first_timestamp": "2026-03-16T09:13:21.395Z",
+      "last_timestamp": "2026-03-16T09:55:32.736Z",
+      "commands": [
+        "/clear",
+        "/feature-init",
+        "/upgrade-vallorcine",
+        "/upgrade-vallorcine",
+        "/feature-resume --list",
+        "/feature-complete float16-vector-support",
+        "/feature-complete table-indices-and-queries",
+        "/feature-resume --list",
+        "/feature-resume sql-query-support"
+      ],
+      "tokens": {
+        "input": 71,
+        "output": 11452,
+        "cache_read": 2043806,
+        "cache_create": 62135
+      },
+      "message_count": 44,
+      "file_snapshot_count": 13,
+      "tracked_file_count": 5,
+      "cli_version": "2.1.76",
+      "model": "claude-opus-4-6"
+    },
+    "0ac159a1-0a00-4542-9658-011f348bbabb": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-10T07:36:27.567Z",
+      "last_timestamp": "2026-03-10T07:49:12.982Z",
+      "commands": [],
+      "tokens": {
+        "input": 9,
+        "output": 3546,
+        "cache_read": 105168,
+        "cache_create": 19112
+      },
+      "message_count": 5,
+      "file_snapshot_count": 4,
+      "tracked_file_count": 3,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "0bf909e2-65bb-4ac8-acee-537e4694749f": {
+      "branch": "improve-remote-wal-testing",
+      "first_timestamp": "2026-03-10T11:50:13.670Z",
+      "last_timestamp": "2026-03-10T12:32:56.563Z",
+      "commands": [],
+      "tokens": {
+        "input": 13,
+        "output": 5738,
+        "cache_read": 267985,
+        "cache_create": 30066
+      },
+      "message_count": 9,
+      "file_snapshot_count": 3,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "0bff2655-4eae-4162-b0ea-91aefba21796": {
+      "branch": "engine-clustering",
+      "first_timestamp": "2026-03-20T12:39:13.783Z",
+      "last_timestamp": "2026-03-20T12:52:48.572Z",
+      "commands": [
+        "/upgrade-vallorcine",
+        "/upgrade-vallorcine",
+        "/feature-resume --list",
+        "/feature-resume engine-clustering"
+      ],
+      "tokens": {
+        "input": 41,
+        "output": 7616,
+        "cache_read": 1470649,
+        "cache_create": 62408
+      },
+      "message_count": 29,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.80",
+      "model": "claude-opus-4-6"
+    },
+    "0c968c76-e22a-43e2-ad49-35c95b6522c6": {
+      "branch": "main",
+      "first_timestamp": "2026-03-10T13:10:26.259Z",
+      "last_timestamp": "2026-03-10T13:34:47.481Z",
+      "commands": [],
+      "tokens": {
+        "input": 28,
+        "output": 16146,
+        "cache_read": 557256,
+        "cache_create": 63656
+      },
+      "message_count": 21,
+      "file_snapshot_count": 7,
+      "tracked_file_count": 3,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "0ce4630c-f15b-44a5-a383-96e3ae3e8f37": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T08:34:39.473Z",
+      "last_timestamp": "2026-03-09T08:37:02.514Z",
+      "commands": [
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 19,
+        "output": 2613,
+        "cache_read": 165445,
+        "cache_create": 17084
+      },
+      "message_count": 12,
+      "file_snapshot_count": 4,
+      "tracked_file_count": 3,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "107ec999-94e8-4684-9d9b-e38dd43baf71": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T08:07:34.895Z",
+      "last_timestamp": "2026-03-11T08:09:09.790Z",
+      "commands": [],
+      "tokens": {
+        "input": 12,
+        "output": 5075,
+        "cache_read": 248127,
+        "cache_create": 49107
+      },
+      "message_count": 8,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "11a0f899-f555-43f3-adee-9a19d3905b31": {
+      "branch": "fix-vscode-jpms-integration",
+      "first_timestamp": "2026-03-10T22:48:14.835Z",
+      "last_timestamp": "2026-03-10T22:54:41.839Z",
+      "commands": [],
+      "tokens": {
+        "input": 32,
+        "output": 11332,
+        "cache_read": 1017533,
+        "cache_create": 35230
+      },
+      "message_count": 30,
+      "file_snapshot_count": 11,
+      "tracked_file_count": 11,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "127cfd22-8e86-4d56-9f4e-1a0d5147c000": {
+      "branch": "add-full-text-search",
+      "first_timestamp": "2026-03-11T10:39:29.126Z",
+      "last_timestamp": "2026-03-11T11:27:14.666Z",
+      "commands": [],
+      "tokens": {
+        "input": 45,
+        "output": 19751,
+        "cache_read": 1508133,
+        "cache_create": 54179
+      },
+      "message_count": 37,
+      "file_snapshot_count": 4,
+      "tracked_file_count": 3,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "14bfa0b5-c472-4538-9f59-77600b7bb698": {
+      "branch": "block-compression",
+      "first_timestamp": "2026-03-18T07:08:57.958Z",
+      "last_timestamp": "2026-03-18T07:47:47.268Z",
+      "commands": [
+        "/feature-resume block-compression",
+        "/feature-retro block-compression",
+        "/feature-complete block-compression"
+      ],
+      "tokens": {
+        "input": 43,
+        "output": 9394,
+        "cache_read": 1613404,
+        "cache_create": 65838
+      },
+      "message_count": 33,
+      "file_snapshot_count": 6,
+      "tracked_file_count": 3,
+      "cli_version": "2.1.78",
+      "model": "claude-opus-4-6"
+    },
+    "16c38883-531e-4eda-b377-7f9e4d9a93b6": {
+      "branch": "fix-vscode-jpms-integration",
+      "first_timestamp": "2026-03-10T23:21:55.197Z",
+      "last_timestamp": "2026-03-10T23:25:58.123Z",
+      "commands": [],
+      "tokens": {
+        "input": 11,
+        "output": 7605,
+        "cache_read": 226195,
+        "cache_create": 20598
+      },
+      "message_count": 9,
+      "file_snapshot_count": 10,
+      "tracked_file_count": 10,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "183bd28c-705d-4389-aafe-86852c6c53e1": {
+      "branch": "unknown",
+      "first_timestamp": null,
+      "last_timestamp": null,
+      "commands": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_create": 0
+      },
+      "message_count": 0,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": null,
+      "model": null
+    },
+    "1b5eb630-4e95-4d96-8718-ccb851ff6ccb": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-06T07:35:11.128Z",
+      "last_timestamp": "2026-03-06T07:58:56.167Z",
+      "commands": [
+        "/clear"
+      ],
+      "tokens": {
+        "input": 14,
+        "output": 13921,
+        "cache_read": 110206,
+        "cache_create": 42206
+      },
+      "message_count": 6,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.70",
+      "model": "claude-sonnet-4-6"
+    },
+    "1bd34b34-cbe1-4432-b435-cc65e2a020e0": {
+      "branch": "main",
+      "first_timestamp": "2026-03-12T13:14:43.794Z",
+      "last_timestamp": "2026-03-12T13:40:08.557Z",
+      "commands": [
+        "/feature-resume float16-support",
+        "/feature add float16 support to vector indexing \u2014 store and query float16 vectors alongside existing float32 support (not replacing it), targeting ~50% memory reduction for large collections, acceptable recall tradeoff TBD during architecture, no migration of existing indices required",
+        "/feature-resume float16-vector-support",
+        "/feature-domains float16-vector-support"
+      ],
+      "tokens": {
+        "input": 209,
+        "output": 11406,
+        "cache_read": 2327240,
+        "cache_create": 57956
+      },
+      "message_count": 46,
+      "file_snapshot_count": 25,
+      "tracked_file_count": 8,
+      "cli_version": "2.1.74",
+      "model": "claude-opus-4-6"
+    },
+    "1ca16c5f-0f8f-464b-b4be-fcd9e94a12f3": {
+      "branch": "main",
+      "first_timestamp": "2026-03-16T12:51:15.361Z",
+      "last_timestamp": "2026-03-16T16:35:14.553Z",
+      "commands": [
+        "/clear",
+        "/upgrade-vallorcine",
+        "/upgrade-vallorcine",
+        "/feature",
+        "/upgrade-vallorcine",
+        "/feature-resume table-partitioning",
+        "/architect table-partitioning",
+        "/feature table partitioning"
+      ],
+      "tokens": {
+        "input": 7954,
+        "output": 135526,
+        "cache_read": 80619080,
+        "cache_create": 813676
+      },
+      "message_count": 325,
+      "file_snapshot_count": 99,
+      "tracked_file_count": 53,
+      "cli_version": "2.1.76",
+      "model": "claude-opus-4-6"
+    },
+    "1da776e7-519e-4eb5-89cf-97c951fa41db": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T08:50:32.323Z",
+      "last_timestamp": "2026-03-11T09:12:06.318Z",
+      "commands": [
+        "/context"
+      ],
+      "tokens": {
+        "input": 21,
+        "output": 14199,
+        "cache_read": 632898,
+        "cache_create": 54181
+      },
+      "message_count": 15,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "213ce0c1-8d8e-400c-b5e8-40cbb4a70a84": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-10T06:35:17.622Z",
+      "last_timestamp": "2026-03-10T06:43:42.332Z",
+      "commands": [],
+      "tokens": {
+        "input": 20,
+        "output": 9071,
+        "cache_read": 440814,
+        "cache_create": 37827
+      },
+      "message_count": 14,
+      "file_snapshot_count": 4,
+      "tracked_file_count": 3,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "233eb0c4-c401-49ad-92ca-6b9a1540c9e9": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T07:21:13.040Z",
+      "last_timestamp": "2026-03-09T07:22:48.774Z",
+      "commands": [
+        "/clear"
+      ],
+      "tokens": {
+        "input": 12,
+        "output": 1606,
+        "cache_read": 74232,
+        "cache_create": 19463
+      },
+      "message_count": 6,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "23dcc14d-f9e7-451b-9022-810057e3d952": {
+      "branch": "striped-block-cache",
+      "first_timestamp": "2026-03-17T09:44:36.139Z",
+      "last_timestamp": "2026-03-17T09:45:05.210Z",
+      "commands": [
+        "/feature-resume --list",
+        "/exit"
+      ],
+      "tokens": {
+        "input": 5,
+        "output": 411,
+        "cache_read": 66417,
+        "cache_create": 22514
+      },
+      "message_count": 3,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "2627b612-e870-46da-8a53-85bd973751da": {
+      "branch": "unknown",
+      "first_timestamp": null,
+      "last_timestamp": null,
+      "commands": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_create": 0
+      },
+      "message_count": 0,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": null,
+      "model": null
+    },
+    "26317e0f-dc7f-40c8-b7ed-6fc604051f2e": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T09:01:15.612Z",
+      "last_timestamp": "2026-03-09T09:01:57.866Z",
+      "commands": [],
+      "tokens": {
+        "input": 7,
+        "output": 617,
+        "cache_read": 83032,
+        "cache_create": 10048
+      },
+      "message_count": 5,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "27574fb2-1639-4c02-8fbb-4ca947ffea18": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-10T07:49:17.169Z",
+      "last_timestamp": "2026-03-10T08:04:58.116Z",
+      "commands": [],
+      "tokens": {
+        "input": 17,
+        "output": 7419,
+        "cache_read": 356765,
+        "cache_create": 42622
+      },
+      "message_count": 11,
+      "file_snapshot_count": 3,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "31212911-e368-4880-a11c-2b542cf0fdaf": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-10T06:26:00.917Z",
+      "last_timestamp": "2026-03-10T06:35:17.592Z",
+      "commands": [],
+      "tokens": {
+        "input": 11,
+        "output": 26814,
+        "cache_read": 244734,
+        "cache_create": 46229
+      },
+      "message_count": 7,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "34693f1b-74c4-42d3-b59a-c741b95fda10": {
+      "branch": "striped-block-cache",
+      "first_timestamp": "2026-03-17T09:17:27.018Z",
+      "last_timestamp": "2026-03-17T09:28:00.074Z",
+      "commands": [
+        "/feature-resume --list",
+        "/feature-resume striped-block-cache",
+        "/vallorcine:dashboard",
+        "/upgrade-vallorcine",
+        "/dashboard",
+        "/plugin",
+        "/reload-plugins"
+      ],
+      "tokens": {
+        "input": 1456,
+        "output": 9642,
+        "cache_read": 2091239,
+        "cache_create": 61927
+      },
+      "message_count": 36,
+      "file_snapshot_count": 11,
+      "tracked_file_count": 4,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "35a0a976-aad8-414f-8722-2e19c6b77911": {
+      "branch": "fix-vscode-jpms-integration",
+      "first_timestamp": "2026-03-10T23:16:53.669Z",
+      "last_timestamp": "2026-03-10T23:21:55.175Z",
+      "commands": [],
+      "tokens": {
+        "input": 8,
+        "output": 11950,
+        "cache_read": 150797,
+        "cache_create": 31840
+      },
+      "message_count": 6,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "37978dca-14c3-4293-ab32-66cf874c322b": {
+      "branch": "fix-vscode-jpms-integration",
+      "first_timestamp": "2026-03-10T22:43:13.712Z",
+      "last_timestamp": "2026-03-10T22:48:14.779Z",
+      "commands": [],
+      "tokens": {
+        "input": 15,
+        "output": 7488,
+        "cache_read": 317536,
+        "cache_create": 33007
+      },
+      "message_count": 11,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "38187d3d-0167-4d36-8fa1-7ac2d92cc3c8": {
+      "branch": "main",
+      "first_timestamp": "2026-03-06T05:18:30.244Z",
+      "last_timestamp": "2026-03-06T05:28:33.756Z",
+      "commands": [
+        "/context"
+      ],
+      "tokens": {
+        "input": 13,
+        "output": 1291,
+        "cache_read": 87494,
+        "cache_create": 15339
+      },
+      "message_count": 9,
+      "file_snapshot_count": 4,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.69",
+      "model": "claude-sonnet-4-6"
+    },
+    "3dadbc7c-6fc0-4a2c-92d9-905c4d0d30c2": {
+      "branch": "block-compression",
+      "first_timestamp": "2026-03-18T01:43:00.486Z",
+      "last_timestamp": "2026-03-18T07:03:26.743Z",
+      "commands": [
+        "/feature-resume block-compression"
+      ],
+      "tokens": {
+        "input": 15,
+        "output": 4241,
+        "cache_read": 396884,
+        "cache_create": 10696
+      },
+      "message_count": 11,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "43347015-3e7a-4a07-bfd1-e75765fe8dcb": {
+      "branch": "verify-perf-and-identify-targets",
+      "first_timestamp": "2026-03-18T13:41:19.990Z",
+      "last_timestamp": "2026-03-19T00:18:59.915Z",
+      "commands": [
+        "/clear",
+        "/feature-resume optimize-document-serializer",
+        "/perf-review please evaluate the changes to the DocumentSerializer.deserialize() changes that were made to reduce CPU usage as part of this PR",
+        "/feature-complete optimize-document-serializer",
+        "/upgrade-vallorcine",
+        "/curate",
+        "/feature"
+      ],
+      "tokens": {
+        "input": 2668,
+        "output": 111797,
+        "cache_read": 57181408,
+        "cache_create": 339648
+      },
+      "message_count": 290,
+      "file_snapshot_count": 69,
+      "tracked_file_count": 35,
+      "cli_version": "2.1.78",
+      "model": "claude-opus-4-6"
+    },
+    "43cab2a2-77ab-4f22-bf1e-67a8e39469be": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T04:52:24.704Z",
+      "last_timestamp": "2026-03-09T05:17:08.745Z",
+      "commands": [
+        "/history"
+      ],
+      "tokens": {
+        "input": 2753,
+        "output": 11672,
+        "cache_read": 208512,
+        "cache_create": 54645
+      },
+      "message_count": 11,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "4424e25a-8536-4efb-af03-f7f56161a386": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T01:02:24.540Z",
+      "last_timestamp": "2026-03-09T01:03:32.932Z",
+      "commands": [],
+      "tokens": {
+        "input": 7,
+        "output": 531,
+        "cache_read": 18099,
+        "cache_create": 10209
+      },
+      "message_count": 3,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.70",
+      "model": "claude-sonnet-4-6"
+    },
+    "4906ce6d-016f-44f2-aadb-a930741ac42b": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T12:46:19.080Z",
+      "last_timestamp": "2026-03-09T12:58:37.876Z",
+      "commands": [],
+      "tokens": {
+        "input": 20,
+        "output": 18279,
+        "cache_read": 510274,
+        "cache_create": 47721
+      },
+      "message_count": 14,
+      "file_snapshot_count": 5,
+      "tracked_file_count": 4,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "4d326205-43e7-4a5e-83de-c1e4321400e6": {
+      "branch": "striped-block-cache",
+      "first_timestamp": "2026-03-17T09:13:17.342Z",
+      "last_timestamp": "2026-03-17T09:15:04.864Z",
+      "commands": [
+        "/feature-resume --list",
+        "/feature-resume striped-block-cache"
+      ],
+      "tokens": {
+        "input": 13,
+        "output": 2161,
+        "cache_read": 185571,
+        "cache_create": 57622
+      },
+      "message_count": 7,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "4fcfa443-35eb-4c42-b142-10c0298c5ca0": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T11:20:58.131Z",
+      "last_timestamp": "2026-03-09T12:31:18.741Z",
+      "commands": [
+        "/commit-changes",
+        "/compact"
+      ],
+      "tokens": {
+        "input": 922,
+        "output": 20481,
+        "cache_read": 2199873,
+        "cache_create": 84717
+      },
+      "message_count": 46,
+      "file_snapshot_count": 16,
+      "tracked_file_count": 12,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "52b09ab9-01c3-447f-960f-6c190220906f": {
+      "branch": "add-sample-database-example",
+      "first_timestamp": "2026-03-11T12:56:09.497Z",
+      "last_timestamp": "2026-03-11T13:57:05.968Z",
+      "commands": [
+        "/clear"
+      ],
+      "tokens": {
+        "input": 34,
+        "output": 61825,
+        "cache_read": 1696216,
+        "cache_create": 86092
+      },
+      "message_count": 24,
+      "file_snapshot_count": 2,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "573c738f-be29-4174-8c0b-ff46860bfe01": {
+      "branch": "improve-remote-wal-testing",
+      "first_timestamp": "2026-03-10T12:32:59.515Z",
+      "last_timestamp": "2026-03-10T12:45:11.943Z",
+      "commands": [
+        "/compact"
+      ],
+      "tokens": {
+        "input": 21,
+        "output": 11279,
+        "cache_read": 618128,
+        "cache_create": 67606
+      },
+      "message_count": 17,
+      "file_snapshot_count": 5,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "5bb83856-7b02-44af-8b0f-c3da83569824": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T07:48:01.266Z",
+      "last_timestamp": "2026-03-11T08:02:38.694Z",
+      "commands": [],
+      "tokens": {
+        "input": 3734,
+        "output": 23167,
+        "cache_read": 1622933,
+        "cache_create": 102874
+      },
+      "message_count": 28,
+      "file_snapshot_count": 7,
+      "tracked_file_count": 6,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "5d9b098e-0d07-4d2e-aa25-0e2fe3bf5752": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T08:13:34.026Z",
+      "last_timestamp": "2026-03-09T08:34:33.898Z",
+      "commands": [
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 498,
+        "output": 22925,
+        "cache_read": 1826979,
+        "cache_create": 71774
+      },
+      "message_count": 44,
+      "file_snapshot_count": 13,
+      "tracked_file_count": 10,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "5fc50390-2827-404a-8578-1a0ee4f60caa": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-06T07:08:26.707Z",
+      "last_timestamp": "2026-03-06T07:18:27.941Z",
+      "commands": [],
+      "tokens": {
+        "input": 31,
+        "output": 8472,
+        "cache_read": 267045,
+        "cache_create": 43454
+      },
+      "message_count": 17,
+      "file_snapshot_count": 4,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.70",
+      "model": "claude-sonnet-4-6"
+    },
+    "60757779-6661-4e82-b2b3-b2a8551af7d1": {
+      "branch": "improve-remote-wal-testing",
+      "first_timestamp": "2026-03-10T12:57:02.989Z",
+      "last_timestamp": "2026-03-10T13:01:29.623Z",
+      "commands": [
+        "/clear"
+      ],
+      "tokens": {
+        "input": 8,
+        "output": 5370,
+        "cache_read": 127445,
+        "cache_create": 21346
+      },
+      "message_count": 6,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "62896470-ca7f-47ca-8b18-3392dcba1414": {
+      "branch": "main",
+      "first_timestamp": "2026-03-10T13:08:20.395Z",
+      "last_timestamp": "2026-03-10T13:10:25.483Z",
+      "commands": [],
+      "tokens": {
+        "input": 11,
+        "output": 3392,
+        "cache_read": 155238,
+        "cache_create": 19806
+      },
+      "message_count": 7,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "62923c8e-3b7b-446b-a9ee-6240ff1c6e97": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T09:55:56.863Z",
+      "last_timestamp": "2026-03-11T10:03:30.043Z",
+      "commands": [],
+      "tokens": {
+        "input": 34,
+        "output": 5618,
+        "cache_read": 1007605,
+        "cache_create": 30301
+      },
+      "message_count": 28,
+      "file_snapshot_count": 2,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "6296fbfb-a299-42b0-9c81-ff383abc0293": {
+      "branch": "main",
+      "first_timestamp": "2026-03-19T13:30:28.902Z",
+      "last_timestamp": "2026-03-19T14:45:58.302Z",
+      "commands": [
+        "/clear",
+        "/feature-resume in-process-database-engine",
+        "/feature-complete in-process-database-engine"
+      ],
+      "tokens": {
+        "input": 403,
+        "output": 39685,
+        "cache_read": 11727357,
+        "cache_create": 156568
+      },
+      "message_count": 107,
+      "file_snapshot_count": 17,
+      "tracked_file_count": 10,
+      "cli_version": "2.1.78",
+      "model": "claude-opus-4-6"
+    },
+    "644e2675-db5a-4b03-8730-121c528eecfc": {
+      "branch": "improve-remote-wal-testing",
+      "first_timestamp": "2026-03-10T13:01:34.608Z",
+      "last_timestamp": "2026-03-10T13:01:49.985Z",
+      "commands": [],
+      "tokens": {
+        "input": 6,
+        "output": 551,
+        "cache_read": 83486,
+        "cache_create": 10710
+      },
+      "message_count": 4,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "64a73e15-4ed6-4004-a3b3-8f2566ccb824": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-06T14:26:03.135Z",
+      "last_timestamp": "2026-03-09T01:02:24.539Z",
+      "commands": [
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 24,
+        "output": 3634,
+        "cache_read": 150485,
+        "cache_create": 32044
+      },
+      "message_count": 13,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.70",
+      "model": "claude-sonnet-4-6"
+    },
+    "655dabe1-5734-4c74-bfed-72e87070449a": {
+      "branch": "main",
+      "first_timestamp": "2026-03-16T08:30:22.000Z",
+      "last_timestamp": "2026-03-16T09:13:03.424Z",
+      "commands": [
+        "/feature-resume table-indices-and-queries"
+      ],
+      "tokens": {
+        "input": 100,
+        "output": 43934,
+        "cache_read": 8264497,
+        "cache_create": 125069
+      },
+      "message_count": 80,
+      "file_snapshot_count": 15,
+      "tracked_file_count": 10,
+      "cli_version": "2.1.76",
+      "model": "claude-opus-4-6"
+    },
+    "65928e85-734f-469d-a80a-bd5178e7bc1a": {
+      "branch": "main",
+      "first_timestamp": "2026-03-18T08:33:15.244Z",
+      "last_timestamp": "2026-03-18T09:09:57.957Z",
+      "commands": [
+        "/vallorcine-help how do I curate my codebase to find old decisions or architecture constraints?",
+        "/curate --init",
+        "/curate",
+        "/curate",
+        "/curate --init"
+      ],
+      "tokens": {
+        "input": 264,
+        "output": 20689,
+        "cache_read": 3824013,
+        "cache_create": 97419
+      },
+      "message_count": 58,
+      "file_snapshot_count": 13,
+      "tracked_file_count": 5,
+      "cli_version": "2.1.78",
+      "model": "claude-opus-4-6"
+    },
+    "6cc12dfb-dad8-44a9-a3d2-5ce385d54a6a": {
+      "branch": "engine-clustering",
+      "first_timestamp": "2026-03-20T12:32:53.522Z",
+      "last_timestamp": "2026-03-20T12:35:42.673Z",
+      "commands": [
+        "/clear",
+        "/feature-resume engine-clustering",
+        "/upgrade-vallorcine"
+      ],
+      "tokens": {
+        "input": 17,
+        "output": 2974,
+        "cache_read": 397568,
+        "cache_create": 42956
+      },
+      "message_count": 11,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.80",
+      "model": "claude-opus-4-6"
+    },
+    "6d007d11-4c12-409a-8fa0-38250fe887b2": {
+      "branch": "main",
+      "first_timestamp": "2026-03-17T07:13:11.993Z",
+      "last_timestamp": "2026-03-17T09:12:35.309Z",
+      "commands": [
+        "/plugin marketplace add org/vallorcine",
+        "/plugin install vallorcine@org/vallorcine",
+        "/reload-plugins",
+        "/vallorcine:vallorcine-help",
+        "/feature I would like to implement a striped/shared pattern for the LruBlockCache to fix a performance issue that was identified during testing."
+      ],
+      "tokens": {
+        "input": 5058,
+        "output": 43302,
+        "cache_read": 15244388,
+        "cache_create": 298927
+      },
+      "message_count": 130,
+      "file_snapshot_count": 35,
+      "tracked_file_count": 15,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "70d6f028-2877-4855-a282-3ee0124bc356": {
+      "branch": "docs/update",
+      "first_timestamp": "2026-03-20T07:59:14.814Z",
+      "last_timestamp": "2026-03-20T12:32:17.890Z",
+      "commands": [
+        "/decisions triage",
+        "/feature engine clustering"
+      ],
+      "tokens": {
+        "input": 2737,
+        "output": 104972,
+        "cache_read": 27577282,
+        "cache_create": 231990
+      },
+      "message_count": 184,
+      "file_snapshot_count": 89,
+      "tracked_file_count": 50,
+      "cli_version": "2.1.80",
+      "model": "claude-opus-4-6"
+    },
+    "72fd0a62-3b13-43bf-b58d-0961827ea33a": {
+      "branch": "engine-clustering",
+      "first_timestamp": "2026-03-20T12:53:03.376Z",
+      "last_timestamp": "2026-03-23T06:58:20.917Z",
+      "commands": [
+        "/feature-resume engine-clustering",
+        "/feature-resume engine-clustering",
+        "/feature-complete engine-clustering"
+      ],
+      "tokens": {
+        "input": 682,
+        "output": 43597,
+        "cache_read": 15313257,
+        "cache_create": 350832
+      },
+      "message_count": 133,
+      "file_snapshot_count": 20,
+      "tracked_file_count": 12,
+      "cli_version": "2.1.80",
+      "model": "claude-opus-4-6"
+    },
+    "767e8f6a-4bb5-4d98-81c8-f86a311f30d2": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T15:17:35.961Z",
+      "last_timestamp": "2026-03-09T15:19:40.729Z",
+      "commands": [],
+      "tokens": {
+        "input": 12,
+        "output": 2531,
+        "cache_read": 212764,
+        "cache_create": 16672
+      },
+      "message_count": 10,
+      "file_snapshot_count": 3,
+      "tracked_file_count": 3,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "76e9324c-d515-4276-8d50-365a86ba1efd": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T09:43:06.824Z",
+      "last_timestamp": "2026-03-11T09:55:48.615Z",
+      "commands": [],
+      "tokens": {
+        "input": 38,
+        "output": 14267,
+        "cache_read": 1134356,
+        "cache_create": 47783
+      },
+      "message_count": 30,
+      "file_snapshot_count": 2,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "78e698b3-3744-49b5-93cc-a15812fd4c82": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T09:12:06.356Z",
+      "last_timestamp": "2026-03-11T09:32:32.310Z",
+      "commands": [],
+      "tokens": {
+        "input": 66,
+        "output": 29760,
+        "cache_read": 3343007,
+        "cache_create": 72656
+      },
+      "message_count": 60,
+      "file_snapshot_count": 10,
+      "tracked_file_count": 9,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "78ec8c98-ea6d-4c38-b5f4-9015d96a2b7c": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-06T05:30:19.407Z",
+      "last_timestamp": "2026-03-06T05:32:59.678Z",
+      "commands": [],
+      "tokens": {
+        "input": 3269,
+        "output": 4603,
+        "cache_read": 135879,
+        "cache_create": 25936
+      },
+      "message_count": 10,
+      "file_snapshot_count": 2,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.69",
+      "model": "claude-sonnet-4-6"
+    },
+    "7bceb7c7-4d22-434c-8e69-715741e45cdd": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-10T08:04:58.141Z",
+      "last_timestamp": "2026-03-10T08:16:48.658Z",
+      "commands": [
+        "/upgrade",
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 34,
+        "output": 9964,
+        "cache_read": 1318843,
+        "cache_create": 47284
+      },
+      "message_count": 31,
+      "file_snapshot_count": 7,
+      "tracked_file_count": 5,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "88cfbfb8-327e-4de4-a460-7dea6737fc79": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-10T08:40:13.651Z",
+      "last_timestamp": "2026-03-10T09:41:31.219Z",
+      "commands": [
+        "/commit-changes",
+        "/compact",
+        "/context"
+      ],
+      "tokens": {
+        "input": 58,
+        "output": 47802,
+        "cache_read": 2656984,
+        "cache_create": 116579
+      },
+      "message_count": 49,
+      "file_snapshot_count": 16,
+      "tracked_file_count": 9,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "8972aa9d-ab18-4c99-9c9c-6075e1425d70": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-10T06:43:42.369Z",
+      "last_timestamp": "2026-03-10T06:49:14.439Z",
+      "commands": [
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 17,
+        "output": 4609,
+        "cache_read": 358792,
+        "cache_create": 20340
+      },
+      "message_count": 14,
+      "file_snapshot_count": 4,
+      "tracked_file_count": 3,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "8c568b09-86f2-4788-b6a3-37c27e2aa9c6": {
+      "branch": "striped-block-cache",
+      "first_timestamp": "2026-03-17T09:48:03.595Z",
+      "last_timestamp": "2026-03-17T09:50:47.874Z",
+      "commands": [
+        "/upgrade-vallorcine",
+        "/dashboard",
+        "/exit"
+      ],
+      "tokens": {
+        "input": 46,
+        "output": 1683,
+        "cache_read": 308550,
+        "cache_create": 18886
+      },
+      "message_count": 11,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "8d724052-234a-47b6-ad5a-4b30c2a94fa0": {
+      "branch": "striped-block-cache",
+      "first_timestamp": "2026-03-17T09:28:44.278Z",
+      "last_timestamp": "2026-03-17T09:32:43.259Z",
+      "commands": [],
+      "tokens": {
+        "input": 10,
+        "output": 950,
+        "cache_read": 180298,
+        "cache_create": 31913
+      },
+      "message_count": 6,
+      "file_snapshot_count": 3,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "8eebbb93-b159-47d8-a4f5-8f8d051dcf42": {
+      "branch": "fix-vscode-jpms-integration",
+      "first_timestamp": "2026-03-11T07:24:47.883Z",
+      "last_timestamp": "2026-03-11T07:48:01.176Z",
+      "commands": [],
+      "tokens": {
+        "input": 63,
+        "output": 21693,
+        "cache_read": 2948414,
+        "cache_create": 78700
+      },
+      "message_count": 53,
+      "file_snapshot_count": 13,
+      "tracked_file_count": 10,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "8f552097-1087-44e1-a180-50223cc0b3aa": {
+      "branch": "add-float16-support",
+      "first_timestamp": "2026-03-14T09:49:59.578Z",
+      "last_timestamp": "2026-03-16T07:02:38.372Z",
+      "commands": [
+        "/upgrade-vallorcine",
+        "/upgrade-vallorcine",
+        "/upgrade-vallorcine"
+      ],
+      "tokens": {
+        "input": 61,
+        "output": 11728,
+        "cache_read": 1720176,
+        "cache_create": 49978
+      },
+      "message_count": 42,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.76",
+      "model": "claude-sonnet-4-6"
+    },
+    "9012777d-eac7-43b8-911d-f09d6236685d": {
+      "branch": "main",
+      "first_timestamp": "2026-03-16T07:27:06.238Z",
+      "last_timestamp": "2026-03-16T08:28:44.128Z",
+      "commands": [
+        "/clear",
+        "/feature-init"
+      ],
+      "tokens": {
+        "input": 125,
+        "output": 61928,
+        "cache_read": 8622797,
+        "cache_create": 148046
+      },
+      "message_count": 91,
+      "file_snapshot_count": 33,
+      "tracked_file_count": 22,
+      "cli_version": "2.1.76",
+      "model": "claude-opus-4-6"
+    },
+    "912407f8-3033-4827-96f8-c3789571bf61": {
+      "branch": "main",
+      "first_timestamp": "2026-03-17T14:02:23.756Z",
+      "last_timestamp": "2026-03-18T00:34:56.661Z",
+      "commands": [
+        "/feature",
+        "/feature-resume block-compression",
+        "/feature-resume block-compression",
+        "/upgrade-vallorcine",
+        "/feature-resume block-compression"
+      ],
+      "tokens": {
+        "input": 1951,
+        "output": 81743,
+        "cache_read": 24002059,
+        "cache_create": 470106
+      },
+      "message_count": 167,
+      "file_snapshot_count": 56,
+      "tracked_file_count": 33,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "917dffe9-7628-4aec-9ab0-ddb9bf0886ed": {
+      "branch": "main",
+      "first_timestamp": "2026-03-05T13:37:25.281Z",
+      "last_timestamp": "2026-03-05T13:58:41.772Z",
+      "commands": [
+        "/init"
+      ],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_create": 0
+      },
+      "message_count": 0,
+      "file_snapshot_count": 3,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.50",
+      "model": "claude-sonnet-4-6"
+    },
+    "92ca007e-26a9-4e8f-bd0b-b121e51abb49": {
+      "branch": "improve-remote-wal-testing",
+      "first_timestamp": "2026-03-10T10:42:20.158Z",
+      "last_timestamp": "2026-03-10T11:50:10.220Z",
+      "commands": [],
+      "tokens": {
+        "input": 123,
+        "output": 127742,
+        "cache_read": 10536164,
+        "cache_create": 235714
+      },
+      "message_count": 111,
+      "file_snapshot_count": 12,
+      "tracked_file_count": 11,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "936b96eb-316f-4ddd-b05c-0b5094a76251": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T13:01:20.239Z",
+      "last_timestamp": "2026-03-09T14:17:42.055Z",
+      "commands": [
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 43,
+        "output": 32336,
+        "cache_read": 1623523,
+        "cache_create": 72352
+      },
+      "message_count": 31,
+      "file_snapshot_count": 7,
+      "tracked_file_count": 5,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "9457d685-9da5-4abd-9593-716ef147e957": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T08:36:13.072Z",
+      "last_timestamp": "2026-03-11T08:50:32.312Z",
+      "commands": [
+        "/compact"
+      ],
+      "tokens": {
+        "input": 20,
+        "output": 10337,
+        "cache_read": 480806,
+        "cache_create": 46247
+      },
+      "message_count": 14,
+      "file_snapshot_count": 5,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "9473bf39-f514-4ef9-b36d-e2006c95190c": {
+      "branch": "main",
+      "first_timestamp": "2026-03-06T01:07:10.875Z",
+      "last_timestamp": "2026-03-06T01:21:27.760Z",
+      "commands": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_create": 0
+      },
+      "message_count": 0,
+      "file_snapshot_count": 15,
+      "tracked_file_count": 14,
+      "cli_version": "2.1.50",
+      "model": "claude-sonnet-4-6"
+    },
+    "9490a5e1-7427-46da-a1f9-49ef554ba54e": {
+      "branch": "main",
+      "first_timestamp": "2026-03-06T00:31:11.373Z",
+      "last_timestamp": "2026-03-06T01:07:10.880Z",
+      "commands": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_create": 0
+      },
+      "message_count": 0,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.50",
+      "model": "claude-sonnet-4-6"
+    },
+    "950fed15-ed7c-4db8-9167-bab38d48eb0e": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T08:21:18.358Z",
+      "last_timestamp": "2026-03-11T08:22:07.611Z",
+      "commands": [],
+      "tokens": {
+        "input": 8,
+        "output": 1403,
+        "cache_read": 201639,
+        "cache_create": 6610
+      },
+      "message_count": 8,
+      "file_snapshot_count": 3,
+      "tracked_file_count": 3,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "9682a6af-2cbb-4b5b-86e8-94b885caabf5": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T04:48:53.197Z",
+      "last_timestamp": "2026-03-09T04:48:53.197Z",
+      "commands": [
+        "/clear"
+      ],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_create": 0
+      },
+      "message_count": 0,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.70",
+      "model": null
+    },
+    "96c1cec4-18dd-4491-b544-720d69a5b852": {
+      "branch": "fix-vscode-jpms-integration",
+      "first_timestamp": "2026-03-10T13:34:54.550Z",
+      "last_timestamp": "2026-03-10T13:36:15.113Z",
+      "commands": [],
+      "tokens": {
+        "input": 10,
+        "output": 2138,
+        "cache_read": 195429,
+        "cache_create": 12446
+      },
+      "message_count": 8,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "9806a9fd-27d9-4f42-bbeb-77e7b28114cb": {
+      "branch": "add-full-text-search",
+      "first_timestamp": "2026-03-11T11:27:14.707Z",
+      "last_timestamp": "2026-03-11T12:55:29.224Z",
+      "commands": [],
+      "tokens": {
+        "input": 29,
+        "output": 9745,
+        "cache_read": 697578,
+        "cache_create": 94431
+      },
+      "message_count": 17,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "9868db72-7a61-44f4-a2b8-948e409983df": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-06T06:18:51.028Z",
+      "last_timestamp": "2026-03-06T06:35:18.400Z",
+      "commands": [
+        "/context"
+      ],
+      "tokens": {
+        "input": 25,
+        "output": 11863,
+        "cache_read": 344529,
+        "cache_create": 36385
+      },
+      "message_count": 15,
+      "file_snapshot_count": 4,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.70",
+      "model": "claude-sonnet-4-6"
+    },
+    "9b23a445-d22d-4c38-b063-8ce83a58e5b9": {
+      "branch": "fix-vscode-jpms-integration",
+      "first_timestamp": "2026-03-11T06:33:16.356Z",
+      "last_timestamp": "2026-03-11T07:24:42.196Z",
+      "commands": [],
+      "tokens": {
+        "input": 41,
+        "output": 64890,
+        "cache_read": 2265488,
+        "cache_create": 115425
+      },
+      "message_count": 35,
+      "file_snapshot_count": 3,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "9bf72617-ee92-4c7a-8dce-c55f11da6f41": {
+      "branch": "fix-vscode-jpms-integration",
+      "first_timestamp": "2026-03-10T13:43:21.210Z",
+      "last_timestamp": "2026-03-10T13:57:24.518Z",
+      "commands": [],
+      "tokens": {
+        "input": 14,
+        "output": 30749,
+        "cache_read": 275656,
+        "cache_create": 54819
+      },
+      "message_count": 8,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "9dbc9dbd-ca16-43cb-89f1-265384f82dac": {
+      "branch": "main",
+      "first_timestamp": "2026-03-05T13:58:41.750Z",
+      "last_timestamp": "2026-03-05T14:01:19.236Z",
+      "commands": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_create": 0
+      },
+      "message_count": 0,
+      "file_snapshot_count": 8,
+      "tracked_file_count": 8,
+      "cli_version": "2.1.50",
+      "model": "claude-sonnet-4-6"
+    },
+    "9e6b6301-e4ed-40c2-aa9f-e78a9533b623": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T08:23:08.433Z",
+      "last_timestamp": "2026-03-11T08:33:01.359Z",
+      "commands": [
+        "/clear"
+      ],
+      "tokens": {
+        "input": 3176,
+        "output": 3467,
+        "cache_read": 165359,
+        "cache_create": 26243
+      },
+      "message_count": 6,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "9e7e7156-f4c0-423a-9d6c-44ad66874799": {
+      "branch": "add-sample-database-example",
+      "first_timestamp": "2026-03-12T06:49:23.560Z",
+      "last_timestamp": "2026-03-12T06:49:55.415Z",
+      "commands": [
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 5,
+        "output": 609,
+        "cache_read": 75183,
+        "cache_create": 12900
+      },
+      "message_count": 4,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.72",
+      "model": "claude-opus-4-6"
+    },
+    "a028f9ac-dee7-4dd7-a4aa-0ef7769e9267": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-10T10:12:49.164Z",
+      "last_timestamp": "2026-03-10T10:42:20.115Z",
+      "commands": [],
+      "tokens": {
+        "input": 33,
+        "output": 25882,
+        "cache_read": 910819,
+        "cache_create": 87873
+      },
+      "message_count": 21,
+      "file_snapshot_count": 4,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "a2eb9636-1712-4e7b-9736-f13a267309d4": {
+      "branch": "table-partitioning",
+      "first_timestamp": "2026-03-17T01:39:54.867Z",
+      "last_timestamp": "2026-03-17T02:07:18.218Z",
+      "commands": [
+        "/feature-resume table-partitioning",
+        "/feature-pr table-partitioning"
+      ],
+      "tokens": {
+        "input": 81,
+        "output": 12314,
+        "cache_read": 2799680,
+        "cache_create": 111960
+      },
+      "message_count": 53,
+      "file_snapshot_count": 16,
+      "tracked_file_count": 4,
+      "cli_version": "2.1.76",
+      "model": "claude-opus-4-6"
+    },
+    "a3da75e9-ca0f-4dcf-8465-d01cdd504424": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T10:04:34.959Z",
+      "last_timestamp": "2026-03-11T10:18:54.214Z",
+      "commands": [
+        "/clear"
+      ],
+      "tokens": {
+        "input": 12,
+        "output": 7055,
+        "cache_read": 234125,
+        "cache_create": 44579
+      },
+      "message_count": 6,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "a4fcd182-0cf7-4262-8e3e-94a076919312": {
+      "branch": "table-partitioning",
+      "first_timestamp": "2026-03-17T00:59:03.247Z",
+      "last_timestamp": "2026-03-17T01:11:49.122Z",
+      "commands": [
+        "/feature-resume --list",
+        "/feature-complete sql-query-support",
+        "/feature-resume table-partitioning"
+      ],
+      "tokens": {
+        "input": 1073,
+        "output": 5909,
+        "cache_read": 985423,
+        "cache_create": 53971
+      },
+      "message_count": 23,
+      "file_snapshot_count": 9,
+      "tracked_file_count": 5,
+      "cli_version": "2.1.76",
+      "model": "claude-opus-4-6"
+    },
+    "a53a06f5-5c10-41db-95cd-7f13845e594b": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-10T09:41:34.627Z",
+      "last_timestamp": "2026-03-10T10:12:49.117Z",
+      "commands": [
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 66,
+        "output": 84721,
+        "cache_read": 6350048,
+        "cache_create": 143753
+      },
+      "message_count": 57,
+      "file_snapshot_count": 19,
+      "tracked_file_count": 17,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "a56b57eb-786d-47bd-b104-1132ff9ae45f": {
+      "branch": "main",
+      "first_timestamp": "2026-03-17T12:05:59.565Z",
+      "last_timestamp": "2026-03-17T14:02:11.454Z",
+      "commands": [
+        "/feature",
+        "/research I would like to research vector encoding approaches and algorithms that would be useful for building high volume vector indices.",
+        "/feature-resume vector-field-type",
+        "/feature-complete vector-field-type"
+      ],
+      "tokens": {
+        "input": 5330,
+        "output": 92795,
+        "cache_read": 46273830,
+        "cache_create": 297055
+      },
+      "message_count": 233,
+      "file_snapshot_count": 64,
+      "tracked_file_count": 38,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "a97a393c-d147-4b9a-9c01-286424ee51e2": {
+      "branch": "block-compression",
+      "first_timestamp": "2026-03-18T01:06:35.652Z",
+      "last_timestamp": "2026-03-18T01:18:53.076Z",
+      "commands": [
+        "/feature-resume block-compression"
+      ],
+      "tokens": {
+        "input": 24,
+        "output": 5503,
+        "cache_read": 659083,
+        "cache_create": 37341
+      },
+      "message_count": 16,
+      "file_snapshot_count": 3,
+      "tracked_file_count": 3,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "a9bc7692-583b-4e30-ba19-3f99db29bc78": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T08:02:38.775Z",
+      "last_timestamp": "2026-03-11T08:03:42.474Z",
+      "commands": [],
+      "tokens": {
+        "input": 7,
+        "output": 2460,
+        "cache_read": 146610,
+        "cache_create": 32440
+      },
+      "message_count": 5,
+      "file_snapshot_count": 7,
+      "tracked_file_count": 7,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "ac4a1b91-36f1-4434-8b87-f39e23a94c8b": {
+      "branch": "striped-block-cache",
+      "first_timestamp": "2026-03-17T11:14:05.821Z",
+      "last_timestamp": "2026-03-17T11:17:05.588Z",
+      "commands": [
+        "/feature-resume striped-block-cache"
+      ],
+      "tokens": {
+        "input": 20,
+        "output": 3855,
+        "cache_read": 457033,
+        "cache_create": 39439
+      },
+      "message_count": 12,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "af4cbaf6-9847-44ac-925d-cc13065a18a3": {
+      "branch": "main",
+      "first_timestamp": "2026-03-16T05:35:50.598Z",
+      "last_timestamp": "2026-03-16T06:50:03.870Z",
+      "commands": [
+        "/upgrade-vallorcine",
+        "/research",
+        "/research",
+        "/upgrade-vallorcine",
+        "/upgrade-vallorcine"
+      ],
+      "tokens": {
+        "input": 101,
+        "output": 44911,
+        "cache_read": 4923507,
+        "cache_create": 128053
+      },
+      "message_count": 60,
+      "file_snapshot_count": 23,
+      "tracked_file_count": 15,
+      "cli_version": "2.1.76",
+      "model": "claude-opus-4-6"
+    },
+    "afc9a80b-b83f-4cd9-993f-dfb10506dd70": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T09:32:32.920Z",
+      "last_timestamp": "2026-03-11T09:43:06.781Z",
+      "commands": [
+        "/compact"
+      ],
+      "tokens": {
+        "input": 33,
+        "output": 9280,
+        "cache_read": 798573,
+        "cache_create": 51284
+      },
+      "message_count": 25,
+      "file_snapshot_count": 10,
+      "tracked_file_count": 6,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "ba11c0f9-466d-4376-a30e-68e90430ea58": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T06:50:30.554Z",
+      "last_timestamp": "2026-03-09T07:07:10.776Z",
+      "commands": [
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 12403,
+        "output": 30629,
+        "cache_read": 4008416,
+        "cache_create": 99218
+      },
+      "message_count": 61,
+      "file_snapshot_count": 17,
+      "tracked_file_count": 16,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "bb14a2c2-d566-4928-b9f6-b63bc1b5d462": {
+      "branch": "improve-remote-wal-testing",
+      "first_timestamp": "2026-03-10T12:45:17.010Z",
+      "last_timestamp": "2026-03-10T12:45:39.901Z",
+      "commands": [],
+      "tokens": {
+        "input": 7,
+        "output": 929,
+        "cache_read": 124936,
+        "cache_create": 17829
+      },
+      "message_count": 5,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "bc9772c4-d227-431b-adad-65b74efc5fd8": {
+      "branch": "main",
+      "first_timestamp": "2026-03-19T11:39:28.646Z",
+      "last_timestamp": "2026-03-19T13:27:13.949Z",
+      "commands": [
+        "/clear",
+        "/feature"
+      ],
+      "tokens": {
+        "input": 1572,
+        "output": 63245,
+        "cache_read": 12807731,
+        "cache_create": 178257
+      },
+      "message_count": 122,
+      "file_snapshot_count": 54,
+      "tracked_file_count": 32,
+      "cli_version": "2.1.78",
+      "model": "claude-opus-4-6"
+    },
+    "bd6a1af2-9571-460e-a07d-6809e905f636": {
+      "branch": "striped-block-cache",
+      "first_timestamp": "2026-03-17T11:37:13.163Z",
+      "last_timestamp": "2026-03-17T12:03:50.147Z",
+      "commands": [
+        "/feature-resume --list",
+        "/feature-resume striped-block-cache",
+        "/feature-complete striped-block-cache",
+        "/feature-resume --list",
+        "/feature-complete table-partitioning"
+      ],
+      "tokens": {
+        "input": 117,
+        "output": 22903,
+        "cache_read": 7166135,
+        "cache_create": 108450
+      },
+      "message_count": 89,
+      "file_snapshot_count": 14,
+      "tracked_file_count": 7,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "be3325e5-dd45-4164-8c00-734c75f33d29": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T08:33:06.217Z",
+      "last_timestamp": "2026-03-11T08:36:13.047Z",
+      "commands": [],
+      "tokens": {
+        "input": 15,
+        "output": 3436,
+        "cache_read": 275556,
+        "cache_create": 16914
+      },
+      "message_count": 11,
+      "file_snapshot_count": 3,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "bed8b831-7699-454d-a573-97bf842942a0": {
+      "branch": "main",
+      "first_timestamp": "2026-03-16T05:20:00.039Z",
+      "last_timestamp": "2026-03-16T05:32:41.252Z",
+      "commands": [
+        "/upgrade-vallorcine",
+        "/exit"
+      ],
+      "tokens": {
+        "input": 17,
+        "output": 2517,
+        "cache_read": 325516,
+        "cache_create": 24257
+      },
+      "message_count": 12,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.76",
+      "model": "claude-opus-4-6"
+    },
+    "c099afe4-e4bf-4686-b838-62001949e9f7": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T10:18:54.273Z",
+      "last_timestamp": "2026-03-11T10:39:28.799Z",
+      "commands": [
+        "/compact"
+      ],
+      "tokens": {
+        "input": 40,
+        "output": 27846,
+        "cache_read": 1206255,
+        "cache_create": 88739
+      },
+      "message_count": 30,
+      "file_snapshot_count": 9,
+      "tracked_file_count": 6,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "c1313304-f721-4f72-abaa-811c2e5b1324": {
+      "branch": "main",
+      "first_timestamp": "2026-03-16T09:55:35.061Z",
+      "last_timestamp": "2026-03-16T12:03:29.544Z",
+      "commands": [
+        "/clear",
+        "/feature-resume sql-query-support",
+        "/feature-domains sql-query-support",
+        "/feature-domains sql-query-support"
+      ],
+      "tokens": {
+        "input": 180,
+        "output": 61786,
+        "cache_read": 17321511,
+        "cache_create": 192564
+      },
+      "message_count": 142,
+      "file_snapshot_count": 35,
+      "tracked_file_count": 27,
+      "cli_version": "2.1.76",
+      "model": "claude-opus-4-6"
+    },
+    "c229eaa1-9a59-4594-83eb-b76f9b68f2db": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-06T07:18:27.941Z",
+      "last_timestamp": "2026-03-06T07:34:52.067Z",
+      "commands": [
+        "/context"
+      ],
+      "tokens": {
+        "input": 75,
+        "output": 26718,
+        "cache_read": 3067495,
+        "cache_create": 69874
+      },
+      "message_count": 63,
+      "file_snapshot_count": 20,
+      "tracked_file_count": 17,
+      "cli_version": "2.1.70",
+      "model": "claude-sonnet-4-6"
+    },
+    "c2c4bbc7-c23c-46df-b558-ad19ab3e0ebf": {
+      "branch": "striped-block-cache",
+      "first_timestamp": "2026-03-17T10:36:35.428Z",
+      "last_timestamp": "2026-03-17T11:12:27.564Z",
+      "commands": [
+        "/feature-resume --list",
+        "/feature-resume striped-block-cache"
+      ],
+      "tokens": {
+        "input": 38,
+        "output": 6545,
+        "cache_read": 1446887,
+        "cache_create": 33983
+      },
+      "message_count": 28,
+      "file_snapshot_count": 2,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "c5cc6786-d606-418c-8aa7-bb1f175eb7c7": {
+      "branch": "main",
+      "first_timestamp": "2026-03-12T12:57:03.456Z",
+      "last_timestamp": "2026-03-12T13:09:47.705Z",
+      "commands": [
+        "/feature-init float16-support",
+        "/feature add float16 support to vector indexing \u2014 store and query float16 vectors alongside existing float32 support (not replacing it), targeting ~50% memory reduction for large collections, acceptable recall tradeoff TBD during architecture, no migration of existing indices required"
+      ],
+      "tokens": {
+        "input": 25,
+        "output": 4244,
+        "cache_read": 388882,
+        "cache_create": 30712
+      },
+      "message_count": 13,
+      "file_snapshot_count": 8,
+      "tracked_file_count": 4,
+      "cli_version": "2.1.74",
+      "model": "claude-opus-4-6"
+    },
+    "ca1c25e9-0eb6-46b6-9ee6-3921cd5221eb": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-06T07:58:56.167Z",
+      "last_timestamp": "2026-03-06T10:46:10.665Z",
+      "commands": [],
+      "tokens": {
+        "input": 314,
+        "output": 81531,
+        "cache_read": 2447232,
+        "cache_create": 121282
+      },
+      "message_count": 42,
+      "file_snapshot_count": 14,
+      "tracked_file_count": 13,
+      "cli_version": "2.1.70",
+      "model": "claude-sonnet-4-6"
+    },
+    "cb3cf634-bf9f-474b-9ba1-af012e2b01f8": {
+      "branch": "main",
+      "first_timestamp": "2026-03-13T15:15:45.659Z",
+      "last_timestamp": "2026-03-13T15:31:57.496Z",
+      "commands": [
+        "/feature-resume --list",
+        "/feature-resume float16-vector-support",
+        "/feature-plan float16-vector-support"
+      ],
+      "tokens": {
+        "input": 80,
+        "output": 23306,
+        "cache_read": 4414014,
+        "cache_create": 92099
+      },
+      "message_count": 60,
+      "file_snapshot_count": 15,
+      "tracked_file_count": 10,
+      "cli_version": "2.1.74",
+      "model": "claude-opus-4-6"
+    },
+    "cc10d562-d545-4c19-965d-10df88bc5ad7": {
+      "branch": "striped-block-cache",
+      "first_timestamp": "2026-03-17T11:17:56.353Z",
+      "last_timestamp": "2026-03-17T11:36:21.029Z",
+      "commands": [
+        "/dashboard off"
+      ],
+      "tokens": {
+        "input": 84,
+        "output": 24716,
+        "cache_read": 4321364,
+        "cache_create": 116549
+      },
+      "message_count": 56,
+      "file_snapshot_count": 9,
+      "tracked_file_count": 6,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "ce92e596-8074-47c3-b890-13ea702076cc": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T14:19:12.497Z",
+      "last_timestamp": "2026-03-09T15:16:56.278Z",
+      "commands": [
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 22,
+        "output": 9412,
+        "cache_read": 401406,
+        "cache_create": 34815
+      },
+      "message_count": 15,
+      "file_snapshot_count": 11,
+      "tracked_file_count": 9,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "cecd3f56-439f-4bd4-8356-74dc45a9e5ad": {
+      "branch": "fix-vscode-jpms-integration",
+      "first_timestamp": "2026-03-11T06:30:19.996Z",
+      "last_timestamp": "2026-03-11T06:33:16.024Z",
+      "commands": [],
+      "tokens": {
+        "input": 12,
+        "output": 2032,
+        "cache_read": 156279,
+        "cache_create": 24935
+      },
+      "message_count": 6,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "cf9522ae-945a-439b-8d0f-d22b5ff0e0d5": {
+      "branch": "improve-code-quality",
+      "first_timestamp": "2026-03-11T08:09:09.809Z",
+      "last_timestamp": "2026-03-11T08:21:14.908Z",
+      "commands": [],
+      "tokens": {
+        "input": 25,
+        "output": 9828,
+        "cache_read": 679353,
+        "cache_create": 32432
+      },
+      "message_count": 21,
+      "file_snapshot_count": 14,
+      "tracked_file_count": 13,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "dc5ecc15-4bee-4336-84fd-1ef197fa6747": {
+      "branch": "block-compression",
+      "first_timestamp": "2026-03-18T00:50:40.283Z",
+      "last_timestamp": "2026-03-18T01:04:47.306Z",
+      "commands": [
+        "/feature-resume block-compression"
+      ],
+      "tokens": {
+        "input": 40,
+        "output": 31418,
+        "cache_read": 2484723,
+        "cache_create": 110656
+      },
+      "message_count": 28,
+      "file_snapshot_count": 6,
+      "tracked_file_count": 5,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "dc948056-82c9-4957-8fe1-b54f29c1c986": {
+      "branch": "main",
+      "first_timestamp": "2026-03-13T15:33:24.747Z",
+      "last_timestamp": "2026-03-13T15:50:57.834Z",
+      "commands": [
+        "/feature-resume float16-vector-support",
+        "/feature-implement float16-vector-support",
+        "/feature-complete float16-vector-support"
+      ],
+      "tokens": {
+        "input": 5673,
+        "output": 18351,
+        "cache_read": 4474671,
+        "cache_create": 90466
+      },
+      "message_count": 64,
+      "file_snapshot_count": 7,
+      "tracked_file_count": 5,
+      "cli_version": "2.1.74",
+      "model": "claude-opus-4-6"
+    },
+    "dda2bd08-a86a-43ec-8b5c-22b1a947f10c": {
+      "branch": "add-sample-database-example",
+      "first_timestamp": "2026-03-12T06:50:13.168Z",
+      "last_timestamp": "2026-03-12T06:54:45.437Z",
+      "commands": [
+        "/clear",
+        "/heapdump",
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 22,
+        "output": 7495,
+        "cache_read": 577409,
+        "cache_create": 53017
+      },
+      "message_count": 17,
+      "file_snapshot_count": 9,
+      "tracked_file_count": 7,
+      "cli_version": "2.1.72",
+      "model": "claude-opus-4-6"
+    },
+    "df284f0c-69ea-4b63-b328-f79ad2f6f774": {
+      "branch": "encrypt-memory-data",
+      "first_timestamp": "2026-03-19T00:20:34.288Z",
+      "last_timestamp": "2026-03-19T11:38:45.493Z",
+      "commands": [
+        "/feature-resume encrypt-memory-data",
+        "/feature"
+      ],
+      "tokens": {
+        "input": 503,
+        "output": 125790,
+        "cache_read": 64297281,
+        "cache_create": 507344
+      },
+      "message_count": 311,
+      "file_snapshot_count": 67,
+      "tracked_file_count": 28,
+      "cli_version": "2.1.78",
+      "model": "claude-opus-4-6"
+    },
+    "df70db85-d993-484e-a094-967685fdf611": {
+      "branch": "add-sample-database-example",
+      "first_timestamp": "2026-03-12T07:18:05.382Z",
+      "last_timestamp": "2026-03-12T07:18:09.740Z",
+      "commands": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_create": 0
+      },
+      "message_count": 0,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.72",
+      "model": null
+    },
+    "e12dc75d-b139-485b-bff9-88644591c2e5": {
+      "branch": "main",
+      "first_timestamp": "2026-03-16T12:04:04.907Z",
+      "last_timestamp": "2026-03-16T12:49:00.083Z",
+      "commands": [
+        "/clear"
+      ],
+      "tokens": {
+        "input": 21024,
+        "output": 13588,
+        "cache_read": 3333271,
+        "cache_create": 84731
+      },
+      "message_count": 44,
+      "file_snapshot_count": 17,
+      "tracked_file_count": 9,
+      "cli_version": "2.1.76",
+      "model": "claude-opus-4-6"
+    },
+    "e3965043-5dd1-45a2-8211-79cf3a729c0b": {
+      "branch": "improve-remote-wal-testing",
+      "first_timestamp": "2026-03-10T12:51:35.305Z",
+      "last_timestamp": "2026-03-10T12:52:14.435Z",
+      "commands": [
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 7,
+        "output": 875,
+        "cache_read": 118918,
+        "cache_create": 15492
+      },
+      "message_count": 6,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "e5cec454-1888-4f31-8b2d-ac0bd6417e6d": {
+      "branch": "add-sample-database-example",
+      "first_timestamp": "2026-03-12T12:42:02.956Z",
+      "last_timestamp": "2026-03-12T12:48:24.523Z",
+      "commands": [],
+      "tokens": {
+        "input": 13,
+        "output": 1649,
+        "cache_read": 212958,
+        "cache_create": 24908
+      },
+      "message_count": 9,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.74",
+      "model": "claude-opus-4-6"
+    },
+    "e6974797-883c-4a05-8ea1-e24968137b04": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T11:07:59.532Z",
+      "last_timestamp": "2026-03-09T11:20:38.053Z",
+      "commands": [],
+      "tokens": {
+        "input": 19,
+        "output": 19884,
+        "cache_read": 432866,
+        "cache_create": 62226
+      },
+      "message_count": 11,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "e783bef6-24ee-4b47-bf51-b2678a3d7a8a": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T05:19:58.869Z",
+      "last_timestamp": "2026-03-09T05:40:05.052Z",
+      "commands": [
+        "/commit-changes",
+        "/compact"
+      ],
+      "tokens": {
+        "input": 5079,
+        "output": 35949,
+        "cache_read": 1627343,
+        "cache_create": 102993
+      },
+      "message_count": 49,
+      "file_snapshot_count": 15,
+      "tracked_file_count": 11,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "ea5188cc-90f1-4aef-8d17-c20b449422e0": {
+      "branch": "test-curation",
+      "first_timestamp": "2026-03-18T09:13:01.100Z",
+      "last_timestamp": "2026-03-18T13:37:15.693Z",
+      "commands": [
+        "/clear",
+        "/feature",
+        "/feature-complete streaming-block-decompression",
+        "/perf-review block compression scan throughput",
+        "/upgrade-vallorcine",
+        "/feature-resume optimize-document-serializer"
+      ],
+      "tokens": {
+        "input": 408,
+        "output": 107231,
+        "cache_read": 73505282,
+        "cache_create": 416197
+      },
+      "message_count": 300,
+      "file_snapshot_count": 69,
+      "tracked_file_count": 28,
+      "cli_version": "2.1.78",
+      "model": "claude-opus-4-6"
+    },
+    "ef0d2e3f-36ea-4c05-9a88-779c7a02461f": {
+      "branch": "striped-block-cache",
+      "first_timestamp": "2026-03-17T10:15:02.707Z",
+      "last_timestamp": "2026-03-17T10:36:20.371Z",
+      "commands": [
+        "/dashboard",
+        "/feature I would like to implement a striped/shared pattern for the LruBlockCache to fix a performance issue that was identified during testing."
+      ],
+      "tokens": {
+        "input": 93,
+        "output": 27041,
+        "cache_read": 4708938,
+        "cache_create": 83645
+      },
+      "message_count": 68,
+      "file_snapshot_count": 26,
+      "tracked_file_count": 16,
+      "cli_version": "2.1.77",
+      "model": "claude-opus-4-6"
+    },
+    "efb231b2-85c2-4465-8538-131b1ea38133": {
+      "branch": "add-sample-database-example",
+      "first_timestamp": "2026-03-11T13:57:11.215Z",
+      "last_timestamp": "2026-03-12T06:32:34.278Z",
+      "commands": [
+        "/login",
+        "/login",
+        "/login"
+      ],
+      "tokens": {
+        "input": 6108,
+        "output": 36278,
+        "cache_read": 4245344,
+        "cache_create": 528064
+      },
+      "message_count": 54,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "f14d5cf1-45a7-4597-8267-d24d9504cb73": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T04:47:41.730Z",
+      "last_timestamp": "2026-03-09T04:47:41.729Z",
+      "commands": [
+        "/clear"
+      ],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_create": 0
+      },
+      "message_count": 0,
+      "file_snapshot_count": 0,
+      "tracked_file_count": 0,
+      "cli_version": "2.1.70",
+      "model": null
+    },
+    "f49bd6f0-d225-40b9-9bb5-ff2c745cf459": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T08:59:48.844Z",
+      "last_timestamp": "2026-03-09T09:00:23.472Z",
+      "commands": [],
+      "tokens": {
+        "input": 9,
+        "output": 1151,
+        "cache_read": 65049,
+        "cache_create": 23940
+      },
+      "message_count": 5,
+      "file_snapshot_count": 1,
+      "tracked_file_count": 1,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "fa15ddf7-da2e-415a-a369-72219ae330cd": {
+      "branch": "fix-vscode-jpms-integration",
+      "first_timestamp": "2026-03-10T13:57:24.672Z",
+      "last_timestamp": "2026-03-10T14:25:35.019Z",
+      "commands": [
+        "/commit-changes"
+      ],
+      "tokens": {
+        "input": 49,
+        "output": 47997,
+        "cache_read": 2397656,
+        "cache_create": 101780
+      },
+      "message_count": 39,
+      "file_snapshot_count": 14,
+      "tracked_file_count": 10,
+      "cli_version": "2.1.72",
+      "model": "claude-sonnet-4-6"
+    },
+    "fb4c9576-5e51-4a53-a4b3-6855c431f347": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-06T06:35:18.401Z",
+      "last_timestamp": "2026-03-06T07:08:26.706Z",
+      "commands": [],
+      "tokens": {
+        "input": 67,
+        "output": 56215,
+        "cache_read": 2176537,
+        "cache_create": 90484
+      },
+      "message_count": 49,
+      "file_snapshot_count": 12,
+      "tracked_file_count": 10,
+      "cli_version": "2.1.70",
+      "model": "claude-sonnet-4-6"
+    },
+    "fb7fd8d0-a1f1-4fe9-b274-843f3f3ec698": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T12:31:49.068Z",
+      "last_timestamp": "2026-03-09T12:39:43.417Z",
+      "commands": [
+        "/context"
+      ],
+      "tokens": {
+        "input": 15,
+        "output": 5491,
+        "cache_read": 212770,
+        "cache_create": 27863
+      },
+      "message_count": 9,
+      "file_snapshot_count": 4,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    },
+    "fe3fc39c-71c5-4f35-955a-c36085860204": {
+      "branch": "init-repository-structure",
+      "first_timestamp": "2026-03-09T07:22:54.315Z",
+      "last_timestamp": "2026-03-09T08:06:23.433Z",
+      "commands": [],
+      "tokens": {
+        "input": 23,
+        "output": 10628,
+        "cache_read": 227107,
+        "cache_create": 22701
+      },
+      "message_count": 13,
+      "file_snapshot_count": 3,
+      "tracked_file_count": 2,
+      "cli_version": "2.1.71",
+      "model": "claude-sonnet-4-6"
+    }
+  }
+}

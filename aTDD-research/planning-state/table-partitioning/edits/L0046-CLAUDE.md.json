@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| Table indices and queries | table-indices-and-queries | 2026-03-16 | .feature/_archive/table-indices-and-queries/ |",
+  "new_string": "| SQL query support | sql-query-support | 2026-03-17 | .feature/_archive/sql-query-support/ |\n| Table indices and queries | table-indices-and-queries | 2026-03-16 | .feature/_archive/table-indices-and-queries/ |",
+  "replace_all": false
+}

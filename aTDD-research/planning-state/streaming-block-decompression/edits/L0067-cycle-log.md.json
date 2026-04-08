@@ -1,0 +1,6 @@
+{
+  "path": ".feature/encrypt-memory-data/cycle-log.md",
+  "old_string": "**Token estimate:** ~12K\n---",
+  "new_string": "**Token estimate:** ~12K\n---\n## 2026-03-18 \u2014 planned\n**Agent:** Work Planner\n**Summary:** 9 new constructs, 4 extensions across 4 work units (balanced execution). Stubs written for all new constructs. WU-1: foundation types, WU-2: encryption engines, WU-3: serializer+index integration, WU-4: full-text search tiers.\n**Files written:** work-plan.md, 9 stub files, status.md (updated)\n**Token estimate:** ~10K\n---",
+  "replace_all": false
+}

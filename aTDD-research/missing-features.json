@@ -1,0 +1,49 @@
+{
+  "_comment": "Features developed as subagents within the encrypt-memory-data session (df284f0c). Token data from subagent attribution, not from separate sessions.",
+  "session_id": "df284f0c-69ea-4b63-b328-f79ad2f6f774",
+  "features": {
+    "extract-core-encryption": {
+      "feature_sha": "89338a9",
+      "parent_sha": "5a3c159",
+      "commit_msg": "refactor(encryption): extract primitives to jlsm-core, add pre-encrypted document support",
+      "files_changed": 39,
+      "insertions": 1130,
+      "subagents": [
+        {"description": "Architect pre-encrypted signaling", "stage": "architecture", "tokens": 56544},
+        {"description": "Write stubs and work plan", "stage": "planning", "tokens": 48881},
+        {"description": "WU-1 module extraction TDD", "stage": "tdd-cycle", "tokens": 126943},
+        {"description": "WU-2 pre-encrypted TDD cycle", "stage": "tdd-cycle", "tokens": 92177}
+      ],
+      "total_tokens": 324545,
+      "tdd_tokens": 219120
+    },
+    "fix-encryption-performance": {
+      "feature_sha": "29b1f1b",
+      "parent_sha": "89338a9",
+      "commit_msg": "perf(encryption): cache JCE Cipher instances, thread-safe encryptors, docs",
+      "note": "Spans 3 commits: 34781a2 (cache Cipher), b1f04fc (ThreadLocal), 29b1f1b (docs)",
+      "files_changed": 30,
+      "insertions": 1645,
+      "subagents": [
+        {"description": "Research deterministic encryption perf", "stage": "research", "tokens": 53982},
+        {"description": "Write work plan for perf fix", "stage": "planning", "tokens": 36816},
+        {"description": "Implement encryption perf fixes", "stage": "implementation", "tokens": 54309}
+      ],
+      "total_tokens": 145107,
+      "tdd_tokens": 54309
+    },
+    "ope-type-aware-bounds": {
+      "feature_sha": "2a3440c",
+      "parent_sha": "34781a2",
+      "commit_msg": "feat(table): type-aware OPE bounds, BoundedString field type, encryption docs",
+      "files_changed": 22,
+      "insertions": 1202,
+      "subagents": [
+        {"description": "Domain analysis for OPE bounds", "stage": "domains", "tokens": 77989},
+        {"description": "Plan and implement OPE bounds", "stage": "implementation", "tokens": 173280}
+      ],
+      "total_tokens": 251269,
+      "tdd_tokens": 173280
+    }
+  }
+}

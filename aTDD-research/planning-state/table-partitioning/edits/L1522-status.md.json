@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "| WU-1 | Data model + routing | PartitionDescriptor, PartitionConfig, PartitionClient, RangeMap | \u2014 | not-started | \u2014 |",
+  "new_string": "| WU-1 | Data model + routing | PartitionDescriptor, PartitionConfig, PartitionClient, RangeMap | \u2014 | complete | 1 |",
+  "replace_all": false
+}

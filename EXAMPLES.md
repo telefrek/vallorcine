@@ -105,13 +105,20 @@ Check progress across all units:
 ## Autonomous TDD loop
 
 Choose autonomous mode at first `/feature-implement` to let the pipeline
-chain through test → implement → refactor → next unit without pausing.
+chain through test → implement → refactor → audit → next unit without pausing.
+
+The pipeline runs a spec analysis pre-pass before test writing (identifying
+contract gaps and implementation risk patterns) and an adversarial audit pass
+after refactoring (writing targeted tests against the real implementation).
+The first audit loop runs automatically; additional rounds require approval.
 
 The pipeline always pauses for two things regardless of mode:
 
 - **Structural issues** (interface/contract changes in refactor steps 2c/2d)
   — these affect other units and need your judgement
 - **Missing tests** (refactor step 2e) — a quality gate, not friction
+- **Additional audit rounds** (when cross-construct bugs are found)
+  — you decide whether deeper adversarial testing is worthwhile
 
 Type anything into the session at any time to pause autonomous mode.
 The pipeline picks up cleanly from where it stopped.

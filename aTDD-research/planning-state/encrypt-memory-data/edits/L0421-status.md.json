@@ -1,0 +1,6 @@
+{
+  "path": ".feature/ope-type-aware-bounds/status.md",
+  "old_string": "| Testing | not-started | \u2014 | \u2014 | \u2014 | cycle 0 |\n| Implementation | not-started | \u2014 | \u2014 | \u2014 | cycle 0 |\n| Refactor | not-started | \u2014 | \u2014 | \u2014 | cycle 0 |",
+  "new_string": "| Testing | complete | 2026-03-19 | \u2014 | \u2014 | 27 tests written |\n| Implementation | complete | 2026-03-19 | \u2014 | \u2014 | all switch sites, OPE bounds, validation, README |\n| Refactor | complete | 2026-03-19 | \u2014 | \u2014 | spotless applied, check clean |",
+  "replace_all": false
+}

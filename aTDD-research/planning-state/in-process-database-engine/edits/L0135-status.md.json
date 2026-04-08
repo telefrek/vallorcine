@@ -1,0 +1,6 @@
+{
+  "path": ".feature/in-process-database-engine/status.md",
+  "old_string": "| Planning | in-progress | \u2014 | \u2014 | \u2014 | |",
+  "new_string": "| Planning | complete | 2026-03-19 | ~15K | \u2014 | 13 stubs, 3 WUs |",
+  "replace_all": false
+}

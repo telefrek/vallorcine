@@ -182,6 +182,50 @@ was discovered):
 ```
 If "yes": invoke `/research <topic> <category> "<subject>"` as a sub-agent.
 
+### Feature footprint
+
+Always generate a feature footprint KB entry. This is not optional — every
+completed feature should leave a trace in the knowledge base.
+
+```
+── Feature Footprint ─────────────────────────
+  Generating KB entry for <slug>...
+  Domains: <domains from domains.md>
+  Key constructs: <new/modified types>
+```
+
+Invoke `/research architecture feature-footprints "<slug>"` as a sub-agent,
+providing it with:
+- The domains from domains.md
+- The key constructs from work-plan.md (new + modified)
+- Any adversarial findings (from known_issues.md if it exists)
+- Cross-references to ADRs created during this feature
+
+The research agent writes the entry following the template at
+`.kb/_refs/feature-footprint-template.md`.
+
+### Adversarial finding graduation
+
+If `.feature/<slug>/known_issues.md` exists and contains RESOLVED or TENDENCY
+entries (from aTDD rounds or audit passes):
+
+```
+── Adversarial Findings ──────────────────────
+  <n> RESOLVED patterns, <n> TENDENCY patterns found
+  These should be documented in .kb/ for future features.
+
+  Type **yes** to graduate findings to KB · or: skip
+```
+
+If "yes": for each significant pattern (not one-off fixes), invoke
+`/research <domain> adversarial-findings "<pattern-name>"` as a sub-agent.
+The research agent writes entries following the template at
+`.kb/_refs/adversarial-finding-template.md`.
+
+Group related findings — don't create a separate KB entry for every individual
+bug. A single entry per bug *class* (e.g., "assertion-based safety checks",
+"silent null returns on error paths") is the right granularity.
+
 ### Estimation calibration
 
 If token estimates were consistently off in one direction:
@@ -209,6 +253,8 @@ Append `retro-complete` to cycle-log.md:
 **TDD efficiency:** <n cycles>, <n escalations>, <n missing tests>
 **Actions taken:**
 - <ADR reviewed: <slug>> | <ADR created: <slug>> | <KB updated: <topic>>
+- Feature footprint: .kb/architecture/feature-footprints/<slug>.md
+- <If adversarial findings graduated:> Adversarial findings: <n> patterns → .kb/
 - ...
 ---
 ```
@@ -267,4 +313,5 @@ The retro command writes to:
 
 It does NOT directly write to `.decisions/` or `.kb/` — it invokes
 `/architect`, `/decisions revisit`, and `/research` as sub-agents, and those
-commands handle their own writes.
+commands handle their own writes. The feature footprint and adversarial finding
+graduation steps also use `/research` sub-agents.

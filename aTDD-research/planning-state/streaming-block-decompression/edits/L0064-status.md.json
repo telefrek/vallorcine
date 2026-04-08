@@ -1,0 +1,6 @@
+{
+  "path": ".feature/encrypt-memory-data/status.md",
+  "old_string": "| Planning | in-progress | \u2014 | ~10K | \u2014 | 4 work units, balanced |",
+  "new_string": "| Planning | complete | 2026-03-18 | ~10K | \u2014 | 4 work units, balanced |",
+  "replace_all": false
+}

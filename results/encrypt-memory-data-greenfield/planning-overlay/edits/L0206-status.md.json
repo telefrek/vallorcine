@@ -1,0 +1,6 @@
+{
+  "path": ".feature/encrypt-memory-data/status.md",
+  "old_string": "| WU-3 | Serializer + index integration | FieldEncryptionDispatch, DocumentSerializer ext, IndexRegistry ext | WU-1, WU-2 | complete | 1 |\n| WU-4 | Full-text search tiers | PositionalPostingCodec, SseEncryptedIndex | WU-2, WU-3 | ready | \u2014 |",
+  "new_string": "| WU-3 | Serializer + index integration | FieldEncryptionDispatch, DocumentSerializer ext, IndexRegistry ext | WU-1, WU-2 | complete | 1 |\n| WU-4 | Full-text search tiers | PositionalPostingCodec, SseEncryptedIndex | WU-2, WU-3 | in-progress | 1 |",
+  "replace_all": false
+}

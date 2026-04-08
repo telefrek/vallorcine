@@ -1,0 +1,6 @@
+{
+  "path": ".feature/encrypt-memory-data/status.md",
+  "old_string": "| WU-4 | Full-text search tiers | PositionalPostingCodec, SseEncryptedIndex | WU-2, WU-3 | in-progress | 1 |",
+  "new_string": "| WU-4 | Full-text search tiers | PositionalPostingCodec, SseEncryptedIndex | WU-2, WU-3 | complete | 1 |",
+  "replace_all": false
+}

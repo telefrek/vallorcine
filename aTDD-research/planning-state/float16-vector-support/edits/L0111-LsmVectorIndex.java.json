@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-vector/src/main/java/jlsm/vector/LsmVectorIndex.java",
+  "old_string": "decodeNode(opt.get().toArray(ValueLayout.JAVA_BYTE))",
+  "new_string": "decodeNode(opt.get().toArray(ValueLayout.JAVA_BYTE), precision)",
+  "replace_all": true
+}

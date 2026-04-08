@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/status.md",
+  "old_string": "**Substage:** refactor: performance",
+  "new_string": "**Substage:** refactor: missing-tests",
+  "replace_all": false
+}

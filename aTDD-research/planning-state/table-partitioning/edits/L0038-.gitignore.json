@@ -1,0 +1,6 @@
+{
+  "path": ".gitignore",
+  "old_string": "!.feature/project-config.md\n!.feature/CLAUDE.md",
+  "new_string": "!.feature/project-config.md\n!.feature/CLAUDE.md\n\n# Performance analysis \u2014 scratch and transient output\nperf-scratch/\nperf-output/**/*.collapsed\nperf-output/**/*.jfr\nperf-output/**/*-results.json\nperf-output/**/run-manifest.json\nperf-output/**/latest-*\n!perf-output/findings.md",
+  "replace_all": false
+}

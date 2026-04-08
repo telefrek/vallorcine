@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-core/src/main/java/jlsm/core/indexing/VectorIndex.java",
+  "old_string": "    @Override\n    void close() throws IOException;\n\n    /**\n     * A single result from a {@link #search} call.",
+  "new_string": "    /**\n     * Returns the precision used for vector storage in this index.\n     *\n     * @return the configured {@link VectorPrecision}; never null\n     */\n    VectorPrecision precision();\n\n    @Override\n    void close() throws IOException;\n\n    /**\n     * A single result from a {@link #search} call.",
+  "replace_all": false
+}

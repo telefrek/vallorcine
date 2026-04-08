@@ -18,9 +18,10 @@ Your project learns once and remembers forever.
 `.decisions/`. Decisions compound across features — you don't re-debate settled
 questions.
 
-**Features** — TDD pipeline from scoping through PR, with crash recovery and
-parallel work unit execution. Claude follows the discipline so you can focus on
-directing the work, not policing it.
+**Features** — TDD pipeline from scoping through PR, with spec analysis that
+prevents bugs before they're written, an adversarial audit pass that confirms
+implementation quality, crash recovery, and parallel work unit execution. Claude
+follows the discipline so you can focus on directing the work, not policing it.
 
 **Curation** — `/curate` scans your codebase for quality signals: decisions that
 no longer match the code, research that's gone stale, implicit dependencies
@@ -54,11 +55,14 @@ graph LR
         T --> I["/feature-implement"]
         I --> R["/feature-refactor"]
         R -->|"next unit"| T
-        R --> PR["/feature-pr"]
+        R --> A["audit pass"]
+        A -->|"bugs found"| A
+        A --> PR["/feature-pr"]
         PR --> RET["/feature-retro"]
     end
 
     KB -.->|"feeds into"| D
+    KB -.->|"adversarial patterns"| T
     DEC -.->|"feeds into"| D
     RET -.->|"writes back"| KB
     RET -.->|"writes back"| DEC
@@ -77,6 +81,7 @@ graph LR
     style T fill:#22c55e,color:#fff
     style I fill:#22c55e,color:#fff
     style R fill:#22c55e,color:#fff
+    style A fill:#ef4444,color:#fff
     style PR fill:#8b5cf6,color:#fff
     style RET fill:#8b5cf6,color:#fff
     style RES fill:#f59e0b,color:#fff
@@ -89,6 +94,8 @@ graph LR
 
 Knowledge and decisions accumulate across features and get richer over time.
 Features read from them during domain analysis and write back via retrospectives.
+Adversarial findings from each feature's audit pass feed into the next feature's
+spec analysis — bug patterns discovered once are prevented in all future features.
 Curation closes the loop — it detects when decisions drift, research goes stale,
 or features create implicit dependencies. This feedback loop is what makes the
 5th feature on a project faster than the 1st.
@@ -119,31 +126,47 @@ or features create implicit dependencies. This feedback loop is what makes the
 | `/decisions defer "<problem>"` | Park a topic for later |
 | `/decisions close "<problem>"` | Rule out permanently |
 
+### Specifications — behavioral contracts
+
+| Command | What it does |
+|---------|-------------|
+| `/spec "<question>"` | Query specs, discover gaps, and trace change impact |
+| `/spec-author "<feature-id>" "<title>"` | Two-pass adversarial spec authoring (structured draft + falsification) |
+| `/spec-write "<id>" "<title>"` | Register a spec in `.spec/` storage with conflict check |
+| `/spec-verify "<id>"` | Verify a spec against the current implementation |
+| `/spec-init` | Initialize the `.spec/` directory structure |
+
 ### Features — TDD pipeline
 
 | Command | What it does |
 |---------|-------------|
-| `/feature "<description>"` | Start a new feature (full pipeline) |
+| `/feature "<description>"` | Start a new feature (full pipeline: scoping → domains → specs → plan → test → implement → refactor → audit → PR) |
 | `/feature-quick "<description>"` | Small task (single session, no planning) |
 | `/feature-resume "<slug>"` | Where am I? What do I run next? |
 | `/feature-resume "<slug>" --status` | Detailed session briefing |
 | `/feature-resume "<slug>" --list` | List all active features |
-| `/feature-domains "<slug>"` | Domain analysis, commissions research/architect |
-| `/feature-plan "<slug>"` | Work plan, stubs, execution strategy |
+| `/feature-domains "<slug>"` | Domain analysis, commissions research/architect. Routes to spec authoring when `.spec/` exists. |
+| `/feature-plan "<slug>"` | Work plan, stubs, execution strategy. Consumes specs as primary context. |
 | `/feature-coordinate "<slug>"` | Parallel batch coordinator |
-| `/feature-test "<slug>"` | Write failing tests from contracts |
-| `/feature-implement "<slug>"` | Implement until tests pass |
-| `/feature-refactor "<slug>"` | Quality review (8-item checklist, 2a-2h) |
+| `/feature-test "<slug>"` | Operationalizes spec requirements into tests (Lens A) + adversarial implementation risk analysis (Lens B) |
+| `/feature-implement "<slug>"` | Implement until tests pass. Detects spec conflicts in test failures. |
+| `/feature-refactor "<slug>"` | Quality review (8-item checklist), then delegates to `/audit` for adversarial bug finding |
 | `/feature-pr "<slug>"` | Draft PR title, description, checklist |
 | `/feature-retro "<slug>"` | Post-feature retrospective + narrative article generation |
 | `/feature-complete "<slug>"` | Archive after PR merges |
 | `/feature-cleanup` | Review stale feature directories |
 
+### Audit — adversarial bug finding
+
+| Command | What it does |
+|---------|-------------|
+| `/audit "<entry-point>"` | Adversarial audit: finds bugs, proves them with tests, fixes the code. Accepts feature slugs, file paths, spec references, or prior reports. |
+
 ### Curation — codebase quality over time
 
 | Command | What it does |
 |---------|-------------|
-| `/curate` | Review quality signals — stale decisions, knowledge gaps, implicit dependencies, out-of-scope ADR items |
+| `/curate` | Review quality signals — stale decisions, knowledge gaps, spec coverage gaps, implicit dependencies, out-of-scope ADR items |
 | `/curate --init` | First-time scan on an existing codebase |
 | `/curate --deeper` | Scan 6 months of history instead of default 3 |
 
@@ -343,4 +366,4 @@ will detect this and block it.
 
 ### Versioning
 
-Version is in `VERSION` (semver). Current: 0.6.0
+Version is in `VERSION` (semver). Current: 0.8.0

@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-core/src/main/java/jlsm/cache/LruBlockCache.java",
+  "old_string": "    public static Builder builder() {\n        return new Builder();\n    }",
+  "new_string": "    /**\n     * Returns a builder for a thread-safe {@link StripedBlockCache} backed by multiple independent\n     * LRU shards. Use this when multiple SSTable reader threads share the cache.\n     *\n     * @return a new {@link StripedBlockCache.Builder}\n     * @see StripedBlockCache\n     */\n    public static StripedBlockCache.Builder threadSafe() {\n        throw new UnsupportedOperationException(\"Not implemented\");\n    }\n\n    /**\n     * Returns a builder for a single-threaded {@link LruBlockCache}. Use this when only one thread\n     * accesses the cache, or when callers manage their own synchronisation.\n     *\n     * @return a new {@link Builder}\n     */\n    public static Builder singleThreaded() {\n        throw new UnsupportedOperationException(\"Not implemented\");\n    }\n\n    public static Builder builder() {\n        return new Builder();\n    }",
+  "replace_all": false
+}

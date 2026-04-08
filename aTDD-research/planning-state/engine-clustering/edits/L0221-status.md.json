@@ -1,0 +1,6 @@
+{
+  "path": ".feature/engine-clustering/status.md",
+  "old_string": "<!-- current_batch: 0 -->",
+  "new_string": "<!-- current_batch: 2 -->",
+  "replace_all": false
+}

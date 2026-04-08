@@ -166,6 +166,28 @@ SETTLED.md (graduated history), COMPETITIVE.md (market positioning).
 Different update cadences, different token costs. `/save-work` graduates
 aged entries.
 
+## 5-pass analysis pipeline (2026-03-27)
+
+Inventory → triage → clustering → per-cluster deep analysis → reconciliation.
+Each pass writes to disk; next pass reads the file, not the conversation history.
+416K tokens vs ~1M for equivalent coverage. Validated against 26 known bugs (92%).
+
+## Construct-level clustering (2026-03-27)
+
+Clusters follow data flow and shared state, not file boundaries. `shares_state`
+edges are unsplittable within a type. Cross-type bridges defer to reconciliation.
+No hard size limits — graph structure determines boundaries.
+
+## Attack-generation framing (2026-03-27)
+
+"What input breaks this?" not "does this look correct?" Per-cell independence
+prevents satisficing. Validated: doubled bug detection vs comprehension framing.
+
+## Write-and-return test writers (2026-03-27)
+
+Phase 4 breakers write tests and exit. No compile loops in test writing.
+Separate compile-check phase. Eliminates 50% post-write overhead.
+
 ## Escalation flags and re-entry logic (2026-03-13)
 
 Full Code Writer → Test Writer → Work Planner escalation chain with
@@ -505,3 +527,66 @@ find cross-cutting issues.
 Always skips if file exists, regardless of FORCE_UPDATE or version mismatch auto-force.
 Found via dogfood: every force install was wiping JLSM's populated indexes with
 empty seed templates. Regression test covers both paths.
+
+## JS parity required for narrative pipeline (2026-03-20)
+
+Principle 1 mandates both Python and JS if either is provided. Full port of 5
+pipeline files verified with identical output.
+
+## ADR out-of-scope items as deferred stubs (2026-03-20)
+
+Accepted ADRs contain "What This Decision Does NOT Solve" sections invisible to
+`/decisions triage`. Retroactive: `/curate` Analysis 9 finds them. Proactive:
+`/architect` Step 6c auto-creates deferred stubs.
+
+## Consolidate /feature-init into /setup-vallorcine (2026-03-20)
+
+No project has used one concern without the other. Supersedes the earlier
+separation decision.
+
+## Architect iterative research (2026-03-20)
+
+After scoring, if coverage is thin, commission targeted follow-up research.
+Up to 3 iterations.
+
+## Architect composite candidates (2026-03-20)
+
+Evaluate combinations of approaches when no single candidate covers all
+constraints. Boundary rule defines which component handles which sub-problem.
+
+## /decisions revisit replaces /decisions review (2026-03-20)
+
+Single command accepts slug or topic, conversational "why" pre-step, revision
+condition checking, feature kickoff after revision.
+
+## Architect neutral presentation (2026-03-20)
+
+Non-negotiable rule: never express preference before Step 6a deliberation.
+
+## Mandatory doc review in /release (2026-03-20)
+
+Step 1.5 checks README, EXAMPLES, DESIGN, CONTEXT against changes before
+release notes can be drafted.
+
+## aTDD as parallel path, not replacement (2026-03-23)
+
+Adversarial TDD is a second pipeline option alongside standard TDD. Three
+tiers: Quick (easy), Enhanced TDD + Audit (moderate), Full aTDD
+(complex/critical). Selection at scoping time.
+
+## Spec Analyst generates dynamic Breaker prompts (2026-03-23)
+
+Static adversarial prompts plateau at cycle 3-4. The Analyst reads
+implementation + tests + prior findings to generate a targeted prompt each
+round, avoiding redundant coverage.
+
+## Validate with hard numbers before shipping (2026-03-23)
+
+Run both pipelines against jlsm features from identical starting points.
+Measure: additional bugs found, tokens per round, convergence curve. Replace
+speculative cost estimates with real data.
+
+## Research bundle for reproducibility (2026-03-23)
+
+Sanitized JSONL logs, feature descriptions, git SHAs, automation scripts.
+Others can independently verify results.

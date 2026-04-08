@@ -1,0 +1,6 @@
+{
+  "path": ".kb/CLAUDE.md",
+  "old_string": "| 2026-03-16 | algorithms | vector-quantization | [product-quantization](algorithms/vector-quantization/product-quantization.md) |",
+  "new_string": "| 2026-03-16 | algorithms | sql-extensions | [vector-similarity-sql-syntax](algorithms/sql-extensions/vector-similarity-sql-syntax.md) |\n| 2026-03-16 | algorithms | vector-quantization | [product-quantization](algorithms/vector-quantization/product-quantization.md) |",
+  "replace_all": false
+}

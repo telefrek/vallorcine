@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/status.md",
+  "old_string": "| Stripe hash function | pending-decision | none | none | 2026-03-17 | \u2014 |",
+  "new_string": "| Stripe hash function | resolved | stripe-hash-function | none | 2026-03-17 | 2026-03-17 |",
+  "replace_all": false
+}

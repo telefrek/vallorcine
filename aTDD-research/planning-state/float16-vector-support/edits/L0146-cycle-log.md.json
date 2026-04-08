@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/cycle-log.md",
+  "old_string": "**Token estimate:** ~21K\n---",
+  "new_string": "**Token estimate:** ~21K\n---\n## 2026-03-13 \u2014 implemented\n**Agent:** Code Writer\n**Cycle:** 1\n**Summary:** Implemented float16 storage threading through IvfFlat and Hnsw. Key changes:\n(1) IvfFlat.search() \u2014 posting-list vector decode switched from decodeFloats to decodeVector with\nprecision dispatch (centroids remain float32 per contract).\n(2) Hnsw.encodeNode/decodeNode \u2014 added VectorPrecision parameter; vector portion now uses\nencodeVector/decodeVector and precision.bytesPerComponent() for sizing.\nAll 21 float16 tests passing. Full test suite passes with no regressions.\n**Files modified:** LsmVectorIndex.java (IvfFlat.search line 488, Hnsw.encodeNode, Hnsw.decodeNode,\n4 encodeNode call sites, 4 decodeNode call sites)\n---",
+  "replace_all": false
+}

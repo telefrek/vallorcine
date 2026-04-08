@@ -20,37 +20,76 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-03-20*
+*Last updated: 2026-04-03*
 
-**Preparing for next release — narrative pipeline shipped, architect and decisions
-commands significantly enhanced, setup commands consolidated.**
+**Audit pipeline validation + spec ecosystem hardening + jlsm release prep.**
 
-**What shipped this cycle (since v0.5.3):**
+Two sessions (2026-04-02 and 2026-04-03) validated the combined prove-fix
+pipeline on float16-vector-support and block-compression, hardened the full
+aTDD pipeline with adversarial fixes, built the spec conflict detection
+and extraction system, and started the jlsm release prep (2-week push).
 
-- **Narrative pipeline in `/feature-retro`** — 3-stage pipeline (tokenizer → parser
-  → renderer) integrated as Step 6. Generates `narrative.md` with badges, Mermaid
-  gantt, phase-by-phase breakdown, progressive disclosure. Full Python + JavaScript
-  parity. Graceful degradation when no runtime available.
-- **ADR out-of-scope extraction** — curate-scan.sh Analysis 9 extracts "What This
-  Decision Does NOT Solve" items from confirmed ADRs. `/curate` presents them and
-  offers to create deferred stubs. `/architect` Step 6c now auto-creates deferred
-  stubs for out-of-scope items going forward.
-- **`/setup-vallorcine` consolidation** — absorbed `/feature-init`. Single command
-  now initializes KB, decisions, feature pipeline, and project profile.
-- **Architect iterative research** — Step 4c commissions follow-up research when
-  initial candidates don't adequately cover the constraint space (up to 3 iterations).
-- **Architect composite candidates** — Step 4b2 identifies when combining two
-  candidates would satisfy constraints better than either alone.
-- **`/decisions revisit`** — replaces `/decisions review`. Accepts topic/description
-  search, conversational "why" step, revision condition checking, and feature kickoff
-  after revision.
-- **Architect neutral presentation** — non-negotiable rule against expressing
-  preferences before Step 6a deliberation.
-- **Mandatory doc review in `/release`** — Step 1.5 checks README, EXAMPLES, DESIGN,
-  CONTEXT against changes before drafting release notes.
+**What happened (2026-04-02):**
+
+- **Combined prove-fix model validated** — merged separate Prove + Fix stages
+  into single per-finding subagent. Tested on float16: 40 findings, 20 fixed,
+  10 impossible, $207 total (with fixes included). Serial execution prevents
+  fix conflicts and enables fix cascade deduplication (7 of 10 impossibles
+  were prior fixes resolving later findings).
+
+- **All 5 release blockers cleared** — spec phase in /feature flow, /feature-test
+  consuming .spec/, /feature-audit using prove-fix, multi-language parity for
+  pipeline scripts (bash + Node), /feature-audit renamed to /audit.
+
+- **Pipeline hardened with 5 adversarial fixes** — spec-author prove/disprove
+  framing, architect falsification pass, KB confidence field, audit feedback
+  loop (reconcile-findings), feature-refactor delegation to /audit.
+
+- **Script audit** — ~55 fixes across 27 scripts (bash/Python/Node): atomic
+  writes, exit 0 guarantees, pipefail safety, empty array guards.
+
+**What happened (2026-04-03):**
+
+- **Block-compression audit complete** — 77 findings, 28 fixed, 49 impossible,
+  $550. 6 lenses, 11 clusters. Found real bugs: footer overflow guards,
+  int truncation, codec validation, state machine hardening, resource safety.
+
+- **Impossible category analysis** — 48 impossibles broken down: 19 fix cascade
+  (40%), 4 single-threaded false positive (8%), 3 idempotent false positive (6%),
+  22 genuine (46%). True bug rate: 52.2% (excluding preventable impossibles).
+
+- **Concurrency lens false positive prevention** — card construction captures
+  thread_sharing evidence, Suspect has mandatory concurrency clearings,
+  domain pruning excludes single-threaded constructs from concurrency clusters.
+
+- **Test deduplication** — prove-fix checks existing test coverage before writing
+  new tests. Suspect can clear findings as "already tested."
+
+- **Spec conflict resolution flow** — audit report detects fix-spec conflicts,
+  orchestrator presents 3 options (keep fix + update spec, revert fix, defer).
+  Standalone resolve-spec-conflict prompt for manual resolution.
+
+- **Spec extraction mode** — bottom-up spec authoring from existing implementation.
+  Auto-discovers source files, consuming specs, and tests. Cross-references
+  consuming specs for CONTRADICTED, UNGUARANTEED, MISSING findings.
+
+- **[ABSENT] requirement promotion** — extraction mode surfaces behaviors the
+  code does NOT do. Users promote (becomes implementation work), preserve
+  (becomes negative requirement), or defer (curate resurfaces later).
+
+- **Curate spec awareness** — 4 new signal types: unspecified shared types,
+  open obligations, spec-code drift, undecided [ABSENT] requirements. Each
+  routes to the appropriate spec command.
+
+- **Batch spec authoring** — 10 jlsm features got hardened specs via automated
+  two-pass process. ~$3.40/spec.
 
 **Where things stand:**
-All on main, ready for release cut. Documentation updated for all new capabilities.
+Audit pipeline is validated on 2 features with real cost data. Spec ecosystem
+is comprehensive: authoring, extraction, conflict detection, resolution,
+curate integration. jlsm has 11 specs covering all features. Block-compression
+has a spec conflict (eager snapshot vs F08 streaming) being resolved. Next
+audit will validate the concurrency lens fix and test dedup improvements.
 
 ---
 
@@ -58,36 +97,46 @@ All on main, ready for release cut. Documentation updated for all new capabiliti
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **JS parity required for narrative pipeline** (2026-03-20) — Principle 1 mandates
-  both Python and JS if either is provided. Full port of 5 pipeline files verified
-  with identical output.
+- **Combined prove-fix per-finding model** (2026-04-02) — merged Prove + Fix into
+  single subagent. Each finding gets fresh context. Test result determines path
+  (not agent's choice). Validated: same cost as prove-only with fixes included.
+  Fix cascade reduces total work via serial execution.
 
-- **ADR out-of-scope items as deferred stubs** (2026-03-20) — accepted ADRs contain
-  "What This Decision Does NOT Solve" sections invisible to `/decisions triage`.
-  Retroactive: `/curate` Analysis 9 finds them. Proactive: `/architect` Step 6c
-  auto-creates deferred stubs. Found via JLSM: 44 items across 13 ADRs.
+- **Sequential execution for prove-fix** (2026-04-02) — one finding at a time,
+  no parallelism. Prevents fix conflicts on shared source files. Fix cascade
+  deduplication is a bonus. Wall-clock tradeoff acceptable.
 
-- **Consolidate /feature-init into /setup-vallorcine** (2026-03-20) — no project has
-  used one concern without the other. Supersedes SETTLED.md separation decision.
+- **Effort asymmetry removal in prove-fix** (2026-04-02) — agent always writes
+  test regardless of outcome (confirmed or impossible). Test result chooses the
+  path. Prevents task-avoidance bias from sandbagging research.
 
-- **Architect iterative research** (2026-03-20) — after scoring, if coverage is thin
-  (no strong candidates, missing constraint dimensions), commission targeted follow-up
-  research. Up to 3 iterations. Found via JLSM dogfood.
+- **Concurrency lens per-construct filtering** (2026-04-02) — thread_sharing
+  field in cards (none/possible/explicit). Concurrency lens excludes
+  thread_sharing:none constructs. Prevents false positives on single-threaded
+  components.
 
-- **Architect composite candidates** (2026-03-20) — evaluate combinations of
-  approaches when no single candidate covers all constraints. Boundary rule defines
-  which component handles which sub-problem.
+- **Spec conflict detection at resolution time** (2026-04-02) — spec-resolve.sh
+  checks for contradictions between included specs before emitting bundle.
+  Feature-plan blocks, feature-test marks UNTESTABLE, feature-implement
+  diagnoses spec conflicts instead of misdiagnosing as test/contract bugs.
 
-- **/decisions revisit replaces /decisions review** (2026-03-20) — single command
-  accepts slug or topic, conversational "why" pre-step, revision condition checking,
-  feature kickoff after revision.
+- **DRAFT specs with conflicts blocked from bundles** (2026-04-02) — specs with
+  [UNRESOLVED]/[CONFLICT] markers or open_obligations excluded from resolved
+  context. Only APPROVED specs trusted as authoritative.
 
-- **Architect neutral presentation** (2026-03-20) — non-negotiable rule: never express
-  preference before Step 6a deliberation. Found via JLSM: architect was declaring
-  winners during candidate identification.
+- **Spec extraction from implementation** (2026-04-03) — bottom-up spec
+  authoring for foundational types (JlsmSchema, JlsmDocument). Auto-discovery
+  of source, consuming specs, tests. [ABSENT] tag for behaviors code doesn't
+  have but specs may assume.
 
-- **Mandatory doc review in /release** (2026-03-20) — Step 1.5 checks README, EXAMPLES,
-  DESIGN, CONTEXT against changes before release notes can be drafted.
+- **[ABSENT] requirement lifecycle** (2026-04-03) — promote (becomes
+  implementation work with [UNIMPLEMENTED] obligation), preserve (becomes
+  negative requirement), defer (curate resurfaces). No requirement falls
+  through the cracks.
+
+- **Fix-spec conflict resolution** (2026-04-03) — three options: keep fix +
+  update spec, revert fix + mark FIX_IMPOSSIBLE, split (keep fix + add new
+  requirement that invalidates old). Fourth option: defer with [UNRESOLVED].
 
 ---
 
@@ -98,43 +147,45 @@ All on main, ready for release cut. Documentation updated for all new capabiliti
 
 ### Do next (high priority, clear direction)
 
-- **Large repo curation testing** — `/curate` dogfooded on JLSM (19 commits).
-  Needs testing on a larger repo (1000+ commits, 30+ contributors) to validate
-  the 500-commit cap and co-change analysis performance in bash.
+- **Spec-driven work planning** — two capabilities: (1) free-text search across
+  all specs to find applicable requirements for a problem description,
+  (2) spec-change-driven planning where the planner traces downstream impact
+  of requirement changes (tests, implementations, dependent specs). Entry
+  point: `/spec-plan` or extension of `/spec-author`.
+
+- **Validate concurrency lens fix** — run an audit on a concurrency-heavy
+  feature (striped-block-cache) with updated prompts. Verify single-threaded
+  false positives are eliminated and test dedup reduces cascade impossibles.
+
+- **JlsmSchema spec extraction** — running now. Will test the extraction mode
+  on the highest-fanout type (6 consuming specs). Results inform whether
+  extraction mode scales.
 
 ### Do soon (medium effort, clear designs)
 
-- **Work unit split thresholds** — 15K crossover and 3.5K per-construct are
-  reasoned estimates, not measured. Token tracking is collecting actuals — needs
-  data review once enough features have run with tracking enabled.
+- **Architect/decision hardening** — apply adversarial authoring to the decision
+  deliberation layer. Falsification pass added (Step 6) but not yet tested
+  on real ADRs.
+
+- **/curate cross-reference repair** — signal type that discovers missing
+  `related`/`decision_refs` in existing KB entries via tag overlap.
+
+- **Concurrency lens false positive rate tracking** — need multi-codebase data
+  to confirm thread_sharing field eliminates false positives. Block-compression
+  data shows 54% preventable impossibles.
 
 ### Do when needed (useful but workarounds exist)
 
-- **/feature-split** — split in-progress feature when scope expands. Workaround:
-  finish current feature, start a new one.
+- **/feature-split** — split in-progress feature when scope expands.
 
-- **HANDOFF.md convention** — `/save-work` mostly covers this. May just need
-  documentation rather than new code.
-
-- **KB coding agent** — third KB role that reads entries and implements against
-  them. Current workflow (read KB manually) works.
+- **Large repo curation testing** — `/curate` needs testing on a repo with
+  1000+ commits, 30+ contributors.
 
 ### Do when scale demands it (team/scale features)
 
-- **KB `depends-on` field** — frontmatter field for structural staleness. P2/P3
-  tension with fan-out reads on dependency chains. Date-based staleness sufficient
-  for current scale.
-
-- **Team KB commands** — `/kb sync`, `/kb consolidate`, `/kb status`. Useful for
-  teams but vallorcine is primarily single-developer today.
-
-- **LSP integration** — README documentation of companion plugins. Nice-to-have.
+- **Team KB commands** — `/kb sync`, `/kb consolidate`, `/kb status`.
 
 - **Pipeline observability** — velocity metrics, KB utilization tracking.
-  Premature until more projects use vallorcine.
-
-- **KB cross-referencing** — reverse mapping (decisions → KB). One-way exists.
-  Low urgency until KB is large enough to need it.
 
 ---
 
@@ -159,7 +210,7 @@ question or decision.
 the loop at every meaningful boundary. No silent chaining. No surprises.
 
 **Token awareness is a first-class concern.** Quantitative where possible.
-Not vibes-based.
+Not vibes-based. Always measure by API token pricing, never assume subscription.
 
 **No ceremony without value.** Resist adding steps that always run regardless
 of need. 0-signal complexity check is silent. 0-question scoping is valid.

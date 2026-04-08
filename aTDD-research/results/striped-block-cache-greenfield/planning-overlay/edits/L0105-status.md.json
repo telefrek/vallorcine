@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/status.md",
+  "old_string": "| Domains | in-progress | \u2014 | ~6K | \u2014 | |\n| Planning | not-started | \u2014 | \u2014 | \u2014 | |",
+  "new_string": "| Domains | complete | 2026-03-17 | ~6K | \u2014 | 2 domains resolved, no ADRs needed |\n| Planning | complete | 2026-03-17 | ~8K | \u2014 | 1 new construct + 2 factory methods, single unit |",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/status.md",
+  "old_string": "**Stage:** scoping\n**Substage:** complete\n**Last successful checkpoint:** brief confirmed and written",
+  "new_string": "**Stage:** domains\n**Substage:** in-progress\n**Last successful checkpoint:** brief confirmed and written",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/float16-vector-support/status.md",
+  "old_string": "**Substage:** design-ready",
+  "new_string": "**Substage:** confirmed-design",
+  "replace_all": false
+}

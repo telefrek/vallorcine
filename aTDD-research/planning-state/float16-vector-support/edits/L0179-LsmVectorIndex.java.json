@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-vector/src/main/java/jlsm/vector/LsmVectorIndex.java",
+  "old_string": "     *   [0x00][4-byte BE centroid_id]               \u2192 dim\u00d74 bytes (centroid float coords)\n     *   [0x01][4-byte BE centroid_id][doc_id_bytes] \u2192 dim\u00d74 bytes (vector float coords)\n     *   [0x02][doc_id_bytes]                        \u2192 4-byte BE centroid_id (reverse lookup)",
+  "new_string": "     *   [0x00][4-byte BE centroid_id]               \u2192 dim\u00d74 bytes (centroid float32 coords)\n     *   [0x01][4-byte BE centroid_id][doc_id_bytes] \u2192 dim\u00d7precision bytes (vector coords)\n     *   [0x02][doc_id_bytes]                        \u2192 4-byte BE centroid_id (reverse lookup)",
+  "replace_all": false
+}

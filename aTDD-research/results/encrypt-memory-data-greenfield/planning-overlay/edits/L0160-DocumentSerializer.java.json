@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+  "old_string": "            case FieldType.VectorType vt -> {\n                final int elemBytes = vt.elementType() == FieldType.Primitive.FLOAT32 ? 4 : 2;\n                yield vt.dimensions() * elemBytes;\n            }\n            case FieldType.ObjectType ot -> {",
+  "new_string": "            case FieldType.BoundedString _ -> {\n                final byte[] utf8 = ((String) value).getBytes(StandardCharsets.UTF_8);\n                yield varIntSize(utf8.length) + utf8.length;\n            }\n            case FieldType.VectorType vt -> {\n                final int elemBytes = vt.elementType() == FieldType.Primitive.FLOAT32 ? 4 : 2;\n                yield vt.dimensions() * elemBytes;\n            }\n            case FieldType.ObjectType ot -> {",
+  "replace_all": false
+}

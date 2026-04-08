@@ -38,10 +38,13 @@ def main() -> None:
             pass
     elif event == "SubagentStop":
         try:
-            state_file.unlink()
+            state_file.unlink(missing_ok=True)
         except OSError:
             pass
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        pass

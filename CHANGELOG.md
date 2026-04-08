@@ -5,6 +5,127 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.8.0] — 2026-04-03
+
+### Added
+- **Combined prove-fix pipeline** — merged Prove + Fix stages into single
+  per-finding subagent. Serial dispatch with fix cascade deduplication,
+  budget control, and resume support. Validated on 3 jlsm features: $7-11/bug
+  for detection + regression test + source fix.
+- **`/spec` command** — unified spec query, gap discovery, and change impact
+  analysis. Natural language input, discovers matching requirements across all
+  specs, traces downstream impact of proposed changes.
+- **`/audit` command** — renamed from `/feature-audit`. Adversarial audit
+  pipeline with prove-fix model, test cleanup phase, spec conflict detection.
+- **Spec extraction mode** — bottom-up spec authoring from existing
+  implementation. Auto-discovers source files, consuming specs, and tests.
+  Cross-references for CONTRADICTED, UNGUARANTEED, MISSING findings.
+- **Spec conflict detection pipeline** — spec-resolve checks contradictions
+  between included specs. feature-plan blocks on conflicts, feature-test
+  marks UNTESTABLE, feature-implement diagnoses spec conflicts in test failures.
+- **[ABSENT] requirement lifecycle** — extraction mode surfaces behaviors code
+  doesn't have. Promote (becomes implementation work), preserve (becomes
+  negative requirement), or defer (/curate resurfaces later).
+- **Fix-spec conflict resolution** — audit report detects when fixes contradict
+  spec requirements. Three options: keep fix + update spec, revert fix, defer.
+- **Ambiguous spec detection** — spec-author Pass 2c catches "either/or"
+  requirements. Job 3b detects contradictory test interpretations of same
+  requirement.
+- **Test cleanup phase (Job 3b)** — updates stale pre-existing tests after
+  audit fixes, classifies failures as STALE, SPEC AMBIGUITY, or REGRESSION.
+- **Curate spec awareness** — 4 new signal types: unspecified shared types,
+  open obligations, spec-code drift, undecided [ABSENT] requirements.
+- **Multi-language parity** — bash + Node.js implementations of reconcile-cards
+  and extract-views pipeline scripts, plus wrapper scripts for runtime detection.
+- **Architect falsification pass** — mandatory subagent between scoring and
+  deliberation that challenges scores, tests rejections, exposes assumptions.
+- **KB confidence field** — high/medium/low on research entries, surfaced
+  during architect scoring.
+- **Audit feedback loop** — reconcile-findings generates spec-updates.md and
+  kb-suggestions.md from audit results.
+
+### Changed
+- **Spec integration into /feature flow** — routes through spec-author →
+  spec-write after domain analysis when .spec/ exists. Backwards compatible.
+- **/feature-test** — Lens A operationalizes .spec/ requirements in spec mode,
+  falls back to inline analysis. Lens B spec-aware with SPEC-BOUNDARY,
+  BLIND-SPOT, IMPL-RISK finding tags.
+- **/feature-plan** — loads specs as primary context. Blocks on spec conflicts.
+- **/feature-implement** — detects spec conflicts in test failures, escalates
+  to spec-author instead of misdiagnosing as test/contract bugs.
+- **/feature-refactor** — delegates to /audit instead of removed pass-based
+  pipeline prompts.
+- **Spec-author Pass 2** — prove/disprove framing requires concrete attacks,
+  not bare assertions. Burden of proof on disproof.
+- **Concurrency lens** — card construction captures thread_sharing evidence
+  (none/possible/explicit). Suspect has mandatory concurrency clearings.
+  Domain pruning excludes single-threaded constructs. Validated: 0 false
+  positives across 2 audits.
+- **DRAFT specs with unresolved conflicts** blocked from resolved context bundles.
+- **/vallorcine-help** — all new commands documented, pipeline description
+  updated to 9 steps.
+
+### Fixed
+- **Prove-fix edit persistence** — mandatory re-read before edits, verification
+  after compile, diff in output. Fixes data loss where serial agents overwrote
+  earlier agents' changes.
+- **Test timeout isolation** — individual method runs to isolate hanging tests.
+  Applied to prove-fix, feature-implement, feature-test.
+- **API error retry** — prove-fix orchestrator retries once on 500/timeout,
+  then marks DEFERRED and continues.
+- **Script hardening** — ~55 fixes across 27 scripts (bash/Python/Node):
+  atomic writes, exit 0 guarantees, pipefail safety, empty array guards,
+  'use strict', sorted→max optimization.
+- Report.md suspect file glob pattern (parallel-era assumption cleanup).
+
+---
+
+## [0.7.0] — 2026-03-25
+
+### Added
+- **Spec analysis pre-pass** — `/feature-test` Step 1c analyzes work-plan contracts
+  across two lenses (contract gaps + implementation risk patterns) before writing tests.
+  Generates defensive test vectors that prevent bugs from being written rather than
+  finding them after implementation. Reads adversarial KB entries from prior features.
+- **Adversarial audit loop** — `/feature-refactor` Step 4b runs a post-implementation
+  audit pass: re-analyzes implementation code, writes targeted adversarial tests, and
+  fixes confirmed bugs with fix-forward scanning. First loop runs automatically;
+  additional rounds require user approval for cross-construct bugs.
+- **Spec Analyst agent** (`spec-analyst-agent.md`) — both-lens analysis identity for
+  the audit pre-pass and post-implementation audit.
+- **Breaker agent** (`breaker-agent.md`) — adversarial test writing identity.
+- **KB adversarial-finding template** — persists bug patterns across features so each
+  audit makes the next one smarter.
+- **KB feature-footprint template** — condensed feature records for cross-reference
+  during domain analysis.
+- **aTDD research data** — full methodology, experiment harness, and validation results
+  in `aTDD-research/`. Documents why each pipeline change was made.
+
+### Changed
+- **Unified pipeline model** — one pipeline with configurable audit depth replaces the
+  tier model. `/feature-quick` = 0 audit loops, `/feature` = 1 loop (default), complex
+  features = user-approved additional rounds.
+- **Code Writer agent** — fix-forward rule: after fixing a bug, scans all other constructs
+  for the same anti-pattern.
+- **Refactor agent** — assert-only validation check, silent exception swallowing check,
+  known_issues.md awareness for structural invariants.
+- **Test Writer agent** — reads adversarial KB entries during defensive vector generation.
+- **Domain Scout** — surfaces feature footprints during `/feature-domains`, silently
+  passes adversarial findings through to test phase.
+- **Feature retro** — graduates adversarial findings and feature footprints to `.kb/`.
+- **TDD protocol** — 5-minute Bash timeout on all test execution.
+- **Pipeline timeouts** — aligned across `/feature-coordinate`, `/feature-implement`,
+  `/feature-test`.
+- **README** — updated pipeline diagram showing audit pass and KB feedback loop.
+- **`/vallorcine-help`** — updated pipeline descriptions with spec analysis and audit.
+
+### Validation
+Validated on 3 jlsm features. Combined pipeline is 3.7x cheaper than original TDD on
+the largest feature (encrypt-memory-data: 47 files, 17.7M vs 64.9M tokens) with zero
+post-implementation audit bugs. Spec analysis prevents bugs rather than finding them.
+
+---
+
 ## [0.6.0] — 2026-03-20
 
 ### Design evolution

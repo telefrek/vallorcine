@@ -1,0 +1,6 @@
+{
+  "path": ".feature/extract-core-encryption/status.md",
+  "old_string": "**Stage:** scoping\n**Substage:** confirming-brief\n**Last successful checkpoint:** feature directory created",
+  "new_string": "**Stage:** scoping\n**Substage:** complete\n**Last successful checkpoint:** brief.md written and confirmed",
+  "replace_all": false
+}

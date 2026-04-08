@@ -1,0 +1,6 @@
+{
+  "path": ".feature/optimize-document-serializer/status.md",
+  "old_string": "**Stage:** scoping\n**Substage:** complete\n**Last successful checkpoint:** feature directory created\n**Automation mode:** not-set\n**Execution strategy:** not-set",
+  "new_string": "**Stage:** planning\n**Substage:** complete\n**Last successful checkpoint:** work-plan.md written\n**Automation mode:** not-set\n**Execution strategy:** cost",
+  "replace_all": false
+}

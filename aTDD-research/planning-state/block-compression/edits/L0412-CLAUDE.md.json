@@ -1,0 +1,6 @@
+{
+  "path": ".decisions/CLAUDE.md",
+  "old_string": "| SSTable block compression format | sstable-block-compression-format | 2026-03-17 | Compression Offset Map \u2014 separate file section with per-block metadata array |",
+  "new_string": "| Compression codec API design | compression-codec-api-design | 2026-03-17 | Open interface + explicit codec list \u2014 non-sealed, reader takes varargs codecs |\n| SSTable block compression format | sstable-block-compression-format | 2026-03-17 | Compression Offset Map \u2014 separate file section with per-block metadata array |",
+  "replace_all": false
+}

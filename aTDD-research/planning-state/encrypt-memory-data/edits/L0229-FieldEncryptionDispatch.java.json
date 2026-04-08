@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldEncryptionDispatch.java",
+  "old_string": "                case EncryptionSpec.OrderPreserving _ -> {\n                    // OrderPreserving requires domain/range configuration.\n                    // For generic byte-level dispatch, use long-based OPE.\n                    final BoldyrevaOpeEncryptor ope = new BoldyrevaOpeEncryptor(keyHolder,\n                            Long.MAX_VALUE / 2, Long.MAX_VALUE);\n                    encryptors[i] = plaintext -> opeEncryptBytes(ope, plaintext);\n                    decryptors[i] = ciphertext -> opeDecryptBytes(ope, ciphertext);\n                }",
+  "new_string": "                case EncryptionSpec.OrderPreserving _ -> {\n                    // Derive OPE domain/range from the field type for optimal recursion depth.\n                    final long[] bounds = deriveOpeBounds(fd.type());\n                    final BoldyrevaOpeEncryptor ope = new BoldyrevaOpeEncryptor(keyHolder,\n                            bounds[0], bounds[1]);\n                    encryptors[i] = plaintext -> opeEncryptBytes(ope, plaintext);\n                    decryptors[i] = ciphertext -> opeDecryptBytes(ope, ciphertext);\n                }",
+  "replace_all": false
+}

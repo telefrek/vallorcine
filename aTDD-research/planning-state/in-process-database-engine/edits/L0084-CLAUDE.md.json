@@ -1,0 +1,6 @@
+{
+  "path": ".feature/CLAUDE.md",
+  "old_string": "| Feature | Slug | Started | Stage | Last Checkpoint |\n|---------|------|---------|-------|-----------------|",
+  "new_string": "| Feature | Slug | Started | Stage | Last Checkpoint |\n|---------|------|---------|-------|-----------------|\n| In-process database engine | in-process-database-engine | 2026-03-19 | scoping complete | brief confirmed |",
+  "replace_all": false
+}

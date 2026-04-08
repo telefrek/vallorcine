@@ -1,0 +1,6 @@
+{
+  "path": ".kb/CLAUDE.md",
+  "old_string": "| 2026-03-16 | algorithms | vector-quantization | product-quantization |\n| 2026-03-16 | algorithms | vector-quantization | product-quantization |",
+  "new_string": "| 2026-03-16 | algorithms | vector-quantization | product-quantization |\n| 2026-03-16 | algorithms | vector-quantization | rabitq |",
+  "replace_all": false
+}

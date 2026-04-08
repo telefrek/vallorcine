@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+  "old_string": "            case FieldType.ArrayType at -> encodeArray(c, at.elementType(), (Object[]) value);\n            case FieldType.VectorType vt -> encodeVector(c, vt, value);\n            case FieldType.ObjectType ot -> encodeObject(c, ot, (JlsmDocument) value);\n        }\n    }",
+  "new_string": "            case FieldType.BoundedString _ -> {\n                final byte[] utf8 = ((String) value).getBytes(StandardCharsets.UTF_8);\n                writeVarInt(c, utf8.length);\n                System.arraycopy(utf8, 0, c.buf, c.pos, utf8.length);\n                c.pos += utf8.length;\n            }\n            case FieldType.ArrayType at -> encodeArray(c, at.elementType(), (Object[]) value);\n            case FieldType.VectorType vt -> encodeVector(c, vt, value);\n            case FieldType.ObjectType ot -> encodeObject(c, ot, (JlsmDocument) value);\n        }\n    }",
+  "replace_all": false
+}

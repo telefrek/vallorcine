@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-core/src/main/java/jlsm/memtable/ConcurrentSkipListMemTable.java",
+  "old_string": "        CompositeKey compositeKey = new CompositeKey(entry.key(), entry.sequenceNumber());\n        map.put(compositeKey, entry);\n\n        // Accumulate size estimate\n        long delta = switch (entry) {\n            case Entry.Put p -> p.key().byteSize() + p.value().byteSize() + Long.BYTES;\n            case Entry.Delete d -> d.key().byteSize() + Long.BYTES;\n        };\n        sizeBytes.addAndGet(delta);\n\n        assert map.containsKey(compositeKey) : \"entry must be present after apply\";",
+  "new_string": "        CompositeKey compositeKey = new CompositeKey(entry.key(), entry.sequenceNumber());\n        map.put(compositeKey, entry);\n\n        // Accumulate size estimate\n        long delta = switch (entry) {\n            case Entry.Put p -> p.key().byteSize() + p.value().byteSize() + Long.BYTES;\n            case Entry.Delete d -> d.key().byteSize() + Long.BYTES;\n        };\n        sizeBytes.addAndGet(delta);",
+  "replace_all": false
+}

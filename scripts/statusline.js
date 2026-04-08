@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+'use strict';
 /**
  * vallorcine status line — Node.js enhanced implementation.
  *
@@ -131,7 +132,9 @@ function main() {
         if (baselineStage !== currentStage || baselineCtx === 0) {
           const newBaseline = { baseline_stage: currentStage, baseline_ctx_tokens: currentCtxTokens, baseline_timestamp: nowUtc() };
           fs.mkdirSync(path.dirname(baselineFile), { recursive: true });
-          fs.writeFileSync(baselineFile, JSON.stringify(newBaseline) + '\n');
+          const tmpFile = baselineFile + '.tmp';
+          fs.writeFileSync(tmpFile, JSON.stringify(newBaseline) + '\n');
+          fs.renameSync(tmpFile, baselineFile);
           baselineCtx = currentCtxTokens;
         }
 

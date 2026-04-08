@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/status.md",
+  "old_string": "**Substage:** not-started",
+  "new_string": "**Substage:** planning",
+  "replace_all": false
+}

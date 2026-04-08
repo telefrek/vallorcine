@@ -1,0 +1,6 @@
+{
+  "path": ".kb/CLAUDE.md",
+  "old_string": "| 2026-03-17 | algorithms | compression | block-compression-algorithms |",
+  "new_string": "| 2026-03-18 | systems | lsm-index-patterns | index-scan-patterns |\n| 2026-03-17 | algorithms | compression | block-compression-algorithms |",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".feature/sql-query-support/status.md",
+  "old_string": "| Vector Similarity SQL Syntax | pending-research | no KB entry | 2026-03-16 |",
+  "new_string": "| Vector Similarity SQL Syntax | resolved | .kb/algorithms/sql-extensions/vector-similarity-sql-syntax.md | 2026-03-16 |",
+  "replace_all": false
+}

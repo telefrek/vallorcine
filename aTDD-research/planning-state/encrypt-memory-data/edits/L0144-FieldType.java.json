@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-table/src/main/java/jlsm/table/FieldType.java",
+  "old_string": "    /**\n     * A fixed-dimension vector of floating-point elements.",
+  "new_string": "    /**\n     * A string with a declared maximum byte length.\n     * Behaves identically to {@link Primitive#STRING} in all contexts except\n     * encryption dispatch (OPE domain derivation) and index validation\n     * (OrderPreserving compatibility).\n     *\n     * @param maxLength the maximum byte length; must be positive\n     */\n    record BoundedString(int maxLength) implements FieldType {\n        public BoundedString {\n            if (maxLength <= 0) {\n                throw new IllegalArgumentException(\n                        \"maxLength must be positive, got: \" + maxLength);\n            }\n        }\n    }\n\n    /**\n     * A fixed-dimension vector of floating-point elements.",
+  "replace_all": false
+}

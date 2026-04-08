@@ -1,0 +1,6 @@
+{
+  "path": "modules/jlsm-core/src/main/java/jlsm/sstable/TrieSSTableWriter.java",
+  "old_string": "    // Index: parallel lists of keys + file offsets (offset of entry start within the block data)\n    private final List<MemorySegment> indexKeys = new ArrayList<>();\n    private final List<Long> indexOffsets = new ArrayList<>();",
+  "new_string": "    // Index: parallel lists of keys (raw byte[]) + file offsets\n    private final List<byte[]> indexKeys = new ArrayList<>();\n    private final List<Long> indexOffsets = new ArrayList<>();",
+  "replace_all": false
+}

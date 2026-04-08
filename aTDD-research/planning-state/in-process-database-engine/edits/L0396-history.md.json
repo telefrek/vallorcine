@@ -1,0 +1,6 @@
+{
+  "path": ".decisions/history.md",
+  "old_string": "| Problem | Slug | Accepted | Recommendation |\n|---------|------|----------|----------------|\n| Index Definition API Simplification",
+  "new_string": "| Problem | Slug | Accepted | Recommendation |\n|---------|------|----------|----------------|\n| Field Encryption API Design | field-encryption-api-design | 2026-03-18 | Schema Annotation \u2014 FieldDefinition carries sealed EncryptionSpec, keys in Arena-backed holder |\n| Index Definition API Simplification",
+  "replace_all": false
+}

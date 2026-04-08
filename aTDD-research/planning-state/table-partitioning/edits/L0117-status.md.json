@@ -1,0 +1,6 @@
+{
+  "path": ".feature/striped-block-cache/status.md",
+  "old_string": "**Substage:** refactor: security",
+  "new_string": "**Substage:** refactor: performance",
+  "replace_all": false
+}

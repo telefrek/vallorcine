@@ -1,0 +1,6 @@
+{
+  "path": ".feature/table-partitioning/status.md",
+  "old_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|",
+  "new_string": "| Domain | Status | ADR | KB entries | Commissioned | Resolved |\n|--------|--------|-----|------------|--------------|----------|\n| Partitioning strategy | pending | \u2014 | \u2014 | \u2014 | \u2014 |\n| Scatter-gather query execution | pending | \u2014 | \u2014 | \u2014 | \u2014 |\n| Result fusion | pending | \u2014 | \u2014 | \u2014 | \u2014 |\n| Partition descriptor model | pending | \u2014 | \u2014 | \u2014 | \u2014 |",
+  "replace_all": false
+}

@@ -1,0 +1,6 @@
+{
+  "path": ".decisions/compression-codec-api-design/log.md",
+  "old_string": "---\n",
+  "new_string": "---\n\n## 2026-03-17 \u2014 decision-confirmed\n\n**Agent:** Architect Agent\n**Event:** decision-confirmed\n**Summary:** Open interface + explicit codec list confirmed for CompressionCodec API design.\n\n### Deliberation Summary\n\n**Rounds of deliberation:** 1\n**Recommendation presented:** Open interface + explicit codec list (Candidate B)\n**Final decision:** Open interface + explicit codec list (same as presented)\n\n**Topics raised during deliberation:**\n- None \u2014 user confirmed immediately.\n\n**Constraints updated during deliberation:**\n- None\n\n**Assumptions explicitly confirmed by user:**\n- Open interface is preferred over sealed for extensibility\n- Explicit codec list on reader (no global registry)\n- byte[] parameters are acceptable\n\n**Override:** None\n\n**Confirmation:** User confirmed with: \"confirmed\"\n\n**Files written after confirmation:**\n- `adr.md` \u2014 decision record v1\n- `constraints.md` \u2014 no changes\n\n**KB files read during evaluation:**\n- [`.kb/algorithms/compression/block-compression-algorithms.md`](../../.kb/algorithms/compression/block-compression-algorithms.md)\n\n---\n",
+  "replace_all": false
+}

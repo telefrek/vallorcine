@@ -733,6 +733,59 @@ else
     fail "real items should still be extracted"
 fi
 
+# ── Test 24: grep pipefail in ADR pressure (no file references) ─────────────
+
+echo ""
+echo "── Test 24: ADR with no file-path references doesn't crash pressure calc"
+
+# Create an ADR with no file-path-like strings in its body
+mkdir -p "$PROJECT/.decisions/no-file-refs"
+cat > "$PROJECT/.decisions/no-file-refs/adr.md" << 'EOF'
+---
+problem: "no-file-refs"
+date: "2026-03-01"
+status: "confirmed"
+---
+
+# ADR — No File References
+
+## Problem
+How to handle something abstract with no file references at all.
+
+## Decision
+Use a conceptual approach with no specific files constrained.
+EOF
+
+git -C "$PROJECT" add -A
+git -C "$PROJECT" commit -m "add ADR with no file references" >/dev/null 2>&1
+
+output="$(cd "$PROJECT" && bash .claude/scripts/curate-scan.sh --init 2>&1)"
+if echo "$output" | grep -q "Scan complete"; then
+    pass "scan succeeds with ADR containing no file-path references"
+else
+    fail "grep pipefail: ADR with no file references crashes scan" "got: $output"
+fi
+
+# ── Test 25: test-drift grep -c doesn't break integer comparison ────────────
+
+echo ""
+echo "── Test 25: test-drift with source file not in churn.txt"
+
+# Create a source file that changed but has zero churn entries
+# (simulates grep -c returning 0 — the old || echo 0 bug)
+mkdir -p "$PROJECT/src/new"
+echo "new module" > "$PROJECT/src/new/fresh.ts"
+git -C "$PROJECT" add -A
+git -C "$PROJECT" commit -m "add fresh source file" >/dev/null 2>&1
+
+# Incremental scan — fresh.ts appears as changed but has minimal churn
+output="$(cd "$PROJECT" && bash .claude/scripts/curate-scan.sh --init 2>&1)"
+if echo "$output" | grep -q "Scan complete"; then
+    pass "scan succeeds when source files have zero churn matches"
+else
+    fail "grep -c newline bug: integer comparison fails on zero-match files" "got: $output"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

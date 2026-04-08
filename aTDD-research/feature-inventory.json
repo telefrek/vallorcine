@@ -1,0 +1,577 @@
+{
+  "features": {
+    "block-compression": {
+      "slug": "block-compression",
+      "git": {
+        "feature_sha": "af6b5cb",
+        "parent_sha": "c8243f0",
+        "commit_msg": "feat(sstable): add block-level compression to SSTable storage",
+        "files_changed": 27,
+        "insertions": 2893,
+        "test_files": [
+          "modules/jlsm-core/src/test/java/jlsm/core/compression/CompressionCodecTest.java",
+          "modules/jlsm-core/src/test/java/jlsm/sstable/SSTableCompressionTest.java",
+          "modules/jlsm-core/src/test/java/jlsm/sstable/internal/CompressionMapTest.java"
+        ],
+        "impl_files": [
+          "modules/jlsm-core/src/main/java/jlsm/core/compression/CompressionCodec.java",
+          "modules/jlsm-core/src/main/java/jlsm/core/compression/DeflateCodec.java",
+          "modules/jlsm-core/src/main/java/jlsm/core/compression/NoneCodec.java",
+          "modules/jlsm-core/src/main/java/jlsm/sstable/TrieSSTableReader.java",
+          "modules/jlsm-core/src/main/java/jlsm/sstable/TrieSSTableWriter.java",
+          "modules/jlsm-core/src/main/java/jlsm/sstable/internal/CompressionMap.java",
+          "modules/jlsm-core/src/main/java/jlsm/sstable/internal/SSTableFormat.java",
+          "modules/jlsm-core/src/main/java/module-info.java"
+        ]
+      },
+      "tokens": {
+        "tdd_tokens_best": 20255624,
+        "pre_tdd_tokens": 9729538,
+        "total_tokens": 29985162,
+        "tdd_method": "inline",
+        "test_runs": 22,
+        "session_count": 5
+      },
+      "work_units": [],
+      "has_brief": true,
+      "has_work_plan": true,
+      "work_unit_count": 2
+    },
+    "encrypt-memory-data": {
+      "slug": "encrypt-memory-data",
+      "git": {
+        "feature_sha": "5a3c159",
+        "parent_sha": "f56de0d",
+        "commit_msg": "feat(table): add field-level encryption with searchable encryption support",
+        "files_changed": 47,
+        "insertions": 6018,
+        "test_files": [
+          "modules/jlsm-table/src/test/java/jlsm/table/AesGcmEncryptorTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/AesSivEncryptorTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/BoldyrevaOpeEncryptorTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/DcpeSapEncryptorTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/DocumentSerializerEncryptionTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/EncryptionKeyHolderTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/EncryptionSpecTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/FieldDefinitionEncryptionTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/FieldEncryptionDispatchTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/IndexRegistryEncryptionTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/JlsmSchemaEncryptionTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/PositionalPostingCodecTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/SseEncryptedIndexTest.java"
+        ],
+        "impl_files": [
+          "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/EncryptionSpec.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/FieldDefinition.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/JlsmSchema.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/AesGcmEncryptor.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/AesSivEncryptor.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/BoldyrevaOpeEncryptor.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/DcpeSapEncryptor.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/EncryptionKeyHolder.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/FieldEncryptionDispatch.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/IndexRegistry.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/PositionalPostingCodec.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/SseEncryptedIndex.java"
+        ]
+      },
+      "tokens": {
+        "tdd_tokens_best": 64006252,
+        "pre_tdd_tokens": 924666,
+        "total_tokens": 64930918,
+        "tdd_method": "mixed",
+        "test_runs": 10,
+        "session_count": 1
+      },
+      "work_units": [
+        {
+          "description": "WU-3 test-implement-refactor",
+          "total_tokens": 118974,
+          "duration_ms": 742119
+        },
+        {
+          "description": "WU-4 test-implement-refactor",
+          "total_tokens": 79842,
+          "duration_ms": 947257
+        },
+        {
+          "description": "WU-1 module extraction TDD",
+          "total_tokens": 126943,
+          "duration_ms": 1036788
+        },
+        {
+          "description": "WU-2 pre-encrypted TDD cycle",
+          "total_tokens": 92177,
+          "duration_ms": 16398448
+        },
+        {
+          "description": "Implement encryption perf fixes",
+          "total_tokens": 54309,
+          "duration_ms": 750438
+        },
+        {
+          "description": "Plan and implement OPE bounds",
+          "total_tokens": 173280,
+          "duration_ms": 2680562
+        }
+      ],
+      "has_brief": true,
+      "has_work_plan": true,
+      "work_unit_count": 4,
+      "test_count": 426
+    },
+    "engine-clustering": {
+      "slug": "engine-clustering",
+      "git": {
+        "feature_sha": "38603db",
+        "parent_sha": "1dfacaf",
+        "commit_msg": "feat(engine): implement engine clustering \u2014 membership, ownership, scatter-gather",
+        "files_changed": 28,
+        "insertions": 4334,
+        "test_files": [
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/ClusterConfigTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/ClusteredEngineTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/ClusteredTableTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/GracePeriodManagerTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/MemberStateTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/MemberTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/MembershipViewTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/MessageTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/MessageTypeTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/NodeAddressTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/PartialResultMetadataTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/PhiAccrualFailureDetectorTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/RapidMembershipTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/RemotePartitionClientTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/RendezvousOwnershipTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/internal/InJvmDiscoveryProviderTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/cluster/internal/InJvmTransportTest.java"
+        ],
+        "impl_files": [
+          "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/ClusteredEngine.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/ClusteredTable.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/GracePeriodManager.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/InJvmDiscoveryProvider.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/InJvmTransport.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/PhiAccrualFailureDetector.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/RapidMembership.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/RemotePartitionClient.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/cluster/internal/RendezvousOwnership.java"
+        ]
+      },
+      "tokens": {
+        "tdd_tokens_best": 14933096,
+        "pre_tdd_tokens": 775272,
+        "total_tokens": 17692597,
+        "tdd_method": "mixed",
+        "test_runs": 11,
+        "session_count": 3
+      },
+      "work_units": [
+        {
+          "description": "WU-1 Foundation TDD cycle",
+          "total_tokens": 64642,
+          "duration_ms": 313889
+        },
+        {
+          "description": "WU-3 Ownership Rebalancing TDD",
+          "total_tokens": 68854,
+          "duration_ms": 463849
+        },
+        {
+          "description": "WU-2 Membership Protocol TDD",
+          "total_tokens": 87054,
+          "duration_ms": 687870
+        }
+      ],
+      "has_brief": true,
+      "has_work_plan": true,
+      "work_unit_count": 4,
+      "test_count": 340
+    },
+    "float16-vector-support": {
+      "slug": "float16-vector-support",
+      "git": {
+        "feature_sha": "0f329b3",
+        "parent_sha": "efc0e11",
+        "commit_msg": "integrating vallorcine and testing float16 support",
+        "files_changed": 39,
+        "insertions": 3975,
+        "test_files": [
+          ".claude/commands/feature-test.md",
+          "modules/jlsm-core/src/test/java/jlsm/core/indexing/VectorPrecisionTest.java",
+          "modules/jlsm-vector/src/test/java/jlsm/vector/LsmVectorIndexFloat16Test.java"
+        ],
+        "impl_files": [
+          "modules/jlsm-core/src/main/java/jlsm/core/indexing/VectorIndex.java",
+          "modules/jlsm-core/src/main/java/jlsm/core/indexing/VectorPrecision.java",
+          "modules/jlsm-vector/src/main/java/jlsm/vector/LsmVectorIndex.java"
+        ]
+      },
+      "tokens": {
+        "tdd_tokens_best": 7362057,
+        "pre_tdd_tokens": 3538546,
+        "total_tokens": 17811689,
+        "tdd_method": "inline",
+        "test_runs": 9,
+        "session_count": 6
+      },
+      "work_units": [],
+      "has_brief": true,
+      "has_work_plan": true,
+      "work_unit_count": 1,
+      "test_count": 21
+    },
+    "in-process-database-engine": {
+      "slug": "in-process-database-engine",
+      "git": {
+        "feature_sha": "962aeb5",
+        "parent_sha": "96c0e41",
+        "commit_msg": "feat(engine): add jlsm-engine module with in-process database engine",
+        "files_changed": 40,
+        "insertions": 4617,
+        "test_files": [
+          "modules/jlsm-engine/src/test/java/jlsm/engine/AllocationTrackingTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/EngineMetricsTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/HandleEvictedExceptionTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/ModuleExportsTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/TableMetadataTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/internal/HandleTrackerTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/internal/LocalEngineTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/internal/LocalTableTest.java",
+          "modules/jlsm-engine/src/test/java/jlsm/engine/internal/TableCatalogTest.java"
+        ],
+        "impl_files": [
+          "modules/jlsm-engine/src/main/java/jlsm/engine/AllocationTracking.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/Engine.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/EngineMetrics.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/HandleEvictedException.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/Table.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/TableMetadata.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/internal/HandleRegistration.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/internal/HandleTracker.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/internal/LocalEngine.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/internal/LocalTable.java",
+          "modules/jlsm-engine/src/main/java/jlsm/engine/internal/TableCatalog.java",
+          "modules/jlsm-engine/src/main/java/module-info.java"
+        ]
+      },
+      "tokens": {
+        "tdd_tokens_best": 11044304,
+        "pre_tdd_tokens": 879709,
+        "total_tokens": 11924013,
+        "tdd_method": "mixed",
+        "test_runs": 9,
+        "session_count": 1
+      },
+      "work_units": [
+        {
+          "description": "WU-2 test-implement-refactor",
+          "total_tokens": 62432,
+          "duration_ms": 400374
+        },
+        {
+          "description": "WU-3 test-implement-refactor",
+          "total_tokens": 96102,
+          "duration_ms": 527980
+        }
+      ],
+      "has_brief": true,
+      "has_work_plan": true,
+      "work_unit_count": 3,
+      "test_count": 134
+    },
+    "optimize-document-serializer": {
+      "slug": "optimize-document-serializer",
+      "git": {
+        "feature_sha": "313ad12",
+        "parent_sha": "14915fe",
+        "commit_msg": "perf(table): optimize DocumentSerializer deserialization allocation strategy",
+        "files_changed": 4,
+        "insertions": 345,
+        "test_files": [
+          "modules/jlsm-table/src/test/java/jlsm/table/DocumentSerializerOptimizationTest.java"
+        ],
+        "impl_files": [
+          "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/JlsmDocument.java"
+        ]
+      },
+      "tokens": {
+        "tdd_tokens_best": 118298134,
+        "pre_tdd_tokens": 13366505,
+        "total_tokens": 131664639,
+        "tdd_method": "mixed",
+        "test_runs": 25,
+        "session_count": 2
+      },
+      "work_units": [
+        {
+          "description": "WU-1 test-implement-refactor",
+          "total_tokens": 46663,
+          "duration_ms": 266977
+        },
+        {
+          "description": "WU-2 test-implement-refactor",
+          "total_tokens": 67315,
+          "duration_ms": 505238
+        }
+      ],
+      "has_brief": true,
+      "has_work_plan": true,
+      "work_unit_count": 1
+    },
+    "sql-query-support": {
+      "slug": "sql-query-support",
+      "git": {
+        "feature_sha": "edc2b36",
+        "parent_sha": "cb626c9",
+        "commit_msg": "feat(jlsm-sql): add SQL SELECT parser and translator module",
+        "files_changed": 22,
+        "insertions": 2446,
+        "test_files": [
+          "modules/jlsm-sql/src/test/java/jlsm/sql/JlsmSqlTest.java",
+          "modules/jlsm-sql/src/test/java/jlsm/sql/SqlLexerTest.java",
+          "modules/jlsm-sql/src/test/java/jlsm/sql/SqlParserTest.java",
+          "modules/jlsm-sql/src/test/java/jlsm/sql/SqlTranslatorTest.java",
+          "modules/jlsm-sql/src/test/java/jlsm/sql/TokenTest.java"
+        ],
+        "impl_files": [
+          "modules/jlsm-sql/src/main/java/jlsm/sql/JlsmSql.java",
+          "modules/jlsm-sql/src/main/java/jlsm/sql/SqlAst.java",
+          "modules/jlsm-sql/src/main/java/jlsm/sql/SqlLexer.java",
+          "modules/jlsm-sql/src/main/java/jlsm/sql/SqlParseException.java",
+          "modules/jlsm-sql/src/main/java/jlsm/sql/SqlParser.java",
+          "modules/jlsm-sql/src/main/java/jlsm/sql/SqlQuery.java",
+          "modules/jlsm-sql/src/main/java/jlsm/sql/SqlTranslator.java",
+          "modules/jlsm-sql/src/main/java/jlsm/sql/Token.java",
+          "modules/jlsm-sql/src/main/java/jlsm/sql/TokenType.java",
+          "modules/jlsm-sql/src/main/java/module-info.java"
+        ]
+      },
+      "tokens": {
+        "tdd_tokens_best": 13730530,
+        "pre_tdd_tokens": 3845511,
+        "total_tokens": 20739881,
+        "tdd_method": "inline",
+        "test_runs": 22,
+        "session_count": 3
+      },
+      "work_units": [],
+      "has_brief": true,
+      "has_work_plan": true,
+      "work_unit_count": 2
+    },
+    "streaming-block-decompression": {
+      "slug": "streaming-block-decompression",
+      "git": {
+        "feature_sha": "579f8a6",
+        "parent_sha": "1e70573",
+        "commit_msg": "perf(sstable): stream block decompression during v2 compressed scans",
+        "files_changed": 8,
+        "insertions": 696,
+        "test_files": [
+          "modules/jlsm-core/src/test/java/jlsm/sstable/StreamingBlockDecompressionTest.java"
+        ],
+        "impl_files": [
+          "modules/jlsm-core/src/main/java/jlsm/sstable/TrieSSTableReader.java"
+        ]
+      },
+      "tokens": {
+        "tdd_tokens_best": 60759716,
+        "pre_tdd_tokens": 13269402,
+        "total_tokens": 74029118,
+        "tdd_method": "inline",
+        "test_runs": 9,
+        "session_count": 1
+      },
+      "work_units": [],
+      "has_brief": true,
+      "has_work_plan": true,
+      "work_unit_count": 1
+    },
+    "striped-block-cache": {
+      "slug": "striped-block-cache",
+      "git": {
+        "feature_sha": "d6b5acc",
+        "parent_sha": "d5e3bb0",
+        "commit_msg": "feat(cache): add StripedBlockCache for multi-threaded performance",
+        "files_changed": 3,
+        "insertions": 575,
+        "test_files": [
+          "modules/jlsm-core/src/test/java/jlsm/cache/StripedBlockCacheTest.java"
+        ],
+        "impl_files": [
+          "modules/jlsm-core/src/main/java/jlsm/cache/LruBlockCache.java",
+          "modules/jlsm-core/src/main/java/jlsm/cache/StripedBlockCache.java"
+        ]
+      },
+      "tokens": {
+        "tdd_tokens_best": 9860378,
+        "pre_tdd_tokens": 1899940,
+        "total_tokens": 21609149,
+        "tdd_method": "inline",
+        "test_runs": 12,
+        "session_count": 10
+      },
+      "work_units": [],
+      "has_brief": true,
+      "has_work_plan": true,
+      "work_unit_count": 1,
+      "test_count": 26
+    },
+    "table-indices-and-queries": {
+      "slug": "table-indices-and-queries",
+      "git": {
+        "feature_sha": "0001631",
+        "parent_sha": "3153f88",
+        "commit_msg": "feat(jlsm-table): add secondary indices and fluent query API",
+        "files_changed": 20,
+        "insertions": 2673,
+        "test_files": [
+          "modules/jlsm-table/src/test/java/jlsm/table/FieldIndexTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/FieldValueCodecTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/IndexDefinitionTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/IndexRegistryTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/PredicateTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/QueryExecutorTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/TableQueryTest.java"
+        ],
+        "impl_files": [
+          "modules/jlsm-table/src/main/java/jlsm/table/IndexDefinition.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/IndexType.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/Predicate.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/TableQuery.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/FieldIndex.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/FieldValueCodec.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/FullTextFieldIndex.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/IndexRegistry.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/QueryExecutor.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/SecondaryIndex.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/VectorFieldIndex.java"
+        ]
+      },
+      "tokens": {
+        "tdd_tokens_best": 7815683,
+        "pre_tdd_tokens": 617917,
+        "total_tokens": 10551064,
+        "tdd_method": "inline",
+        "test_runs": 13,
+        "session_count": 2
+      },
+      "work_units": [],
+      "has_brief": true,
+      "has_work_plan": true,
+      "work_unit_count": 2
+    },
+    "table-partitioning": {
+      "slug": "table-partitioning",
+      "git": {
+        "feature_sha": "95e2add",
+        "parent_sha": "86f7982",
+        "commit_msg": "feat(jlsm-table): add range-based table partitioning",
+        "files_changed": 34,
+        "insertions": 3851,
+        "test_files": [
+          "modules/jlsm-table/src/test/java/jlsm/table/PartitionConfigTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/PartitionDescriptorTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/PartitionedTableTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/ScoredEntryTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/internal/InProcessPartitionClientTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/internal/RangeMapTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/internal/ResultMergerTest.java"
+        ],
+        "impl_files": [
+          "modules/jlsm-table/src/main/java/jlsm/table/PartitionClient.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/PartitionConfig.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/PartitionDescriptor.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/PartitionedTable.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/ScoredEntry.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/InProcessPartitionClient.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/RangeMap.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/ResultMerger.java"
+        ]
+      },
+      "tokens": {
+        "tdd_tokens_best": 89630760,
+        "pre_tdd_tokens": 2167116,
+        "total_tokens": 92844252,
+        "tdd_method": "mixed",
+        "test_runs": 21,
+        "session_count": 4
+      },
+      "work_units": [
+        {
+          "description": "WU-1 test-implement-refactor cycle",
+          "total_tokens": 53844,
+          "duration_ms": 494850
+        },
+        {
+          "description": "WU-2 test-implement-refactor cycle",
+          "total_tokens": 65084,
+          "duration_ms": 306374
+        },
+        {
+          "description": "WU-3 test-implement-refactor cycle",
+          "total_tokens": 60442,
+          "duration_ms": 284653
+        }
+      ],
+      "has_brief": true,
+      "has_work_plan": true,
+      "work_unit_count": 3,
+      "test_count": 85
+    },
+    "vector-field-type": {
+      "slug": "vector-field-type",
+      "git": {
+        "feature_sha": "42896c3",
+        "parent_sha": "20aafb1",
+        "commit_msg": "feat(table): add VectorType to FieldType hierarchy with fixed dimensions",
+        "files_changed": 31,
+        "insertions": 2192,
+        "test_files": [
+          "modules/jlsm-table/src/test/java/jlsm/table/IndexDefinitionTest.java",
+          "modules/jlsm-table/src/test/java/jlsm/table/VectorTypeTest.java"
+        ],
+        "impl_files": [
+          "modules/jlsm-table/src/main/java/jlsm/table/DocumentSerializer.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/FieldType.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/IndexDefinition.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/JlsmDocument.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/JlsmSchema.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/IndexRegistry.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/JsonParser.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/JsonWriter.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/VectorFieldIndex.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/YamlParser.java",
+          "modules/jlsm-table/src/main/java/jlsm/table/internal/YamlWriter.java"
+        ]
+      },
+      "tokens": {
+        "tdd_tokens_best": 32683508,
+        "pre_tdd_tokens": 13985502,
+        "total_tokens": 46669010,
+        "tdd_method": "mixed",
+        "test_runs": 7,
+        "session_count": 1
+      },
+      "work_units": [
+        {
+          "description": "Refactor review checklist",
+          "total_tokens": 88924,
+          "duration_ms": 466792
+        },
+        {
+          "description": "Add missing tests and implement",
+          "total_tokens": 35857,
+          "duration_ms": 91973
+        }
+      ],
+      "has_brief": true,
+      "has_work_plan": true,
+      "work_unit_count": 1
+    }
+  }
+}

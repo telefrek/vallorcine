@@ -1,0 +1,353 @@
+{
+  "operations": [
+    {
+      "op": "write",
+      "path": ".feature/vector-field-type/status.md",
+      "line": 88,
+      "size": 1521
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0105-status.md.json",
+      "line": 105
+    },
+    {
+      "op": "write",
+      "path": ".feature/vector-field-type/brief.md",
+      "line": 116,
+      "size": 3261
+    },
+    {
+      "op": "write",
+      "path": ".feature/vector-field-type/cycle-log.md",
+      "line": 120,
+      "size": 410
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0126-status.md.json",
+      "line": 126
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0129-status.md.json",
+      "line": 129
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0136-CLAUDE.md.json",
+      "line": 136
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0179-status.md.json",
+      "line": 179
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0182-status.md.json",
+      "line": 182
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0186-status.md.json",
+      "line": 186
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0197-status.md.json",
+      "line": 197
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/cycle-log.md",
+      "edit_file": "edits/L0203-cycle-log.md.json",
+      "line": 203
+    },
+    {
+      "op": "write",
+      "path": ".decisions/vector-type-serialization-encoding/constraints.md",
+      "line": 224,
+      "size": 2651
+    },
+    {
+      "op": "write",
+      "path": ".decisions/vector-type-serialization-encoding/log.md",
+      "line": 228,
+      "size": 322
+    },
+    {
+      "op": "write",
+      "path": ".kb/algorithms/CLAUDE.md",
+      "line": 298,
+      "size": 309
+    },
+    {
+      "op": "write",
+      "path": ".kb/algorithms/vector-encoding/flat-vector-encoding.md",
+      "line": 372,
+      "size": 9400
+    },
+    {
+      "op": "write",
+      "path": ".kb/algorithms/vector-encoding/sparse-vector-encoding.md",
+      "line": 376,
+      "size": 9761
+    },
+    {
+      "op": "write",
+      "path": ".kb/algorithms/vector-encoding/lossless-vector-compression.md",
+      "line": 380,
+      "size": 13313
+    },
+    {
+      "op": "write",
+      "path": ".kb/algorithms/vector-encoding/CLAUDE.md",
+      "line": 385,
+      "size": 2411
+    },
+    {
+      "op": "edit",
+      "path": ".kb/algorithms/CLAUDE.md",
+      "edit_file": "edits/L0389-CLAUDE.md.json",
+      "line": 389
+    },
+    {
+      "op": "edit",
+      "path": ".kb/CLAUDE.md",
+      "edit_file": "edits/L0393-CLAUDE.md.json",
+      "line": 393
+    },
+    {
+      "op": "edit",
+      "path": ".kb/CLAUDE.md",
+      "edit_file": "edits/L0396-CLAUDE.md.json",
+      "line": 396
+    },
+    {
+      "op": "write",
+      "path": ".decisions/vector-type-serialization-encoding/evaluation.md",
+      "line": 467,
+      "size": 8599
+    },
+    {
+      "op": "write",
+      "path": ".decisions/vector-type-serialization-encoding/adr.md",
+      "line": 479,
+      "size": 5947
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/vector-type-serialization-encoding/log.md",
+      "edit_file": "edits/L0485-log.md.json",
+      "line": 485
+    },
+    {
+      "op": "write",
+      "path": ".decisions/vector-type-serialization-encoding/CLAUDE.md",
+      "line": 490,
+      "size": 1861
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/CLAUDE.md",
+      "edit_file": "edits/L0497-CLAUDE.md.json",
+      "line": 497
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0501-status.md.json",
+      "line": 501
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0511-status.md.json",
+      "line": 511
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/cycle-log.md",
+      "edit_file": "edits/L0517-cycle-log.md.json",
+      "line": 517
+    },
+    {
+      "op": "write",
+      "path": ".decisions/index-definition-api-simplification/constraints.md",
+      "line": 536,
+      "size": 2172
+    },
+    {
+      "op": "write",
+      "path": ".decisions/index-definition-api-simplification/log.md",
+      "line": 540,
+      "size": 368
+    },
+    {
+      "op": "write",
+      "path": ".decisions/index-definition-api-simplification/evaluation.md",
+      "line": 545,
+      "size": 4645
+    },
+    {
+      "op": "write",
+      "path": ".decisions/index-definition-api-simplification/adr.md",
+      "line": 557,
+      "size": 3751
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/index-definition-api-simplification/log.md",
+      "edit_file": "edits/L0563-log.md.json",
+      "line": 563
+    },
+    {
+      "op": "write",
+      "path": ".decisions/index-definition-api-simplification/CLAUDE.md",
+      "line": 567,
+      "size": 1328
+    },
+    {
+      "op": "edit",
+      "path": ".decisions/CLAUDE.md",
+      "edit_file": "edits/L0573-CLAUDE.md.json",
+      "line": 573
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0577-status.md.json",
+      "line": 577
+    },
+    {
+      "op": "write",
+      "path": ".feature/vector-field-type/domains.md",
+      "line": 582,
+      "size": 3483
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0588-status.md.json",
+      "line": 588
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0591-status.md.json",
+      "line": 591
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/cycle-log.md",
+      "edit_file": "edits/L0597-cycle-log.md.json",
+      "line": 597
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0603-CLAUDE.md.json",
+      "line": 603
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0621-status.md.json",
+      "line": 621
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0624-status.md.json",
+      "line": 624
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0650-status.md.json",
+      "line": 650
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0664-status.md.json",
+      "line": 664
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0694-status.md.json",
+      "line": 694
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0697-status.md.json",
+      "line": 697
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0711-status.md.json",
+      "line": 711
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0714-status.md.json",
+      "line": 714
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0731-status.md.json",
+      "line": 731
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0741-status.md.json",
+      "line": 741
+    },
+    {
+      "op": "write",
+      "path": ".feature/vector-field-type/work-plan.md",
+      "line": 12,
+      "size": 5705
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0016-status.md.json",
+      "line": 16
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/status.md",
+      "edit_file": "edits/L0019-status.md.json",
+      "line": 19
+    },
+    {
+      "op": "edit",
+      "path": ".feature/vector-field-type/cycle-log.md",
+      "edit_file": "edits/L0022-cycle-log.md.json",
+      "line": 22
+    },
+    {
+      "op": "edit",
+      "path": ".feature/CLAUDE.md",
+      "edit_file": "edits/L0025-CLAUDE.md.json",
+      "line": 25
+    }
+  ],
+  "total_ops": 58
+}
