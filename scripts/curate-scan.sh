@@ -725,6 +725,228 @@ if [[ -d ".spec" && -d ".spec/domains" ]]; then
 
 fi
 
+# ── Analysis 11: Cross-reference repair candidates ──────────────────────────
+# Detect missing related links between KB entries (tag overlap, applies_to overlap)
+# and missing KB source references in ADRs.
+
+> "$TMPDIR_SCAN/xref-kb-tags.txt"
+> "$TMPDIR_SCAN/xref-kb-applies.txt"
+> "$TMPDIR_SCAN/xref-adr-kb.txt"
+
+if [[ -d ".kb" ]]; then
+
+    # ── 11a: KB tag overlap candidates ───────────────────────────────────────
+    # Extract tags and related arrays from KB entries. For pairs with 2+ shared
+    # tags in different categories where related is empty, emit as candidate.
+
+    # Build a tag index: one line per entry with path|category|tags|related-empty
+    > "$TMPDIR_SCAN/kb-tag-index.txt"
+    (find .kb -name '*.md' -not -name 'CLAUDE.md' -not -path '*/_refs/*' -not -path '*/_archive*' 2>/dev/null || true) | while IFS= read -r kb_file; do
+        # Extract frontmatter between --- delimiters
+        frontmatter="$(sed -n '1{/^---$/!q};1,/^---$/p' "$kb_file" 2>/dev/null | tail -n +2 || true)"
+        if [[ -z "$frontmatter" ]]; then continue; fi
+
+        # Extract tags array (handles ["tag1", "tag2"] format)
+        tags_line="$(echo "$frontmatter" | grep -m1 '^tags:' || true)"
+        if [[ -z "$tags_line" ]]; then continue; fi
+        tags="$(echo "$tags_line" | sed 's/^tags:[[:space:]]*//' | tr -d '[]"' | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sort | tr '\n' ',' | sed 's/,$//')"
+        if [[ -z "$tags" ]]; then continue; fi
+
+        # Extract related array — check if empty
+        related_line="$(echo "$frontmatter" | grep -m1 '^related:' || true)"
+        related_empty=0
+        if [[ -z "$related_line" ]] || echo "$related_line" | grep -q '\[\]' 2>/dev/null; then
+            related_empty=1
+        fi
+
+        # Extract category (second path component after .kb/)
+        category="$(echo "$kb_file" | awk -F/ '{print $2"/"$3}')"
+
+        echo "$kb_file|$category|$tags|$related_empty" >> "$TMPDIR_SCAN/kb-tag-index.txt"
+    done
+
+    # Compare pairs for tag overlap (only entries with empty related)
+    if [[ -s "$TMPDIR_SCAN/kb-tag-index.txt" ]]; then
+        entry_count=$(wc -l < "$TMPDIR_SCAN/kb-tag-index.txt")
+        if [[ "$entry_count" -gt 1 ]]; then
+            # Read all entries into arrays for pairwise comparison
+            while IFS='|' read -r path_a cat_a tags_a empty_a; do
+                # Only consider entries with empty related as source
+                [[ "$empty_a" != "1" ]] && continue
+                while IFS='|' read -r path_b cat_b tags_b empty_b; do
+                    # Skip self and same-category pairs
+                    [[ "$path_a" = "$path_b" ]] && continue
+                    [[ "$cat_a" = "$cat_b" ]] && continue
+                    # Skip if already emitted (canonical order)
+                    [[ "$path_a" > "$path_b" ]] && continue
+
+                    # Count tag overlap
+                    shared=""
+                    overlap=0
+                    for tag in $(echo "$tags_a" | tr ',' '\n'); do
+                        if echo ",$tags_b," | grep -qF ",$tag," 2>/dev/null; then
+                            overlap=$((overlap + 1))
+                            if [[ -n "$shared" ]]; then
+                                shared="$shared, $tag"
+                            else
+                                shared="$tag"
+                            fi
+                        fi
+                    done
+
+                    if [[ "$overlap" -ge 2 ]]; then
+                        echo "TAG_OVERLAP|$path_a|$path_b|$overlap|$shared" >> "$TMPDIR_SCAN/xref-kb-tags.txt"
+                    fi
+                done < "$TMPDIR_SCAN/kb-tag-index.txt"
+            done < "$TMPDIR_SCAN/kb-tag-index.txt"
+        fi
+    fi
+
+    sort -t'|' -k4 -rn "$TMPDIR_SCAN/xref-kb-tags.txt" -o "$TMPDIR_SCAN/xref-kb-tags.txt" 2>/dev/null || true
+
+    # ── 11b: KB applies_to overlap candidates ────────────────────────────────
+    # Entries targeting the same files/patterns in different categories.
+
+    > "$TMPDIR_SCAN/kb-applies-index.txt"
+    (find .kb -name '*.md' -not -name 'CLAUDE.md' -not -path '*/_refs/*' -not -path '*/_archive*' 2>/dev/null || true) | while IFS= read -r kb_file; do
+        frontmatter="$(sed -n '1{/^---$/!q};1,/^---$/p' "$kb_file" 2>/dev/null | tail -n +2 || true)"
+        if [[ -z "$frontmatter" ]]; then continue; fi
+
+        applies_line="$(echo "$frontmatter" | grep -m1 '^applies_to:' || true)"
+        if [[ -z "$applies_line" ]]; then continue; fi
+        applies="$(echo "$applies_line" | sed 's/^applies_to:[[:space:]]*//' | tr -d '[]"' | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sort | tr '\n' ',' | sed 's/,$//')"
+        if [[ -z "$applies" ]] || [[ "$applies" = "[]" ]]; then continue; fi
+
+        related_line="$(echo "$frontmatter" | grep -m1 '^related:' || true)"
+        related_empty=0
+        if [[ -z "$related_line" ]] || echo "$related_line" | grep -q '\[\]' 2>/dev/null; then
+            related_empty=1
+        fi
+
+        category="$(echo "$kb_file" | awk -F/ '{print $2"/"$3}')"
+        echo "$kb_file|$category|$applies|$related_empty" >> "$TMPDIR_SCAN/kb-applies-index.txt"
+    done
+
+    if [[ -s "$TMPDIR_SCAN/kb-applies-index.txt" ]]; then
+        while IFS='|' read -r path_a cat_a applies_a empty_a; do
+            [[ "$empty_a" != "1" ]] && continue
+            while IFS='|' read -r path_b cat_b applies_b empty_b; do
+                [[ "$path_a" = "$path_b" ]] && continue
+                [[ "$cat_a" = "$cat_b" ]] && continue
+                [[ "$path_a" > "$path_b" ]] && continue
+
+                shared=""
+                for ap in $(echo "$applies_a" | tr ',' '\n'); do
+                    if echo ",$applies_b," | grep -qF ",$ap," 2>/dev/null; then
+                        if [[ -n "$shared" ]]; then
+                            shared="$shared, $ap"
+                        else
+                            shared="$ap"
+                        fi
+                    fi
+                done
+
+                if [[ -n "$shared" ]]; then
+                    echo "APPLIES_OVERLAP|$path_a|$path_b|$shared" >> "$TMPDIR_SCAN/xref-kb-applies.txt"
+                fi
+            done < "$TMPDIR_SCAN/kb-applies-index.txt"
+        done < "$TMPDIR_SCAN/kb-applies-index.txt"
+    fi
+
+fi
+
+# ── 11c: ADR evaluation → KB refs gap ───────────────────────────────────────
+# KB paths referenced in evaluation.md but not in adr.md KB Sources table.
+
+if [[ -d ".decisions" ]]; then
+    (find .decisions -mindepth 1 -maxdepth 1 -type d 2>/dev/null || true) | while IFS= read -r adr_dir; do
+        eval_file="$adr_dir/evaluation.md"
+        adr_file="$adr_dir/adr.md"
+        [[ -f "$eval_file" ]] || continue
+        [[ -f "$adr_file" ]] || continue
+
+        slug="$(basename "$adr_dir")"
+
+        # Extract .kb/ paths from evaluation.md
+        eval_kb_paths="$( (grep -oE '\.kb/[a-zA-Z0-9_/.-]+\.md' "$eval_file" 2>/dev/null || true) | sort -u)"
+        [[ -z "$eval_kb_paths" ]] && continue
+
+        # Extract .kb/ paths from adr.md (KB Sources table + any inline refs)
+        adr_kb_paths="$( (grep -oE '\.kb/[a-zA-Z0-9_/.-]+\.md' "$adr_file" 2>/dev/null || true) | sort -u)"
+
+        # Find paths in eval but not in adr
+        while IFS= read -r kb_path; do
+            if ! echo "$adr_kb_paths" | grep -qF "$kb_path" 2>/dev/null; then
+                echo "ADR_KB_GAP|$slug|$kb_path" >> "$TMPDIR_SCAN/xref-adr-kb.txt"
+            fi
+        done <<< "$eval_kb_paths"
+    done
+fi
+
+# ── Analysis 12: Deferred audit feedback ─────────────────────────────────────
+# Find spec-updates.md and kb-suggestions.md left behind by audits where the
+# user skipped the feedback loop (or the feedback loop didn't wait).
+
+touch "$TMPDIR_SCAN/audit-feedback.txt"
+
+if [[ -d ".feature" ]]; then
+    # Skip .applied.md files — those were already processed
+    (find .feature -path "*/audit/run-*/spec-updates.md" -o -path "*/audit/run-*/kb-suggestions.md" 2>/dev/null || true) | grep -v '\.applied\.md$' | while IFS= read -r feedback_file; do
+        [[ -f "$feedback_file" ]] || continue
+        # Extract feature slug from path: .feature/<slug>/audit/run-NNN/<file>
+        slug="$(echo "$feedback_file" | sed 's|^\.feature/||; s|/audit/.*||')"
+        run="$(echo "$feedback_file" | grep -oE 'run-[0-9]+' || echo 'unknown')"
+        filename="$(basename "$feedback_file")"
+        # Count items (lines starting with ## or ### that look like suggestions)
+        item_count="$( (grep -cE '^##+ ' "$feedback_file" 2>/dev/null || true) )"
+        [[ "$item_count" -eq 0 ]] && item_count=1
+        echo "AUDIT_FEEDBACK|$slug|$run|$filename|$item_count|$feedback_file" >> "$TMPDIR_SCAN/audit-feedback.txt"
+    done
+fi
+
+# ── Analysis 13: Decisions roadmap needed ────────────────────────────────────
+# Check if there are enough deferred decisions to warrant a roadmap pass.
+
+touch "$TMPDIR_SCAN/roadmap-needed.txt"
+
+if [[ -d ".decisions" ]]; then
+    deferred_count=0
+    while IFS= read -r slug_dir; do
+        adr_file="$slug_dir/adr.md"
+        [[ -f "$adr_file" ]] || continue
+        if grep -qE 'status:.*"?deferred"?' "$adr_file" 2>/dev/null; then
+            deferred_count=$((deferred_count + 1))
+        fi
+    done < <(find .decisions -mindepth 1 -maxdepth 1 -type d 2>/dev/null || true)
+
+    if [[ $deferred_count -ge 10 ]]; then
+        roadmap_status="none"
+        if [[ -f ".decisions/roadmap.md" ]]; then
+            # Check staleness: is roadmap older than newest deferred ADR?
+            roadmap_ts="$(date -r ".decisions/roadmap.md" '+%s' 2>/dev/null || echo 0)"
+            newest_deferred_ts=0
+            while IFS= read -r slug_dir; do
+                adr_file="$slug_dir/adr.md"
+                [[ -f "$adr_file" ]] || continue
+                if grep -qE 'status:.*"?deferred"?' "$adr_file" 2>/dev/null; then
+                    adr_ts="$(date -r "$adr_file" '+%s' 2>/dev/null || echo 0)"
+                    [[ "$adr_ts" -gt "$newest_deferred_ts" ]] && newest_deferred_ts="$adr_ts"
+                fi
+            done < <(find .decisions -mindepth 1 -maxdepth 1 -type d 2>/dev/null || true)
+
+            if [[ "$newest_deferred_ts" -gt "$roadmap_ts" ]]; then
+                roadmap_status="stale"
+            else
+                roadmap_status="current"
+            fi
+        fi
+
+        if [[ "$roadmap_status" != "current" ]]; then
+            echo "ROADMAP_NEEDED|$deferred_count|$roadmap_status" >> "$TMPDIR_SCAN/roadmap-needed.txt"
+        fi
+    fi
+fi
+
 # ── Write summary file ──────────────────────────────────────────────────────
 
 SCAN_DATE="$(date +%Y-%m-%d)"
@@ -904,6 +1126,50 @@ if [[ -s "$TMPDIR_SCAN/out-of-scope.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+# Cross-reference candidates
+has_xref_signals=0
+if [[ -s "$TMPDIR_SCAN/xref-kb-tags.txt" ]] || [[ -s "$TMPDIR_SCAN/xref-kb-applies.txt" ]] || [[ -s "$TMPDIR_SCAN/xref-adr-kb.txt" ]]; then
+    echo "## Cross-Reference Candidates" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    has_xref_signals=1
+fi
+
+if [[ -s "$TMPDIR_SCAN/xref-kb-tags.txt" ]]; then
+    echo "### KB entries with missing related links (tag overlap)" >> "$SUMMARY_FILE"
+    echo "Entry pairs sharing 2+ tags in different categories with no related link:" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Entry A | Entry B | Shared Tags | Overlap |" >> "$SUMMARY_FILE"
+    echo "|---------|---------|-------------|---------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ path_a path_b overlap shared; do
+        echo "| $path_a | $path_b | $shared | $overlap |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/xref-kb-tags.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+if [[ -s "$TMPDIR_SCAN/xref-kb-applies.txt" ]]; then
+    echo "### KB entries with overlapping applies_to" >> "$SUMMARY_FILE"
+    echo "Entry pairs targeting the same files in different categories with no related link:" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Entry A | Entry B | Shared Paths |" >> "$SUMMARY_FILE"
+    echo "|---------|---------|--------------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ path_a path_b shared; do
+        echo "| $path_a | $path_b | $shared |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/xref-kb-applies.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+if [[ -s "$TMPDIR_SCAN/xref-adr-kb.txt" ]]; then
+    echo "### ADR evaluation references not in KB Sources" >> "$SUMMARY_FILE"
+    echo "KB entries cited in evaluation scoring but missing from the ADR's KB Sources table:" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| ADR | Missing KB Reference |" >> "$SUMMARY_FILE"
+    echo "|-----|---------------------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ slug kb_path; do
+        echo "| $slug | $kb_path |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/xref-adr-kb.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
 # Spec coverage gaps
 has_spec_signals=0
 if [[ -s "$TMPDIR_SCAN/spec-unspecified.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-obligations.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-drift.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-absent.txt" ]]; then
@@ -958,6 +1224,32 @@ if [[ -s "$TMPDIR_SCAN/spec-absent.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+# Deferred audit feedback
+if [[ -s "$TMPDIR_SCAN/audit-feedback.txt" ]]; then
+    echo "## Deferred Audit Feedback" >> "$SUMMARY_FILE"
+    echo "Audit feedback files that were skipped or deferred:" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Feature | Run | Type | Items | Path |" >> "$SUMMARY_FILE"
+    echo "|---------|-----|------|-------|------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ slug run filename item_count path; do
+        type_label="spec updates"
+        [[ "$filename" == "kb-suggestions.md" ]] && type_label="KB patterns"
+        echo "| $slug | $run | $type_label | $item_count | $path |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/audit-feedback.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+# Decisions roadmap needed
+if [[ -s "$TMPDIR_SCAN/roadmap-needed.txt" ]]; then
+    echo "## Decisions Roadmap Needed" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ count status; do
+        echo "$count deferred decisions with no current roadmap (status: $status)." >> "$SUMMARY_FILE"
+        echo "Run \`/decisions roadmap\` to cluster, classify, and prioritize." >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/roadmap-needed.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
 # ── Report ───────────────────────────────────────────────────────────────────
 
 echo "Scan complete: $COMMIT_COUNT commits analyzed"
@@ -978,6 +1270,10 @@ echo "  Unspecified shared types: $(wc -l < "$TMPDIR_SCAN/spec-unspecified.txt" 
 echo "  Specs with obligations: $(wc -l < "$TMPDIR_SCAN/spec-obligations.txt" 2>/dev/null || echo 0)"
 echo "  Spec-code drift: $(wc -l < "$TMPDIR_SCAN/spec-drift.txt" 2>/dev/null || echo 0)"
 echo "  Specs with [ABSENT] reqs: $(wc -l < "$TMPDIR_SCAN/spec-absent.txt" 2>/dev/null || echo 0)"
+xref_total=$(( $(wc -l < "$TMPDIR_SCAN/xref-kb-tags.txt" 2>/dev/null || echo 0) + $(wc -l < "$TMPDIR_SCAN/xref-kb-applies.txt" 2>/dev/null || echo 0) + $(wc -l < "$TMPDIR_SCAN/xref-adr-kb.txt" 2>/dev/null || echo 0) ))
+echo "  Deferred audit feedback: $(wc -l < "$TMPDIR_SCAN/audit-feedback.txt" 2>/dev/null || echo 0)"
+echo "  Cross-ref candidates: $xref_total"
+echo "  Roadmap needed: $(wc -l < "$TMPDIR_SCAN/roadmap-needed.txt" 2>/dev/null || echo 0)"
 
 # ── Update curation state ─────────────────────────────────────────────────
 

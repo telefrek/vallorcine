@@ -5,6 +5,51 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.9.0] — 2026-04-07
+
+### Added
+- **Capability topology** — hierarchical domain → capability model replacing
+  flat entries. Three capability types (core, emergent, refinement) and
+  many-to-many feature mapping with roles (core, extends, quality, enables).
+  Emergent capabilities capture cross-cutting behaviors from feature composition.
+- **`/capabilities` command** — query, list, add, update, and backfill project
+  capabilities organized by domain. Domain-aware navigation and search.
+- **`/decisions roadmap`** — cluster, classify, and prioritize deferred
+  decisions into an actionable roadmap with dependency analysis.
+- **Budget-aware audit pipeline** — dollar cap on prove-fix loop with
+  proportional allocation across findings. Remaining findings marked DEFERRED.
+  Resume filters already-processed findings.
+- **Phase 0 already-fixed check** — mandatory pre-flight in prove-fix subagent
+  reads current source before test writing. Short-circuits cascade impossibles
+  in ~2 turns instead of ~35. Validated: 31 ALREADY_FIXED in engine-clustering.
+- **Orchestrator context optimization** — extract-findings.sh + reconciliation
+  return format reduces context growth by ~19K tokens per audit.
+- **HTML narrative renderer** — audit visualization pipeline with dashboard-style
+  static views, session replay, cost/bug metrics, and severity breakdowns.
+- **Curate audit feedback** — /curate picks up deferred spec updates and KB
+  patterns from audit feedback loop.
+
+### Changed
+- **AskUserQuestion standardization** — all 28 interactive prompts across 11
+  files converted from text menus to AskUserQuestion tool calls.
+- **Architect adversarial hardening** — 6 changes from aTDD research: scope
+  verification, constraint falsification, inline score falsification,
+  prior-scores-not-evidence, REQUIRED annotations, write-and-justify checklist.
+- **Curate cross-reference repair** — Analysis 11 in curate-scan.sh detects
+  KB tag overlap, applies_to overlap, and ADR eval→KB source gaps.
+
+### Fixed
+- Feedback loop uses AskUserQuestion for forced pause instead of text "STOP"
+- Resume skips already-processed findings instead of re-running all
+- Resume prompt shows remaining findings count, not total
+- Budget prompt uses AskUserQuestion instead of "press Enter"
+- Feedback loop menus display sequentially, not simultaneously
+- Phase breakdown rows link to stage sections for navigation
+- Aggregate phase breakdown by stage type, not per-phase rows
+- Cost/bug and total cost visible in audit hero + impact summary
+
+---
+
 ## [0.8.0] — 2026-04-03
 
 ### Added

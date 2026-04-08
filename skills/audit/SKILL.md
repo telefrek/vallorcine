@@ -88,16 +88,54 @@ Parse the argument to determine what kind of audit this is:
 - **Spec reference** (e.g., "spec:F01"): audit code against spec
 - **Prior report** (e.g., "audit-report.md" path): incremental audit
 
-If the argument is ambiguous, ask the user:
-```
-What would you like to audit?
-  1. A feature (provide the feature slug)
-  2. Specific files (provide file paths or globs)
-  3. Code against a spec (provide spec ID)
-  4. Re-run from a prior audit report
-```
+If the argument is ambiguous, ask the user using AskUserQuestion:
+
+- Question: "What would you like to audit?"
+- Options:
+  1. "Feature" — audit a feature by slug (you'll ask for the slug next)
+  2. "Specific files" — audit files by path or glob pattern
+  3. "Spec coverage" — audit code against a spec (provide spec ID)
+  4. "Prior report" — incremental audit from a previous report
 
 Store the entry point type and value for the Classification subagent.
+
+---
+
+## Budget
+
+After determining the entry point, ask the user for a budget using
+AskUserQuestion:
+
+- Question: "What's your budget? Budget is split proportionally:
+  ~30% discovery, ~45% prove-fix, ~15% reporting. Discovery costs
+  ~$8-12 per file; prove-fix costs ~$5 per finding."
+- Options:
+  1. "$300 (default)" — full scope for most features
+  2. "$150" — may narrow to 4-5 files on larger features
+  3. "$80 (focused)" — 2-3 files, ~7 findings
+  4. "Unlimited" — no cap on spending
+
+The user can type a custom dollar amount via "Other". If the custom
+amount is below $50, display a note: "Budgets under $50 typically
+cover only 1-2 files. Consider $80+ for meaningful results." Still
+allow the user to proceed.
+
+- If the user picks a dollar amount: store as `AUDIT_BUDGET`
+- If the user picks "Unlimited": leave `AUDIT_BUDGET` empty
+
+**Budget allocation model** (computed when `AUDIT_BUDGET` is set):
+
+```
+DISCOVERY_ALLOC  = AUDIT_BUDGET * 0.30
+SUSPECT_ALLOC    = AUDIT_BUDGET * 0.10
+PROVE_FIX_ALLOC  = AUDIT_BUDGET * 0.45
+POST_RESERVE     = max(AUDIT_BUDGET * 0.15, 10)
+```
+
+The budget is a **planning target**, not a hard wall. Each phase scopes
+its work to fit its allocation. Post phases (test cleanup, report,
+reconciliation) always run regardless of budget. See "Budget control"
+in Job 3 for the soft cap mechanism.
 
 ---
 
@@ -134,13 +172,30 @@ the output — all pipeline artifacts for this run go in that directory.
 
 ### When resuming
 
-Display to the user:
+If resuming at prove-fix, run `extract-findings.sh` first to get the
+accurate remaining count (the script filters out findings with existing
+output files):
+
+```bash
+bash .claude/scripts/extract-findings.sh <RUN_DIR>
+```
+
+Parse the "N remaining" count from the script output. Display to the user
+with the actual remaining count:
+
 ```
 Resuming audit — picking up at <RESUME_AT>.
 Run directory: <RUN_DIR>
+<N already processed>, <M remaining> findings to prove-fix.
 ```
-Wait for user confirmation. Initialize TodoWrite with completed steps
-already checked. Start from the resume step.
+
+Use AskUserQuestion to confirm:
+- "Resume" — process the remaining findings
+- "Restart fresh" — discard this run and start a new audit
+- "Cancel" — stop
+
+Initialize TodoWrite with completed steps already checked. Start from
+the resume step.
 
 ### After each step completes
 
@@ -220,19 +275,59 @@ Expected return format:
 "Classification complete — <n> initial files, <n> specs resolved,
 prior_round=<yes|no>, language=<lang>"
 
-**After Classification returns, confirm scope with the user:**
+**After Classification returns, apply the budget scope gate:**
 
-Display the return summary and ask:
+Parse the file count from the return summary. If `AUDIT_BUDGET` is set,
+compute the discovery allocation and maximum affordable files:
 
 ```
-Audit scope resolved:
-  <paste the Classification return summary>
-
-Proceed? (yes / adjust scope / cancel)
+max_files = floor(DISCOVERY_ALLOC / 10)   # ~$10 per file
 ```
 
-If the user wants to adjust, note their changes and re-run Classification
-with the adjusted entry point. If they cancel, stop the pipeline.
+**Case 1: Budget fits the scope** (`max_files >= file_count` or no budget):
+
+Display the return summary and use AskUserQuestion:
+- Question: "Audit scope: `<n>` files, budget `$<budget>`.
+  Estimated total: ~$`<file_count * 30>` (within budget)."
+- Options:
+  1. "Proceed" — explore all files
+  2. "Adjust scope" — change which files to include
+  3. "Cancel" — stop the pipeline
+
+**Case 2: Budget requires narrowing** (`max_files < file_count`):
+
+The orchestrator narrows scope automatically to the top `max_files`
+files from classification's priority-ordered list. Display:
+
+```
+Audit scope: <n> files, budget $<budget>
+  Budget covers ~<max_files> of <n> files for full analysis.
+  Focusing on the <max_files> highest-risk files:
+    1. <file> — <rationale from classification>
+    2. <file> — <rationale>
+    ...
+  Remaining <n - max_files> files deferred to a follow-up round.
+```
+
+Use AskUserQuestion:
+- Question: (the text above)
+- Options:
+  1. "Proceed" — explore the selected files (recommended)
+  2. "Override" — choose different files to include
+  3. "Raise budget to $`<suggested>`" — increase budget to cover all files
+  4. "Cancel" — stop the pipeline
+
+If "Override": ask which files to include/exclude and adjust. This is
+the escape hatch for when the user knows something classification
+doesn't.
+
+If "Raise budget": update `AUDIT_BUDGET` and recompute allocations.
+Proceed with the full file list.
+
+**Passing scope to Exploration:** When scope was narrowed, pass ONLY the
+selected files to the Exploration subagent (not the full list). Include
+a note in the subagent prompt: "Scope narrowed to <n> of <total> files
+for budget. Explore only these files."
 
 Mark **Step 1.1: Classification** complete.
 
@@ -361,6 +456,17 @@ constructs clustered, <n> constructs in multiple lenses, <n> excluded"
 Parse the lens count and total cluster count from the return. You need
 these to dispatch Suspect subagents.
 
+**Cost checkpoint:** If `AUDIT_BUDGET` is set, run:
+```bash
+bash .claude/scripts/audit-budget.sh
+```
+Display to the user:
+```
+Discovery complete — $<cost> of $<budget> spent
+  <n> clusters across <n> lenses identified
+  Remaining: ~$<budget - cost - POST_RESERVE> for suspect + prove-fix
+```
+
 Mark **Step 1.7: Assembly** complete.
 
 ---
@@ -401,7 +507,20 @@ After each subagent returns:
 3. Update **Job 2** label: "Suspect (<completed>/<total> clusters,
    <accumulated> findings)"
 
-After all Suspect subagents complete, mark **Job 2: Suspect** complete.
+After all Suspect subagents complete:
+
+**Cost checkpoint:** If `AUDIT_BUDGET` is set, run:
+```bash
+bash .claude/scripts/audit-budget.sh
+```
+Display to the user:
+```
+Suspect complete — $<cost> of $<budget> spent
+  <n> findings to prove-fix (~$<findings * 5> estimated)
+  Prove-fix capacity: ~<floor((budget - cost - POST_RESERVE) / 5)> of <n> findings within budget
+```
+
+Mark **Job 2: Suspect** complete.
 If zero total findings, skip to Job 4 (Report).
 
 ---
@@ -414,10 +533,21 @@ the bug, then fixes the source code if confirmed.
 
 ### Build the finding list
 
-After Suspect completes, enumerate all findings across all suspect files.
-Read the first line of each `### F-R` heading in each suspect file to
-build the ordered list. **Do not read the finding details — just the IDs
-and titles.**
+After Suspect completes, run the finding list extraction script:
+
+```bash
+bash .claude/scripts/extract-findings.sh .feature/<slug>/audit/<run-dir>
+```
+
+This produces `finding-list.txt` — one line per finding, pipe-delimited:
+`<finding-id>|<title>|<construct>|<lens>|<cluster>|<suspect-file>`
+
+Read `finding-list.txt` to build the dispatch queue. The script
+automatically filters out findings that already have `prove-fix-*.md`
+output files — so on resume, only unprocessed/deferred findings appear.
+**Do NOT read suspect files directly** — the script already extracted
+what you need and reading suspect files would add thousands of tokens
+to your context.
 
 ### Lens → test class mapping
 
@@ -486,19 +616,51 @@ file written):
 After each subagent returns successfully:
 1. Parse the result from the return summary
 2. Accumulate totals (fixed, impossible, fix_impossible, deferred)
-3. Report progress to the user:
-   `[N/total] <finding ID>: <result> — <summary>`
-4. Update **Job 3** label: "Prove-Fix (<completed>/<total>, <fixed>
-   fixed, <impossible> impossible, <deferred> deferred)"
+3. If `AUDIT_BUDGET` is set, run `bash .claude/scripts/audit-budget.sh`
+   to get the running cost.
+4. Report progress to the user (include cost if budget is set):
+   `[N/total] <finding ID>: <result> — <summary> ($<cost>/$<budget>)`
+5. Update **Job 3** label: "Prove-Fix (<completed>/<total>, <fixed>
+   fixed, <impossible> impossible) — $<cost>/$<budget>"
+   (omit cost portion if no budget set)
 
 After all findings are processed, mark **Job 3: Prove-Fix** complete.
 If zero confirmed findings, skip to Report.
 
 ### Budget control
 
-If the user specified a budget limit, stop dispatching when the limit
-is reached. Mark remaining findings as DEFERRED. Report the deferral
-count in the job label.
+If `AUDIT_BUDGET` is set:
+
+The budget is a **soft cap**. The goal is to stop prove-fix dispatch
+near the budget while guaranteeing post phases always run.
+
+```
+STOP_THRESHOLD = AUDIT_BUDGET - POST_RESERVE - 5
+```
+
+The `-5` allows one more prove-fix finding (~$5) before stopping.
+This means overshoot is bounded to at most one prove-fix cycle plus
+post costs.
+
+1. The cost check runs as part of the per-finding progress reporting
+   (step 3 above: `bash .claude/scripts/audit-budget.sh`).
+
+2. Compare the returned cost against `STOP_THRESHOLD`:
+   - **cost >= STOP_THRESHOLD:** Dispatch the current finding (already
+     in progress), then stop. Mark all remaining findings as DEFERRED.
+     Report: `Budget reached ($X of $Y). N findings deferred.`
+   - **cost < STOP_THRESHOLD:** Continue dispatching normally.
+
+3. In the completion summary, include:
+   `Budget: $X spent of $Y limit (N findings deferred)`
+
+4. **Post phases always run.** Jobs 3b (test cleanup), 4 (report),
+   and 5 (reconciliation) execute regardless of budget. The budget
+   controls only prove-fix dispatch — it never skips post activities
+   since those ensure a clean codebase.
+
+If `AUDIT_BUDGET` is not set, omit budget checks entirely — the
+pipeline runs unbounded.
 
 ---
 
@@ -552,32 +714,33 @@ Launch a subagent:
 
 Expected return: stale test count + regression count.
 
-If spec ambiguities found, display them and ask the user to decide:
-```
-<N> spec ambiguity detected — a requirement allows conflicting interpretations:
+If spec ambiguities found, ask the user using AskUserQuestion for each
+ambiguity. Include the spec requirement and conflicting test behaviors as
+context in the question text:
 
-  <spec>.<requirement>: "<requirement text>"
-    Test A (<method>) expects: <behavior A>
-    Test B (<method>) expects: <behavior B>
-
-  The requirement needs tightening. Which interpretation should the code follow?
-    1. <behavior A> (update Test B)
-    2. <behavior B> (update Test A)
-    3. Defer — leave both tests, resolve in /spec-author
-```
+- Question: "<N> spec ambiguity detected — a requirement allows conflicting
+  interpretations:\n\n  <spec>.<requirement>: \"<requirement text>\"\n
+  Test A (<method>) expects: <behavior A>\n  Test B (<method>) expects:
+  <behavior B>\n\nWhich interpretation should the code follow?"
+- Options:
+  1. "<behavior A>" — update Test B to match this interpretation
+  2. "<behavior B>" — update Test A to match this interpretation
+  3. "Defer" — leave both tests, resolve in /spec-author
 
 Apply the user's decision: update the losing test and add a comment
 noting the decision. If deferred, note both tests as conflicting in
 the audit report.
 
-If regressions found, display them and ask the user before proceeding
-to Report:
-```
-<N> pre-existing tests broke as regressions (not stale assertions):
-  <test method> — broken by <finding ID>
+If regressions found, ask the user using AskUserQuestion before
+proceeding to Report. Include the regression details as context in the
+question text:
 
-These fixes may need revision. Continue to Report? (yes / review)
-```
+- Question: "<N> pre-existing tests broke as regressions (not stale
+  assertions):\n  <test method> — broken by <finding ID>\n\nThese fixes
+  may need revision."
+- Options:
+  1. "Continue to Report" — proceed to the report phase as-is
+  2. "Review regressions" — examine the regressions before continuing
 
 If zero failures in the full suite, skip this step entirely — no
 subagent needed.
@@ -633,21 +796,19 @@ had valid reasons. A decision is needed.
     Fix: <finding ID> — <what the fix changed>
     Spec: <spec>.<req> — <requirement text>
     Tradeoff: <why this is a tension>
-
-Options for each conflict:
-  1. Keep the fix, update the spec
-     → I'll update the spec requirement to match the new behavior
-       and check if other specs depend on the old behavior
-
-  2. Revert the fix, keep the spec
-     → I'll revert the source change and mark the finding as
-       FIX_IMPOSSIBLE with the spec requirement as the reason
-
-  3. Defer — decide later
-     → I'll log the conflict as an open obligation on the spec
-
-Which option for CONFLICT-1? (1 / 2 / 3)
 ```
+
+Ask the user using AskUserQuestion for each conflict:
+
+- Question: "CONFLICT-1: <description>\n  Fix: <finding ID> — <what the
+  fix changed>\n  Spec: <spec>.<req> — <requirement text>\n  Tradeoff:
+  <why this is a tension>\n\nHow should this conflict be resolved?"
+- Options:
+  1. "Keep fix, update spec" — update the spec requirement to match the
+     new behavior and check if other specs depend on the old behavior
+  2. "Revert fix, keep spec" — revert the source change and mark the
+     finding as FIX_IMPOSSIBLE with the spec requirement as the reason
+  3. "Defer" — log the conflict as an open obligation on the spec
 
 For option 1: read the conflicting spec, update the requirement to match
 the fix, and run `spec-resolve.sh` to check if any other spec's `requires`
@@ -660,13 +821,15 @@ architectural constraint.
 For option 3: add `[UNRESOLVED]` marker to the spec requirement and add
 an `open_obligations` entry. The spec becomes DRAFT if it was APPROVED.
 
-If cross-cluster unresolved findings exist, suggest a follow-up round:
+If cross-cluster unresolved findings exist, ask the user using
+AskUserQuestion:
 
-```
-<n> cross-cluster findings could not be analyzed in this round.
-Recommend another round with co-clustered constructs.
-  Type yes for another round · or: done
-```
+- Question: "<n> cross-cluster findings could not be analyzed in this
+  round. Recommend another round with co-clustered constructs."
+- Options:
+  1. "Another round" — run an additional audit round with co-clustered
+     constructs
+  2. "Done" — finish the audit as-is
 
 ---
 
@@ -699,20 +862,100 @@ If `.spec/` exists, launch a single subagent:
 >
 > Return a summary line when done.
 
-Expected return format:
-"Reconciliation: <n> spec updates suggested, <n> KB patterns found,
-spec coverage: <n>/<total> requirements exercised"
+Expected return format: a structured `RECONCILIATION_SUMMARY_START` block
+containing spec update summaries, KB pattern summaries, and spec coverage
+(see `reconcile-findings.md` for the exact format).
 
-Parse the counts from the return summary and display:
+Parse the summary block from the return. **Do NOT read spec-updates.md or
+kb-suggestions.md** — the subagent's return contains everything needed to
+present the feedback menus. The files exist for "review" mode (when the
+user wants full details) and for `/curate` to pick up later if skipped.
+
+### 5a. Present and process spec updates
+
+Extract the `SPEC_UPDATES:` section from the reconciliation return.
+If updates were suggested (count > 0), present inline:
+
+Display the spec updates to the user:
 
 ```
-── Feedback loop ──────────────────────────────
-  Spec updates suggested: <n> (review at .feature/<slug>/spec-updates.md)
-  KB patterns found: <n> (review at .feature/<slug>/kb-suggestions.md)
-  Spec coverage: <n>/<total> requirements
+── Feedback loop: spec updates ────────────────
 
-  To apply spec updates: /spec-write
-  To create KB entries: /research <topic> <category> "<subject>"
+Spec updates (<n> suggested):
+
+  1. <requirement text — one line, observable behavior>
+  2. <requirement text>
+  ...
+```
+
+Then use AskUserQuestion to get the user's choice:
+- "Apply all" — add all requirements to their specs now
+- "Review" — show full details before deciding
+- "Skip" — defer (resurfaces via /curate)
+
+Do not present the KB menu or proceed until the user has responded.
+
+If **apply**: for each suggested requirement, read the target spec file,
+append the requirement to the appropriate category section, and run
+`spec-validate.sh` to verify the spec is still valid. Then run
+`spec-resolve.sh "<feature slug>"` to check whether the new requirements
+conflict with or invalidate requirements in other specs. If conflicts are
+found, display them and ask the user to resolve before continuing.
+Report what was added. After all applies complete, rename the file:
+`mv spec-updates.md spec-updates.applied.md`
+
+If **review**: read `.feature/<slug>/spec-updates.md` NOW (this is the one
+case where reading the file is justified — the user explicitly asked for
+full details). Display the full requirement blocks with notes, then re-offer
+apply/skip per item. Run the same validation after any applies. If all
+items were applied or skipped individually, rename the file.
+
+If **skip**: note in the audit report that suggestions were deferred. They
+will resurface when `/curate` detects the deferred feedback file.
+
+### 5b. Present and process KB patterns
+
+Only present this menu **after the user has responded to 5a** (or if no
+spec updates exist). Extract the `KB_PATTERNS:` section from the
+reconciliation return. If patterns were found (count > 0), present inline:
+
+Display the KB patterns to the user:
+
+```
+── Feedback loop: KB patterns ─────────────────
+
+KB patterns (<n> updates + <n> new):
+
+  1. <Update/New> <pattern name> — <one-line description>
+  2. <Update/New> <pattern name> — <one-line description>
+  ...
+```
+
+Then use AskUserQuestion to get the user's choice:
+- "Create all" — create/update all KB entries now
+- "Select" — choose which to create
+- "Skip" — defer (patterns stay in kb-suggestions.md for later)
+
+Do not proceed until the user has responded.
+
+If **create**: for each pattern, invoke
+`/research <topic> <category> "<subject>"` as a sub-agent with the pattern's
+description and affected constructs as context. After all creates complete,
+rename: `mv kb-suggestions.md kb-suggestions.applied.md`
+
+If **select**: present each pattern individually for create/skip. After all
+items are processed, rename the file.
+
+If **skip**: note as deferred. The file remains for `/curate` to pick up.
+
+### 5c. Show spec coverage
+
+After the user has responded to both menus (or if no updates/patterns
+were found), show spec coverage:
+
+```
+Spec coverage: <exercised>/<total> <spec-ID> requirements exercised
+  (<N> unexercised — either well-implemented or not reached by this audit)
 ──────────────────────────────────────────────
 ```
 

@@ -87,9 +87,32 @@ tail. Within each lens, cluster order preserves topological locality.
 
 ## Budget control
 
-After each finding completes, check the cumulative count. If the user
-set a budget limit, stop dispatching when the limit is reached. Report
-remaining findings as DEFERRED.
+If the orchestrator receives a budget limit (dollar amount from the
+`/audit --budget <N>` flag):
+
+1. **After each prove-fix subagent completes**, run this command:
+   ```bash
+   bash .claude/scripts/audit-budget.sh
+   ```
+   It returns the running cost as a single number (e.g., `247.50`).
+
+2. **If the running cost >= budget:**
+   - Stop dispatching new prove-fix subagents immediately
+   - Mark all remaining unprocessed findings as DEFERRED
+   - Report: `Budget reached ($X.XX of $Y limit). N findings deferred.`
+   - Proceed to the completion summary (do NOT skip the summary)
+
+3. **If the running cost >= 80% of budget:**
+   - Print a warning: `Budget 80% consumed ($X.XX of $Y). N findings remaining.`
+   - Continue dispatching (respect the user's stated budget)
+
+4. **In the completion summary**, add a budget line:
+   ```
+   Budget: $X.XX spent of $Y limit (N findings deferred)
+   ```
+   If no budget was set, omit this line.
+
+If no budget was provided, skip all cost checks and process all findings.
 
 ## Completion
 

@@ -108,15 +108,15 @@ def generate(slug: str, feature_dir: str) -> bool:
         markdown = render_story(story)
         output_file.write_text(markdown)
 
+        # Keep the AST for downstream consumers (e.g., generate_audit --include-feature)
+        # Remove only the tokens intermediate (large, not needed after parse)
         return True
 
     finally:
-        # --- Cleanup intermediates ---
-        for f in (tokens_file, ast_file):
-            try:
-                f.unlink(missing_ok=True)
-            except OSError:
-                pass
+        try:
+            tokens_file.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def main():

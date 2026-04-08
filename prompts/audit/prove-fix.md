@@ -17,17 +17,74 @@ The orchestrator provides:
 - Test class path (shared adversarial test class for this lens)
 - Cluster packet path (for construct context)
 
+## Phase 0 — ALREADY-FIXED CHECK (mandatory, max 2 turns)
+
+Before writing any test, check whether prior fixes in this audit run have
+already resolved this finding. Findings are processed sequentially — earlier
+fixes may have added guards, rollback logic, or exception handling that
+make later findings moot.
+
+**Budget: 2 turns maximum.** Turn 1: read the source. Turn 2: write the
+output file (if ALREADY_FIXED) or proceed to Phase 1 (if STILL_VULNERABLE).
+Do NOT read any file other than the construct source in Phase 0.
+
+### 0a. Read current source
+
+Read the construct source at the file path and line range from the finding.
+Read it NOW — do not reuse any cached view. The code may have changed
+since the finding was written.
+
+### 0b. Check for the described vulnerability
+
+The finding describes a specific vulnerability — a missing guard, an
+unchecked cast, a missing rollback, a race condition. Check whether the
+current source code **already has the defense** the finding says is missing:
+
+- If the finding says "no rollback on failure" → check if a try-catch with
+  compensating logic now exists at the described location
+- If the finding says "unchecked cast" → check if bounds checking or
+  `Math.toIntExact` now guards the cast
+- If the finding says "no closed guard" → check if a closed-state check
+  now exists
+- If the finding says "race condition on X" → check if X is now a
+  concurrent data structure or has synchronization
+
+### 0c. Decide
+
+**Vulnerability still present:** The described bug exists in the current
+source. Proceed to Phase 1.
+
+**Vulnerability already fixed:** The current source already has the
+defense. Short-circuit to IMPOSSIBLE immediately — do NOT read any
+other files, do NOT run git blame, do NOT check test classes:
+
+1. Note which lines contain the defense (you already see them from 0a)
+2. Write the output file with:
+   - Result: IMPOSSIBLE
+   - Phase 0 result: ALREADY_FIXED
+   - Phase 0 detail: "<defense type> at lines <N-M>" (one sentence)
+   - Phase 1 result: "Skipped — vulnerability already fixed in current source"
+3. STOP. Do not write a test. Do not proceed to Phase 1. Do not
+   investigate which prior finding added the fix — that is the
+   orchestrator's concern, not yours.
+
+**Uncertain:** If the source read in 0a doesn't make the answer obvious,
+proceed to Phase 1 immediately. Do not investigate further — the test
+will determine the truth.
+
+---
+
 ## Phase 1 — VERIFY
 
-You must write a test. You cannot skip this phase. You cannot mark a
-finding as impossible without a test that compiles and runs.
+You must write a test. You cannot skip this phase (unless Phase 0
+short-circuited to IMPOSSIBLE). You cannot mark a finding as impossible
+without either a Phase 0 proof or a test that compiles and runs.
 
 ### 1a. Read construct source
 
 Read the construct source using offset/limit with the line range from
 the finding. You are reading to understand the API — types, method
-signatures, constructors, required setup. You are NOT re-analyzing
-whether the bug exists. The analysis is done. You are writing a test.
+signatures, constructors, required setup.
 
 ### 1a2. Check existing test coverage
 
@@ -251,8 +308,13 @@ FIX_IMPOSSIBLE with:
 
 ## Hard rules
 
-- **Phase 1 is mandatory.** You cannot skip to Phase 2 or mark a finding
-  as impossible without writing and compiling a test.
+- **Phase 0 is mandatory and limited to 2 turns.** Read the source, decide.
+  If ALREADY_FIXED: write the output file and STOP — do not read any other
+  file, do not run git blame, do not check tests. Saves 30+ turns per
+  finding.
+- **Phase 1 is mandatory (unless Phase 0 short-circuits).** You cannot skip
+  to Phase 2 or mark a finding as impossible without either a Phase 0
+  already-fixed proof or a test that compiles and runs.
 - **Cannot modify tests in Phase 2.** Only source code. If you need a
   test changed, emit a relaxation request.
 - **Cannot read files outside the finding's construct paths** and the
@@ -270,10 +332,14 @@ Write the output file to the path the orchestrator specified:
 
 ## Result: <CONFIRMED_AND_FIXED | IMPOSSIBLE | FIX_IMPOSSIBLE>
 
-### Phase 1: Verify
-- **Test method:** <method name> (or "removed" if impossible)
+### Phase 0: Already-fixed check
+- **Result:** <STILL_VULNERABLE | ALREADY_FIXED | UNCERTAIN>
+- **Detail:** <what was checked — specific lines that provide/lack the defense>
+
+### Phase 1: Verify (skipped if Phase 0 = ALREADY_FIXED)
+- **Test method:** <method name> (or "removed" if impossible, or "skipped" if Phase 0)
 - **Test class:** <path to test class>
-- **Result:** <CONFIRMED | IMPOSSIBLE>
+- **Result:** <CONFIRMED | IMPOSSIBLE | SKIPPED>
 - **Detail:** <what happened — test fails because X>
 
 ### Phase 2: Fix (if Phase 1 confirmed)

@@ -252,9 +252,13 @@ When all units are complete (or between batches in balanced mode):
 - If `automation_mode: manual` and units remain:
   ```
   More units ready.
-    Type **yes**  ·  or: stop
   ```
-  If "yes": continue. If "stop": display resume command and stop.
+
+  Use AskUserQuestion with two options:
+  - "Continue" (description: process next ready units)
+  - "Stop" (description: display resume command and stop)
+
+  If "Continue": continue. If "Stop": display resume command and stop.
 
 ---
 
@@ -371,10 +375,14 @@ Merged cycle log: .feature/<slug>/cycle-log.md
 - If `automation_mode: manual`:
   ```
   Feature is ready for PR.
-    Type **yes**  ·  or: stop
   ```
-  If "yes": invoke `/feature-pr "<slug>"`.
-  If "stop": display `Next: /feature-pr "<slug>"` and stop.
+
+  Use AskUserQuestion with two options:
+  - "Create PR" (description: invoke /feature-pr)
+  - "Stop" (description: display resume command)
+
+  If "Create PR": invoke `/feature-pr "<slug>"`.
+  If "Stop": display `Next: /feature-pr "<slug>"` and stop.
 
 ---
 

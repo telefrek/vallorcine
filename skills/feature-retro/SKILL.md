@@ -240,6 +240,43 @@ to adjust.
 
 ---
 
+## Step 4b — Capability index update
+
+**Guard:** Only run this step if `.capabilities/CLAUDE.md` exists. If no
+capability index, skip silently.
+
+Check whether this feature contributes to an existing capability or
+introduces a new one.
+
+Read `.capabilities/CLAUDE.md` to get the domain map. Read the domain
+indexes to find existing capabilities. Read the feature brief to understand
+what was built.
+
+Use AskUserQuestion:
+- "Update existing capability" — this feature adds to or improves an
+  existing capability (select which one from any domain)
+- "Create new capability" — this feature introduces a genuinely new
+  project capability
+- "Skip" — don't update the capability index
+
+If "Update existing": read the selected capability entry. Ask for the
+feature's role:
+
+Use AskUserQuestion:
+- "Core" — primary implementation of this capability
+- "Extends" — adds a new dimension to the capability
+- "Quality" — performance fix, bug fix, or internal improvement
+- "Enables" — prerequisite, but the capability is its own concern
+
+Add this feature to the `features:` array with the role and a one-line
+description. Update the Recently Updated table in the root CLAUDE.md and
+the domain CLAUDE.md.
+
+If "Create new": run `/capabilities add "<name>"` with the feature brief
+as context. The add flow will handle domain placement and type selection.
+
+---
+
 ## Step 5 — Write retro summary
 
 Append `retro-complete` to cycle-log.md:

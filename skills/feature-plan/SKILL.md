@@ -28,11 +28,12 @@ Otherwise:
 ───────────────────────────────────────────────
 Work planning is already complete for '<slug>'.
 Work plan: .feature/<slug>/work-plan.md
-
-  Type **yes**  to proceed to test writing  ·  or: stop
 ```
-If "yes": invoke /feature-test "<slug>" as a sub-agent immediately.
-If "stop": display `Next: /feature-test "<slug>"` and stop.
+Use AskUserQuestion with options:
+  - "Proceed to test writing"
+  - "Stop"
+If "Proceed to test writing": invoke /feature-test "<slug>" as a sub-agent immediately.
+If "Stop": display `Next: /feature-test "<slug>"` and stop.
 
 **If Planning stage is `in-progress`:**
 Display opening header, then:
@@ -55,10 +56,12 @@ Display opening header, then:
 - Check for spec infrastructure (`test -f .spec/CLAUDE.md || test -d .spec/registry`).
   If spec infrastructure exists, check whether the Spec Authoring stage in status.md
   is `complete`. If Spec Authoring is `not-started` or `in-progress`, warn:
-  "Spec infrastructure exists but specs haven't been authored for this feature.
-  Run `/spec-author` first, or type **skip-specs** to plan from brief and domains only."
-  If the user types "skip-specs", proceed normally (specs will be absent from context).
-  Otherwise, stop and let the user run spec-author.
+  "Spec infrastructure exists but specs haven't been authored for this feature."
+  Use AskUserQuestion with options:
+    - "Run /spec-author first" (description: stop and let user run spec-author)
+    - "Skip specs" (description: plan from brief and domains only)
+  If "Skip specs": proceed normally (specs will be absent from context).
+  If "Run /spec-author first": stop and let the user run spec-author.
 - Set status.md: Planning → `in-progress`, substage → `loading-context`
 - Display opening header and proceed to Step 1
 
@@ -232,11 +235,12 @@ New constructs to CREATE:
                                              shares state with: <list or "none">
 ```
 
-Display:
-```
-  Type **yes**  ·  or: describe corrections
-```
-Wait for the user to type "continue" or describe corrections. User corrections
+Use AskUserQuestion with options:
+  - "Approve" (description: design looks correct, proceed)
+  - "Needs changes" (description: user will describe corrections)
+
+If "Approve": proceed. User corrections are not needed.
+If "Needs changes": ask the user what to change. User corrections
 become additional constraints on the design — the work planner respects them
 while maintaining coverage of all spec requirements.
 
@@ -359,21 +363,10 @@ set `execution_strategy: cost` implicitly in status.md, skip the prompt.
 
 **If feature qualifies for splitting**, show the analysis then ask:
 
-```
-── Execution strategy ─────────────────────────────
-  cost      — sequential execution. Splits only when a single session
-              exceeds ~15K tokens.
-
-  balanced  — split at clean boundaries, independent units run in parallel
-              in batches. Wait for each batch before starting the next.
-              Moderate token overhead.
-
-  speed     — split at every clean boundary, maximum parallelism.
-              Units launch as soon as dependencies resolve — no batch waits.
-              Fastest wall-clock time, highest token cost.
-
-Type: cost, balanced, or speed
-```
+Use AskUserQuestion with options:
+  - "Cost" (description: sequential execution — splits only when a single session exceeds ~15K tokens)
+  - "Balanced" (description: split at clean boundaries, independent units run in parallel in batches — moderate token overhead)
+  - "Speed" (description: split at every clean boundary, maximum parallelism — fastest wall-clock time, highest token cost)
 
 Record `execution_strategy: <choice>` in status.md and in the
 `<!-- execution_strategy: -->` comment under `## Work Units`.
@@ -598,29 +591,15 @@ persists for the lifetime of this feature — it will not be asked again.
 
 **When `execution_strategy` is `balanced` or `speed`:**
 
-Display:
-```
-── How would you like to run the TDD loop? ─────
-  auto    — independent units run their full test → implement → refactor
-            cycles in parallel. Checkpoints happen at batch boundaries.
-
-  manual  — I'll pause between batches and wait for your go-ahead.
-
-Type: auto  or  manual
-```
+Use AskUserQuestion with options:
+  - "Auto" (description: independent units run their full test/implement/refactor cycles in parallel — checkpoints happen at batch boundaries)
+  - "Manual" (description: pause between batches and wait for go-ahead)
 
 **When `execution_strategy` is `cost` (or not set):**
 
-Display:
-```
-── How would you like to run the TDD loop? ─────
-  auto    — test → implement → refactor cycles run without stopping.
-            I'll pause if I find something that needs your input.
-
-  manual  — I'll stop after each stage and wait for your command.
-
-Type: auto  or  manual
-```
+Use AskUserQuestion with options:
+  - "Auto" (description: cycles run without stopping, pauses only if input needed)
+  - "Manual" (description: stop after each stage and wait for command)
 
 Wait for input:
 - "auto" (or "autonomous"): set `automation_mode: autonomous` in status.md

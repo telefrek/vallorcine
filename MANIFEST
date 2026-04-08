@@ -37,6 +37,7 @@
 .claude/skills/spec-author/extraction-mode.md
 .claude/skills/spec/SKILL.md
 .claude/skills/audit/SKILL.md
+.claude/skills/capabilities/SKILL.md
 .claude/prompts/audit/pass1-inventory.md
 .claude/prompts/audit/pass2-triage.md
 .claude/prompts/audit/pass2.5-clustering.md
@@ -47,6 +48,10 @@
 .claude/prompts/audit/phase4c-compile-check.md
 .claude/prompts/audit/phase4d-implementer.md
 .claude/prompts/audit/reconcile-findings.md
+.claude/prompts/audit/prove-fix.md
+.claude/prompts/audit/prove-fix-orchestrator.md
+.claude/scripts/audit-budget.sh
+.claude/scripts/extract-findings.sh
 .claude/agents/architect-agent.md
 .claude/agents/code-writer-agent.md
 .claude/agents/domain-scout-agent.md
@@ -69,6 +74,7 @@
 .claude/scripts/adr-validate.sh
 .claude/scripts/token-stop-hook.sh
 .claude/scripts/curate-scan.sh
+.claude/scripts/decisions-scan.sh
 .claude/scripts/index-verify.sh
 .claude/scripts/statusline.sh
 .claude/scripts/statusline.py
