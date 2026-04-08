@@ -125,6 +125,7 @@ or features create implicit dependencies. This feedback loop is what makes the
 | `/decisions triage` | Review all deferred/draft items |
 | `/decisions defer "<problem>"` | Park a topic for later |
 | `/decisions close "<problem>"` | Rule out permanently |
+| `/decisions roadmap` | Cluster, classify, and prioritize deferred decisions into an actionable roadmap |
 
 ### Specifications — behavioral contracts
 
@@ -160,7 +161,17 @@ or features create implicit dependencies. This feedback loop is what makes the
 
 | Command | What it does |
 |---------|-------------|
-| `/audit "<entry-point>"` | Adversarial audit: finds bugs, proves them with tests, fixes the code. Accepts feature slugs, file paths, spec references, or prior reports. |
+| `/audit "<entry-point>"` | Adversarial audit: finds bugs, proves them with tests, fixes the code. Budget-aware with Phase 0 already-fixed detection. Accepts feature slugs, file paths, spec references, or prior reports. |
+
+### Capabilities — project capability index
+
+| Command | What it does |
+|---------|-------------|
+| `/capabilities "<question>"` | Search capabilities by natural language — "do we support X?" |
+| `/capabilities list` | Browse all capabilities organized by domain |
+| `/capabilities add "<name>"` | Create a new capability entry with domain placement and type |
+| `/capabilities update "<slug>"` | Update an existing capability entry |
+| `/capabilities backfill` | Bootstrap from existing features, specs, and ADRs |
 
 ### Curation — codebase quality over time
 

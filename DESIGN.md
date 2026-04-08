@@ -732,7 +732,7 @@ vallorcine/
 │   │
 │   │  Decisions
 │   ├── architect/SKILL.md           ← /architect — architecture decision session
-│   ├── decisions/SKILL.md           ← /decisions — query, list, explain, review, backfill, candidates, triage, defer, close
+│   ├── decisions/SKILL.md           ← /decisions — query, list, explain, review, backfill, candidates, triage, defer, close, roadmap
 │   │
 │   │  Features
 │   ├── feature/SKILL.md             ← /feature — scoping interview
@@ -749,10 +749,11 @@ vallorcine/
 │   ├── feature-resume/SKILL.md      ← /feature-resume [--status] [--share] — crash recovery + briefing
 │   ├── feature-cleanup/SKILL.md     ← /feature-cleanup — review stale feature directories
 │   │
-│   │  Adversarial TDD
-│   ├── atdd-round/SKILL.md         ← /atdd-round — adversarial cycle: Analyst → Breaker → Implementer
-│   ├── atdd-audit/SKILL.md         ← /atdd-audit — audit existing code, bootstrap, enter cycle
-│   ├── atdd-refactor/SKILL.md      ← /atdd-refactor — constrained refactor + regression verification
+│   │  Audit
+│   ├── audit/SKILL.md               ← /audit — adversarial bug finding with budget-aware prove-fix loop and Phase 0 already-fixed detection
+│   │
+│   │  Capabilities
+│   ├── capabilities/SKILL.md        ← /capabilities — project capability index with domain hierarchy, types, and feature mapping
 │   │
 │   │  Curation
 │   ├── curate/SKILL.md              ← /curate — codebase quality review, correlation engine
@@ -790,6 +791,9 @@ vallorcine/
 │   ├── ensure-merge-driver.sh       ← registers merge driver on first pipeline run
 │   ├── adr-validate.sh              ← warns if contradictory accepted ADRs exist
 │   ├── curate-scan.sh              ← curation scanner (8 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill)
+│   ├── decisions-scan.sh          ← decisions roadmap clustering and classification
+│   ├── extract-findings.sh        ← audit finding extraction for orchestrator context optimization
+│   ├── audit-budget.sh            ← budget tracking and proportional allocation for audit prove-fix loop
 │   ├── index-verify.sh            ← self-healing index verification for crash recovery
 │   ├── token-stop-hook.sh          ← Stop hook for automatic token tracking
 │   ├── statusline.sh              ← status line showing pipeline stage + cost
