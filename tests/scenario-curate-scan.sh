@@ -786,6 +786,144 @@ else
     fail "grep -c newline bug: integer comparison fails on zero-match files" "got: $output"
 fi
 
+# ── Test 26: Orphaned spec detection (Analysis 14) ──────────────────────────
+
+echo ""
+echo "── Test 26: Orphaned spec detection (APPROVED spec with no matching source)"
+
+# Use a fresh project to avoid interference with Analysis 10's spec parsing
+ORPHAN_PROJECT="$TEST_BASE/orphan-project"
+git init --initial-branch=main "$ORPHAN_PROJECT" >/dev/null 2>&1
+git -C "$ORPHAN_PROJECT" config user.email "test@test.com"
+git -C "$ORPHAN_PROJECT" config user.name "Test"
+
+mkdir -p "$ORPHAN_PROJECT/.claude/scripts"
+cp "$REPO_ROOT/scripts/curate-scan.sh" "$ORPHAN_PROJECT/.claude/scripts/"
+
+# Create source files first
+mkdir -p "$ORPHAN_PROJECT/src/auth"
+echo "class SessionManager { constructor() {} }" > "$ORPHAN_PROJECT/src/auth/session.ts"
+echo "module.exports = {}" > "$ORPHAN_PROJECT/README.md"
+
+# Create spec infrastructure with two APPROVED specs:
+# - F01 references "SessionManager" which exists in source
+# - F02 references "YamlParser" which does NOT exist in any source file
+mkdir -p "$ORPHAN_PROJECT/.spec/registry"
+mkdir -p "$ORPHAN_PROJECT/.spec/domains/auth"
+mkdir -p "$ORPHAN_PROJECT/.spec/domains/serialization"
+
+cat > "$ORPHAN_PROJECT/.spec/registry/manifest.json" << 'SPECEOF'
+{
+  "domains": {
+    "auth": { "description": "authentication", "feature_count": 1 },
+    "serialization": { "description": "data format support", "feature_count": 1 }
+  },
+  "features": {
+    "F01": { "latest_file": "domains/auth/F01-session-management.md", "state": "APPROVED", "domains": ["auth"] },
+    "F02": { "latest_file": "domains/serialization/F02-yaml-support.md", "state": "APPROVED", "domains": ["serialization"] }
+  }
+}
+SPECEOF
+
+cat > "$ORPHAN_PROJECT/.spec/domains/auth/F01-session-management.md" << 'SPECEOF'
+---
+{
+  "id": "F01",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["auth"],
+  "requires": [],
+  "invalidates": [],
+  "decision_refs": [],
+  "kb_refs": [],
+  "open_obligations": []
+}
+---
+
+# F01 — Session Management
+
+## Requirements
+R1. The SessionManager must create sessions with unique identifiers.
+
+---
+
+## Design Narrative
+
+### Intent
+Session management for auth.
+SPECEOF
+
+cat > "$ORPHAN_PROJECT/.spec/domains/serialization/F02-yaml-support.md" << 'SPECEOF'
+---
+{
+  "id": "F02",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["serialization"],
+  "requires": [],
+  "invalidates": [],
+  "decision_refs": [],
+  "kb_refs": [],
+  "open_obligations": []
+}
+---
+
+# F02 — YAML Support
+
+## Requirements
+R1. The YamlParser must accept valid YAML input.
+
+---
+
+## Design Narrative
+
+### Intent
+YAML format support — but no code exists for it anymore.
+SPECEOF
+
+git -C "$ORPHAN_PROJECT" add -A
+git -C "$ORPHAN_PROJECT" commit -m "initial with specs and source" >/dev/null 2>&1
+
+# Add a few commits for churn (scan requires commits to analyze)
+for i in $(seq 1 3); do
+    echo "// change $i" >> "$ORPHAN_PROJECT/src/auth/session.ts"
+    git -C "$ORPHAN_PROJECT" add -A
+    git -C "$ORPHAN_PROJECT" commit -m "auth update $i" >/dev/null 2>&1
+done
+
+cd "$ORPHAN_PROJECT" && bash .claude/scripts/curate-scan.sh --init >/dev/null 2>&1
+
+# F02 (YamlParser) should be flagged as orphaned
+if grep -q "Orphaned specs" "$ORPHAN_PROJECT/.curate/scan-summary.md" 2>/dev/null; then
+    pass "Orphaned specs section present in summary"
+else
+    fail "should detect orphaned specs section"
+fi
+
+orphaned_section="$(sed -n '/### Orphaned specs/,/^#/p' "$ORPHAN_PROJECT/.curate/scan-summary.md" 2>/dev/null || true)"
+if echo "$orphaned_section" | grep -q "F02"; then
+    pass "F02 (YamlParser) correctly identified as orphaned"
+else
+    fail "F02 should be orphaned (YamlParser not in source)" "section: $orphaned_section"
+fi
+
+# F01 (SessionManager) should NOT be orphaned
+if echo "$orphaned_section" | grep -q "F01"; then
+    fail "F01 should not be orphaned (SessionManager exists in source)"
+else
+    pass "F01 (SessionManager) correctly not orphaned"
+fi
+
+# Report line should show orphaned count
+output="$(cd "$ORPHAN_PROJECT" && bash .claude/scripts/curate-scan.sh --init 2>&1)"
+if echo "$output" | grep -q "Orphaned specs:"; then
+    pass "orphaned spec count in report output"
+else
+    fail "should report orphaned spec count" "got: $output"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""
