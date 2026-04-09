@@ -5,6 +5,32 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.10.0] — 2026-04-08
+
+### Added
+- `/feature-harden` — adversarial test hardening phase between test writing
+  and implementation. Applies domain lenses (lifecycle, concurrency, boundaries,
+  transformation, shared state, routing) to contracts pre-implementation.
+  Surfaces spec gaps via [ABSENT] mechanism. Auto-selects skip/lite/full.
+- Pre-prove quality gates for `/audit`: `dedup-findings.py` reorders
+  dispatch queue for Phase 0 cascade; `check-test-coverage.py` matches
+  findings against existing adversarial tests.
+- `aggregate-results.py` pre-aggregates prove-fix outputs for report
+  subagent (87% cost reduction: 98→20 turns, $44→$5.65).
+
+### Changed
+- `/feature-test` chains through `/feature-harden` before `/feature-implement`.
+- `/feature-implement` reads `test-plan.md` for intent instead of individual
+  test files; writes `implement-summary.md` as handoff for refactor;
+  pre-checks `status.md` on resume to skip completed constructs.
+- `/feature-refactor` reads `implement-summary.md` for delta awareness.
+- `/feature-resume` recognizes hardening stage.
+- Exploration prior-round integration hardened: unchanged CLEARED/FIXED
+  constructs go to Ignore tier; DEFERRED/Frontier get highest priority.
+- Audit report prompt consumes pre-aggregated summaries.
+
+---
+
 ## [0.9.0] — 2026-04-07
 
 ### Added
