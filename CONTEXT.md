@@ -20,51 +20,40 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-04-03 (evening)*
+*Last updated: 2026-04-09*
 
-**Open question resolution + prove-fix cost optimization + jlsm release prep.**
+**Spec displacement detection + script audit fixes → v0.11.0 release.**
 
-Three sessions (2026-04-02, 2026-04-03 day, 2026-04-03 evening) validated the
-prove-fix pipeline on 3 features, resolved the high-priority open questions,
-and identified + fixed a major cost inefficiency in the prove-fix subagent.
+**What happened (2026-04-09):**
 
-**What happened (2026-04-02 and 2026-04-03 day):**
+- **Spec displacement detection** — new pipeline capability. When a feature's
+  new specs contradict existing APPROVED specs, the resolver detects it
+  mechanically (subject-token overlap + antonym pairs + displacement keywords)
+  and presents four resolution choices: accept invalidation, narrow new spec,
+  narrow old spec, or defer. Accepted displacements flow through the full
+  pipeline as removal work units (plan → test → implement → retro finalization).
 
-See previous session entries in SETTLED.md for: combined prove-fix model,
-release blockers, adversarial fixes, script audit, block-compression audit,
-impossible category analysis, concurrency lens, spec ecosystem, batch specs.
+- **Spec lifecycle fields** — `displaced_by`, `revives`, `revived_by`,
+  `displacement_reason` added to frontmatter. Validation in spec-validate.sh.
 
-**What happened (2026-04-03 evening):**
+- **Revival support** — `/spec-author` detects INVALIDATED specs as reference
+  input for fresh authoring (Option B: new spec, old as input).
 
-- **Open questions resolved:**
-  - Spec-driven work planning → already implemented in `/spec` (discovery +
-    change impact modes). Graduated.
-  - Architect/decision hardening → 6 changes applied: scope verification
-    (Step 0.5), constraint falsification (Step 1b), inline score falsification
-    (scores >= 4 need "Would be a 2 if:"), prior ADR scores not evidence,
-    falsification subagent REQUIRED annotations, quality checklist converted
-    to write-and-justify narrative.
-  - Curate cross-reference repair → implemented: Analysis 11 in curate-scan.sh
-    (KB tag overlap, applies_to overlap, ADR eval→KB source gaps), Step 2i
-    in curate SKILL, pick list items 14-15, action handlers.
+- **Orphaned spec detection** — curate Analysis 14 finds APPROVED specs whose
+  subject tokens no longer appear in source code.
 
-- **Table-indices-and-queries audit data** — 68 findings: 38 fixed, 29
-  impossible, 1 fix_impossible. Real turn counts from JSONL: IMPOSSIBLE
-  findings averaged 35 turns each (1,155 total) vs CONFIRMED averaging
-  39.7 turns (1,748 total). 40% of total audit effort was waste.
+- **Script audit fixes** — Python/JS/bash hook scripts reviewed for runtime
+  issues. Fixed: stale subagent state on parse failure (HIGH), stdin buffering
+  defeating fast bail (HIGH), missing top-level try/catch on JS scripts,
+  redundant syscalls, context % parity, concurrent tmp file collisions.
 
-- **Phase 0 already-fixed check** — new mandatory pre-flight in prove-fix
-  subagent (max 3 turns). Reads current source before writing any test.
-  If the described vulnerability was already fixed by a prior finding in the
-  same run, short-circuits to IMPOSSIBLE without test writing. Expected
-  savings: ~900 turns (~30% of total audit cost) per feature.
+- **Tests** — scenario-spec-validate.sh (8), scenario-spec-resolve.sh (11),
+  curate-scan orphaned spec tests (4 new → 47 total). All existing tests pass.
 
 **Where things stand:**
-All high-priority open questions resolved. Architect pipeline hardened with
-research-backed adversarial patterns. Curate has cross-reference repair.
-Phase 0 installed in jlsm — next test: F08-streaming-block-decompression
-(same domain as block-compression, ideal cascade test). Table-indices audit
-completing test cleanup phase.
+v0.11.0 release in progress. All displacement detection work merged (#34).
+Next priorities from Open Questions remain: Phase 0 validation on F08,
+concurrency lens tracking, audit budget controls.
 
 ---
 

@@ -133,9 +133,10 @@ or features create implicit dependencies. This feedback loop is what makes the
 | Command | What it does |
 |---------|-------------|
 | `/spec "<question>"` | Query specs, discover gaps, and trace change impact |
-| `/spec-author "<feature-id>" "<title>"` | Two-pass adversarial spec authoring (structured draft + falsification) |
-| `/spec-write "<id>" "<title>"` | Register a spec in `.spec/` storage with conflict check |
+| `/spec-author "<feature-id>" "<title>"` | Two-pass adversarial spec authoring (structured draft + falsification). Detects INVALIDATED specs for revival as reference input. |
+| `/spec-write "<id>" "<title>"` | Register a spec in `.spec/` storage with conflict and displacement check |
 | `/spec-verify "<id>"` | Verify a spec against the current implementation |
+| `/spec-resolve "<description>"` | Build a resolved context bundle. Detects displacement — when new specs contradict existing APPROVED specs — and presents resolution choices (accept, narrow, defer). |
 | `/spec-init` | Initialize the `.spec/` directory structure |
 
 ### Features — TDD pipeline
@@ -148,14 +149,14 @@ or features create implicit dependencies. This feedback loop is what makes the
 | `/feature-resume "<slug>" --status` | Detailed session briefing |
 | `/feature-resume "<slug>" --list` | List all active features |
 | `/feature-domains "<slug>"` | Domain analysis, commissions research/architect. Routes to spec authoring when `.spec/` exists. |
-| `/feature-plan "<slug>"` | Work plan, stubs, execution strategy. Consumes specs as primary context. |
+| `/feature-plan "<slug>"` | Work plan, stubs, execution strategy. Consumes specs as primary context. Includes removal work units when displacement is accepted. |
 | `/feature-coordinate "<slug>"` | Parallel batch coordinator |
 | `/feature-test "<slug>"` | Operationalizes spec requirements into tests (Lens A) + adversarial implementation risk analysis (Lens B) |
 | `/feature-harden "<slug>"` | Adversarial test hardening — domain-lens behavioral attacks on contracts before implementation. Auto-selects skip/lite/full. |
 | `/feature-implement "<slug>"` | Implement until tests pass. Detects spec conflicts in test failures. |
 | `/feature-refactor "<slug>"` | Quality review (8-item checklist), then delegates to `/audit` for adversarial bug finding |
 | `/feature-pr "<slug>"` | Draft PR title, description, checklist |
-| `/feature-retro "<slug>"` | Post-feature retrospective + narrative article generation |
+| `/feature-retro "<slug>"` | Post-feature retrospective + narrative article generation. Finalizes displacement by marking displaced specs as INVALIDATED with cross-references. |
 | `/feature-complete "<slug>"` | Archive after PR merges |
 | `/feature-cleanup` | Review stale feature directories |
 

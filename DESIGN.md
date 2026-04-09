@@ -33,7 +33,13 @@ behavioral contracts — what must be true — without referencing specific
 implementation structures. They are the authoritative reference for what the
 system guarantees, consumed by the work planner, test writer, and audit pipeline.
 Domain-sharded directories with a manifest registry enable deterministic context
-resolution via bash scripts.
+resolution via bash scripts. Specs have a full lifecycle: DRAFT → APPROVED →
+INVALIDATED. **Displacement detection** in the resolver identifies when new
+specs contradict existing ones, and the pipeline carries removal work through
+planning, testing, implementation, and artifact finalization. INVALIDATED specs
+are preserved with cross-references (`displaced_by`, `displacement_reason`) for
+historical inspection. **Revival** allows new specs to be authored using
+INVALIDATED predecessors as reference input (`revives` / `revived_by`).
 
 **Features** — a staged TDD pipeline that takes a feature description through
 scoping, domain analysis, work planning, test writing, adversarial hardening,
@@ -817,7 +823,9 @@ vallorcine/
 │   ├── scenario-ensure-merge-driver.sh
 │   ├── scenario-stale-kb.sh
 │   ├── scenario-adr-contradiction.sh
-│   ├── scenario-curate-scan.sh
+│   ├── scenario-curate-scan.sh       ← curate scan tests incl. orphaned spec detection (47 tests)
+│   ├── scenario-spec-validate.sh    ← spec validation: displacement fields (8 tests)
+│   ├── scenario-spec-resolve.sh     ← spec resolution: displacement detection (11 tests)
 │   ├── scenario-index-verify.sh
 │   └── scenario-narrative.sh        ← narrative pipeline parity tests (16 tests)
 │
