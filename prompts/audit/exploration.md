@@ -81,23 +81,35 @@ means many things depend on it — it must be in analyze tier.
 
 If the classification includes prior work:
 
-**Previously cleared constructs:** Read the prior clearing for each. The
-clearing cites a specific defense mechanism on a specific line. Read that
-line (offset/limit, just the cited region). If the defense still exists
-and no new code paths bypass it, the clearing holds — keep the construct
-out of analyze tier. If the line changed or new paths exist, promote to
-analyze tier.
+Use `git diff <prior-commit-sha>..HEAD -- <file>` to check whether each
+construct's file has changed since the prior round. Then apply the
+appropriate tier based on the prior status AND whether the file changed:
 
-**NEEDS-REVISIT findings:** These are the highest priority for exploration.
-The prior report includes what was tried and why it failed. Include these
-constructs in analyze tier and embed the prior attempt context in the
-exploration output.
+| Prior status | File changed? | Tier | Reason |
+|---|---|---|---|
+| CLEARED | No | **Ignore** | Defense intact, no new code — do not read source |
+| CLEARED | Yes | Analyze or Boundary | Read cited defense line. If intact and no new bypass paths: boundary. If removed/bypassed: analyze. |
+| FIXED (N bugs) | No | **Ignore** | Fixes in the code, nothing changed since |
+| FIXED (N bugs) | Yes | **Analyze** | Fix may have been altered or new paths added |
+| Excluded (low priority) | No | **Ignore** | Still pure/simple |
+| Excluded (low priority) | Yes | Boundary | Changed but was excluded for structural reasons |
+| Frontier (never examined) | Either | **Analyze (high priority)** | New ground from prior round |
+| DEFERRED (budget-truncated) | Either | **Analyze (highest priority)** | Unproven findings exist — resume here first |
+| NEEDS-REVISIT | Either | **Analyze (highest priority)** | Prior attempt failed — re-explore with prior context |
+| Not in prior | — | Normal tiering | First-time analysis |
+
+**Key rule:** Unchanged CLEARED/FIXED/Excluded constructs go to Ignore
+tier without reading source. This saves exploration budget for new ground.
+
+**NEEDS-REVISIT and DEFERRED** are the highest priority — they represent
+known work that was started but not completed. Include these in analyze
+tier first and embed the prior attempt context in the exploration output.
+
+**Frontier from prior round:** Explore these areas early. They were at
+the edge of scope last time — advancing into them covers new ground.
 
 **INVALID findings:** Skip unless the surrounding code changed (check via
 git diff from the prior round's commit SHA).
-
-**Frontier from prior round:** Explore these areas first. They were at
-the edge of scope last time — advancing into them covers new ground.
 
 ### 4. Boundary contract extraction
 
@@ -144,10 +156,14 @@ Valid values:
 - tier: "analyze", "boundary", "ignore"
 - tier_decision reason: "initial_file", "fan_in_high", "depth_limit",
   "budget_full", "edge_weight", "user_confirmed", "needs_revisit",
-  "adjacent_to_finding", "frontier_advance", "no_edges"
+  "adjacent_to_finding", "frontier_advance", "no_edges",
+  "prior_cleared_unchanged", "prior_cleared_file_changed",
+  "prior_fixed_unchanged", "prior_fixed_file_changed",
+  "prior_excluded_unchanged", "prior_excluded_file_changed",
+  "prior_frontier", "prior_deferred"
 - clearing_check result: "cleared", "promoted"
 - frontier_stop reason: "depth_limit", "budget_full", "no_more_edges"
-- prior_work action: "re-explore", "skip", "promote"
+- prior_work action: "re-explore", "skip", "promote", "ignore_unchanged"
 
 ## Exploration must NOT
 

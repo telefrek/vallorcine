@@ -50,6 +50,13 @@
 .claude/prompts/audit/reconcile-findings.md
 .claude/prompts/audit/prove-fix.md
 .claude/prompts/audit/prove-fix-orchestrator.md
+.claude/prompts/audit/report.md
+.claude/prompts/audit/aggregate-results.py
+.claude/prompts/audit/dedup-findings.py
+.claude/prompts/audit/check-test-coverage.py
+.claude/prompts/audit/reconcile-cards.py
+.claude/prompts/audit/extract-views.py
+.claude/prompts/audit/audit-state.py
 .claude/scripts/audit-budget.sh
 .claude/scripts/extract-findings.sh
 .claude/agents/architect-agent.md
