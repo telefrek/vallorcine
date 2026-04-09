@@ -472,7 +472,7 @@ if command -v python3 &>/dev/null; then
     py_output=$(cd "$PROJECT_PATH" && echo "$statusline_input" | python3 .claude/scripts/statusline.py 2>/dev/null)
 
     # Both should contain the stage display and context %
-    if echo "$py_output" | grep -q "implementing" && echo "$py_output" | grep -q "42.0%"; then
+    if echo "$py_output" | grep -q "implementing" && echo "$py_output" | grep -q "42%"; then
         pass "python statusline shows stage and context %"
     else
         fail "python statusline shows stage and context %" \
