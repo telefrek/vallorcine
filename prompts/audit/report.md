@@ -17,19 +17,25 @@ DO NOT read source code. All information comes from pipeline output files.
 
 ## Inputs
 
-Read all pipeline output files in the feature/run directory:
+Read these pipeline output files in the feature/run directory:
 - `scope-definition.md` — tiers, clusters, domain signals, domain lenses
 - `scope-exclusions.md` — what was deferred
 - `active-lenses.md` — which domain lenses were active and which were pruned
-- `suspect-*-cluster-*.md` (all) — findings, clearings, boundary observations
-- `prove-fix-*.md` (all) — per-finding prove and fix results
-  (each file covers one finding: test confirmation + source fix)
+- `prove-fix-summary.md` — pre-aggregated prove-fix results (all findings
+  in one file, grouped by result type with tally and Phase 0 stats)
+- `boundary-summary.md` — pre-aggregated boundary observations from all
+  suspect clusters (all cross-cluster edges in one file)
+- `finding-list.txt` — finding-to-cluster mapping (for cross-domain analysis)
+
+Do NOT read individual `prove-fix-*.md` or `suspect-*.md` files. The summary
+files contain all information needed for the report. This reduces context
+from ~140K tokens to ~30K tokens.
 
 ## Process
 
 ### 1. Cross-cluster boundary comparison
 
-Collect boundary observations from all Suspect cluster outputs. For each
+Read `boundary-summary.md` for all boundary observations. For each
 cross-cluster data-flow edge:
 
 - Find the producer cluster's stated guarantees (from its boundary
@@ -52,9 +58,10 @@ may describe independent bugs or components of a single multi-domain bug.
 
 **Process:**
 
-1. Build a construct-to-findings index: for each construct that appears in
-   any finding, collect all findings referencing it across all clusters and
-   lenses.
+1. Build a construct-to-findings index from `finding-list.txt` (which maps
+   each finding to its lens and cluster) and `prove-fix-summary.md` (which
+   has the result for each finding). For each construct that appears in
+   findings from multiple lenses, collect all findings referencing it.
 
 2. For each construct with findings from 2+ different domain lenses:
    - List the findings side by side with their domain lens labels
@@ -94,9 +101,9 @@ section entirely.
 
 ### 3. Finding reconciliation
 
-Count findings at each pipeline stage and verify no findings were dropped:
+Verify no findings were dropped using the tally in `prove-fix-summary.md`:
 
-- Suspect total = sum of findings across all suspect outputs
+- Suspect total = total from `finding-list.txt` line count
 - Prove-fix results: confirmed_and_fixed + impossible + fix_impossible = Suspect total
 
 If any count doesn't reconcile, flag it in the report.
@@ -115,8 +122,9 @@ Compute and flag against targets:
 
 ### 5. Fix-spec conflicts
 
-Review all CONFIRMED_AND_FIXED findings. For each fix, check whether
-the fix changes behavior that a spec requirement describes:
+Review all CONFIRMED_AND_FIXED findings from `prove-fix-summary.md`.
+For each fix, check whether the fix changes behavior that a spec
+requirement describes:
 
 - Does the fix contradict a requirement in any spec (not just the
   audited feature's spec)?

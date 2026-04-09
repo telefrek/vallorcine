@@ -69,8 +69,8 @@ Suspect:    Lens1/C1 → Lens1/C2 → ... → Lens2/C1 → ... → LensK/CN
 Prove-Fix:  Finding 1 → Finding 2 → ... → Finding M
             (sequential — each finding: write test → confirm/impossible → fix)
                                   ↓
-Report:     Single subagent → audit-report.md + audit-prior.md
-            (includes cross-domain finding combination)
+Report:     [aggregate-results.py] → Single subagent → audit-report.md + audit-prior.md
+            (pre-aggregate, then cross-domain finding combination)
                                   ↓
 Reconcile:  Single subagent → spec-updates.md + kb-suggestions.md
             (optional — only when .spec/ exists)
@@ -229,6 +229,7 @@ initialize the TodoWrite checklist:
 ◻ Step 1.6: View Projection
 ◻ Step 1.7: Assembly
 ◻ Job 2: Suspect
+◻ Job 2b: Pre-prove gates
 ◻ Job 3: Prove-Fix
 ◻ Job 3b: Test Cleanup
 ◻ Job 4: Report
@@ -542,9 +543,43 @@ bash .claude/scripts/extract-findings.sh .feature/<slug>/audit/<run-dir>
 This produces `finding-list.txt` — one line per finding, pipe-delimited:
 `<finding-id>|<title>|<construct>|<lens>|<cluster>|<suspect-file>`
 
-Read `finding-list.txt` to build the dispatch queue. The script
-automatically filters out findings that already have `prove-fix-*.md`
-output files — so on resume, only unprocessed/deferred findings appear.
+### Pre-prove gates (mechanical scripts — no LLM cost)
+
+Run two scripts to optimize the dispatch queue before prove-fix:
+
+```bash
+# Gate 1: Reorder findings so cross-lens duplicates run after their primary
+python3 .claude/prompts/audit/dedup-findings.py .feature/<slug>/audit/<RUN_DIR>/
+
+# Gate 2: Check for existing adversarial tests that cover findings
+python3 .claude/prompts/audit/check-test-coverage.py .feature/<slug>/audit/<RUN_DIR>/ .
+```
+
+**Dedup** identifies behavioral duplicates across domain lenses and reorders
+the dispatch queue so the primary finding runs first. After the primary
+confirms and fixes, Phase 0 catches duplicates in ~3 turns instead of ~35.
+No findings are skipped. If `dispatch-order.txt` exists, use it as the
+dispatch order instead of the default lens/cluster ordering.
+
+**Coverage check** matches findings against existing adversarial tests from
+prior audit rounds. Covered findings get stub `prove-fix-*.md` files with
+`Result: COVERED_BY_EXISTING_TEST` — the existing "skip findings with
+output files" mechanism handles the rest.
+
+Report gate results to the user:
+```
+Pre-prove gates:
+  Dedup: N duplicates in M groups (reordered for Phase 0 cascade)
+  Coverage: K findings covered by existing tests
+  Active: J findings to prove-fix
+```
+
+### Build the dispatch queue
+
+Read `finding-list.txt` to build the dispatch queue. If `dispatch-order.txt`
+exists (from dedup), use its ordering. The extraction script automatically
+filters out findings that already have `prove-fix-*.md` output files — so
+covered findings and resumed findings are skipped automatically.
 **Do NOT read suspect files directly** — the script already extracted
 what you need and reading suspect files would add thousands of tokens
 to your context.
@@ -751,17 +786,34 @@ Mark **Job 3b: Test Cleanup** complete.
 
 ## Job 4: Report
 
+### 4a. Aggregate results (mechanical script — no LLM)
+
+Run the aggregation script to pre-compute summaries for the report
+subagent. This replaces ~80 individual file reads with 2 summary files.
+
+```bash
+python3 .claude/prompts/audit/aggregate-results.py .feature/<slug>/audit/<RUN_DIR>/
+```
+
+Expected output: "Aggregated N findings → prove-fix-summary.md"
+
+If the script fails, fall back to the original behavior (the report
+subagent can still read individual files, just at higher cost).
+
+### 4b. Launch report subagent
+
 Launch a single subagent:
 
 > You are the Report subagent.
 > Read `.claude/prompts/audit/report.md` for your complete instructions.
 >
-> Read all pipeline output files in `.feature/<slug>/`:
-> - scope-definition.md
+> Read the pre-aggregated pipeline output files in `.feature/<slug>/audit/<RUN_DIR>/`:
+> - scope-definition.md (or classification.md)
 > - scope-exclusions.md
 > - active-lenses.md
-> - suspect-*-cluster-*.md (all, across all lenses)
-> - prove-fix-*.md (all)
+> - prove-fix-summary.md (pre-aggregated — do NOT read individual prove-fix-*.md files)
+> - boundary-summary.md (pre-aggregated — do NOT read individual suspect-*.md files)
+> - finding-list.txt
 >
 > Perform cross-domain finding combination for constructs that appear
 > in findings from multiple domain lenses.
