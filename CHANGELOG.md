@@ -5,6 +5,48 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.11.0] — 2026-04-09
+
+### Added
+- **Spec displacement detection** — `/spec-resolve` detects when new specs
+  contradict existing APPROVED specs via mechanical subject-token + antonym +
+  keyword matching. Interactive resolution with four choices: accept
+  invalidation, narrow new spec, narrow old spec, or defer.
+- **Displacement pipeline integration** — accepted displacements flow as
+  removal work units through `/feature-plan`, negative displacement tests in
+  `/feature-test`, removal awareness in `/feature-implement`, and artifact
+  finalization (INVALIDATED marking with cross-references) in `/feature-retro`.
+- **Spec revival support** — `/spec-author` detects INVALIDATED specs in
+  matching domains and offers them as reference input for fresh authoring.
+  New cross-reference fields: `revives` / `revived_by`.
+- **New spec frontmatter fields** — `displaced_by`, `revives`, `revived_by`,
+  `displacement_reason` with validation in `spec-validate.sh`.
+- **Orphaned spec detection** — `/curate` Analysis 14 finds APPROVED specs
+  whose subject tokens no longer appear in any source file.
+- **New test suites** — `scenario-spec-validate.sh` (8 tests),
+  `scenario-spec-resolve.sh` (11 tests), orphaned spec tests in
+  `scenario-curate-scan.sh` (4 new, 47 total).
+
+### Fixed
+- **subagent-hook.py/.js** — JSON parse failure now cleans up stale
+  `.subagent-state` instead of leaving a permanent ghost indicator.
+- **token-stop-hook.py** — `stdin.read()` replaced with chunked drain so
+  the fast bail check is reachable without buffering all input.
+- **statusline.py/.js/.sh** — context percentage normalized to integer
+  display across all three languages.
+- **token-stop-hook.py** — PID-scoped temp file prevents concurrent stop
+  hook collisions.
+- **statusline.js** — removed 3 redundant `existsSync` calls, baseline
+  write wrapped in try/catch.
+- **statusline.js, token-stop-hook.js, subagent-hook.js** — top-level
+  try/catch added to guarantee exit 0.
+- **token-stop-hook.js** — cold start line counting uses raw Buffer byte
+  scan instead of `readFileSync` + `split`.
+- **curate-scan.sh** — `grep -c` pipefail bug producing arithmetic errors
+  when specs had zero UNRESOLVED markers.
+
+---
+
 ## [0.10.0] — 2026-04-08
 
 ### Added
