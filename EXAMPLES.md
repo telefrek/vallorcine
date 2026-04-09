@@ -163,11 +163,14 @@ Build up the knowledge base with structured research that persists across
 sessions.
 
 ```
-/research algorithms caching "LRU vs LFU eviction strategies"
+/research "LRU vs LFU eviction strategies"
 ```
 
-Arguments: `<topic> <category> "<subject>"`. The Research Agent writes
-findings to `.kb/algorithms/caching/lru-vs-lfu-eviction-strategies.md`.
+Argument: `"<subject>"` — describe what you want to know. The Research Agent
+determines topic, category, and placement by scanning existing KB content and
+doing preliminary web research. For cross-cutting subjects, it may identify
+multiple facets and write separate focused articles. You confirm the facet
+plan before anything is written.
 
 Research is automatically surfaced during `/feature-domains` when the
 Domain Scout identifies relevant prior work.

@@ -110,7 +110,7 @@ or features create implicit dependencies. This feedback loop is what makes the
 | Command | What it does |
 |---------|-------------|
 | `/kb "<question>"` | Query the knowledge base in plain language |
-| `/research <topic> <category> "<subject>"` | Run a research session, writes to `.kb/` |
+| `/research "<subject>"` | Run a research session — agent determines placement, writes to `.kb/` |
 
 ### Decisions — deliberation and governance
 
@@ -304,7 +304,7 @@ bash install.sh --diff /path/to/your/project
 
 **KB research:**
 ```
-/research algorithms vector-indexing "HNSW graph construction"
+/research "HNSW graph construction"
 ```
 
 **Architecture decision:**

@@ -667,8 +667,14 @@ stage, update substage throughout), add write authority to `tdd-protocol.md`, ad
 the stage to the status file template in `feature/SKILL.md`.
 
 **Adding a new KB topic** — no structural change needed. The Research Agent
-creates topic directories on first use. Add the topic name to the approved
-topics table in `research.md` if it should be suggested by default.
+creates topic directories on first use when a facet plan calls for a new topic.
+
+**Research and KB search** — `/research "<subject>"` takes only a subject
+description; the agent determines placement after preliminary web research and
+a BM25-ranked KB scan (`kb-search.sh`). Cross-cutting subjects are decomposed
+into focused facets at distinct locations. The search script provides ranked
+results to all callers (`/kb` queries, `/research` pre-scan, `/curate`
+relationship discovery).
 
 **Adding a new agent** — create an agent definition in `.claude/agents/`,
 a skill directory in `.claude/skills/`, and optionally a rule file in
@@ -796,6 +802,9 @@ vallorcine/
 │   ├── token-usage.sh               ← per-phase token tracking via session JSONL
 │   ├── version-check.sh             ← warns if branch vallorcine version is behind main
 │   ├── kb-freshness-check.sh        ← warns if KB/decisions indexes are behind main
+│   ├── kb-search.sh                ← BM25-ranked KB search (wrapper: python3 → node → bash)
+│   ├── kb-search.py                ← BM25 search implementation (Python)
+│   ├── kb-search.js                ← BM25 search implementation (Node.js)
 │   ├── merge-driver-index.sh        ← git merge driver for CLAUDE.md index files
 │   ├── ensure-merge-driver.sh       ← registers merge driver on first pipeline run
 │   ├── adr-validate.sh              ← warns if contradictory accepted ADRs exist
