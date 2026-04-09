@@ -52,7 +52,8 @@ graph LR
         S["/feature"] --> D["/feature-domains"]
         D --> P["/feature-plan"]
         P --> T["/feature-test"]
-        T --> I["/feature-implement"]
+        T --> H["/feature-harden"]
+        H --> I["/feature-implement"]
         I --> R["/feature-refactor"]
         R -->|"next unit"| T
         R --> A["audit pass"]
@@ -150,6 +151,7 @@ or features create implicit dependencies. This feedback loop is what makes the
 | `/feature-plan "<slug>"` | Work plan, stubs, execution strategy. Consumes specs as primary context. |
 | `/feature-coordinate "<slug>"` | Parallel batch coordinator |
 | `/feature-test "<slug>"` | Operationalizes spec requirements into tests (Lens A) + adversarial implementation risk analysis (Lens B) |
+| `/feature-harden "<slug>"` | Adversarial test hardening — domain-lens behavioral attacks on contracts before implementation. Auto-selects skip/lite/full. |
 | `/feature-implement "<slug>"` | Implement until tests pass. Detects spec conflicts in test failures. |
 | `/feature-refactor "<slug>"` | Quality review (8-item checklist), then delegates to `/audit` for adversarial bug finding |
 | `/feature-pr "<slug>"` | Draft PR title, description, checklist |
@@ -161,7 +163,7 @@ or features create implicit dependencies. This feedback loop is what makes the
 
 | Command | What it does |
 |---------|-------------|
-| `/audit "<entry-point>"` | Adversarial audit: finds bugs, proves them with tests, fixes the code. Budget-aware with Phase 0 already-fixed detection. Accepts feature slugs, file paths, spec references, or prior reports. |
+| `/audit "<entry-point>"` | Adversarial audit: finds bugs, proves them with tests, fixes the code. Pre-prove gates (dedup reordering, test coverage check) filter findings before expensive prove-fix cycles. Budget-aware with Phase 0 already-fixed detection. Accepts feature slugs, file paths, spec references, or prior reports. |
 
 ### Capabilities — project capability index
 

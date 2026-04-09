@@ -36,12 +36,15 @@ Domain-sharded directories with a manifest registry enable deterministic context
 resolution via bash scripts.
 
 **Features** — a staged TDD pipeline that takes a feature description through
-scoping, domain analysis, work planning, test writing, implementation, refactor,
-PR preparation, and retrospective. Each stage is a separate slash command backed
-by a named agent. Features read from the knowledge, decisions, and specifications
-layers during domain analysis and work planning, and write back via
-retrospectives — creating a feedback loop that makes the project layer richer
-with every feature completed.
+scoping, domain analysis, work planning, test writing, adversarial hardening,
+implementation, refactor, PR preparation, and retrospective. Each stage is a
+separate slash command backed by a named agent. The hardening phase applies
+audit-derived domain lenses (lifecycle, concurrency, boundaries, transformation)
+to contracts pre-implementation, writing adversarial tests that define defensive
+requirements the spec didn't anticipate. Features read from the knowledge,
+decisions, and specifications layers during domain analysis and work planning,
+and write back via retrospectives — creating a feedback loop that makes the
+project layer richer with every feature completed.
 
 **Curation** — a correlation engine (`.curate/`) that combines vallorcine's
 structured history with git data to find things that individual features,
