@@ -2,7 +2,7 @@
 
 > **Managed by vallorcine agents. Use slash commands to modify this file.**
 > To add a topic: `/kb topic "<name>" "<description>"`
-> To add research: `/research <topic> <category> "<subject>"`
+> To add research: `/research "<subject>"`
 
 > Pull model. Navigate: topic → category → subject file.
 > Do not scan this directory recursively.
