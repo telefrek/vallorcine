@@ -5,6 +5,36 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.12.0] — 2026-04-09
+
+### Added
+- **Facet-based research** — `/research "<subject>"` replaces the old
+  `/research <topic> <category> "<subject>"` signature. The agent now
+  researches first, identifies independent facets for cross-cutting subjects,
+  suggests topic/category placement, and the user confirms before anything is
+  written. Eliminates placement bias from commissioning context.
+- **BM25 KB search** — new `kb-search.sh` script (Python + Node.js + bash
+  fallback) provides ranked search over `.kb/` entries. Two-phase ranking:
+  coarse over category indexes, enriched with subject frontmatter field weights
+  (title/aliases 3x, tags 2x, summary 1.5x). Used by `/research` pre-scan,
+  `/kb` query Step 1b, and available to `/curate` for relationship discovery.
+- **Cross-linking at write time** — research sessions automatically cross-link
+  new articles to each other and update existing entries' `related:` fields.
+- **Context hints for callers** — all pipeline callers (`/feature-domains`,
+  `/architect`, `/feature-retro`, `/audit`, etc.) pass optional `context:`
+  hints describing their commissioning situation without dictating placement.
+- **New test suite** — `scenario-kb-search.sh` (13 tests) covering BM25
+  ranking, field weighting, Python/Node parity, and edge cases.
+
+### Changed
+- All 13 caller skills updated to new `/research` signature.
+- `/kb` query Step 1b now uses `kb-search.sh` for mechanical ranking instead
+  of LLM-driven keyword scanning (with fallback if script unavailable).
+- Research agent identity (`agents/research-agent.md`) and rules
+  (`rules/kb-research-agent.md`) updated for facet-first model.
+
+---
+
 ## [0.11.0] — 2026-04-09
 
 ### Added
