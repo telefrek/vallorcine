@@ -916,7 +916,7 @@ if [[ -d ".decisions" ]]; then
     while IFS= read -r slug_dir; do
         adr_file="$slug_dir/adr.md"
         [[ -f "$adr_file" ]] || continue
-        if grep -qE 'status:.*"?deferred"?' "$adr_file" 2>/dev/null; then
+        if grep -qEi 'status:.*"?deferred"?|\*\*Status:\*\*.*deferred' "$adr_file" 2>/dev/null; then
             deferred_count=$((deferred_count + 1))
         fi
     done < <(find .decisions -mindepth 1 -maxdepth 1 -type d 2>/dev/null || true)
@@ -930,7 +930,7 @@ if [[ -d ".decisions" ]]; then
             while IFS= read -r slug_dir; do
                 adr_file="$slug_dir/adr.md"
                 [[ -f "$adr_file" ]] || continue
-                if grep -qE 'status:.*"?deferred"?' "$adr_file" 2>/dev/null; then
+                if grep -qEi 'status:.*"?deferred"?|\*\*Status:\*\*.*deferred' "$adr_file" 2>/dev/null; then
                     adr_ts="$(date -r "$adr_file" '+%s' 2>/dev/null || echo 0)"
                     [[ "$adr_ts" -gt "$newest_deferred_ts" ]] && newest_deferred_ts="$adr_ts"
                 fi
