@@ -164,7 +164,32 @@ Read the WD file (`.work/<group-slug>/WD-<nn>.md`). Build `brief.md` from:
 <Run work-context.sh --group "<group-slug>" and include relevant excerpt>
 ```
 
-### 4b — Write status.md
+### 4b — Detect pipeline mode
+
+Determine the pipeline mode based on the WD's `produces` list:
+
+- **specification** — if the WD's `produces` list contains only specification
+  artifacts (specs, ADRs, interface contracts) and no implementation is expected.
+  Heuristic: the WD's Acceptance Criteria describe artifact outputs, not
+  behavioral outcomes.
+- **implementation** — if the WD's `artifact_deps` are all satisfied (it's READY)
+  and its Summary/Acceptance Criteria describe behavioral outcomes (tests passing,
+  code changes, system behavior).
+- **full** — default when the mode is ambiguous.
+
+Present the detected mode to the user:
+```
+Pipeline mode: <mode>
+  <one sentence explanation>
+```
+
+Use AskUserQuestion with options:
+  - "Proceed with <mode> mode"
+  - "Use full mode instead"
+  - "Use specification mode"
+  - "Use implementation mode"
+
+### 4c — Write status.md
 
 Write `.feature/<slug>/status.md` with the standard format plus work group
 metadata:
@@ -174,10 +199,18 @@ work_group: <group-slug>
 work_definition: WD-<nn>
 ```
 
-Set stage to `scoping`, substage to `complete` (scoping was done during
-work group decomposition — skip the scoping interview).
+Set `Pipeline mode` based on Step 4b:
 
-### 4c — Update WD status
+- **specification mode:** stage = `scoping`, substage = `complete`
+- **implementation mode:** stage = `planning`, substage = `loading-context`
+- **full mode:** stage = `scoping`, substage = `complete`
+
+Adjust the Stage Completion table to match the mode:
+- **specification:** only Scoping, Domains, Spec Authoring rows
+- **implementation:** only Planning, Testing, Hardening, Implementation, Refactor rows
+- **full:** all rows (standard template)
+
+### 4d — Update WD status
 
 Edit `.work/<group-slug>/WD-<nn>.md` — set `status: IN_PROGRESS`.
 Update `.work/<group-slug>/manifest.md` — update the WD's status in the table.
@@ -186,12 +219,36 @@ Update `.work/<group-slug>/manifest.md` — update the WD's status in the table.
 
 ## Step 5 — Hand off to pipeline
 
+The handoff depends on the pipeline mode:
+
+**specification mode:**
+```
+Feature directory created: .feature/<slug>/
+Pipeline mode: specification (produce artifacts only)
+
+Scoping is pre-populated from the work definition — proceeding to domain
+analysis and spec authoring.
+```
+Invoke `/feature-domains "<slug>"`.
+
+**implementation mode:**
+```
+Feature directory created: .feature/<slug>/
+Pipeline mode: implementation (specifications already exist)
+
+Proceeding directly to work planning — specs and ADRs will be loaded
+from the resolved context.
+```
+Invoke `/feature-plan "<slug>"`.
+
+**full mode:**
 ```
 Feature directory created: .feature/<slug>/
 
 Scoping is pre-populated from the work definition — proceeding to domain
 analysis.
 ```
+Invoke `/feature-domains "<slug>"`.
 
 Invoke `/feature-domains "<slug>"` as a sub-agent. The standard pipeline
 takes over from here.

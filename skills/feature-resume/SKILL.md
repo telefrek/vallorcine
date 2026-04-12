@@ -235,7 +235,9 @@ use the coordinator (parallel mode):
 
 ## Step 3 — Determine and display what to run next
 
-Based on the current stage and substage:
+Read the `Pipeline mode` field from status.md (default: `full`).
+
+### Full mode routing (pipeline_mode: full)
 
 | Stage + Substage | What to run next |
 |-----------------|-----------------|
@@ -260,6 +262,51 @@ Based on the current stage and substage:
 | refactor / complete | `/feature-pr "<slug>"` |
 | pr / created (no retro) | `/feature-retro "<slug>"` — retrospective while feature is fresh |
 | pr / created (retro done) | `/feature-complete "<slug>"` — when PR has merged |
+
+### Specification mode routing (pipeline_mode: specification)
+
+This mode stops after spec authoring. Used when a work definition produces
+specification artifacts rather than implementing behavior.
+
+| Stage + Substage | What to run next |
+|-----------------|-----------------|
+| scoping / interviewing | `/feature "<slug description>"` |
+| scoping / confirming-brief | `/feature "<slug description>"` |
+| scoping / complete | `/feature-domains "<slug>"` |
+| domains / complete | Spec authoring (automatic via `/feature-domains`) |
+| spec-authoring / complete | `/feature-retro "<slug>"` — specification complete |
+| pr / created (no retro) | `/feature-retro "<slug>"` |
+| pr / created (retro done) | `/feature-complete "<slug>"` |
+
+Note: Planning, Testing, Hardening, Implementation, and Refactor stages
+are skipped in specification mode. After spec authoring is done, proceed
+directly to retro.
+
+### Implementation mode routing (pipeline_mode: implementation)
+
+This mode starts at planning. Used when specification was done in a prior
+phase and artifacts already exist.
+
+| Stage + Substage | What to run next |
+|-----------------|-----------------|
+| planning / in-progress | `/feature-plan "<slug>"` |
+| planning / complete | `/feature-test "<slug>"` |
+| testing / in-progress | `/feature-test "<slug>"` |
+| testing / complete (cycle N) | `/feature-harden "<slug>"` |
+| hardening / in-progress | `/feature-harden "<slug>"` |
+| hardening / complete | `/feature-implement "<slug>"` |
+| hardening / skipped-no-signals | `/feature-implement "<slug>"` |
+| implementation / in-progress | `/feature-implement "<slug>"` |
+| implementation / escalated | `/feature-test "<slug>"` |
+| implementation / complete (cycle N) | `/feature-refactor "<slug>"` |
+| refactor / in-progress | `/feature-refactor "<slug>"` |
+| refactor / escalated-missing-tests | `/feature-test "<slug>" --add-missing` |
+| refactor / complete | `/feature-pr "<slug>"` |
+| pr / created (no retro) | `/feature-retro "<slug>"` |
+| pr / created (retro done) | `/feature-complete "<slug>"` |
+
+Note: Scoping, Domains, and Spec Authoring stages are skipped in
+implementation mode. Planning reads specification artifacts directly.
 
 If `automation_mode: autonomous` and the feature is mid-implementation or
 mid-refactor: note this in the Next Step display:
