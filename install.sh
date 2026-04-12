@@ -522,6 +522,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
 .claude/.subagent-state
 .feature/
 .curate/
+__pycache__/
 GITIGNOREBLOCK
         echo -e "  ${GREEN}write${NC} .gitignore  (runtime file entries)"
     else
