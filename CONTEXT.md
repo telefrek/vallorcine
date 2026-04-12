@@ -20,40 +20,52 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-04-09*
+*Last updated: 2026-04-12*
 
-**Spec displacement detection + script audit fixes → v0.11.0 release.**
+**Work layer — composable multi-feature work definitions (all 6 phases complete).**
 
-**What happened (2026-04-09):**
+**What happened (2026-04-11/12):**
 
-- **Spec displacement detection** — new pipeline capability. When a feature's
-  new specs contradict existing APPROVED specs, the resolver detects it
-  mechanically (subject-token overlap + antonym pairs + displacement keywords)
-  and presents four resolution choices: accept invalidation, narrow new spec,
-  narrow old spec, or defer. Accepted displacements flow through the full
-  pipeline as removal work units (plan → test → implement → retro finalization).
+- **Work layer (`.work/`)** — fourth knowledge layer. Same pull-model pattern as
+  KB, decisions, specs. Work groups decompose large goals into work definitions
+  with artifact-based dependencies and computed readiness.
 
-- **Spec lifecycle fields** — `displaced_by`, `revives`, `revived_by`,
-  `displacement_reason` added to frontmatter. Validation in spec-validate.sh.
+- **Data model (Phase 1)** — `work-lib.sh` (YAML parsing, dep checking),
+  `work-resolve.sh` (readiness computation with dependency graph and scope signal),
+  `work-validate.sh` (structural validation with circular dep detection).
+  Interface contracts as spec subtype (`kind: interface-contract`).
 
-- **Revival support** — `/spec-author` detects INVALIDATED specs as reference
-  input for fresh authoring (Option B: new spec, old as input).
+- **Creation flow (Phase 2)** — `/work`, `/work-decompose`, `/work-status` skills.
+  Scoping interview, dependency graph presentation, readiness query.
 
-- **Orphaned spec detection** — curate Analysis 14 finds APPROVED specs whose
-  subject tokens no longer appear in source code.
+- **Context injection (Phase 3)** — `work-context.sh` provides work group context
+  to architect (forward compatibility, ordering gates), spec-author (downstream
+  consumers), feature-domains (cross-WD domain reuse), feature-plan (interface
+  stability constraints), and feature-resume (work group grouping).
 
-- **Script audit fixes** — Python/JS/bash hook scripts reviewed for runtime
-  issues. Fixed: stale subagent state on parse failure (HIGH), stdin buffering
-  defeating fast bail (HIGH), missing top-level try/catch on JS scripts,
-  redundant syscalls, context % parity, concurrent tmp file collisions.
+- **Pipeline bridge (Phase 4)** — `/work-start` bridges work definitions into the
+  feature pipeline. Feature-retro updates WD status and triggers readiness cascade.
+  Feature-complete updates manifests.
 
-- **Tests** — scenario-spec-validate.sh (8), scenario-spec-resolve.sh (11),
-  curate-scan orphaned spec tests (4 new → 47 total). All existing tests pass.
+- **Curation (Phase 5)** — curate-scan analyses 15-17: cross-WD spec displacement
+  detection, stalled work groups, artifact dependency drift.
+
+- **Pipeline decomposition (Phase 6)** — `pipeline_mode` field: specification-only
+  (scoping → domains → spec authoring → complete), implementation-only (planning →
+  testing → hardening → implementation → refactor), and full (default, backwards
+  compatible). Mode-aware routing in feature-resume.
+
+- **Bug fix** — 3 `grep -c` pipefail instances in curate-scan.sh producing "0\n0"
+  instead of clean integers.
+
+- **Tests** — 7 new test suites (68 new tests), 137 total across all suites. Zero
+  regressions. 32 files changed, ~5K lines.
 
 **Where things stand:**
-v0.11.0 release in progress. All displacement detection work merged (#34).
-Next priorities from Open Questions remain: Phase 0 validation on F08,
-concurrency lens tracking, audit budget controls.
+All implementation on `feat/work-layer-foundation` branch (7 commits). Docs
+updated. Ready for PR and merge. Next: real-world validation on a multi-feature
+workflow, then remaining Open Questions (Phase 0 validation, concurrency lens,
+audit budget controls).
 
 ---
 
@@ -61,14 +73,28 @@ concurrency lens tracking, audit budget controls.
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **Combined prove-fix per-finding model** (2026-04-02) — merged Prove + Fix into
-  single subagent. Each finding gets fresh context. Test result determines path
-  (not agent's choice). Validated: same cost as prove-only with fixes included.
-  Fix cascade reduces total work via serial execution.
+- **Artifact-based dependencies, not stage-based** (2026-04-11) — work definitions
+  depend on specific artifacts (specs at APPROVED, ADRs at accepted, KB entries
+  existing), not on other WDs completing stages. Enables partial unblocking and
+  provides a scoping signal (>5 deps = consider decomposition).
 
-- **Sequential execution for prove-fix** (2026-04-02) — one finding at a time,
-  no parallelism. Prevents fix conflicts on shared source files. Fix cascade
-  deduplication is a bonus. Wall-clock tradeoff acceptable.
+- **Interface contracts as spec subtype** (2026-04-11) — `kind: interface-contract`
+  field on specs, not a fifth knowledge layer. Reuses all existing spec tooling
+  (resolve, validate, author, displace). Displacement detection works on them
+  automatically.
+
+- **Computed readiness, not declared** (2026-04-11) — `work-resolve.sh` walks
+  artifact deps each invocation. No cached state to go stale. Completing a WD
+  that produces artifacts automatically unblocks dependent WDs.
+
+- **Pipeline mode decomposition** (2026-04-11) — specification-only stops after
+  spec authoring, implementation-only starts from planning. `pipeline_mode` field
+  in status.md (default: full, backwards compatible). Work-start auto-detects
+  mode from WD produces list.
+
+- **Work context as pull-model injection** (2026-04-11) — `work-context.sh`
+  provides bounded context snippets to architect, spec-author, domain analysis,
+  work planner, and feature-resume. Zero cost when no work groups exist.
 
 - **Effort asymmetry removal in prove-fix** (2026-04-02) — agent always writes
   test regardless of outcome (confirmed or impossible). Test result chooses the
@@ -121,6 +147,11 @@ concurrency lens tracking, audit budget controls.
 
 ### Do next (high priority, clear direction)
 
+- **Real-world work layer validation** — exercise the full `/work` → `/work-decompose`
+  → `/work-start` flow on an actual multi-feature task. Validate: readiness
+  computation, context injection, pipeline mode selection, retro lifecycle
+  updates. First candidate: a jlsm feature set or a vallorcine internal refactor.
+
 - **Validate Phase 0 on F08-streaming-block-decompression** — first real test
   of the already-fixed check. Same domain as block-compression (28 prior fixes).
   Measure: how many findings short-circuit at Phase 0, turn savings vs baseline.
@@ -146,7 +177,9 @@ concurrency lens tracking, audit budget controls.
 
 ### Do when needed (useful but workarounds exist)
 
-- **/feature-split** — split in-progress feature when scope expands.
+- ~~**/feature-split**~~ — **subsumed by work layer** (2026-04-11). `/work-decompose`
+  handles scope decomposition at the work group level. Individual features remain
+  atomic; scope expansion is handled by creating new work definitions.
 
 - **Large repo curation testing** — `/curate` needs testing on a repo with
   1000+ commits, 30+ contributors.

@@ -9,7 +9,7 @@ faster because your project's context compounds, not its token cost.
 
 No dependencies. `bash install.sh` and go.
 
-### Five concerns
+### Six concerns
 
 **Knowledge** — research findings accumulate in `.kb/` and are queried on demand.
 Your project learns once and remembers forever.
@@ -22,6 +22,11 @@ questions.
 prevents bugs before they're written, an adversarial audit pass that confirms
 implementation quality, crash recovery, and parallel work unit execution. Claude
 follows the discipline so you can focus on directing the work, not policing it.
+
+**Work** — when work spans multiple features, `/work` decomposes the goal into
+work definitions with artifact-based dependencies. Readiness is computed
+mechanically — completing one work definition automatically unblocks others.
+Supports specification-only and implementation-only pipeline modes.
 
 **Curation** — `/curate` scans your codebase for quality signals: decisions that
 no longer match the code, research that's gone stale, implicit dependencies
@@ -68,14 +73,30 @@ graph LR
     RET -.->|"writes back"| KB
     RET -.->|"writes back"| DEC
 
+    subgraph Work
+        W["/work"] --> WD[(".work/")]
+        WS["/work-status"] -.->|"queries"| WD
+        WST["/work-start"] -.->|"reads"| WD
+        WST -->|"creates"| S
+    end
+
+    WD -.->|"context"| ARC
+    WD -.->|"context"| D
+    WD -.->|"context"| P
+
     subgraph Curation
         CUR["/curate"] -.->|"reviews"| KB
         CUR -.->|"reviews"| DEC
+        CUR -.->|"reviews"| WD
         CUR -.->|"scans"| GIT["git history"]
     end
 
     style CUR fill:#ef4444,color:#fff
     style GIT fill:#6b7280,color:#fff
+    style W fill:#06b6d4,color:#fff
+    style WS fill:#06b6d4,color:#fff
+    style WST fill:#06b6d4,color:#fff
+    style WD fill:#67e8f9,color:#000
     style S fill:#4a9eff,color:#fff
     style D fill:#4a9eff,color:#fff
     style P fill:#4a9eff,color:#fff
@@ -159,6 +180,16 @@ or features create implicit dependencies. This feedback loop is what makes the
 | `/feature-retro "<slug>"` | Post-feature retrospective + narrative article generation. Finalizes displacement by marking displaced specs as INVALIDATED with cross-references. |
 | `/feature-complete "<slug>"` | Archive after PR merges |
 | `/feature-cleanup` | Review stale feature directories |
+
+### Work — multi-feature coordination
+
+| Command | What it does |
+|---------|-------------|
+| `/work "<goal>"` | Create a work group — decompose a large goal into coordinated work definitions |
+| `/work-decompose "<slug>"` | Break a work group into work definitions with artifact dependencies and shared interface contracts |
+| `/work-status "<slug>"` | Show readiness: what is READY, BLOCKED, IN_PROGRESS, or COMPLETE |
+| `/work-status --all` | Readiness summary across all active work groups |
+| `/work-start "<slug>" [WD-nn \| next]` | Start implementing a ready work definition — bridges into the feature pipeline |
 
 ### Audit — adversarial bug finding
 
@@ -317,6 +348,14 @@ bash install.sh --diff /path/to/your/project
 /decisions backfill
 ```
 
+**Coordinate multi-feature work:**
+```
+/work "migrate auth from session tokens to JWT"
+/work-decompose "auth-migration"
+/work-status "auth-migration"
+/work-start "auth-migration" next
+```
+
 **Review codebase quality (first time on a project):**
 ```
 /curate --init
@@ -356,10 +395,10 @@ reviewing past decisions, crash recovery, and more.
 
 ## Architecture
 
-See [DESIGN.md](DESIGN.md) for the full design reference: the five concerns
+See [DESIGN.md](DESIGN.md) for the full design reference: the six concerns
 model, 10 core principles, token budget, agent write authority table, crash
-recovery model, KB/decisions hierarchy, curation architecture, work unit
-splitting, and extension points.
+recovery model, KB/decisions hierarchy, work layer architecture, curation
+engine, work unit splitting, and extension points.
 
 ## Development
 
