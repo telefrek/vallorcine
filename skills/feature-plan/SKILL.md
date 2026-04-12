@@ -120,11 +120,25 @@ Read in order:
 2. `PROJECT-CONTEXT.md` — if it exists, read Active entries (global + scoped to
    relevant modules). Constraints from context entries should be reflected in
    work plan contracts.
-3. `.feature/<slug>/brief.md`
-4. `.feature/<slug>/domains.md`
-5. All ADR files linked in domains.md
-6. Key sections of linked KB subject files (`#key-parameters`, `#implementation-notes`)
-7. **Resolve specs** — check for spec infrastructure first:
+3. **Work group context** — if `.work/` exists, run:
+   ```bash
+   bash .claude/scripts/work-context.sh --feature "<slug>"
+   ```
+   If output is non-empty, read it and apply:
+   - **Interface stability:** When a construct's public API is produced by this
+     feature and other WDs in the same work group consume it, add an interface
+     stability constraint to the contract: "Public API consumed by WD-03,
+     WD-05 — signature changes require coordinated updates."
+   - **Planned work awareness:** When other WDs will modify the same codebase
+     areas, note it in implementation notes: "WD-04 also plans changes in this
+     module — consider extension points."
+   - Do not restructure the work plan around work group concerns — just add
+     awareness to contracts and implementation notes where relevant.
+4. `.feature/<slug>/brief.md`
+5. `.feature/<slug>/domains.md`
+6. All ADR files linked in domains.md
+7. Key sections of linked KB subject files (`#key-parameters`, `#implementation-notes`)
+8. **Resolve specs** — check for spec infrastructure first:
    ```bash
    test -f .spec/CLAUDE.md || test -d .spec/registry
    ```

@@ -201,7 +201,16 @@ For each pending domain:
    pass through silently to the test phase where the spec analyst pre-pass
    (Step 1c of /feature-test) will read and apply them.
 5. Read `.decisions/CLAUDE.md` — check for relevant ADR
-6. Classify using the rules below
+6. **Work group context:** If `.work/` exists, run:
+   ```bash
+   bash .claude/scripts/work-context.sh --domains "<current domain>"
+   ```
+   If output is non-empty: check if other work definitions have already
+   explored this domain. If so, note it: "WD-01 in <group> already explored
+   this domain — its domain results may be reusable." This avoids commissioning
+   redundant research across related work definitions. Do not display the full
+   work context — just note the overlap for the Domain Scout's classification.
+7. Classify using the rules below
 
 ### Classification rules
 

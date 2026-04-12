@@ -23,20 +23,36 @@ Works for both `/feature` and `/feature-quick` slugs.
 If `--list` flag is set:
 
 1. List all directories under `.feature/` (excluding `_archive/` and `project-config.md`)
-2. For each directory, read `status.md` and extract: stage, substage, last updated timestamp
-3. Display:
+2. For each directory, read `status.md` and extract: stage, substage, last updated timestamp.
+   Also check for `work_group` field or double-dash convention (`<group>--<wd>`) to identify
+   work-group-sourced features.
+3. If `.work/` exists and any features are work-group-sourced, group them by work group.
+   Display:
 
 ```
 ───────────────────────────────────────────────
 📋 ACTIVE FEATURES
 ───────────────────────────────────────────────
+
+Work group: <group-slug> (N/M complete)
   <slug>            <stage> · <substage>            <last updated>
   <slug>            <stage> · <substage>            <last updated>
+
+Standalone:
   <slug>            <stage> · <substage>            <last updated>
 ───────────────────────────────────────────────
 ```
 
-Sort by last updated (most recent first).
+If no features are work-group-sourced, use the flat format (no grouping):
+```
+───────────────────────────────────────────────
+📋 ACTIVE FEATURES
+───────────────────────────────────────────────
+  <slug>            <stage> · <substage>            <last updated>
+───────────────────────────────────────────────
+```
+
+Sort by last updated (most recent first) within each group.
 If no features exist, display: `No active features. Start one with /feature "<description>" or /feature-quick "<description>"`
 
 Stop. Do not continue to other steps.
@@ -90,6 +106,21 @@ Stop.
 If `--share` flag: run --status mode, then condense output to share format (see Step 5b).
 If `--status` flag: skip to Step 5 — Session briefing.
 Otherwise: continue to Step 2 — Navigation mode.
+
+---
+
+## Step 1c — Work group context
+
+If this feature is work-group-sourced (status.md has `work_group` field, or
+slug matches `<group>--<wd>` pattern), show work group progress after the
+header in Step 2:
+
+```
+Work group: <group-slug> · <complete>/<total> work definitions complete
+```
+
+This is a single line of context — don't run the full resolver here, just
+count WD files and their statuses via `work_fm` on each WD file.
 
 ---
 

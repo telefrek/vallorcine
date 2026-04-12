@@ -292,6 +292,7 @@ install_file "$SCRIPT_DIR/scripts/spec-obligations-gc.sh" "$TARGET/.claude/scrip
 install_file "$SCRIPT_DIR/scripts/work-lib.sh" "$TARGET/.claude/scripts/work-lib.sh"
 install_file "$SCRIPT_DIR/scripts/work-resolve.sh" "$TARGET/.claude/scripts/work-resolve.sh"
 install_file "$SCRIPT_DIR/scripts/work-validate.sh" "$TARGET/.claude/scripts/work-validate.sh"
+install_file "$SCRIPT_DIR/scripts/work-context.sh" "$TARGET/.claude/scripts/work-context.sh"
 install_file "$SCRIPT_DIR/scripts/narrative-wrapper.sh" "$TARGET/.claude/scripts/narrative-wrapper.sh"
 chmod +x "$TARGET/.claude/scripts/narrative-wrapper.sh" 2>/dev/null || true
 mkdir -p "$TARGET/.claude/scripts/narrative"
@@ -319,6 +320,7 @@ chmod +x "$TARGET/.claude/scripts/spec-resolve.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-obligations-gc.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-resolve.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-validate.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/work-context.sh" 2>/dev/null || true
 
 # ── Merge driver for index files ──────────────────────────────────────────────
 
@@ -395,7 +397,8 @@ if [[ "$DIFF_MODE" != "1" ]]; then
       "Bash(bash .claude/scripts/spec-resolve.sh:*)",
       "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)",
       "Bash(bash .claude/scripts/work-resolve.sh:*)",
-      "Bash(bash .claude/scripts/work-validate.sh:*)"
+      "Bash(bash .claude/scripts/work-validate.sh:*)",
+      "Bash(bash .claude/scripts/work-context.sh:*)"
     ]
   },
   "hooks": {
@@ -484,7 +487,8 @@ HOOKJSON
       "Bash(bash .claude/scripts/spec-resolve.sh:*)",
       "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)",
       "Bash(bash .claude/scripts/work-resolve.sh:*)",
-      "Bash(bash .claude/scripts/work-validate.sh:*)"
+      "Bash(bash .claude/scripts/work-validate.sh:*)",
+      "Bash(bash .claude/scripts/work-context.sh:*)"
         ] | unique)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
         echo -e "  ${GREEN}merge${NC} Script permissions added to settings.json"
     elif [[ -f "$SETTINGS_FILE" ]]; then
