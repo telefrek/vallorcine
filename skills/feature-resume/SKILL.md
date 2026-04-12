@@ -347,21 +347,26 @@ NEXT STEP
 - If the next step resolves to `/feature-pr` (stage is `refactor/complete`):
   ```
   Feature is ready for PR.
-    Type **yes**  to draft the PR  ·  or: stop
   ```
-  If "yes": invoke `/feature-pr "<slug>"` as a sub-agent immediately.
-  If "stop": display `Next: /feature-pr "<slug>"` and stop.
+  Use AskUserQuestion with options:
+    - "Draft PR"
+    - "Stop"
+
+  If "Draft PR": invoke `/feature-pr "<slug>"` as a sub-agent immediately.
+  If "Stop": display `Next: /feature-pr "<slug>"` and stop.
 
 - If the next step resolves to `/feature-retro` (stage is `pr/created` and
   cycle-log.md has no `retro-complete` entry): prompt for retrospective.
   ```
   PR is open. A retrospective captures what worked and what didn't while
   the feature is fresh — it writes back to the KB and decisions store.
-
-    Type **yes**  to run the retrospective  ·  or: skip
   ```
-  If "yes": invoke `/feature-retro "<slug>"` as a sub-agent immediately.
-  If "skip": display `When the PR merges: /feature-complete "<slug>"` and stop.
+  Use AskUserQuestion with options:
+    - "Run retrospective"
+    - "Skip"
+
+  If "Run retrospective": invoke `/feature-retro "<slug>"` as a sub-agent immediately.
+  If "Skip": display `When the PR merges: /feature-complete "<slug>"` and stop.
 
   If cycle-log.md already has a `retro-complete` entry: skip the retro prompt
   and display `When the PR merges: /feature-complete "<slug>"` instead.

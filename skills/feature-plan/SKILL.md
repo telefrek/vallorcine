@@ -188,12 +188,14 @@ Read in order:
      <list each CONFLICT and INVALIDATES line from the section>
 
    These must be resolved before planning can proceed.
-   Options: resolve via /spec-author, or type **override** to acknowledge and continue.
    ```
 
-   Wait for user input:
-   - If the user runs /spec-author: stop and let them resolve.
-   - If the user types "override": proceed with planning, but record the
+   Use AskUserQuestion with options:
+     - "Resolve via /spec-author"
+     - "Override and continue"
+
+   If "Resolve via /spec-author": stop and let them resolve.
+   If "Override and continue": proceed with planning, but record the
      conflicts in work-plan.md under a `## Open Risks` section:
      ```markdown
      ## Open Risks

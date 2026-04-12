@@ -26,10 +26,12 @@ If spec infrastructure exists:
 Domain analysis is already complete for '<slug>'.
 Domains: .feature/<slug>/domains.md
 
-  Type **yes**  to proceed to spec authoring  ·  or: stop
+  Use AskUserQuestion with options:
+    - "Proceed to spec authoring"
+    - "Stop"
 ```
-If "yes": invoke `/spec-author "<feature-id>" "<slug>"` as a sub-agent immediately.
-If "stop": display `Next: /spec-author "<feature-id>" "<slug>"` and stop.
+If "Proceed to spec authoring": invoke `/spec-author "<feature-id>" "<slug>"` as a sub-agent immediately.
+If "Stop": display `Next: /spec-author "<feature-id>" "<slug>"` and stop.
 
 If no spec infrastructure:
 ```
@@ -38,10 +40,12 @@ If no spec infrastructure:
 Domain analysis is already complete for '<slug>'.
 Domains: .feature/<slug>/domains.md
 
-  Type **yes**  to proceed to work planning  ·  or: stop
+  Use AskUserQuestion with options:
+    - "Proceed to work planning"
+    - "Stop"
 ```
-If "yes": invoke /feature-plan "<slug>" as a sub-agent immediately.
-If "stop": display `Next: /feature-plan "<slug>"` and stop.
+If "Proceed to work planning": invoke /feature-plan "<slug>" as a sub-agent immediately.
+If "Stop": display `Next: /feature-plan "<slug>"` and stop.
 
 **If Domains stage is `in-progress`:**
 Display opening header, then:
@@ -300,17 +304,19 @@ Display:
 
   Launching research to fill this gap.
 
-  Type **yes** to research now · or: skip (gap will be noted in domains.md)
+  Use AskUserQuestion with options:
+    - "Research now"
+    - "Skip (note gap)"
 ```
 Append `domains-research-commissioned` to cycle-log.md. Wait for user response.
 
-If "yes" (or any response other than "skip"):
+If "Research now":
 - Invoke `/research "<subject>" context: "feature-domains for <feature>, domain: <domain>"` as a sub-agent immediately
 - After research completes, verify the KB entry now exists
 - If yes → mark domain `resolved` in status.md, display `✓ <domain> — resolved`
 - If research failed or was incomplete → mark `gap-noted`, continue
 
-If "skip": mark domain `skipped` in status.md, note gap in domains.md.
+If "Skip (note gap)": mark domain `skipped` in status.md, note gap in domains.md.
 
 ### If an architectural decision is missing
 
@@ -339,11 +345,13 @@ Display:
 
   Launching architect to deliberate.
 
-  Type **yes** to decide now · or: skip (proceeds without formal ADR)
+  Use AskUserQuestion with options:
+    - "Decide now"
+    - "Skip (no ADR)"
 ```
 Append `domains-decision-commissioned` to cycle-log.md. Wait for user response.
 
-If "yes" (or any response other than "skip"):
+If "Decide now":
 - Invoke `/architect "<decision problem>"` as a sub-agent immediately
 - After architect completes, check if ADR's log.md contains a
   `decision-confirmed` entry
@@ -353,10 +361,12 @@ If "yes" (or any response other than "skip"):
   ⚠ <domain> — architect session incomplete
     .decisions/<adr-slug>/log.md has no decision-confirmed entry.
 
-    Type **yes** to resume · or: skip
+    Use AskUserQuestion with options:
+      - "Resume"
+      - "Skip"
   ```
 
-If "skip": mark domain `skipped` in status.md, note gap in domains.md.
+If "Skip (no ADR)": mark domain `skipped` in status.md, note gap in domains.md.
 
 ### Verifying commissioned work on resume
 
@@ -407,7 +417,9 @@ Review the domain analysis above — the Work Planner will build the implementat
 structure from these constraints and ADRs.
 
 ───────────────────────────────────────────────
-  Type **yes**  ·  or: stop
+  Use AskUserQuestion with options:
+    - "Proceed"
+    - "Stop"
 ───────────────────────────────────────────────
 ```
 
@@ -423,7 +435,7 @@ system. The next stage is spec authoring — specs must be written (or confirmed
 current) before work planning, because the planner consumes spec requirements
 as its primary input.
 
-If "yes":
+If "Proceed":
 - Update status.md: Spec Authoring stage → `in-progress`
 - Display:
   ```
@@ -435,7 +447,7 @@ If "yes":
   After spec-author completes, invoke `/spec-write "<feature-id>" "<slug>"`
   to register the spec, then invoke `/feature-plan "<slug>"` as a sub-agent.
 
-If "stop":
+If "Stop":
 ```
 When you're ready:
   /spec-author "<feature-id>" "<slug>"
@@ -448,8 +460,8 @@ After spec authoring, continue with:
 not use the spec system. Hand off directly to work planning for backwards
 compatibility.
 
-If "yes": invoke /feature-plan "<slug>" as a sub-agent immediately.
-If "stop":
+If "Proceed": invoke /feature-plan "<slug>" as a sub-agent immediately.
+If "Stop":
 ```
 When you're ready:
   /feature-plan "<slug>"

@@ -48,9 +48,9 @@ This is fine if:
   - The PR has already merged
   - You intentionally skipped stages (e.g. no refactor needed for small changes)
 
-  Type **yes**  ·  or: stop
-```
-Wait for explicit confirmation before continuing.
+Use AskUserQuestion with options:
+  - "Proceed"
+  - "Stop"
 
 ---
 

@@ -208,9 +208,11 @@ If an ADR was invalidated or insufficient:
 ── ADR Update ─────────────────────────────────
   <adr-slug> — <what was wrong or missing>
 
-  Type **yes** to open a review · or: skip
+  Use AskUserQuestion with options:
+    - "Open review"
+    - "Skip"
 ```
-If "yes": invoke `/decisions revisit "<adr-slug>"` as a sub-agent.
+If "Open review": invoke `/decisions revisit "<adr-slug>"` as a sub-agent.
 
 If a design decision was made during implementation without an ADR (detected
 from contract revisions or escalations that changed the approach):
@@ -219,9 +221,11 @@ from contract revisions or escalations that changed the approach):
   <description of what was decided>
   Source: <escalation / contract revision / scope change>
 
-  Type **yes** to create an ADR · or: skip
+  Use AskUserQuestion with options:
+    - "Create ADR"
+    - "Skip"
 ```
-If "yes": invoke `/architect "<decision problem>"` as a sub-agent.
+If "Create ADR": invoke `/architect "<decision problem>"` as a sub-agent.
 
 ### Findings that should update `.kb/`
 
@@ -233,9 +237,11 @@ was discovered):
   <what was learned>
   Relevant topic: <topic> / <category>
 
-  Type **yes** to research and document · or: skip
+  Use AskUserQuestion with options:
+    - "Research and document"
+    - "Skip"
 ```
-If "yes": invoke `/research "<subject>" context: "feature-retro for <slug>, domain: <topic>/<category>"` as a sub-agent.
+If "Research and document": invoke `/research "<subject>" context: "feature-retro for <slug>, domain: <topic>/<category>"` as a sub-agent.
 
 ### Feature footprint
 
@@ -269,10 +275,12 @@ entries (from aTDD rounds or audit passes):
   <n> RESOLVED patterns, <n> TENDENCY patterns found
   These should be documented in .kb/ for future features.
 
-  Type **yes** to graduate findings to KB · or: skip
+  Use AskUserQuestion with options:
+    - "Graduate to KB"
+    - "Skip"
 ```
 
-If "yes": for each significant pattern (not one-off fixes), invoke
+If "Graduate to KB": for each significant pattern (not one-off fixes), invoke
 `/research "<pattern-name>" context: "feature-retro adversarial finding from <slug>. Suggested: <domain>/adversarial-findings"` as a sub-agent.
 The research agent writes entries following the template at
 `.kb/_refs/adversarial-finding-template.md`.
