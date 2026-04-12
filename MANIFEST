@@ -40,6 +40,7 @@
 .claude/skills/work/SKILL.md
 .claude/skills/work-decompose/SKILL.md
 .claude/skills/work-status/SKILL.md
+.claude/skills/work-start/SKILL.md
 .claude/skills/audit/SKILL.md
 .claude/skills/capabilities/SKILL.md
 .claude/prompts/audit/pass1-inventory.md

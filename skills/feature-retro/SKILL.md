@@ -398,6 +398,58 @@ The narrative article includes:
 
 ---
 
+## Step 6 — Work group lifecycle update
+
+**Skip this step if status.md does not have a `work_group` field and the feature
+slug does not contain `--` (double-dash convention).**
+
+If this feature is work-group-sourced:
+
+1. **Determine the work group and WD:**
+   - From `work_group` field in status.md, or
+   - From slug: `<group>--<wd>` → group slug and WD identifier
+
+2. **Find the WD file:** Read `.work/<group>/WD-*.md` files and find the one
+   whose id matches the `work_definition` field in status.md (or derive from
+   the slug's WD portion).
+
+3. **Update WD status to COMPLETE:**
+   - Edit the WD file's front matter: set `status: COMPLETE`
+
+4. **Update the manifest:** Edit `.work/<group>/manifest.md` — update the WD's
+   status in the Work Definitions table.
+
+5. **Check readiness cascade:**
+   ```bash
+   bash .claude/scripts/work-resolve.sh "<group>"
+   ```
+   Parse the output. If any WDs transitioned to READY as a result of this
+   completion (their blockers were artifacts this WD produced), report:
+   ```
+   ── Work group update ──────────────────────────
+   WD-<nn> complete. Work group '<group>': <complete>/<total>.
+
+   Newly unblocked:
+     WD-<nn> — <title> (now READY)
+     WD-<nn> — <title> (now READY)
+
+   Next: /work-start "<group>" next
+   ```
+
+   If no new WDs were unblocked:
+   ```
+   ── Work group update ──────────────────────────
+   WD-<nn> complete. Work group '<group>': <complete>/<total>.
+   ```
+
+   If all WDs are now COMPLETE:
+   ```
+   ── Work group complete ────────────────────────
+   All work definitions in '<group>' are complete!
+   ```
+
+---
+
 ## Write authority
 
 The retro command writes to:

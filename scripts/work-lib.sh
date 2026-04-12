@@ -224,18 +224,45 @@ work_check_spec_dep() {
     return 1
   fi
 
-  # Search by path suffix match in manifest features
+  # Search by multiple matching strategies against manifest features
   local found_file=""
   local found_state=""
 
-  # Try direct lookup: check if any feature's latest_file ends with the path
+  # Extract domain and name from spec_path (e.g., "auth/jwt-token-contract")
+  local spec_domain="${spec_path%%/*}"
+  local spec_name="${spec_path##*/}"
+
   while IFS= read -r fid; do
     local latest
     latest=$(jq -r --arg id "$fid" '.features[$id].latest_file // ""' "$manifest")
-    if [[ "$latest" == *"$spec_path"* ]]; then
+    [[ -z "$latest" ]] && continue
+
+    local match=false
+
+    # Strategy 1: exact substring match
+    [[ "$latest" == *"$spec_path"* ]] && match=true
+
+    # Strategy 2: domain directory match + filename contains spec_name
+    if [[ "$match" != "true" ]]; then
+      local latest_basename="${latest##*/}"
+      latest_basename="${latest_basename%.md}"  # strip .md
+      if [[ "$latest" == *"/$spec_domain/"* && "$latest_basename" == *"$spec_name"* ]]; then
+        match=true
+      fi
+    fi
+
+    # Strategy 3: spec_name is a suffix of the filename (handles F01- prefix)
+    if [[ "$match" != "true" ]]; then
+      local latest_basename="${latest##*/}"
+      latest_basename="${latest_basename%.md}"
+      if [[ "$latest_basename" == *"-$spec_name" || "$latest_basename" == "$spec_name" ]]; then
+        match=true
+      fi
+    fi
+
+    if [[ "$match" == "true" ]]; then
       found_file="$project_root/.spec/$latest"
       if [[ -f "$found_file" ]]; then
-        # Source spec-lib if available for fm(), otherwise parse directly
         found_state=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$found_file" \
           | jq -r '.state // ""' 2>/dev/null || true)
       fi
