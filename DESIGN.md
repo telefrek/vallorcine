@@ -88,6 +88,18 @@ right work happens in the right order. Curation closes the loop — it detects
 when those assets need updating based on how the codebase has evolved. This is
 what makes the 5th feature on a project faster than the 1st.
 
+### Seven-concern reference
+
+| Concern | Storage | Primary commands | Written by | Read by |
+|---------|---------|-----------------|------------|---------|
+| Knowledge | `.kb/` | `/research`, `/kb` | Research Agent | Domain Scout, Architect, Spec Author, Curation |
+| Decisions | `.decisions/` | `/architect`, `/decisions` | Architect Agent | Domain Scout, Work Planner, Spec Author, Curation |
+| Specifications | `.spec/` | `/spec-author`, `/spec`, `/spec-resolve` | Spec Author (via pipeline) | Work Planner, Test Writer, Audit, Curation |
+| Features | `.feature/` | `/feature`, `/feature-*` | Pipeline agents | Feature Resume, Retro, Curation |
+| Work | `.work/` | `/work`, `/work-decompose`, `/work-status`, `/work-start` | Work skills | Architect, Spec Author, Domain Scout, Work Planner, Feature Resume |
+| Curation | `.curate/` | `/curate` | Curation scanner | Routes to Knowledge, Decisions, Specifications |
+| System | `.claude/` | `/vallorcine-help`, `/setup-vallorcine`, `/upgrade-vallorcine` | Installer, upgrade | All sessions (rules, config) |
+
 ---
 
 ## Core design principles
@@ -645,6 +657,10 @@ graph TD
 | `.feature/<slug>/domains.md` | Work Planner | ~3,000 |
 | One ADR file | Work Planner, Domain Scout | ~2,000–4,000 |
 | One KB subject file | Domain Scout, Architect | ~3,000–5,000 |
+| One spec file | Work Planner, Test Writer | ~1,500–3,000 |
+| Resolved spec bundle | Work Planner, Feature Test | ~3,000–6,000 |
+| `.work/<group>/manifest.md` | Work Start, Work Status | ~500–1,500 |
+| Work context snippet | Architect, Spec Author, Domain Scout | ~500–1,000 |
 | Work-plan (single unit section) | Test Writer, Code Writer | ~2,000 |
 | Test files (per unit) | Code Writer | ~2,000–3,000 |
 | Stub files (per unit) | Code Writer | ~1,000–2,000 |
@@ -767,6 +783,14 @@ vallorcine/
 │   ├── architect/SKILL.md           ← /architect — architecture decision session
 │   ├── decisions/SKILL.md           ← /decisions — query, list, explain, review, backfill, candidates, triage, defer, close, roadmap
 │   │
+│   │  Specifications
+│   ├── spec/SKILL.md                ← /spec — query specs, discover gaps, trace change impact
+│   ├── spec-author/SKILL.md         ← /spec-author — two-pass adversarial spec authoring
+│   ├── spec-write/SKILL.md          ← /spec-write — register a spec in .spec/ storage
+│   ├── spec-verify/SKILL.md         ← /spec-verify — verify spec against implementation
+│   ├── spec-resolve/SKILL.md        ← /spec-resolve — resolved context bundle with displacement detection
+│   ├── spec-init/SKILL.md           ← /spec-init — initialise .spec/ directory structure
+│   │
 │   │  Features
 │   ├── feature/SKILL.md             ← /feature — scoping interview
 │   ├── feature-quick/SKILL.md       ← /feature-quick — small changes, single session
@@ -788,6 +812,12 @@ vallorcine/
 │   │  Capabilities
 │   ├── capabilities/SKILL.md        ← /capabilities — project capability index with domain hierarchy, types, and feature mapping
 │   │
+│   │  Work
+│   ├── work/SKILL.md                ← /work — create a work group with scoping interview
+│   ├── work-decompose/SKILL.md      ← /work-decompose — break into WDs with dependency graph
+│   ├── work-status/SKILL.md         ← /work-status — readiness report (READY/BLOCKED/IN_PROGRESS/COMPLETE)
+│   ├── work-start/SKILL.md          ← /work-start — bridge a ready WD into the feature pipeline
+│   │
 │   │  Curation
 │   ├── curate/SKILL.md              ← /curate — codebase quality review, correlation engine
 │   │
@@ -796,6 +826,7 @@ vallorcine/
 │   ├── setup-vallorcine/SKILL.md    ← /setup-vallorcine — initialise KB and decisions structure
 │   ├── upgrade-vallorcine/SKILL.md  ← /upgrade-vallorcine — check and apply kit updates
 │   ├── project-context/SKILL.md     ← /project-context — team-shared codebase knowledge
+│   └── uninstall-vallorcine/SKILL.md ← /uninstall-vallorcine — remove kit from project
 │
 ├── agents/                          ← agent identity definitions
 │   ├── scoping-agent.md
@@ -826,15 +857,21 @@ vallorcine/
 │   ├── merge-driver-index.sh        ← git merge driver for CLAUDE.md index files
 │   ├── ensure-merge-driver.sh       ← registers merge driver on first pipeline run
 │   ├── adr-validate.sh              ← warns if contradictory accepted ADRs exist
-│   ├── curate-scan.sh              ← curation scanner (8 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill)
-│   ├── decisions-scan.sh          ← decisions roadmap clustering and classification
-│   ├── extract-findings.sh        ← audit finding extraction for orchestrator context optimization
-│   ├── audit-budget.sh            ← budget tracking and proportional allocation for audit prove-fix loop
-│   ├── index-verify.sh            ← self-healing index verification for crash recovery
+│   ├── spec-resolve.sh             ← spec resolution with conflict detection
+│   ├── spec-validate.sh            ← spec structural validation (displacement fields, lifecycle)
+│   ├── work-lib.sh                 ← work layer shared functions (YAML parsing, dep checking)
+│   ├── work-resolve.sh             ← work definition readiness computation + dependency graph
+│   ├── work-validate.sh            ← work definition structural validation + circular dep detection
+│   ├── work-context.sh             ← work group context injection for existing commands
+│   ├── curate-scan.sh              ← curation scanner (17 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill, work group health)
+│   ├── decisions-scan.sh           ← decisions roadmap clustering and classification
+│   ├── extract-findings.sh         ← audit finding extraction for orchestrator context optimization
+│   ├── audit-budget.sh             ← budget tracking and proportional allocation for audit prove-fix loop
+│   ├── index-verify.sh             ← self-healing index verification for crash recovery
 │   ├── token-stop-hook.sh          ← Stop hook for automatic token tracking
-│   ├── statusline.sh              ← status line showing pipeline stage + cost
-│   ├── narrative-wrapper.sh       ← runtime detection for narrative generation
-│   └── narrative/                 ← 3-stage narrative pipeline (Python + JS)
+│   ├── statusline.sh               ← status line showing pipeline stage + cost
+│   ├── narrative-wrapper.sh        ← runtime detection for narrative generation
+│   └── narrative/                  ← 3-stage narrative pipeline (Python + JS)
 │       ├── model.{py,js}          ← Token, TokenStream, Node, Story data model
 │       ├── tokenizer.{py,js}      ← stage 1: JSONL → TokenStream
 │       ├── parse.{py,js}          ← stage 2: TokenStream → Story AST
@@ -850,11 +887,19 @@ vallorcine/
 │   ├── scenario-ensure-merge-driver.sh
 │   ├── scenario-stale-kb.sh
 │   ├── scenario-adr-contradiction.sh
-│   ├── scenario-curate-scan.sh       ← curate scan tests incl. orphaned spec detection (47 tests)
-│   ├── scenario-spec-validate.sh    ← spec validation: displacement fields (8 tests)
-│   ├── scenario-spec-resolve.sh     ← spec resolution: displacement detection (11 tests)
+│   ├── scenario-curate-scan.sh       ← curate scan tests (47 tests)
+│   ├── scenario-decisions-scan.sh    ← decisions scan tests
+│   ├── scenario-spec-validate.sh     ← spec validation: displacement fields (8 tests)
+│   ├── scenario-spec-resolve.sh      ← spec resolution: displacement detection (11 tests)
 │   ├── scenario-index-verify.sh
-│   └── scenario-narrative.sh        ← narrative pipeline parity tests (16 tests)
+│   ├── scenario-narrative.sh         ← narrative pipeline parity tests (16 tests)
+│   ├── scenario-work-validate.sh     ← work definition structural validation (50 tests)
+│   ├── scenario-work-resolve.sh      ← work readiness computation tests
+│   ├── scenario-work-creation.sh     ← work group + WD creation flow tests
+│   ├── scenario-work-context.sh      ← work context injection tests
+│   ├── scenario-work-pipeline.sh     ← work-start pipeline bridge tests
+│   ├── scenario-work-curate.sh       ← work group curation analysis tests
+│   └── scenario-pipeline-modes.sh    ← spec-only / impl-only pipeline mode tests
 │
 ├── kb/                              ← seed KB structure
 │   ├── CLAUDE.md                    ← KB root index template
@@ -862,10 +907,13 @@ vallorcine/
 │       ├── complexity-notation.md
 │       └── benchmarking-methodology.md
 │
-└── decisions/                       ← seed decisions structure
-    └── CLAUDE.md                    ← active decisions index template
+├── decisions/                       ← seed decisions structure
+│   └── CLAUDE.md                    ← active decisions index template
+│
+└── work/                            ← seed work structure
+    └── CLAUDE.md                    ← work group index template
 ```
 
 ---
 
-*vallorcine — self-documenting TDD and knowledge management for Claude Code*
+*vallorcine — structured engineering for Claude Code: knowledge, decisions, specifications, TDD, and curation*

@@ -2,14 +2,15 @@
 
 **A reliable engineering partner for Claude Code that's easy to work with.**
 
-vallorcine enforces the process you want without the friction you don't —
-persistent knowledge, structured decisions, TDD guardrails, and a conversational
-flow that just tells you what's next. Each feature you ship makes the next one
-faster because your project's context compounds, not its token cost.
+vallorcine gives you structured knowledge, behavioral specifications, TDD
+guardrails, multi-feature coordination, and adversarial bug finding — with a
+conversational flow that just tells you what's next. Each feature you ship
+makes the next one faster because your project's context compounds, not its
+token cost.
 
 No dependencies. `bash install.sh` and go.
 
-### Six concerns
+### Seven concerns
 
 **Knowledge** — research findings accumulate in `.kb/` and are queried on demand.
 Your project learns once and remembers forever.
@@ -17,6 +18,12 @@ Your project learns once and remembers forever.
 **Decisions** — the Architect Agent deliberates tradeoffs and writes ADRs to
 `.decisions/`. Decisions compound across features — you don't re-debate settled
 questions.
+
+**Specifications** — behavioral contracts in `.spec/` describe what the system
+guarantees. Two-pass adversarial authoring (structured draft + falsification),
+displacement detection when new specs contradict existing ones, and a full
+lifecycle (DRAFT → APPROVED → INVALIDATED). Specs are the authoritative
+reference consumed by the work planner, test writer, and audit pipeline.
 
 **Features** — TDD pipeline from scoping through PR, with spec analysis that
 prevents bugs before they're written, an adversarial audit pass that confirms
@@ -29,9 +36,9 @@ mechanically — completing one work definition automatically unblocks others.
 Supports specification-only and implementation-only pipeline modes.
 
 **Curation** — `/curate` scans your codebase for quality signals: decisions that
-no longer match the code, research that's gone stale, implicit dependencies
-between features, and areas with no structured knowledge. It connects the dots
-that individual features and decisions can't see on their own.
+no longer match the code, research that's gone stale, specs that have drifted
+from implementation, and areas with no structured knowledge. It connects the
+dots that individual features and decisions can't see on their own.
 
 **System** — setup, upgrade, and help. `/vallorcine-help` routes you to the
 right command.
@@ -53,6 +60,15 @@ graph LR
         KB -.->|"informs"| ARC
     end
 
+    subgraph Specifications
+        SA["/spec-author"] --> SPEC[(".spec/")]
+        SQ["/spec"] -.->|"queries"| SPEC
+        SR["/spec-resolve"] -.->|"bundles"| SPEC
+    end
+
+    DEC -.->|"informs"| SA
+    KB -.->|"informs"| SA
+
     subgraph Features
         S["/feature"] --> D["/feature-domains"]
         D --> P["/feature-plan"]
@@ -70,6 +86,8 @@ graph LR
     KB -.->|"feeds into"| D
     KB -.->|"adversarial patterns"| T
     DEC -.->|"feeds into"| D
+    SPEC -.->|"contracts"| P
+    SPEC -.->|"contracts"| T
     RET -.->|"writes back"| KB
     RET -.->|"writes back"| DEC
 
@@ -81,12 +99,14 @@ graph LR
     end
 
     WD -.->|"context"| ARC
+    WD -.->|"context"| SA
     WD -.->|"context"| D
     WD -.->|"context"| P
 
     subgraph Curation
         CUR["/curate"] -.->|"reviews"| KB
         CUR -.->|"reviews"| DEC
+        CUR -.->|"reviews"| SPEC
         CUR -.->|"reviews"| WD
         CUR -.->|"scans"| GIT["git history"]
     end
@@ -106,21 +126,27 @@ graph LR
     style A fill:#ef4444,color:#fff
     style PR fill:#8b5cf6,color:#fff
     style RET fill:#8b5cf6,color:#fff
+    style H fill:#22c55e,color:#fff
     style RES fill:#f59e0b,color:#fff
     style ARC fill:#f59e0b,color:#fff
+    style SA fill:#f59e0b,color:#fff
     style KB fill:#fbbf24,color:#000
     style DEC fill:#fbbf24,color:#000
+    style SPEC fill:#fbbf24,color:#000
     style KBQ fill:#f59e0b,color:#fff
     style DECQ fill:#f59e0b,color:#fff
+    style SQ fill:#f59e0b,color:#fff
+    style SR fill:#f59e0b,color:#fff
 ```
 
-Knowledge and decisions accumulate across features and get richer over time.
-Features read from them during domain analysis and write back via retrospectives.
+Each concern produces durable assets. Features consume knowledge, decisions, and
+specs during domain analysis and planning, and write back via retrospectives.
 Adversarial findings from each feature's audit pass feed into the next feature's
 spec analysis — bug patterns discovered once are prevented in all future features.
-Curation closes the loop — it detects when decisions drift, research goes stale,
-or features create implicit dependencies. This feedback loop is what makes the
-5th feature on a project faster than the 1st.
+Work groups coordinate across features — they make dependency relationships
+explicit so the right work happens in the right order. Curation closes the loop,
+detecting when decisions drift, specs diverge from code, research goes stale,
+or work groups stall. The result: your 5th feature is faster than your 1st.
 
 ---
 
@@ -395,10 +421,10 @@ reviewing past decisions, crash recovery, and more.
 
 ## Architecture
 
-See [DESIGN.md](DESIGN.md) for the full design reference: the six concerns
-model, 10 core principles, token budget, agent write authority table, crash
-recovery model, KB/decisions hierarchy, work layer architecture, curation
-engine, work unit splitting, and extension points.
+See [DESIGN.md](DESIGN.md) for the full design reference: the seven concerns
+model, 10 core principles, token budget, agent write authority, crash recovery,
+knowledge/decisions/specifications hierarchies, work layer architecture,
+curation engine, and extension points.
 
 ## Development
 
