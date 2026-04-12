@@ -286,6 +286,34 @@ From "Decisions Roadmap Needed" in the scan summary:
 3. When the user picks this item: suggest running `/decisions roadmap` in
    a separate session (roadmap is a planning skill, not a curate action)
 
+### 2l — Work group health
+
+**Guard:** Only run this step if any "Work Group:" section exists in the scan
+summary. If absent, skip entirely.
+
+**Displaced dependencies:**
+1. Work definitions that depend on specs now INVALIDATED
+2. These WDs are effectively BLOCKED by a spec that no longer exists
+3. For each, use AskUserQuestion with options:
+   - **"Author replacement spec"** → suggest `/spec-author` for the missing spec
+   - **"Update WD to remove dependency"** → the WD no longer needs this artifact
+   - **"Skip for now"** — defer
+
+**Stalled work groups:**
+1. Work groups with no WD activity in 14+ days
+2. Present the group name, total WDs, completed WDs, and days since last activity
+3. For each, use AskUserQuestion with options:
+   - **"Check status"** → run `/work-status "<group>"`
+   - **"Skip"** — acknowledged, no action needed
+
+**Artifact drift:**
+1. WDs whose artifact dependencies were modified after the WD was written
+2. The artifact still exists but its content changed — the WD's assumptions
+   may be stale
+3. For each, use AskUserQuestion with options:
+   - **"Review WD"** → read the WD and the changed artifact, assess impact
+   - **"Skip"** — the change was minor and doesn't affect the WD
+
 ---
 
 ## Step 3 — Present findings as a numbered pick list
