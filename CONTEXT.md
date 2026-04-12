@@ -22,52 +22,31 @@ state of the project — what's happening now and what's next.
 
 *Last updated: 2026-04-12*
 
-**Work layer — composable multi-feature work definitions (all 6 phases complete).**
+**Work layer shipped. Distributed collaboration designed. Next: validation.**
 
 **What happened (2026-04-11/12):**
 
-- **Work layer (`.work/`)** — fourth knowledge layer. Same pull-model pattern as
-  KB, decisions, specs. Work groups decompose large goals into work definitions
-  with artifact-based dependencies and computed readiness.
+- **Work layer (`.work/`)** — fourth knowledge layer. All 6 phases implemented:
+  data model, creation flow, context injection, pipeline bridge, curation, pipeline
+  decomposition. 12 commits, 50 files, ~5.6K lines. PR #36 open for merge.
 
-- **Data model (Phase 1)** — `work-lib.sh` (YAML parsing, dep checking),
-  `work-resolve.sh` (readiness computation with dependency graph and scope signal),
-  `work-validate.sh` (structural validation with circular dep detection).
-  Interface contracts as spec subtype (`kind: interface-contract`).
+- **Distributed collaboration design** — explored multi-party work plan merging
+  (multiple people running `/work-decompose` on different branches). Key design:
+  slug-based WD IDs (no sequential collisions), regenerable indexes (manifest.md
+  derived from WD files), additive decomposition, overlap detection at authoring
+  time, post-merge validation for the parallel-branch case. Captured in DEFERRED.md
+  for implementation when team workflows are needed.
 
-- **Creation flow (Phase 2)** — `/work`, `/work-decompose`, `/work-status` skills.
-  Scoping interview, dependency graph presentation, readiness query.
+- **Bug fixes** — 3 `grep -c` pipefail bugs in curate-scan.sh, 35 AskUserQuestion
+  prompt migrations, stale .bak removal.
 
-- **Context injection (Phase 3)** — `work-context.sh` provides work group context
-  to architect (forward compatibility, ordering gates), spec-author (downstream
-  consumers), feature-domains (cross-WD domain reuse), feature-plan (interface
-  stability constraints), and feature-resume (work group grouping).
-
-- **Pipeline bridge (Phase 4)** — `/work-start` bridges work definitions into the
-  feature pipeline. Feature-retro updates WD status and triggers readiness cascade.
-  Feature-complete updates manifests.
-
-- **Curation (Phase 5)** — curate-scan analyses 15-17: cross-WD spec displacement
-  detection, stalled work groups, artifact dependency drift.
-
-- **Pipeline decomposition (Phase 6)** — `pipeline_mode` field: specification-only
-  (scoping → domains → spec authoring → complete), implementation-only (planning →
-  testing → hardening → implementation → refactor), and full (default, backwards
-  compatible). Mode-aware routing in feature-resume.
-
-- **Bug fix** — 3 `grep -c` pipefail instances in curate-scan.sh producing "0\n0"
-  instead of clean integers.
-
-- **Tests** — 7 new test suites (68 new tests), 137 total across all suites. Zero
-  regressions. 32 files changed, ~5K lines.
+- **Tests** — 7 new test suites (68 tests), 137 total across all suites. Zero
+  regressions.
 
 **Where things stand:**
-All implementation on `feat/work-layer-foundation` branch (9 commits, 46 files,
-~5K lines). Docs updated (DESIGN, README, CONTEXT). Tech debt cleaned (35
-AskUserQuestion migrations, stale .bak removed). Changelog staged. Ready for
-PR and merge. Next: real-world validation on a multi-feature workflow, then
-remaining Open Questions (Phase 0 validation, concurrency lens, audit budget
-controls).
+PR #36 open on `feat/work-layer-foundation`. Next: merge PR, then real-world
+validation on a multi-feature workflow. Remaining Open Questions: Phase 0
+validation, concurrency lens, audit budget controls.
 
 ---
 
@@ -75,28 +54,9 @@ controls).
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **Artifact-based dependencies, not stage-based** (2026-04-11) — work definitions
-  depend on specific artifacts (specs at APPROVED, ADRs at accepted, KB entries
-  existing), not on other WDs completing stages. Enables partial unblocking and
-  provides a scoping signal (>5 deps = consider decomposition).
-
-- **Interface contracts as spec subtype** (2026-04-11) — `kind: interface-contract`
-  field on specs, not a fifth knowledge layer. Reuses all existing spec tooling
-  (resolve, validate, author, displace). Displacement detection works on them
-  automatically.
-
-- **Computed readiness, not declared** (2026-04-11) — `work-resolve.sh` walks
-  artifact deps each invocation. No cached state to go stale. Completing a WD
-  that produces artifacts automatically unblocks dependent WDs.
-
-- **Pipeline mode decomposition** (2026-04-11) — specification-only stops after
-  spec authoring, implementation-only starts from planning. `pipeline_mode` field
-  in status.md (default: full, backwards compatible). Work-start auto-detects
-  mode from WD produces list.
-
-- **Work context as pull-model injection** (2026-04-11) — `work-context.sh`
-  provides bounded context snippets to architect, spec-author, domain analysis,
-  work planner, and feature-resume. Zero cost when no work groups exist.
+*5 work layer decisions graduated to SETTLED.md (2026-04-12): artifact-based
+dependencies, interface contracts as spec subtype, computed readiness, pipeline
+mode decomposition, work context as pull-model injection.*
 
 *9 decisions graduated to SETTLED.md (2026-04-12): effort asymmetry removal,
 concurrency lens filtering, spec conflict detection, DRAFT specs blocked,
@@ -141,10 +101,6 @@ architect adversarial hardening, Phase 0 already-fixed check.*
   inline score falsification.
 
 ### Do when needed (useful but workarounds exist)
-
-- ~~**/feature-split**~~ — **subsumed by work layer** (2026-04-11). `/work-decompose`
-  handles scope decomposition at the work group level. Individual features remain
-  atomic; scope expansion is handled by creating new work definitions.
 
 - **Large repo curation testing** — `/curate` needs testing on a repo with
   1000+ commits, 30+ contributors.

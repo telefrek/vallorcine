@@ -649,3 +649,41 @@ Features, Work, Curation, System. Work (`.work/`) is a coordination layer
 for multi-feature work — decomposes goals into work definitions with
 artifact-based dependencies and computed readiness. Interface contracts are
 a spec subtype (`kind: interface-contract`), not a separate layer.
+
+## Artifact-based dependencies, not stage-based (2026-04-11)
+
+Work definitions depend on specific artifacts (specs at APPROVED, ADRs at
+accepted, KB entries existing), not on other WDs completing stages. Enables
+partial unblocking — a WD becomes READY as soon as its specific deps exist,
+regardless of what stage the producing WD is in. Also provides a scoping
+signal: >5 artifact deps suggests the WD should be decomposed further.
+
+## Interface contracts as spec subtype (2026-04-11)
+
+`kind: interface-contract` field on specs, not a fifth knowledge layer. Reuses
+all existing spec tooling (resolve, validate, author, displace). Displacement
+detection works on interface contracts automatically. Shared surfaces between
+work definitions are just specs that multiple WDs reference.
+
+## Computed readiness, not declared (2026-04-11)
+
+`work-resolve.sh` walks artifact deps each invocation. No cached state to go
+stale. Completing a WD that produces artifacts automatically unblocks dependent
+WDs. Status lifecycle: DRAFT → SPECIFIED → READY/BLOCKED (computed) →
+IN_PROGRESS → COMPLETE.
+
+## Pipeline mode decomposition (2026-04-11)
+
+Three modes: specification-only (scoping → domains → spec authoring → complete),
+implementation-only (planning → testing → hardening → implementation → refactor),
+full (default, backwards compatible). `pipeline_mode` field in status.md.
+`/work-start` auto-detects mode from WD produces list. Feature-resume routes
+to mode-appropriate next stage.
+
+## Work context as pull-model injection (2026-04-11)
+
+`work-context.sh` provides bounded context snippets to architect (forward
+compatibility, ordering gates), spec-author (downstream consumers),
+feature-domains (cross-WD domain reuse), feature-plan (interface stability
+constraints), and feature-resume (work group grouping). Zero cost when no
+work groups exist — scripts exit immediately.
