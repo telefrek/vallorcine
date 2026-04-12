@@ -125,6 +125,30 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
   unit. Routes to the appropriate skill per item type. Deferred until `/decisions
   roadmap` validates the planning-only approach on a narrower scope.
 
+- **Distributed work layer — multi-party decomposition and merge** — when multiple
+  people run `/work-decompose` on the same work group from different branches,
+  the merged result must be coherent. Five data model changes:
+  (1) **Slug-based WD IDs** — derive from title (e.g., `wd-jwt-validation`)
+  instead of sequential `WD-01`. Eliminates ID collisions on parallel branches.
+  (2) **Regenerable indexes** — `work-rebuild-index.sh` regenerates `manifest.md`
+  and `.work/CLAUDE.md` from WD files. Index conflicts become "re-run the script."
+  (3) **Additive decomposition** — `/work-decompose` appends WDs to existing set
+  rather than replacing. Two independent decompositions produce a union.
+  (4) **Overlap detection in `/work-decompose`** — when existing WDs are present,
+  compare `produces` lists before writing. Surface overlaps interactively: keep
+  existing, replace with new, or merge scope. Resolves conflicts at authoring time
+  when the person has full context.
+  (5) **Post-merge validation** — `work-validate.sh --merged` catches the parallel-
+  branch case: `produces` overlap (two WDs claim same artifact), unresolved deps
+  (naming mismatch across branches), redundant WDs (similar scope). Triggers
+  the same resolution tool as (4).
+  Two merge paths: sequential (B pulls A's work, decomposes additively, resolves
+  inline) and parallel (both branch from same commit, git merge succeeds due to
+  slug IDs + regenerable indexes, post-merge validation catches semantic issues).
+  The irreducible problem — different artifact naming for the same concept — requires
+  human judgment in both paths. Tooling surfaces it; humans resolve it.
+  Promote when ready for team/multi-developer workflows.
+
 - **Pipeline observability** — velocity metrics (time/tokens per stage across
   features), KB utilization (which entries get read), pipeline trends. Token
   tracking exists but is narrow. Premature until more projects use vallorcine.
