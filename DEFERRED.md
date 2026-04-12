@@ -16,7 +16,8 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 - **LSP integration** — document in README which LSP plugins pair well with
   vallorcine's Code Writer stage as a recommended companion. No bundled dependency.
 
-- **/feature-split** — split in-progress feature into two when scope expands.
+- ~~**/feature-split**~~ — **subsumed by work layer** (2026-04-11). `/work-decompose`
+  handles scope decomposition at the work group level.
 
 - **KB coding agent** — third KB role that reads entries and implements against
   them. Would close the loop between research and implementation.

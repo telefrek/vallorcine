@@ -62,10 +62,12 @@ state of the project — what's happening now and what's next.
   regressions. 32 files changed, ~5K lines.
 
 **Where things stand:**
-All implementation on `feat/work-layer-foundation` branch (7 commits). Docs
-updated. Ready for PR and merge. Next: real-world validation on a multi-feature
-workflow, then remaining Open Questions (Phase 0 validation, concurrency lens,
-audit budget controls).
+All implementation on `feat/work-layer-foundation` branch (9 commits, 46 files,
+~5K lines). Docs updated (DESIGN, README, CONTEXT). Tech debt cleaned (35
+AskUserQuestion migrations, stale .bak removed). Changelog staged. Ready for
+PR and merge. Next: real-world validation on a multi-feature workflow, then
+remaining Open Questions (Phase 0 validation, concurrency lens, audit budget
+controls).
 
 ---
 
@@ -96,47 +98,10 @@ audit budget controls).
   provides bounded context snippets to architect, spec-author, domain analysis,
   work planner, and feature-resume. Zero cost when no work groups exist.
 
-- **Effort asymmetry removal in prove-fix** (2026-04-02) — agent always writes
-  test regardless of outcome (confirmed or impossible). Test result chooses the
-  path. Prevents task-avoidance bias from sandbagging research.
-
-- **Concurrency lens per-construct filtering** (2026-04-02) — thread_sharing
-  field in cards (none/possible/explicit). Concurrency lens excludes
-  thread_sharing:none constructs. Prevents false positives on single-threaded
-  components.
-
-- **Spec conflict detection at resolution time** (2026-04-02) — spec-resolve.sh
-  checks for contradictions between included specs before emitting bundle.
-  Feature-plan blocks, feature-test marks UNTESTABLE, feature-implement
-  diagnoses spec conflicts instead of misdiagnosing as test/contract bugs.
-
-- **DRAFT specs with conflicts blocked from bundles** (2026-04-02) — specs with
-  [UNRESOLVED]/[CONFLICT] markers or open_obligations excluded from resolved
-  context. Only APPROVED specs trusted as authoritative.
-
-- **Spec extraction from implementation** (2026-04-03) — bottom-up spec
-  authoring for foundational types (JlsmSchema, JlsmDocument). Auto-discovery
-  of source, consuming specs, tests. [ABSENT] tag for behaviors code doesn't
-  have but specs may assume.
-
-- **[ABSENT] requirement lifecycle** (2026-04-03) — promote (becomes
-  implementation work with [UNIMPLEMENTED] obligation), preserve (becomes
-  negative requirement), defer (curate resurfaces). No requirement falls
-  through the cracks.
-
-- **Fix-spec conflict resolution** (2026-04-03) — three options: keep fix +
-  update spec, revert fix + mark FIX_IMPOSSIBLE, split (keep fix + add new
-  requirement that invalidates old). Fourth option: defer with [UNRESOLVED].
-
-- **Architect adversarial hardening** (2026-04-03) — 6 changes from aTDD
-  research: scope verification, constraint falsification, inline score
-  falsification, prior-scores-not-evidence, REQUIRED annotations, write-and-
-  justify checklist. Each change maps to a specific research finding.
-
-- **Phase 0 already-fixed check** (2026-04-03) — mandatory pre-flight in
-  prove-fix subagent. Reads current source before test writing. Short-circuits
-  cascade impossibles in 3 turns instead of 35. Evidence: 33 IMPOSSIBLE
-  findings in table-indices audit averaged 35 turns each.
+*9 decisions graduated to SETTLED.md (2026-04-12): effort asymmetry removal,
+concurrency lens filtering, spec conflict detection, DRAFT specs blocked,
+spec extraction from implementation, [ABSENT] lifecycle, fix-spec resolution,
+architect adversarial hardening, Phase 0 already-fixed check.*
 
 ---
 
