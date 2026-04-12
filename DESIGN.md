@@ -837,9 +837,7 @@ vallorcine/
 │   ├── refactor-agent.md
 │   ├── research-agent.md
 │   ├── architect-agent.md
-│   ├── spec-analyst-agent.md
-│   ├── breaker-agent.md
-│   └── constrained-refactorer-agent.md
+│   └── breaker-agent.md
 │
 ├── rules/                           ← always-loaded identity + protocol rules
 │   ├── tdd-protocol.md              ← pipeline order, write authority, idempotency rule

@@ -136,6 +136,12 @@ for d in "$SCRIPT_DIR"/skills/*/; do
     skill_name="$(basename "$d")"
     install_file "$d/SKILL.md" "$TARGET/.claude/skills/$skill_name/SKILL.md"
 
+    # Install additional files in the skill directory (e.g., extraction-mode.md)
+    for extra_file in "$d"*.md; do
+        [[ "$(basename "$extra_file")" == "SKILL.md" ]] && continue
+        install_file "$extra_file" "$TARGET/.claude/skills/$skill_name/$(basename "$extra_file")"
+    done
+
     # Clean up pre-migration command file if it exists (commands/ → skills/ migration)
     old_cmd="$TARGET/.claude/commands/$skill_name.md"
     if [[ -f "$old_cmd" && "$DIFF_MODE" != "1" ]]; then
@@ -247,10 +253,8 @@ fi
 echo ""
 echo "── Audit prompts ──────────────────────────────────"
 mkdir -p "$TARGET/.claude/prompts/audit"
-for f in "$SCRIPT_DIR"/prompts/audit/*.md; do
-    install_file "$f" "$TARGET/.claude/prompts/audit/$(basename "$f")"
-done
-for f in "$SCRIPT_DIR"/prompts/audit/*.py; do
+for f in "$SCRIPT_DIR"/prompts/audit/*.md "$SCRIPT_DIR"/prompts/audit/*.py "$SCRIPT_DIR"/prompts/audit/*.sh "$SCRIPT_DIR"/prompts/audit/*.js; do
+    [[ -f "$f" ]] || continue
     install_file "$f" "$TARGET/.claude/prompts/audit/$(basename "$f")"
 done
 
@@ -270,6 +274,7 @@ install_file "$SCRIPT_DIR/scripts/adr-validate.sh" "$TARGET/.claude/scripts/adr-
 install_file "$SCRIPT_DIR/scripts/token-stop-hook.sh" "$TARGET/.claude/scripts/token-stop-hook.sh"
 install_file "$SCRIPT_DIR/scripts/curate-scan.sh" "$TARGET/.claude/scripts/curate-scan.sh"
 install_file "$SCRIPT_DIR/scripts/decisions-scan.sh" "$TARGET/.claude/scripts/decisions-scan.sh"
+install_file "$SCRIPT_DIR/scripts/audit-budget.sh" "$TARGET/.claude/scripts/audit-budget.sh"
 install_file "$SCRIPT_DIR/scripts/extract-findings.sh" "$TARGET/.claude/scripts/extract-findings.sh"
 install_file "$SCRIPT_DIR/scripts/index-verify.sh" "$TARGET/.claude/scripts/index-verify.sh"
 install_file "$SCRIPT_DIR/scripts/statusline.sh" "$TARGET/.claude/scripts/statusline.sh"
