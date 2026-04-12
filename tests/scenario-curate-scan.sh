@@ -924,6 +924,48 @@ else
     fail "should report orphaned spec count" "got: $output"
 fi
 
+# ── Test 27: grep -c pipefail regression (zero-match produces clean integer)
+# Bug: grep -c with zero matches exits 1 and outputs "0". When combined with
+# || echo 0 inside $(...), the fallback fires and produces "0\n0" which fails
+# integer comparison. Fix: var="$(grep -c ...)" || var=0
+
+echo ""
+echo "── Test 27: grep -c pipefail regression"
+
+GREP_TEST_DIR="/tmp/vallorcine/grep-c-test"
+rm -rf "$GREP_TEST_DIR" 2>/dev/null || true
+mkdir -p "$GREP_TEST_DIR"
+
+# Create a file with no matching lines
+echo "no hex hashes here" > "$GREP_TEST_DIR/empty-log.txt"
+
+# Test the fixed pattern: should produce clean integer "0", not "0\n0"
+RESULT="$(grep -cE '^[0-9a-f]{40}$' "$GREP_TEST_DIR/empty-log.txt" 2>/dev/null)" || RESULT=0
+if [[ "$RESULT" == "0" ]] && (( RESULT == 0 )); then
+    pass "grep -c zero-match produces clean integer (commit count pattern)"
+else
+    fail "grep -c zero-match should produce '0'" "got: '$RESULT'"
+fi
+
+# Test the churn pattern with no matches
+echo "unrelated content" > "$GREP_TEST_DIR/churn.txt"
+SRC_RESULT="$(grep -c "nonexistent-file.java" "$GREP_TEST_DIR/churn.txt" 2>/dev/null)" || SRC_RESULT=0
+if [[ "$SRC_RESULT" == "0" ]] && (( SRC_RESULT == 0 )); then
+    pass "grep -c zero-match produces clean integer (churn pattern)"
+else
+    fail "grep -c churn zero-match should produce '0'" "got: '$SRC_RESULT'"
+fi
+
+# Test the obligation count pattern with no matching lines
+OB_RESULT="$(echo "" | tr ',' '\n' | grep -c '[a-z]' 2>/dev/null)" || OB_RESULT=1
+if (( OB_RESULT >= 0 )); then
+    pass "grep -c obligation pattern produces valid integer"
+else
+    fail "grep -c obligation pattern should produce valid integer" "got: '$OB_RESULT'"
+fi
+
+rm -rf "$GREP_TEST_DIR" 2>/dev/null || true
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

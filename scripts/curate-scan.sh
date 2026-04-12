@@ -101,7 +101,7 @@ else
 fi
 
 # Count commits processed
-COMMIT_COUNT="$(grep -cE '^[0-9a-f]{40}$' "$TMPDIR_SCAN/raw-log.txt" 2>/dev/null || echo 0)"
+COMMIT_COUNT="$(grep -cE '^[0-9a-f]{40}$' "$TMPDIR_SCAN/raw-log.txt" 2>/dev/null)" || COMMIT_COUNT=0
 
 if [[ "$COMMIT_COUNT" -eq 0 ]]; then
     echo "No commits found in scan range." >&2
@@ -436,7 +436,7 @@ while IFS= read -r src_file; do
     if [[ "$matched" == "0" ]]; then
         # Source changed but no corresponding test changed
         # Count how many commits touched this source file
-        src_commits="$(grep -c "$src_file" "$TMPDIR_SCAN/churn.txt" 2>/dev/null || echo 0)"
+        src_commits="$(grep -c "$src_file" "$TMPDIR_SCAN/churn.txt" 2>/dev/null)" || src_commits=0
         if [[ "$src_commits" -gt 0 ]]; then
             echo "$src_commits|$src_file" >> "$TMPDIR_SCAN/test-drift.txt"
         fi
@@ -634,7 +634,7 @@ if [[ -d ".spec" && -d ".spec/domains" ]]; then
         if [[ -n "$fm_obligations" && "$obligation_count" -eq 0 ]]; then
             ob_text="$(echo "$fm_obligations" | sed 's/.*open_obligations:[[:space:]]*//' | tr -d '[]"' || true)"
             if [[ -n "$ob_text" ]]; then
-                ob_count="$(echo "$ob_text" | tr ',' '\n' | grep -c '[a-z]' 2>/dev/null || echo 1)"
+                ob_count="$(echo "$ob_text" | tr ',' '\n' | grep -c '[a-z]' 2>/dev/null)" || ob_count=1
                 echo "OBLIGATION|$spec_base|$ob_count|$ob_text" >> "$TMPDIR_SCAN/spec-obligations.txt"
             fi
         fi
