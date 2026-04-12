@@ -13,10 +13,11 @@ affect all users on their next install or upgrade.
 
 | Path | What it is | Audience |
 |------|-----------|----------|
-| `skills/*/SKILL.md` | Slash commands (user-facing) | Developers using vallorcine |
+| `skills/*/*.md` | Slash commands + supporting files (user-facing) | Developers using vallorcine |
 | `agents/*.md` | Agent identity definitions | Claude (loaded by skills) |
 | `rules/*.md` | Always-loaded rules (tdd-protocol, kb-protocol, etc.) | Claude (every session) |
 | `scripts/*.sh` | Shell scripts (token tracking, merge driver, etc.) | Installed to .claude/scripts/ |
+| `prompts/audit/*` | Audit pipeline prompts and scripts (.md, .py, .sh, .js) | Installed to .claude/prompts/audit/ |
 | `install.sh` | Installer | Users running setup |
 | `upgrade.sh` | Upgrader | Installed to .claude/upgrade.sh |
 | `MANIFEST` | File list for upgrade stale removal | Installed to .claude/.vallorcine-manifest |
@@ -74,8 +75,9 @@ reference user-facing commands. Kit-internal commands must never appear in
 When making a change, ask:
 
 1. **Does this affect what users see or experience?**
-   → Change goes in `skills/`, `rules/`, `agents/`, `scripts/`, or `install.sh`
-   → Update MANIFEST if adding/removing a file
+   → Change goes in `skills/`, `rules/`, `agents/`, `scripts/`, `prompts/`, or `install.sh`
+   → Update MANIFEST if adding, removing, or renaming a file
+   → Update install.sh if the file needs a new install path or glob
    → Add to changelog staging
 
 2. **Does this affect how we develop vallorcine?**
@@ -85,6 +87,31 @@ When making a change, ask:
 3. **Not sure?**
    → Ask. The cost of shipping an internal change to users (confusion, bloated
    rules files, leaked dev workflow) is higher than the cost of pausing to check.
+
+## Pre-PR validation (mandatory, no exceptions)
+
+Before every PR, run the MANIFEST and install validation. This catches stale
+paths, missing files, renamed prompts, and install gaps that silently break
+user projects.
+
+**Step 1 — MANIFEST → source file check:**
+Every path in MANIFEST must resolve to an actual file in the repo. For each
+`.claude/X` entry, verify that `X` exists (e.g., `.claude/prompts/audit/foo.md`
+→ `prompts/audit/foo.md`).
+
+**Step 2 — Source → MANIFEST reverse check:**
+Every installable file (skills, agents, rules, scripts, prompts) must have a
+MANIFEST entry. Check for files that exist but are not listed.
+
+**Step 3 — Fresh install test:**
+Run `bash install.sh` to a temp directory, then verify every MANIFEST entry
+was actually installed.
+
+**Step 4 — Run `bash tests/test-install.sh`:**
+Full regression suite. Zero failures required.
+
+If any step fails, fix it before cutting the PR. MANIFEST drift is how users
+end up with broken installs or stale files that upgrade can't clean.
 
 ## Interactive prompt standard
 
