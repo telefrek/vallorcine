@@ -220,6 +220,12 @@ echo ""
 echo "── Spec seed files ──────────────────────────────"
 _install_seed "$SCRIPT_DIR/spec/CLAUDE.md" "$TARGET/.spec/CLAUDE.md"
 
+# ── Work seed files (never overwrite — same as KB / Decisions / Spec) ─────
+
+echo ""
+echo "── Work seed files ──────────────────────────────"
+_install_seed "$SCRIPT_DIR/work/CLAUDE.md" "$TARGET/.work/CLAUDE.md"
+
 # ── Curation directory ────────────────────────────────────────────────────
 
 echo ""
@@ -283,6 +289,9 @@ install_file "$SCRIPT_DIR/scripts/spec-validate.sh" "$TARGET/.claude/scripts/spe
 install_file "$SCRIPT_DIR/scripts/spec-stats.sh" "$TARGET/.claude/scripts/spec-stats.sh"
 install_file "$SCRIPT_DIR/scripts/spec-resolve.sh" "$TARGET/.claude/scripts/spec-resolve.sh"
 install_file "$SCRIPT_DIR/scripts/spec-obligations-gc.sh" "$TARGET/.claude/scripts/spec-obligations-gc.sh"
+install_file "$SCRIPT_DIR/scripts/work-lib.sh" "$TARGET/.claude/scripts/work-lib.sh"
+install_file "$SCRIPT_DIR/scripts/work-resolve.sh" "$TARGET/.claude/scripts/work-resolve.sh"
+install_file "$SCRIPT_DIR/scripts/work-validate.sh" "$TARGET/.claude/scripts/work-validate.sh"
 install_file "$SCRIPT_DIR/scripts/narrative-wrapper.sh" "$TARGET/.claude/scripts/narrative-wrapper.sh"
 chmod +x "$TARGET/.claude/scripts/narrative-wrapper.sh" 2>/dev/null || true
 mkdir -p "$TARGET/.claude/scripts/narrative"
@@ -308,6 +317,8 @@ chmod +x "$TARGET/.claude/scripts/spec-validate.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-stats.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-resolve.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-obligations-gc.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/work-resolve.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/work-validate.sh" 2>/dev/null || true
 
 # ── Merge driver for index files ──────────────────────────────────────────────
 
@@ -337,6 +348,7 @@ if ! grep -qF "$MARKER" "$GITATTRIBUTES" 2>/dev/null; then
 .kb/*/CLAUDE.md         merge=vallorcine-index
 .kb/*/*/CLAUDE.md       merge=vallorcine-index
 .decisions/CLAUDE.md    merge=vallorcine-index
+.work/CLAUDE.md         merge=vallorcine-index
 GITATTR
     echo -e "  ${GREEN}write${NC} .gitattributes  (merge driver entries)"
 else
@@ -381,7 +393,9 @@ if [[ "$DIFF_MODE" != "1" ]]; then
       "Bash(bash .claude/scripts/spec-validate.sh:*)",
       "Bash(bash .claude/scripts/spec-stats.sh:*)",
       "Bash(bash .claude/scripts/spec-resolve.sh:*)",
-      "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)"
+      "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)",
+      "Bash(bash .claude/scripts/work-resolve.sh:*)",
+      "Bash(bash .claude/scripts/work-validate.sh:*)"
     ]
   },
   "hooks": {
@@ -468,7 +482,9 @@ HOOKJSON
       "Bash(bash .claude/scripts/spec-validate.sh:*)",
       "Bash(bash .claude/scripts/spec-stats.sh:*)",
       "Bash(bash .claude/scripts/spec-resolve.sh:*)",
-      "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)"
+      "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)",
+      "Bash(bash .claude/scripts/work-resolve.sh:*)",
+      "Bash(bash .claude/scripts/work-validate.sh:*)"
         ] | unique)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
         echo -e "  ${GREEN}merge${NC} Script permissions added to settings.json"
     elif [[ -f "$SETTINGS_FILE" ]]; then
