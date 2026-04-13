@@ -301,6 +301,79 @@ Size/capacity:
 For each case that produces wrong or unspecified behavior: produce a
 finding using the standard format above.
 
+**Boundary validation probe (mandatory).** For every requirement that uses
+"reject", "validate", "must not accept", or "throw on invalid":
+- Is the validation unconditional? Could it be bypassed by configuration,
+  optimization, debug flags, or assertion settings?
+- Are ALL entry points that could send invalid data enumerated? For each
+  entry point, does validation happen there or does a requirement on the
+  caller guarantee validity?
+- Is the validation complete? If the requirement says "reject invalid X",
+  does it enumerate what "invalid" means, or could an implementation
+  interpret it narrowly?
+- For mutable inputs: is the validation on the value at call time, or
+  could the caller mutate the input after validation but before use?
+
+**Resource lifecycle probe (mandatory).** For every requirement that
+introduces a closeable, disposable, or acquirable resource — or any
+construct that wraps streams, connections, handles, buffers, or locks:
+- What happens to objects derived from this resource (iterators, streams,
+  cursors, views) after the resource is closed? Must they throw, or can
+  they silently return stale data?
+- What happens if creation/construction fails partway? Are partially
+  allocated sub-resources released?
+- What happens if close/dispose itself fails? Is the resource left in a
+  usable state, an unusable state, or an undefined state?
+- What happens if close is called twice? Must it be idempotent?
+
+**Cross-construct atomicity probe (mandatory).** Review the full
+requirement set for groups of requirements that describe the same
+logical operation across multiple constructs (e.g., "insert updates
+index A" + "insert updates index B"):
+- If one succeeds and the other fails, what state is the system in?
+- Is partial completion acceptable, or must the operation be atomic?
+- If atomic: is the rollback mechanism specified? What state do
+  observers see during the operation?
+- If not atomic: is the partial-failure state documented? Can the
+  system recover, or is manual intervention required?
+
+**Error propagation probe (mandatory).** For every requirement that
+specifies an error, exception, or failure condition:
+- After the error occurs, what is the state of the object that threw?
+  Is it reusable without re-initialization?
+- If the operation was mid-stream (writing, parsing, iterating), what
+  happens to output written so far? Is it visible to observers? Is it
+  valid?
+- If the object holds shared resources (streams, buffers, connections),
+  what state are those resources in after the error? Must the caller
+  close/dispose them explicitly?
+- Can the error propagate to a context where it's unexpected? (e.g.,
+  a checked exception thrown through an interface that doesn't declare it)
+
+**Identity and equality probe (mandatory).** For every data type
+introduced by the spec that will participate in comparison, lookup,
+deduplication, caching, or sorting:
+- What does equality mean? Reference identity, structural equality, or
+  domain-specific equivalence?
+- If the type contains fields with non-obvious equality semantics
+  (floating point, opaque handles, lazy-loaded values), does the spec
+  define how those fields affect equality?
+- If two instances are "equal", can they be substituted for each other
+  in all contexts? If not, the spec needs a weaker equivalence relation.
+
+**Trust boundary probe (mandatory).** For every requirement that
+describes a predicate, status check, or query consumed by other
+constructs:
+- Does the predicate have sub-states within "true"? (e.g., "is member"
+  could mean active, joining, or leaving.) Do all consumers agree on
+  which sub-states count as true?
+- If the input comes from another construct (not user input), does the
+  spec explicitly trust it ("assumes X is valid, validated by Y") or
+  validate it? Implicit trust is a spec gap.
+
+For each case that produces wrong or unspecified behavior: produce a
+finding using the standard format above.
+
 If the adversary cannot construct a concrete attack for a requirement,
 the requirement stands as written. No changes.
 
@@ -327,6 +400,9 @@ Review the full requirement set (Pass 1 + new additions) for:
   requirement B to fail
 - **Ordering dependencies:** requirement A must be implemented before B
   but this ordering isn't stated
+- **Atomicity gaps:** multiple requirements that describe the same
+  logical operation on different constructs. If one can succeed while
+  another fails, the partial-failure state must be specified.
 - **Ambiguous alternatives:** a requirement that uses "either X or Y",
   "may", or conditional language allowing two mutually exclusive
   implementations. If two test writers could independently write tests
