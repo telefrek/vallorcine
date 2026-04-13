@@ -69,36 +69,37 @@ architect adversarial hardening, Phase 0 already-fixed check.*
 
 *Live list — resolve into SETTLED.md or drop when addressed.*
 *Prioritised: do next → do soon → do when needed → do when scale demands it.*
+*Status tags: `[implemented]` = code exists, needs validation. `[designed]` = spec
+exists, not yet coded. No tag = needs both design and implementation.*
 
-### Do next (high priority, clear direction)
+### Do next — validate existing implementations
 
-- **Real-world work layer validation** — exercise the full `/work` → `/work-decompose`
-  → `/work-start` flow on an actual multi-feature task. Validate: readiness
-  computation, context injection, pipeline mode selection, retro lifecycle
-  updates. First candidate: a jlsm feature set or a vallorcine internal refactor.
+- **Real-world work layer validation** `[implemented]` — exercise the full
+  `/work` → `/work-decompose` → `/work-start` flow on an actual multi-feature
+  task. Validate: readiness computation, context injection, pipeline mode
+  selection, retro lifecycle updates. First candidate: a jlsm feature set or
+  a vallorcine internal refactor.
 
-- **Validate Phase 0 on F08-streaming-block-decompression** — first real test
-  of the already-fixed check. Same domain as block-compression (28 prior fixes).
-  Measure: how many findings short-circuit at Phase 0, turn savings vs baseline.
+- **Validate audit budget controls** `[implemented]` — budget controls are fully
+  specified in audit/SKILL.md (4 checkpoints) with audit-budget.sh script. Need
+  a real audit run with budget to confirm: AskUserQuestion flow, scope gate,
+  discovery/suspect cost checkpoints, prove-fix soft cap, deferred finding marking.
 
-- **Concurrency lens false positive rate tracking** — need multi-codebase data
-  to confirm thread_sharing field eliminates false positives. Block-compression
-  data shows 54% preventable impossibles.
+- **Validate Phase 0 on F08-streaming-block-decompression** `[implemented]` —
+  first real test of the already-fixed check. Same domain as block-compression
+  (28 prior fixes). Measure: how many findings short-circuit at Phase 0, turn
+  savings vs baseline.
+
+- **Concurrency lens false positive rate tracking** `[implemented]` — need
+  multi-codebase data to confirm thread_sharing field eliminates false positives.
+  Block-compression data shows 54% preventable impossibles.
 
 ### Do soon (medium effort, clear designs)
 
-- **Audit budget controls** — dollar cap on the prove-fix loop. Design:
-  a cost-tracking script that sums JSONL token usage after each subagent.
-  The prove-fix orchestrator calls it after each finding, stops dispatching
-  when the running total hits the budget. Remaining findings marked DEFERRED
-  in the report. Budget does NOT affect assembly, suspect, test cleanup,
-  reporting, or feedback loop — those always run. CLI: `/audit --budget 200`.
-  Needed before running the 7 remaining jlsm audits (~$3-5K total).
-
-- **Test architect hardening on a real ADR** — the 6 hardening changes are
-  in the prompt but untested on a real decision session. Next `/architect`
-  invocation will exercise scope verification, constraint falsification, and
-  inline score falsification.
+- **Test architect hardening on a real ADR** `[implemented]` — the 6 hardening
+  changes are in the prompt but untested on a real decision session. Next
+  `/architect` invocation will exercise scope verification, constraint
+  falsification, and inline score falsification.
 
 ### Do when needed (useful but workarounds exist)
 
