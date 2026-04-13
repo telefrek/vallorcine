@@ -5,6 +5,38 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.13.0] — 2026-04-12
+
+### Added
+
+- **Work layer (`.work/`)** — fourth knowledge layer for composable multi-feature work. Decompose large goals into work definitions with artifact-based dependencies and computed readiness. Same pull-model pattern as KB, decisions, and specs.
+- **`/work "<goal>"`** — create a work group with scoping interview
+- **`/work-decompose "<slug>"`** — break a work group into work definitions with dependency graph and shared interface contracts
+- **`/work-status "<slug>"` / `--all`** — readiness report: what is READY, BLOCKED, IN_PROGRESS, or COMPLETE
+- **`/work-start "<slug>" [WD-nn | next]`** — start implementing a ready work definition, bridging into the feature pipeline
+- **Interface contracts** — specs with `kind: interface-contract` for shared surfaces between work definitions. Reuses all existing spec tooling.
+- **Pipeline modes** — `specification` (produce artifacts only), `implementation` (consume existing specs, skip scoping/domains), `full` (default, backwards compatible). Mode-aware routing in feature-resume.
+- **Work-aware context injection** — architect (forward compatibility, ordering gates), spec-author (downstream consumers), feature-domains (cross-WD domain reuse), feature-plan (interface stability constraints), feature-resume (work group grouping)
+- **Curate analyses 15-17** — cross-WD spec displacement, stalled work groups, artifact dependency drift
+- **Post-fix tendency check** — Step 2.8 in feature-implement queries KB for adversarial-finding entries after each construct passes tests, scanning for known anti-patterns before moving on
+
+### Fixed
+
+- **Prose prompts → AskUserQuestion** — replaced all 50 instances of prose-based interactive prompts ("Type 1 or 2", "Want me to X?", "yes / skip") with AskUserQuestion across architect, curate, decisions, feature-quick, feature-refactor, feature-pr, feature-domains. Prose prompts do not force Claude to stop — only AskUserQuestion does.
+- **Architect evaluation guard** — candidate scoring (Step 4b) and falsification (Step 6) now display "analysis in progress — decision is at Step 7" to prevent users from choosing before falsification can revise candidates
+- **Narrative generation required** — narrative-wrapper.sh reports failures instead of silently exiting. Retry after 2s for JSONL mid-flush. generate.py/generate.js exit 1 on failure (was always 0). feature-retro Step 6 reports failures with retry command. feature-complete Step 1b attempts generation before archival.
+- **MANIFEST sync** — 9 stale audit prompt paths removed, 16 actual files added. install.sh now copies all .md files from skill dirs, all file types from prompts/audit/, installs audit-budget.sh
+- **`__pycache__/`** added to target project .gitignore (narrative scripts generate Python bytecache)
+- **Status line truncation** — feature slugs capped at 24 chars, construct names at 20 chars to keep stage/tokens/context visible on narrow terminals
+- **Session-end prevention** — rule in tdd-protocol.md prevents Claude from suggesting "productive session" stops mid-pipeline. Only AskUserQuestion handoff points offer stopping.
+- **curate-scan.sh** — 3 `grep -c` pipefail bugs producing "0\n0" instead of clean integers
+
+### Removed
+
+- Stale `skills/audit/SKILL.md.bak` backup file
+
+---
+
 ## [0.12.0] — 2026-04-09
 
 ### Added
