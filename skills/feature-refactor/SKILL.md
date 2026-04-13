@@ -57,12 +57,14 @@ Determine the current TDD cycle from the TDD Cycle Tracker.
 Count completed `refactor-complete` entries in cycle-log.md to get cycle number.
 
 **If cycle number would be 6 or more:**
-Stop and ask: "We've completed 5 refactor cycles and you approved continuation.
-Continue with cycle 6?
-  1  yes — proceed
-  2  no — stop here
-  3  summarise remaining issues first
-  Type 1, 2, or 3."
+Stop and display: "We've completed 5 refactor cycles and you approved continuation.
+Continue with cycle 6?"
+
+Use AskUserQuestion with options:
+  - "Proceed"
+  - "Stop here"
+  - "Summarise remaining issues first"
+
 Wait for explicit response before proceeding.
 
 **If Refactor for the current cycle is `complete`:**
@@ -546,10 +548,10 @@ We've completed 5 refactor cycles. Before starting another:
 Remaining concerns: <list or "none">
 Missing tests added this cycle: <n>
 
-Options:
-  1. Continue — approve cycle 6
-  2. Stop — mark complete with noted limitations
-  3. Summarise — list remaining issues without fixing
+Use AskUserQuestion with options:
+  - "Continue (approve cycle 6)"
+  - "Stop (mark complete with noted limitations)"
+  - "Summarise (list remaining issues without fixing)"
 ```
 Wait for explicit response. Record response in cycle-log.md.
 

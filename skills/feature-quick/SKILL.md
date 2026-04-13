@@ -131,13 +131,14 @@ scoping before writing code.
 Recommended: /feature "<description>"
 
 I can still run this as /feature-quick if you're certain it's smaller than it sounds.
-  1  yes — continue as /feature-quick (I understand the risk)
-  2  no — switch to /feature
-  Type 1 or 2.
+
+Use AskUserQuestion with options:
+  - "Continue as quick (I understand the risk)"
+  - "Switch to /feature"
 ───────────────────────────────────────────────
 ```
 
-Only proceed as /feature-quick if user types 1.
+Only proceed as /feature-quick if user selects "Continue as quick".
 Record forced override in status.md: `complexity_override: true`.
 
 ### After complexity check — understand the task
@@ -374,10 +375,12 @@ Changes:
 Note: this touched <area> which may be worth a full /feature pass later.
 
 ───────────────────────────────────────────────
-  Type: pr  to draft a PR now  ·  or: skip
+Use AskUserQuestion with options:
+  - "Draft PR now"
+  - "Skip"
   (run /feature-pr "<quick-slug>" any time)
 ───────────────────────────────────────────────
 ```
 
-If the user types pr: invoke /feature-pr "<quick-slug>" as a sub-agent immediately.
-If "stop": stop.
+If "Draft PR now": invoke /feature-pr "<quick-slug>" as a sub-agent immediately.
+If "Skip": stop.

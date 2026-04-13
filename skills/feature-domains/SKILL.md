@@ -123,24 +123,21 @@ Domain analysis will identify areas where research or decisions are needed,
 but starting with an empty KB means every domain will likely trigger a
 research session.
 
-Options:
-  1. research — start a targeted research session first (I'll suggest a topic
-     based on the brief)
-  2. continue — proceed to domain analysis (research offered per-domain as gaps
-     are found)
-  3. skip-research — proceed and rely on your domain knowledge (gaps noted but
-     no research sessions launched)
+Use AskUserQuestion with options:
+  - "Research first (I'll suggest a topic based on the brief)"
+  - "Continue (research offered per-domain as gaps are found)"
+  - "Skip research (rely on domain knowledge, gaps noted)"
 ```
 
-If **research**: read `brief.md`, identify the single highest-value research
+If **"Research first"**: read `brief.md`, identify the single highest-value research
 subject for this feature (the domain most likely to affect multiple design
 choices), and invoke `/research "<subject>" context: "feature-domains for <feature>, domain: <domain>"` as a sub-agent.
 After research completes, continue to Step 1.
 
-If **continue**: proceed to Step 1 normally. Per-domain research offers in
+If **"Continue"**: proceed to Step 1 normally. Per-domain research offers in
 Step 3 will still fire.
 
-If **skip-research**: set a flag `skip_all_research=true` in status.md under
+If **"Skip research"**: set a flag `skip_all_research=true` in status.md under
 the Domain Resolution Tracker section. Step 3 will classify research gaps as
 `gap-noted` instead of offering `/research` per-domain. The user's local
 domain knowledge is sufficient — gaps are documented but don't block progress.

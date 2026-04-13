@@ -119,15 +119,17 @@ Source & tests:
   M src/auth/session.ts
   ? tests/auth/test-session.ts
 
-These should be included in your PR. Want me to stage them?
-  yes  — stage all listed files
-  pick — let me choose which to stage
-  skip — proceed without staging (I'll handle it manually)
+These should be included in your PR.
+
+Use AskUserQuestion with options:
+  - "Stage all"
+  - "Let me pick"
+  - "Skip (I'll handle it manually)"
 ```
 
-**If "yes":** run `git add` for all listed files. Report what was staged.
-**If "pick":** present numbered list, user picks by number. Stage selected.
-**If "skip":** proceed to Step 1. Note in the PR description that uncommitted
+**If "Stage all":** run `git add` for all listed files. Report what was staged.
+**If "Let me pick":** present numbered list, user picks by number. Stage selected.
+**If "Skip":** proceed to Step 1. Note in the PR description that uncommitted
 files were detected (so the reviewer knows to check).
 
 ### If no uncommitted files found
@@ -398,11 +400,13 @@ Display:
   Tokens : <TOKEN_USAGE>
 Draft: .feature/<slug>/pr-draft.md
 
-  Type: create  to open the PR now via gh  ·  or: skip
+Use AskUserQuestion with options:
+  - "Create PR now"
+  - "Skip"
 ───────────────────────────────────────────────
 ```
 
-If "skip":
+If "Skip":
 ```
 When you're ready:
   gh pr create --title "<title>" --body-file .feature/<slug>/pr-draft.md
@@ -412,7 +416,7 @@ When the PR merges, run:
 ```
 Stop.
 
-If "create":
+If "Create PR now":
 
 Run:
 ```

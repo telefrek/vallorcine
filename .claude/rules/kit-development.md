@@ -113,18 +113,31 @@ Full regression suite. Zero failures required.
 If any step fails, fix it before cutting the PR. MANIFEST drift is how users
 end up with broken installs or stale files that upgrade can't clean.
 
-## Interactive prompt standard
+## Interactive prompt standard (CRITICAL)
 
-All user-facing interactive prompts in skills and agents MUST use
-AskUserQuestion with labeled options. Never use "Type yes", "press Enter",
-numbered text menus, or other patterns that require the user to type a
-specific keyword.
+**AskUserQuestion is the ONLY mechanism that forces Claude to stop and wait
+for user input.** Prose text that looks like a prompt ("Type 1 or 2", "Want
+me to X or Y?", "yes / no / skip") does NOT stop execution. Claude will
+continue past prose prompts and may infer the user's answer — choosing an
+option the user never selected. This is not a style issue; it is a
+correctness issue.
 
+**Rule: every point where user input is needed MUST use AskUserQuestion.**
+No exceptions. If text describes options without an AskUserQuestion call,
+it is informational display, not a decision point.
+
+Prohibited patterns (all of these allow Claude to continue without input):
+- `Type 1 or 2` / `Type yes` / `press Enter`
+- `Want me to X, or Y?` / `Should I X?` / `Shall we X?`
+- `Options: 1. foo / 2. bar / 3. baz`
+- `yes — do X / pick — choose specific / skip — move on`
+- Any question followed by labeled choices as prose text
+
+Required patterns:
 - Binary choices: AskUserQuestion with 2 options (e.g., "Proceed" / "Stop")
 - Multi-choice: AskUserQuestion with 2-4 options + Other for custom input
 - Dynamic lists (variable item count): build AskUserQuestion from available
   items. If >4 items, use summary options (e.g., "All", "Done") with Other
   for specific selection.
-
-This ensures a consistent UX across all skills and avoids users having to
-guess the expected input format.
+- Conversational questions that suggest next actions: AskUserQuestion with
+  the options as labeled choices, not prose alternatives.

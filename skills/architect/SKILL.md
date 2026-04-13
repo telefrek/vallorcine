@@ -385,22 +385,24 @@ Combine results from 2a (direct navigation) and 2b (keyword scan). Mark the
 source of each candidate:
 
 ```
-── Candidates ──────────────────────────────────
+── Candidates (preliminary — evaluation and falsification follow) ──
 Candidates identified:
   ✓ .kb/algorithms/vector-indexing/hnsw.md
   ✓ .kb/algorithms/vector-indexing/ivf-flat.md
   ✓ .kb/infrastructure/databases/connection-pooling.md  (keyword match: "throughput")
   ✗ DiskANN — not in KB (needs research)
+
+This list may change — falsification (Step 6) can discover missing
+candidates or invalidate existing ones. Decision is at Step 7.
 ```
 
 Keyword-matched candidates are shown with the matching term so the user can
-quickly judge relevance. The user can exclude any candidate before subject
-files are loaded in Step 4.
+quickly judge relevance.
 
 **Neutral presentation:** list candidates without editorial commentary.
 Do not indicate which candidate you expect to win, which seems "natural,"
-or which is "obviously" best. The user reviews the list and decides what
-to evaluate. Evaluation happens at Step 4, recommendation at Step 7.
+or which is "obviously" best. Do NOT use AskUserQuestion here — this is
+informational display, not a decision point. Proceed directly to Step 2d.
 
 ---
 
@@ -945,6 +947,13 @@ One per turn maximum. Only ask when genuinely ambiguous:
 
 Never re-ask questions already answered in the constraint profile.
 Never ask hypothetical or open-ended future questions.
+
+**Action proposals during deliberation:**
+When the deliberation surfaces follow-up work (spec amendments, research
+commissions, deferred decisions), NEVER present the choice as a prose
+question ("Want me to X now, or defer to Y?"). Use AskUserQuestion with
+labeled options. Prose questions do not force a pause — Claude may answer
+its own question and execute without user consent.
 
 ### 7c — Confirmation and write
 
