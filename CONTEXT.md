@@ -50,9 +50,15 @@ state of the project — what's happening now and what's next.
   With v0.13.1 spec improvements, projected reduction from 16 to ~3 audit bugs
   (81% reduction). Feature pipeline is the quality gate; audit is the diagnostic.
 
+- **Roadmap → work group bridge** — `/decisions roadmap` now offers "Create work
+  group" (Step 9) that translates clusters into `.work/` WDs. New `/work-plan`
+  command for specification-only pipeline. `/work-start` simplified to
+  implementation-only (mode auto-detection removed).
+
 **Where things stand:**
-Released v0.13.2. Next jlsm feature will be the first authored with the hardened
-spec falsification — the real test of whether the 7 lenses prevent the bugs
+Released v0.13.2. Roadmap → work group bridge implemented (pending release).
+Next jlsm feature will be the first authored with the hardened spec
+falsification — the real test of whether the 7 lenses prevent the bugs
 upstream. Remaining: lightweight post-TDD audit design (deferred, waiting for
 next feature's audit data).
 

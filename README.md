@@ -94,6 +94,8 @@ graph LR
     subgraph Work
         W["/work"] --> WD[(".work/")]
         WS["/work-status"] -.->|"queries"| WD
+        WPL["/work-plan"] -.->|"reads"| WD
+        WPL -->|"creates"| S
         WST["/work-start"] -.->|"reads"| WD
         WST -->|"creates"| S
     end
@@ -215,7 +217,8 @@ or work groups stall. The result: your 5th feature is faster than your 1st.
 | `/work-decompose "<slug>"` | Break a work group into work definitions with artifact dependencies and shared interface contracts |
 | `/work-status "<slug>"` | Show readiness: what is READY, BLOCKED, IN_PROGRESS, or COMPLETE |
 | `/work-status --all` | Readiness summary across all active work groups |
-| `/work-start "<slug>" [WD-nn \| next]` | Start implementing a ready work definition — bridges into the feature pipeline |
+| `/work-plan "<slug>" [WD-nn \| next]` | Specify a work definition — domain analysis and spec authoring only |
+| `/work-start "<slug>" [WD-nn \| next]` | Implement a specified work definition — implementation pipeline only |
 
 ### Audit — adversarial bug finding
 
@@ -379,7 +382,8 @@ bash install.sh --diff /path/to/your/project
 /work "migrate auth from session tokens to JWT"
 /work-decompose "auth-migration"
 /work-status "auth-migration"
-/work-start "auth-migration" next
+/work-plan "auth-migration" next    # specify first ready WD
+/work-start "auth-migration" next   # implement a specified WD
 ```
 
 **Review codebase quality (first time on a project):**

@@ -96,7 +96,7 @@ what makes the 5th feature on a project faster than the 1st.
 | Decisions | `.decisions/` | `/architect`, `/decisions` | Architect Agent | Domain Scout, Work Planner, Spec Author, Curation |
 | Specifications | `.spec/` | `/spec-author`, `/spec`, `/spec-resolve` | Spec Author (via pipeline) | Work Planner, Test Writer, Audit, Curation |
 | Features | `.feature/` | `/feature`, `/feature-*` | Pipeline agents | Feature Resume, Retro, Curation |
-| Work | `.work/` | `/work`, `/work-decompose`, `/work-status`, `/work-start` | Work skills | Architect, Spec Author, Domain Scout, Work Planner, Feature Resume |
+| Work | `.work/` | `/work`, `/work-decompose`, `/work-plan`, `/work-start`, `/work-status` | Work skills | Architect, Spec Author, Domain Scout, Work Planner, Feature Resume |
 | Curation | `.curate/` | `/curate` | Curation scanner | Routes to Knowledge, Decisions, Specifications |
 | System | `.claude/` | `/vallorcine-help`, `/setup-vallorcine`, `/upgrade-vallorcine` | Installer, upgrade | All sessions (rules, config) |
 
@@ -816,7 +816,8 @@ vallorcine/
 │   ├── work/SKILL.md                ← /work — create a work group with scoping interview
 │   ├── work-decompose/SKILL.md      ← /work-decompose — break into WDs with dependency graph
 │   ├── work-status/SKILL.md         ← /work-status — readiness report (READY/BLOCKED/IN_PROGRESS/COMPLETE)
-│   ├── work-start/SKILL.md          ← /work-start — bridge a ready WD into the feature pipeline
+│   ├── work-plan/SKILL.md           ← /work-plan — specify a WD (domain analysis + spec authoring only)
+│   ├── work-start/SKILL.md          ← /work-start — implement a specified WD (implementation pipeline only)
 │   │
 │   │  Curation
 │   ├── curate/SKILL.md              ← /curate — codebase quality review, correlation engine
