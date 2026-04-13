@@ -125,6 +125,8 @@
 .claude/scripts/narrative/parse.py
 .claude/scripts/narrative/render_narrative.py
 .claude/scripts/narrative/generate.py
+.claude/scripts/narrative/generate_audit.py
+.claude/scripts/narrative/render_html.py
 .claude/scripts/narrative/model.js
 .claude/scripts/narrative/tokenizer.js
 .claude/scripts/narrative/parse.js

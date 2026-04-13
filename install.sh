@@ -301,16 +301,11 @@ install_file "$SCRIPT_DIR/scripts/work-context.sh" "$TARGET/.claude/scripts/work
 install_file "$SCRIPT_DIR/scripts/narrative-wrapper.sh" "$TARGET/.claude/scripts/narrative-wrapper.sh"
 chmod +x "$TARGET/.claude/scripts/narrative-wrapper.sh" 2>/dev/null || true
 mkdir -p "$TARGET/.claude/scripts/narrative"
-install_file "$SCRIPT_DIR/scripts/narrative/model.py" "$TARGET/.claude/scripts/narrative/model.py"
-install_file "$SCRIPT_DIR/scripts/narrative/tokenizer.py" "$TARGET/.claude/scripts/narrative/tokenizer.py"
-install_file "$SCRIPT_DIR/scripts/narrative/parse.py" "$TARGET/.claude/scripts/narrative/parse.py"
-install_file "$SCRIPT_DIR/scripts/narrative/render_narrative.py" "$TARGET/.claude/scripts/narrative/render_narrative.py"
-install_file "$SCRIPT_DIR/scripts/narrative/generate.py" "$TARGET/.claude/scripts/narrative/generate.py"
-install_file "$SCRIPT_DIR/scripts/narrative/model.js" "$TARGET/.claude/scripts/narrative/model.js"
-install_file "$SCRIPT_DIR/scripts/narrative/tokenizer.js" "$TARGET/.claude/scripts/narrative/tokenizer.js"
-install_file "$SCRIPT_DIR/scripts/narrative/parse.js" "$TARGET/.claude/scripts/narrative/parse.js"
-install_file "$SCRIPT_DIR/scripts/narrative/render_narrative.js" "$TARGET/.claude/scripts/narrative/render_narrative.js"
-install_file "$SCRIPT_DIR/scripts/narrative/generate.js" "$TARGET/.claude/scripts/narrative/generate.js"
+# Install all narrative pipeline files (Python + JS)
+for f in "$SCRIPT_DIR"/scripts/narrative/*.py "$SCRIPT_DIR"/scripts/narrative/*.js; do
+    [[ -f "$f" ]] || continue
+    install_file "$f" "$TARGET/.claude/scripts/narrative/$(basename "$f")"
+done
 
 # ── Upgrade script ───────────────────────────────────────────────────────────
 
