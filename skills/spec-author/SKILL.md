@@ -205,12 +205,33 @@ each requirement. A KB entry like `nan-score-ordering-corruption` turns
 "what about NaN?" from an abstract question into a proven failure pattern
 with specific test guidance.
 
+### Implementation grounding (load before launching subagent)
+
+Read the source files that the feature will modify or interact with.
+Use the domain analysis (`domains.md`) file list and the work plan stubs
+(if available) to identify which files exist. Read method signatures,
+type declarations, and API boundaries — not full implementations.
+
+The purpose is NOT to spec implementation details. It is to discover
+which concrete technology decisions the implementation will encounter:
+- Does the code use floating point? → IEEE 754 edge cases are real, not abstract
+- Does it manage resources (streams, connections, handles)? → lifecycle bugs are real
+- Does it parse external input? → encoding/validation gaps are real
+- Does it share state across threads? → concurrency hazards are real
+
+Without this grounding, the falsification pass reasons about spec text
+in isolation and misses gaps that are obvious when you see the actual
+types involved. A spec that says "numbers stored as text" doesn't trigger
+"what about NaN?" until you see that the implementation uses `double`.
+
 Launch a subagent for this pass. The subagent receives:
 - The complete draft spec from Pass 1
 - The feature brief and domain analysis
 - The resolved context bundle
 - The list of prerequisite stubs created in Pass 1
 - KB adversarial findings for the feature's domains (if any)
+- Key source file signatures from the feature's domain (types, method
+  signatures, API boundaries — NOT full implementation bodies)
 
 The subagent's prompt must include:
 
