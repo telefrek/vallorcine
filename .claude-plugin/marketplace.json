@@ -12,7 +12,7 @@
       "name": "vallorcine",
       "source": "./",
       "description": "Turns Claude Code into a reliable engineering partner. Crash-recoverable TDD pipeline, pull-model knowledge base, architecture decision store, and codebase curation that detects stale decisions, knowledge gaps, and implicit dependencies. Your project learns across sessions — each feature makes the next one faster, and curation keeps the knowledge honest.",
-      "version": "0.13.1",
+      "version": "0.13.2",
       "keywords": ["tdd", "workflow", "knowledge-base", "decisions", "pipeline", "curation", "code-quality"]
     }
   ]

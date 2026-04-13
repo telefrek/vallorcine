@@ -5,6 +5,14 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.13.2] — 2026-04-12
+
+### Added
+
+- **Standards compliance probe** — spec falsification checks every RFC/standard compliance claim against all other requirements for contradictions. Deviations must be explicit numbered requirements, not hidden behind "stricter than X." Root cause: F15 claimed RFC 8259 compliance but also rejected blank keys, which RFC 8259 allows.
+
+---
+
 ## [0.13.1] — 2026-04-12
 
 ### Added
