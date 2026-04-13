@@ -561,6 +561,18 @@ files directly (no ADR lookup needed).
 
 ### 4b — Score candidates
 
+**IMPORTANT: This is intermediate analysis, not a decision point.** Display
+a clear header before scoring begins:
+
+```
+── Evaluating candidates (analysis in progress — decision is at Step 7) ──
+```
+
+Do NOT use AskUserQuestion or pause for input during scoring. The user should
+not be choosing between candidates at this stage — falsification (Step 6) may
+discover missing candidates, challenge scores, or revise the recommendation.
+The deliberation at Step 7 is the only point where the user selects a candidate.
+
 For each loaded candidate:
 1. Read the full subject file at `.kb/<topic>/<category>/<subject>.md`
 2. Record the exact path — every score must reference it
@@ -716,7 +728,12 @@ Every score row must include:
 After writing evaluation.md, launch a subagent to challenge the recommendation
 before presenting it to the user. This step is not skippable.
 
-Display: `── Falsification ───────────────────────────`
+**Do NOT pause for user input before falsification.** The candidate list and
+scores shown during Step 4 are preliminary — falsification may discover missing
+candidates, weaken scores, or change the recommendation entirely. Proceed
+directly from Step 5 to Step 6 without asking the user to choose or confirm.
+
+Display: `── Falsification (may revise candidates) ──`
 
 ### Subagent dispatch
 
