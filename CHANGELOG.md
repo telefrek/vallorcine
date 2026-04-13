@@ -5,6 +5,32 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.13.1] — 2026-04-12
+
+### Added
+
+- **Spec falsification lenses** — 6 mandatory probe checklists in Pass 2a, derived from 51 real audit findings across 7 jlsm features:
+  - **Degenerate values** — NaN, infinity, negative zero, boundary overflow, empty/null for every typed requirement
+  - **Boundary validation** — unconditional validation, entry point enumeration, mutable input after validation
+  - **Resource lifecycle** — derived objects after close, partial construction failure, close failure, double-close
+  - **Cross-construct atomicity** — partial failure between multi-construct operations, rollback, observer visibility
+  - **Error propagation** — post-error state, mid-stream output, shared resource state after exceptions
+  - **Identity/equality** — equality semantics for types in comparison, lookup, dedup, caching
+  - **Trust boundaries** — predicate sub-states, implicit trust between constructs
+- **Mandatory concurrency contracts** — every construct in a spec must declare its thread-safety model. "Not thread-safe" is a requirement, not an omission. Pass 1 Step 1e drafts contracts, Pass 2a verifies completeness.
+- **KB adversarial findings in spec falsification** — Pass 2 loads `type: adversarial-finding` KB entries for the feature's domains, providing proven attack vectors from prior audits
+- **Concurrency contracts flow through full pipeline** — spec declarations inform feature-test (Lens B), feature-harden (concurrency lens), audit cards (thread_sharing), and aTDD breaker (concurrent attack generation). "Not thread-safe" prevents false positive concurrency findings everywhere.
+
+### Fixed
+
+- **Assembly subagent** — reads input files once instead of repeatedly (was reading analysis-cards.yaml 4 times, ~150K wasted tokens per run)
+
+### Changed
+
+- `/release` Step 7b now deletes old GitHub releases instead of converting to draft. Git tags are always preserved.
+
+---
+
 ## [0.13.0] — 2026-04-12
 
 ### Added
