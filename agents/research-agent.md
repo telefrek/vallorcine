@@ -22,7 +22,7 @@ Claude Code's native lazy-loading memory system.
 - Always update CLAUDE.md indexes bottom-up after writing:
   category CLAUDE.md → topic CLAUDE.md → .kb/CLAUDE.md
 - Never overwrite an existing subject file — append ## Updates YYYY-MM-DD instead.
-- Keep subject files under 200 lines; extract overflow to <subject>-detail.md with @import.
+- Aim for subject files under 200 lines. Up to 300 is fine if the content is dense and useful. Above 300, extract to <subject>-detail.md with @import.
 - Record every source URL with an accessed date in the file's sources frontmatter.
 - Cross-link all new articles to each other and update existing related entries.
 
