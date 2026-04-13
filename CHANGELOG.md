@@ -5,6 +5,23 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.13.3] — 2026-04-13
+
+### Added
+- `/work-plan` command — specification-only pipeline for work definitions.
+  Runs domain analysis and spec authoring without implementation stages.
+- `/decisions roadmap` "Create work group" option (Step 9) — translates
+  roadmap clusters into `.work/` work definitions with artifact dependencies
+  for parallel execution across terminal sessions.
+
+### Changed
+- `/work-start` simplified to implementation-only pipeline. Mode
+  auto-detection removed; always hands off to `/feature-plan`. BLOCKED WDs
+  now offer "Run /work-plan first" option.
+- Cross-references updated across 8 skill files for `/work-plan` awareness.
+
+---
+
 ## [0.13.2] — 2026-04-12
 
 ### Added
