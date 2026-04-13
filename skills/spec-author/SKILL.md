@@ -219,6 +219,41 @@ For each successful disproof, produce:
 5. **Tightened requirement:** suggested replacement text that closes
    the gap
 
+**Degenerate value checklist (mandatory).** For every requirement that
+involves a typed value (numeric, string, collection, or nullable), check
+these cases mechanically. These are language-agnostic — they apply
+regardless of implementation language.
+
+Numeric types:
+- NaN — not-a-number. Can the value be NaN? What happens downstream?
+- Positive and negative infinity — same questions.
+- Negative zero — does -0.0 vs 0.0 matter for equality, ordering, display?
+- Boundary values — if the spec declares a precision or range, what
+  happens at and beyond the boundary? (overflow, underflow, truncation)
+- Zero — does zero have special semantics? Division, indexing, sizing?
+
+String/text types:
+- Empty string — vs null vs absent. Are these three cases distinguished?
+- Null bytes — embedded \0 in strings. Truncation risk.
+- Unicode boundaries — surrogate pairs, BOM, RTL markers, combining chars.
+
+Collection types:
+- Empty collection — zero elements. Does downstream code assume non-empty?
+- Single element — boundary between "one" and "many" behavior.
+- Null elements — can the collection contain nulls? What happens?
+
+Nullable/optional types:
+- Null vs absent vs default — are these three states distinguished?
+  A field that is null, a field that is missing, and a field that has its
+  default value may need different behavior.
+
+Size/capacity:
+- Maximum size — if the spec declares a limit, what happens at the
+  limit and one beyond it? Is the error behavior specified?
+
+For each case that produces wrong or unspecified behavior: produce a
+finding using the standard format above.
+
 If the adversary cannot construct a concrete attack for a requirement,
 the requirement stands as written. No changes.
 
