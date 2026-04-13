@@ -192,11 +192,25 @@ adjust requirements at this point.
 **Mode: Adversarial.** Slow, zero-deference, exhaustive. Treat the Pass 1
 output as a hypothesis to be falsified.
 
+### KB adversarial findings (load before launching subagent)
+
+If `.kb/CLAUDE.md` exists, scan the Topic Map for categories relevant to
+this feature's domains. Read any `type: adversarial-finding` entries in
+matching categories. These are real bug patterns from prior audits — concrete
+attacks that broke real code in similar domains.
+
+Pass these findings to the subagent as additional input. They provide
+concrete attack vectors that the falsification pass should check against
+each requirement. A KB entry like `nan-score-ordering-corruption` turns
+"what about NaN?" from an abstract question into a proven failure pattern
+with specific test guidance.
+
 Launch a subagent for this pass. The subagent receives:
 - The complete draft spec from Pass 1
 - The feature brief and domain analysis
 - The resolved context bundle
 - The list of prerequisite stubs created in Pass 1
+- KB adversarial findings for the feature's domains (if any)
 
 The subagent's prompt must include:
 
@@ -218,6 +232,18 @@ For each successful disproof, produce:
    missing, or overly broad, and why they permit the attack
 5. **Tightened requirement:** suggested replacement text that closes
    the gap
+
+**KB adversarial pattern check (mandatory if findings were provided).**
+For each adversarial-finding entry provided, check whether any requirement
+in the draft is vulnerable to the same pattern. The entry's `domain` field
+tells you which requirements to focus on. The `## Test guidance` section
+describes the specific attack. The `## What happens` section describes the
+failure mode.
+
+For each match: construct a concrete attack against the specific
+requirement (not just "this pattern might apply" — show exactly which
+requirement, which input, what breaks). If the requirement already handles
+the case, note it and move on. If it doesn't, produce a finding.
 
 **Degenerate value checklist (mandatory).** For every requirement that
 involves a typed value (numeric, string, collection, or nullable), check
