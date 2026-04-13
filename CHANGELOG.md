@@ -5,6 +5,21 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.13.4] — 2026-04-13
+
+### Added
+- **PreCompact crash recovery hook** — checkpoints active feature status
+  before context compaction so `/feature-resume` can recover after overflow.
+
+### Changed
+- **Effort tuning** — `effort: high` on 4 adversarial skills (audit,
+  feature-harden, spec-author, spec-verify) for deeper reasoning where
+  it directly improves bug-finding quality.
+- **KB article line limit relaxed** — soft target 200 lines, hard limit
+  300 (was hard 200). Prevents unnecessary article splits on dense research.
+
+---
+
 ## [0.13.3] — 2026-04-13
 
 ### Added
