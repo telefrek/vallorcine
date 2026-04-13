@@ -164,7 +164,26 @@ Build a checklist from what you find. Then review each surface requirement
 against the checklist. For each failure mode that isn't addressed by an
 existing requirement, add a requirement.
 
-### Step 1e — Collapse user decisions, expand requirements
+### Step 1e — Declare concurrency contracts
+
+For every construct introduced by this spec, add a concurrency requirement.
+This is not optional — see the concurrency contract probe in Pass 2a for
+the full rationale.
+
+For each construct, ask the user (or determine from the domain analysis):
+- Will this be used from multiple threads?
+- If shared: what concurrency model? (immutable, synchronized, confined)
+- If not shared: state it explicitly as a requirement
+
+If the answer is unknown, write the requirement as thread-confined by
+default: "This type is not thread-safe. Callers must not share instances
+across threads without external synchronization." The user can upgrade
+to thread-safe during review if the use case demands it.
+
+This step ensures that Pass 2 falsification has a concurrency contract to
+verify against, rather than discovering the gap and having to add it.
+
+### Step 1f — Collapse user decisions, expand requirements
 
 Review the requirements for clusters that stem from the same conceptual
 decision. For each cluster:
@@ -360,6 +379,32 @@ deduplication, caching, or sorting:
   define how those fields affect equality?
 - If two instances are "equal", can they be substituted for each other
   in all contexts? If not, the spec needs a weaker equivalence relation.
+
+**Concurrency contract probe (mandatory).** Every construct introduced
+by the spec must declare its thread-safety model. This is not optional
+— the absence of a concurrency statement is a spec gap, because it
+leaves the implementer guessing and the test writer unable to verify.
+
+For every construct (type, interface, resource, service) in the spec:
+- Is it designed to be called from multiple threads? If yes: what is
+  the concurrency model? (immutable, internally synchronized, requires
+  external synchronization, thread-confined)
+- If NOT designed for concurrent use: the spec must say so explicitly.
+  "This type is not thread-safe — callers must not share instances
+  across threads without external synchronization" is a requirement.
+- For constructs that manage shared resources (caches, pools, registries,
+  indexes): concurrent access is likely regardless of intent. The spec
+  must declare whether concurrent operations are safe, and if so, what
+  guarantees hold (atomicity of individual operations, consistency of
+  compound operations, visibility of mutations).
+- For compound operations (check-then-act, get-or-create, position-then-
+  read): are they atomic? If not, the spec must state that callers are
+  responsible for atomicity.
+
+A spec that says nothing about concurrency is incomplete. The test writer
+cannot write concurrency tests without knowing the contract. The
+implementer cannot choose between synchronized and unsynchronized without
+knowing the intent. Declare it.
 
 **Trust boundary probe (mandatory).** For every requirement that
 describes a predicate, status check, or query consumed by other
