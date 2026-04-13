@@ -333,6 +333,33 @@ finding using the standard format above.
 - For mutable inputs: is the validation on the value at call time, or
   could the caller mutate the input after validation but before use?
 
+**Standards compliance probe (mandatory).** For every requirement that
+references a standard, specification, or protocol (RFC, IEEE, Unicode,
+HTTP, SQL, etc.):
+
+A compliance claim is a contract. "Compliant with RFC 8259" means the
+implementation MUST accept everything the RFC says is valid and MUST
+reject everything the RFC says is invalid. No exceptions, no "we're
+stricter." If the spec rejects something the standard allows, the spec
+is non-compliant — period.
+
+- Identify every OTHER requirement in the spec that restricts or extends
+  the standard's behavior. For each one: does the standard allow what the
+  spec rejects? If yes, the compliance claim is false. The spec must
+  either remove the restriction, or replace the compliance claim with an
+  explicit deviation list: "Implements RFC 8259 with the following
+  deviations: (1) duplicate keys rejected, (2) trailing content rejected."
+  These are not stricter compliance — they are deviations from the
+  standard that must be documented as requirements.
+- For every degenerate case in the standard (empty values, maximum sizes,
+  optional features, deprecated behaviors): does the spec handle it? If
+  the standard allows empty string keys and the spec says "non-blank
+  keys", that is a contradiction — produce a finding.
+- Every deviation from the standard must be its own numbered requirement
+  so it can be tested independently. "Stricter than RFC 8259" is not a
+  requirement — it's a vague claim. "Rejects duplicate keys (deviation
+  from RFC 8259 Section 4)" is a testable requirement.
+
 **Resource lifecycle probe (mandatory).** For every requirement that
 introduces a closeable, disposable, or acquirable resource — or any
 construct that wraps streams, connections, handles, buffers, or locks:
