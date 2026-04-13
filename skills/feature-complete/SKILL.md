@@ -61,6 +61,29 @@ Display opening header:
 ───────────────────────────────────────────────
 ```
 
+## Step 1b — Ensure narrative exists
+
+Check if `.feature/<slug>/narrative.md` exists. If not, attempt to generate it:
+```bash
+bash .claude/scripts/narrative-wrapper.sh "<slug>" ".feature/<slug>"
+```
+
+If generation succeeds:
+```
+  📖 Narrative generated before archival: .feature/<slug>/narrative.md
+```
+
+If generation fails:
+```
+  ⚠️ Narrative generation failed. The feature will be archived without it.
+  To generate after archival: bash .claude/scripts/narrative-wrapper.sh "<slug>" ".feature/_archive/<slug>"
+```
+
+Do not block archival on narrative failure — but always attempt it and always
+report the outcome.
+
+---
+
 ## Step 2 — Archive the working directory
 
 Move `.feature/<slug>/` to `.feature/_archive/<slug>/`.

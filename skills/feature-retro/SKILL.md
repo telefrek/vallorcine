@@ -376,27 +376,31 @@ Display:
 
 ---
 
-## Step 6 — Generate narrative article (enhanced, optional)
+## Step 6 — Generate narrative article (required)
 
-After the retro summary is written, attempt to generate a rich narrative
-markdown article showing the full feature story — pipeline phases, token
-usage per stage, conversations, escalations, TDD cycles, and crash recovery.
+Generate the narrative article — the primary record of pipeline performance.
+It contains per-phase token usage, durations, session counts, Gantt charts,
+and the full feature story. Without it, cost analysis requires manual JSONL
+mining.
 
 Run:
 ```bash
 bash .claude/scripts/narrative-wrapper.sh "<slug>" ".feature/<slug>"
 ```
 
-The wrapper tries Python, then Node.js, then exits silently if neither is
-available. The narrative is an enhancement — retro is complete without it.
-
-If the script writes `.feature/<slug>/narrative.md`:
+**If the script succeeds** (exit 0 and `.feature/<slug>/narrative.md` exists):
 ```
   📖 Narrative article generated: .feature/<slug>/narrative.md
 ```
 
-If the script exits without producing a file, say nothing — the retro
-is complete regardless.
+**If the script fails** (non-zero exit or no file written):
+Report the failure and the retry command. Do NOT silently skip it.
+```
+  ⚠️ Narrative generation failed. To retry manually:
+  bash .claude/scripts/narrative-wrapper.sh "<slug>" ".feature/<slug>"
+```
+The retro is still complete — narrative failure does not block the pipeline.
+But the failure must be visible so the data can be recovered.
 
 The narrative article includes:
 - shields.io badges (duration, tokens, model, vallorcine version)
@@ -406,7 +410,7 @@ The narrative article includes:
 
 ---
 
-## Step 6 — Work group lifecycle update
+## Step 7 — Work group lifecycle update
 
 **Skip this step if status.md does not have a `work_group` field and the feature
 slug does not contain `--` (double-dash convention).**
