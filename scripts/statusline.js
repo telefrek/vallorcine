@@ -116,7 +116,12 @@ function main() {
   const cachedStage = tokenState.cached_stage || '';
 
   if (featureDir && fs.existsSync(`${featureDir}/status.md`)) {
-    const slug = path.basename(featureDir);
+    let slug = path.basename(featureDir);
+    // Truncate slug for display — long names push stage/tokens/context off screen
+    const MAX_SLUG = 24;
+    if (slug.length > MAX_SLUG) {
+      slug = slug.slice(0, MAX_SLUG - 1) + '\u2026';
+    }
     const [actualStage, substage] = readStageFromStatus(`${featureDir}/status.md`);
     const currentStage = actualStage || cachedStage;
     const isTerminal = ['pr/created', 'pr/complete'].includes(`${currentStage}/${substage}`);
