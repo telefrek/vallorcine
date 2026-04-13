@@ -416,7 +416,7 @@ the retention policy:
 **Retention policy:**
 - Keep the last 3 minor versions within the current major version
 - On a major version bump, keep only the latest minor of the previous major
-- Tags are always preserved — only the GitHub Release is converted to draft
+- Tags are always preserved in git — the GitHub Release is deleted
 
 Run:
 ```bash
@@ -425,28 +425,28 @@ gh release list --limit 50
 
 Parse the output to find published releases. Determine which ones fall
 outside the retention window based on the version of the release just
-created. For each release to sunset, use the API (compatible with all gh versions):
+created. For each release to delete, use the API:
 
 ```bash
 RELEASE_ID=$(gh api repos/{owner}/{repo}/releases/tags/v<OLD_VERSION> --jq '.id')
-gh api repos/{owner}/{repo}/releases/$RELEASE_ID -X PATCH -f draft=true --silent
+gh api repos/{owner}/{repo}/releases/$RELEASE_ID -X DELETE --silent
 ```
 
 Display:
 ```
-── Sunsetting old releases ─────────────────────
-  draft  v<OLD_VERSION>  (outside retention window)
-  keep   v<KEPT_VERSION>
+── Cleaning old releases ───────────────────────
+  deleted  v<OLD_VERSION>  (outside retention window)
+  keep     v<KEPT_VERSION>
 ```
 
-If no releases need sunsetting, display:
+If no releases need cleaning, display:
 ```
-  No old releases to sunset.
+  No old releases to clean.
 ```
 
-If `gh release edit` fails for any release, warn but continue:
+If deletion fails for any release, warn but continue:
 ```
-  warn   Could not sunset v<OLD_VERSION> — update manually
+  warn   Could not delete v<OLD_VERSION> — remove manually
 ```
 
 ---
@@ -462,7 +462,7 @@ Tag      : v<NEW_VERSION>
 Zip      : vallorcine-v<NEW_VERSION>.zip  (<size>)
 Pushed   : <yes / no — skipped / no — no remote>
 GH Release: <URL / not created>
-Sunset   : <N releases drafted / none>
+Cleaned  : <N releases deleted / none>
 ───────────────────────────────────────────────
 Install command for users:
   bash install.sh /path/to/project
