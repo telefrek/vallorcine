@@ -125,6 +125,18 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
   unit. Routes to the appropriate skill per item type. Deferred until `/decisions
   roadmap` validates the planning-only approach on a narrower scope.
 
+- **Lightweight post-TDD audit** — after refactor completes, before PR, run a
+  scoped suspect + prove-fix pass on the feature's constructs. Skip the
+  expensive discovery phases (classification, exploration, card construction)
+  — use the work plan as the construct graph and test-plan.md as the coverage
+  map. Focus only on cross-construct boundary analysis: shared state mutations,
+  resource lifecycle across owners, interface inconsistencies. These are the
+  bugs individual construct tests can't see. Estimated: 3-4 suspect clusters,
+  ~10 minutes, ~$20-30 per feature. Could be a mode on `/audit` or a step in
+  the refactor phase. Wait for json-only-simd-jsonl audit results before
+  designing — need to know what the full audit finds that TDD missed to scope
+  the lightweight version correctly.
+
 - **Distributed work layer — multi-party decomposition and merge** — when multiple
   people run `/work-decompose` on the same work group from different branches,
   the merged result must be coherent. Five data model changes:
