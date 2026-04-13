@@ -188,7 +188,7 @@ if [[ -f .claude/.token-state ]]; then
                     case "$substage" in
                         loading-context)    sub="loading context" ;;
                         implementing)       sub="implementing" ;;
-                        implemented:*)      sub="${substage#implemented: }" ;;
+                        implemented:*)      sub="${substage#implemented: }"; [[ ${#sub} -gt 20 ]] && sub="${sub:0:19}…" ;;
                         *all*tests*passing) sub="all passing" ;;
                         escalat*)           sub="escalation" ;;
                     esac

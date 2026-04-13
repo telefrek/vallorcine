@@ -117,7 +117,8 @@ def substage_label(stage: str, substage: str) -> str:
             return "escalation"
     elif stage == "implementation":
         if substage.startswith("implemented:"):
-            return substage.split(":", 1)[1].strip()
+            name = substage.split(":", 1)[1].strip()
+            return name[:19] + "\u2026" if len(name) > 20 else name
         if "all" in substage and "tests" in substage and "passing" in substage:
             return "all passing"
         if substage.startswith("escalat"):

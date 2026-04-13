@@ -65,7 +65,7 @@ function substageLabel(stage, substage) {
     if (substage.includes('verified') && substage.includes('failing')) return 'tests verified';
     if (substage.startsWith('escalation')) return 'escalation';
   } else if (stage === 'implementation') {
-    if (substage.startsWith('implemented:')) return substage.split(':')[1].trim();
+    if (substage.startsWith('implemented:')) { const n = substage.split(':')[1].trim(); return n.length > 20 ? n.slice(0, 19) + '\u2026' : n; }
     if (substage.includes('all') && substage.includes('tests') && substage.includes('passing')) return 'all passing';
     if (substage.startsWith('escalat')) return 'escalation';
   } else if (stage === 'refactor') {
