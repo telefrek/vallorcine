@@ -20,33 +20,41 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-04-12*
+*Last updated: 2026-04-13*
 
-**Work layer shipped. Distributed collaboration designed. Next: validation.**
+**Spec hardening validated. Audit → pipeline feedback loop proven.**
 
-**What happened (2026-04-11/12):**
+**What happened (2026-04-12/13):**
 
-- **Work layer (`.work/`)** — fourth knowledge layer. All 6 phases implemented:
-  data model, creation flow, context injection, pipeline bridge, curation, pipeline
-  decomposition. 12 commits, 50 files, ~5.6K lines. PR #36 open for merge.
+- **v0.13.0** — work layer shipped (PR #36 merged). 7 concerns, 40+ commands,
+  137 tests. Documentation overhauled (README, DESIGN, COMPETITIVE). MANIFEST
+  integrity fixes. Narrative generation made reliable. 50 prose prompts migrated
+  to AskUserQuestion. Session-end prevention rule. Status line truncation.
 
-- **Distributed collaboration design** — explored multi-party work plan merging
-  (multiple people running `/work-decompose` on different branches). Key design:
-  slug-based WD IDs (no sequential collisions), regenerable indexes (manifest.md
-  derived from WD files), additive decomposition, overlap detection at authoring
-  time, post-merge validation for the parallel-branch case. Captured in DEFERRED.md
-  for implementation when team workflows are needed.
+- **v0.13.1** — spec falsification hardened with 7 mandatory probe lenses derived
+  from 51 real audit findings: degenerate values, boundary validation, resource
+  lifecycle, cross-construct atomicity, error propagation, identity/equality, trust
+  boundaries. Mandatory concurrency contracts in every spec. KB adversarial findings
+  loaded into falsification. Concurrency contracts flow through full pipeline
+  (feature-test, feature-harden, audit cards, aTDD breaker).
 
-- **Bug fixes** — 3 `grep -c` pipefail bugs in curate-scan.sh, 35 AskUserQuestion
-  prompt migrations, stale .bak removal.
+- **v0.13.2** — standards compliance probe. RFC compliance claims checked against
+  all other requirements for contradictions.
 
-- **Tests** — 7 new test suites (68 tests), 137 total across all suites. Zero
-  regressions.
+- **json-only-simd-jsonl audit** — 16 confirmed bugs fixed (vs 33 avg for earlier
+  features without specs). 13 of 16 map to spec lenses shipped in v0.13.1/v0.13.2.
+  2 are SIMD algorithm bugs (spec was correct, impl was wrong). Cost: $233 total,
+  $14.58/bug. 4 KB patterns created, 13 spec requirements added (R47-R59).
+
+- **ROI validated**: spec analysis costs ~$30 extra, saves ~$216 in audit costs.
+  With v0.13.1 spec improvements, projected reduction from 16 to ~3 audit bugs
+  (81% reduction). Feature pipeline is the quality gate; audit is the diagnostic.
 
 **Where things stand:**
-PR #36 open on `feat/work-layer-foundation`. Next: merge PR, then real-world
-validation on a multi-feature workflow. Remaining Open Questions: Phase 0
-validation, concurrency lens, audit budget controls.
+Released v0.13.2. Next jlsm feature will be the first authored with the hardened
+spec falsification — the real test of whether the 7 lenses prevent the bugs
+upstream. Remaining: lightweight post-TDD audit design (deferred, waiting for
+next feature's audit data).
 
 ---
 
@@ -72,34 +80,24 @@ architect adversarial hardening, Phase 0 already-fixed check.*
 *Status tags: `[implemented]` = code exists, needs validation. `[designed]` = spec
 exists, not yet coded. No tag = needs both design and implementation.*
 
-### Do next — validate existing implementations
+### Do next
+
+- **First feature with hardened spec falsification** — author a jlsm feature
+  using v0.13.2 (7 falsification lenses, mandatory concurrency contracts, KB
+  adversarial findings, standards compliance probe). Then audit it. Compare
+  audit findings to json-only-simd-jsonl baseline (16 bugs). Target: <5 bugs.
 
 - **Real-world work layer validation** `[implemented]` — exercise the full
   `/work` → `/work-decompose` → `/work-start` flow on an actual multi-feature
-  task. Validate: readiness computation, context injection, pipeline mode
-  selection, retro lifecycle updates. First candidate: a jlsm feature set or
-  a vallorcine internal refactor.
-
-- **Validate audit budget controls** `[implemented]` — budget controls are fully
-  specified in audit/SKILL.md (4 checkpoints) with audit-budget.sh script. Need
-  a real audit run with budget to confirm: AskUserQuestion flow, scope gate,
-  discovery/suspect cost checkpoints, prove-fix soft cap, deferred finding marking.
-
-- **Validate Phase 0 on F08-streaming-block-decompression** `[implemented]` —
-  first real test of the already-fixed check. Same domain as block-compression
-  (28 prior fixes). Measure: how many findings short-circuit at Phase 0, turn
-  savings vs baseline.
-
-- **Concurrency lens false positive rate tracking** `[implemented]` — need
-  multi-codebase data to confirm thread_sharing field eliminates false positives.
-  Block-compression data shows 54% preventable impossibles.
+  task. First candidate: a jlsm feature set.
 
 ### Do soon (medium effort, clear designs)
 
+- **Validate audit budget controls** `[implemented]` — run an audit with a
+  dollar budget to confirm the AskUserQuestion flow and soft cap work.
+
 - **Test architect hardening on a real ADR** `[implemented]` — the 6 hardening
-  changes are in the prompt but untested on a real decision session. Next
-  `/architect` invocation will exercise scope verification, constraint
-  falsification, and inline score falsification.
+  changes are in the prompt but untested on a real decision session.
 
 ### Do when needed (useful but workarounds exist)
 
