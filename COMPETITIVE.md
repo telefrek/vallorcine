@@ -499,7 +499,7 @@ philosophy (discover vs prescribe).
 |---|---|---|---|
 | Community / distribution | Superpowers (42K), feature-dev (89K) | High | Feature-complete; distribution is the bottleneck |
 | Official marketplace listing | Superpowers, feature-dev | High | Should prioritise — primary discovery channel |
-| Spec format interop | GitHub Spec Kit (80K+ stars), Tessl | Medium | Watch — may need to interop if SDD format standardises |
+| Spec format interop | GitHub Spec Kit (80K+ stars), Tessl | Low | Researched: Spec Kit is unstructured markdown with no frontmatter/lifecycle/cross-refs — conceptual model mismatch, adapter not worth building. Reassess if format evolves. |
 | CI/CD integration | Archgate, Continue, Copilot | Medium | Out of scope (principle 1), Archgate is complementary |
 | Org-wide deployment | Windsurf Workflows, Cursor team rules | Medium | Not our audience yet (single-developer focus) |
 | Auto-capture memory | claude-mem, memsearch | Low | Deliberate design choice — curated > captured |
