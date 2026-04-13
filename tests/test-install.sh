@@ -873,6 +873,13 @@ else
     fail ".subagent-state should be in .gitignore"
 fi
 
+# Check __pycache__/ in gitignore (narrative scripts generate bytecache)
+if assert_file_contains "$ENHANCED_TARGET/.gitignore" "__pycache__/"; then
+    pass "__pycache__/ in .gitignore"
+else
+    fail "__pycache__/ should be in .gitignore"
+fi
+
 # ── Test 14b: Migration from old direct references to wrappers ────────────────
 
 echo ""

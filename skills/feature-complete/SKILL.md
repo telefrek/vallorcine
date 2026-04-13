@@ -48,9 +48,9 @@ This is fine if:
   - The PR has already merged
   - You intentionally skipped stages (e.g. no refactor needed for small changes)
 
-  Type **yes**  ·  or: stop
-```
-Wait for explicit confirmation before continuing.
+Use AskUserQuestion with options:
+  - "Proceed"
+  - "Stop"
 
 ---
 
@@ -75,6 +75,22 @@ by /setup-vallorcine, but create it if missing).
 
 ---
 
+## Step 2b — Work group manifest update
+
+**Skip this step if the feature slug does not have a `work_group` field in
+status.md and does not match the `<group>--<wd>` double-dash convention.**
+
+If this is a work-group-sourced feature:
+
+1. Determine the work group slug (from status.md `work_group` field or slug prefix)
+2. Update `.work/<group>/manifest.md` — set the WD's status to COMPLETE in the table
+3. Update `.work/CLAUDE.md` — increment the Complete count for this group
+
+This is a bookkeeping step only — the WD status itself should already be COMPLETE
+from the retro step. This updates the index files.
+
+---
+
 ## Step 3 — Report
 
 ```
@@ -94,4 +110,10 @@ Permanent records (not moved):
 
 To recover working files if needed:
   cp -r .feature/_archive/<slug>/ .feature/<slug>/
+```
+
+If work-group-sourced, append:
+```
+Work group: <group> — <complete>/<total> work definitions complete
+Next ready WD: /work-start "<group>" next
 ```

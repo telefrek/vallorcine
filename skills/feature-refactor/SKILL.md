@@ -220,10 +220,12 @@ This issue may affect other units or require interface changes:
 
   <description of issue and why it can't be self-contained>
 
-  Type **yes**  ·  or: stop  to review before continuing
+Use AskUserQuestion with options:
+  - "Continue"
+  - "Stop to review"
 ```
-Wait for input. If "yes": continue the refactor and resume chaining if autonomous.
-If "stop": complete the current checklist item, write the log entry, then stop.
+Wait for input. If "Continue": continue the refactor and resume chaining if autonomous.
+If "Stop to review": complete the current checklist item, write the log entry, then stop.
 
 ### 2e — Missing tests
 `status.md substage → "refactor: missing-tests"`
@@ -409,7 +411,9 @@ Continue to Step 4.
   2. [MEDIUM] <description> — <file:line>
   3. [LOW/INFO] <description>
 
-  Fix now?  Type **yes**  ·  or: stop  to review first
+Use AskUserQuestion with options:
+  - "Fix now"
+  - "Stop to review"
 ```
 
 Severity levels:
@@ -618,10 +622,12 @@ Invoke `/feature-test "<slug>" --unit WU-<next>` immediately.
 ───────────────────────────────────────────────
 ✨ REFACTOR AGENT complete · <slug> · Cycle <n> · WU-<n>
 ───────────────────────────────────────────────
-  Type **yes**  ·  or: stop
+Use AskUserQuestion with options:
+  - "Proceed"
+  - "Stop"
 ```
-If "yes": invoke `/feature-test "<slug>" --unit WU-<next>`.
-If "stop": display the manual command and stop.
+If "Proceed": invoke `/feature-test "<slug>" --unit WU-<next>`.
+If "Stop": display the manual command and stop.
 
 **If this is the final (or only) unit and refactor is clean — sequential/cost mode only:**
 
@@ -663,11 +669,13 @@ Invoke `/feature-pr "<slug>"` immediately.
 ```
 Feature is ready for review.
 
-  Type **yes**  ·  or: stop
+Use AskUserQuestion with options:
+  - "Proceed"
+  - "Stop"
 ───────────────────────────────────────────────
 ```
-If "yes": invoke `/feature-pr "<slug>"`.
-If "stop": display manual commands and stop.
+If "Proceed": invoke `/feature-pr "<slug>"`.
+If "Stop": display manual commands and stop.
 
 **If missing tests escalation triggered (either mode):**
 
@@ -678,8 +686,10 @@ If "stop": display manual commands and stop.
 Missing tests found — handing to Test Writer.
 <If autonomous:> Pausing — missing tests require your review.
 
-  Type **yes**  ·  or: stop
+Use AskUserQuestion with options:
+  - "Proceed"
+  - "Stop"
 ```
 Wait for input regardless of automation_mode — missing tests are always a
-human checkpoint. If "yes": invoke `/feature-test "<slug>" --add-missing`.
-If "stop": display the manual sequence and stop.
+human checkpoint. If "Proceed": invoke `/feature-test "<slug>" --add-missing`.
+If "Stop": display the manual sequence and stop.

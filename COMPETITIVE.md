@@ -3,7 +3,7 @@
 Market positioning and ecosystem context for prioritisation decisions.
 Updated during marketplace research sessions, not every development session.
 
-*Last updated: 2026-03-31*
+*Last updated: 2026-04-12*
 
 ---
 
@@ -28,12 +28,25 @@ sessions. No development methodology.
 positioning story: *Superpowers makes you write tests first. Vallorcine makes
 your 5th feature faster than your 1st.*
 
-**New since March 2026:** A fourth concern — **code analysis and auditing** —
-has emerged as a competitive dimension. Claude Code Security (Anthropic),
-OpenAI Codex Security, and Qodo 2.0 all ship multi-agent or multi-pass
-analysis. Vallorcine's audit pipeline operates in this space but with a
-fundamentally different architecture (spec-driven, topology-aware, knowledge-
-compounding). See "Analysis and auditing" section below.
+Two additional competitive dimensions have emerged since early 2026:
+
+**Tier 4: Code analysis and auditing** — Claude Code Security (Anthropic),
+Qodo 2.0, and Trail of Bits all ship multi-agent or multi-pass analysis.
+Vallorcine's audit pipeline operates here with a fundamentally different
+architecture (spec-driven, topology-aware, knowledge-compounding).
+
+**Tier 5: Spec-driven development** — Martin Fowler's team published a
+comparison of Kiro, GitHub Spec Kit, and Tessl as the three SDD tools (2026).
+This is now a recognized category. Vallorcine's spec layer goes further than
+any of them — lifecycle states, displacement detection, adversarial authoring,
+and specs driving audit passes rather than just code generation.
+
+**New since April 2026:** A sixth dimension — **multi-feature work
+coordination** — remains unaddressed by any competitor. Copilot Mission
+Control tracks parallel tasks but has no dependency graph. Maestro-Orchestrate
+decomposes single tasks across specialists. Neither computes readiness from
+artifact state or coordinates specification/implementation modes across
+features. Vallorcine's work layer is alone in this space.
 
 ---
 
@@ -41,14 +54,19 @@ compounding). See "Analysis and auditing" section below.
 
 ### Tier 1 — Methodology enforcers
 
-**Superpowers** (obra) — 42K GitHub stars (up from 29K in Feb). Accepted into
-official Anthropic marketplace January 2026. TDD (red-green-refactor), Socratic
-brainstorming, micro-task planning, subagent-driven code review, systematic
-debugging. Free, MIT. The dominant structured-development plugin by community
-size. Has not added analysis, auditing, or knowledge persistence capabilities.
-*Gap vs vallorcine: no KB, no ADRs, no curation, no retrospectives, no session
-continuity, no token tracking, no code analysis pipeline. Session-scoped — each
-feature starts from zero.*
+**Superpowers** (obra) — 42K GitHub stars. Accepted into official Anthropic
+marketplace January 2026. TDD (red-green-refactor), Socratic brainstorming,
+micro-task planning, subagent-driven code review, systematic debugging. Free,
+MIT. The dominant structured-development plugin by community size.
+**March-April 2026 updates:** Brainstorming reworked with hard gates — models
+were skipping design and jumping to implementation, now blocked until design is
+approved. Platform expansion to 6 tools: Claude Code, Cursor, OpenCode, Codex,
+Gemini CLI, GitHub Copilot CLI. Still no persistent knowledge or analysis.
+*Gap vs vallorcine: no KB, no ADRs, no specs, no curation, no retrospectives,
+no work coordination, no code analysis pipeline. Session-scoped — each feature
+starts from zero. The hard-gate addition confirms the problem we solve with
+staged pipelines + idempotency, but their fix is enforcement-at-prompt-level
+rather than structural separation of concerns.*
 
 **TDD Guard** (nizos) — hooks-based TDD enforcement. Blocks file modifications
 when tests are skipped. Supports Jest, Vitest, pytest, Go, Rust. Narrow scope —
@@ -70,11 +88,14 @@ continuity.*
 Syntax) notation for structured, testable requirements. Workflow: requirements →
 user stories → acceptance criteria → technical design → implementation tasks.
 Agent hooks trigger on file save/create/delete to keep specs and code in sync.
-Deeply integrated with AWS services. Closest shipping product to spec-as-source-
-of-truth, but specs drive code generation, not analysis passes or auditing.
-*Gap vs vallorcine: specs don't drive adversarial analysis. No multi-pass
-auditing. No persistent KB or knowledge compounding. IDE-locked (not CLI).
-AWS-ecosystem coupling. No topology-aware analysis.*
+Deeply integrated with AWS services. **April 2026 updates:** `/quick-spec`
+collapses three phases into one command; `/architecture-selection` adds
+systematic architecture analysis between spec phases. Accelerates single-feature
+spec workflow but does not address multi-feature coordination.
+*Gap vs vallorcine: specs don't drive adversarial analysis. No spec lifecycle
+states (DRAFT/APPROVED/INVALIDATED), no displacement detection, no spec revival.
+No multi-pass auditing. No persistent KB or knowledge compounding. No multi-
+feature work coordination. IDE-locked (not CLI). AWS-ecosystem coupling.*
 
 **Deep Trilogy** (Pierce Lamb) — three plugins: `/deep-project` (decomposition),
 `/deep-plan` (planning with multi-LLM review), `/deep-implement` (TDD with
@@ -89,6 +110,11 @@ pipeline. Breadth over depth; no ADR or KB integration.
 
 **Shipyard** — Superpowers-style lifecycle + IaC validation (Terraform, Ansible,
 Docker, K8s) + security auditing. Positioned for production/DevOps workflows.
+
+**Maestro-Orchestrate** (josstei, 2026) — 22 specialized subagents, 4-phase
+workflows (Design/Plan/Execute/Complete), parallel execution, persistent
+sessions. Express vs Standard workflow paths with approval gates. Decomposes
+single complex tasks across specialists — no cross-feature coordination.
 
 **claude-code-workflow-orchestration** (barkain) — multi-step workflow
 orchestration with task decomposition, parallel agent execution, specialised
@@ -124,6 +150,14 @@ knowledge. Review-scoped, not development-scoped.
 in git. Agent memory survives across sessions. Closest to vallorcine's KB for
 task planning, but not for bug-finding or analytical knowledge.
 
+**Knowledge graph plugins** (March 2026) — **Graphify** (codebase to persistent
+knowledge graph, 71x token reduction), **Code-Review-Graph** (interactive
+knowledge graph, 6.8x token reduction), **MemClaw** (per-project isolated
+workspaces storing architecture decisions, conventions, task progress). These
+address codebase comprehension (what does this code do?) rather than development
+process knowledge (what bugs did we find, what patterns recur, what specs are
+active?).
+
 **claude-cognitive** — file attention scoring via hooks. Solves large-codebase
 file selection, not knowledge persistence or structured decisions.
 
@@ -154,27 +188,37 @@ severity findings. Less transparency about methodology.
 *Gap vs vallorcine: security-focused. Unclear whether truly multi-pass or
 single-pass with post-hoc classification. No persistent knowledge.*
 
-**Qodo 2.0** (Feb 2026) — multi-agent architecture with 15+ specialized review
-agents (correctness, security, performance, observability, requirements). Each
-agent contributes domain-specific findings on the same PR. F1 score 60.1%,
-highest recall at 56.7% on their benchmark.
+**Qodo 2.0/2.1** (Feb 2026, $70M raise March 2026) — multi-agent architecture
+with 15+ specialized review agents (correctness, security, performance,
+observability, requirements). F1 score 60.1%, highest recall at 56.7%.
+**Qodo 2.1** (Feb 17, 2026) added "Continuous Learning Rules System" —
+auto-discovers coding standards from the codebase, maintains them, enforces
+during reviews, tracks analytics. 11% precision/recall improvement. This is
+the closest analog to vallorcine's KB for review patterns, but operates at
+the convention level (naming, formatting, patterns), not bug-pattern or
+behavioral-specification level.
 *Gap vs vallorcine: multi-agent parallel (domain specialization) not multi-pass
-sequential (progressive refinement). PR-scoped, not codebase-scoped. No
-topology awareness. No persistent knowledge compounding. No spec integration.
-But: domain-specialized agents are the closest thing to domain-lens analysis
-in a shipping product. Watch for expansion from PR-scope to codebase-scope.*
+sequential (progressive refinement). PR-scoped, not codebase-scoped. Rules
+system captures conventions, not adversarial findings or spec violations. No
+topology awareness. No spec integration. But: domain-specialized agents +
+persistent rules make this the most complete single competitor. Watch closely
+— $70M raise means rapid expansion is likely.*
 
 **Sourcery** — "series of AI code reviewers each with different specialties"
 plus validation pass for false positive reduction. Multi-angle review with
 post-hoc filtering. Similar approach to Qodo but less mature.
 
-**Trail of Bits Security Skills** (Claude Code plugin) — `audit-context-building`
-skill with line-by-line analysis, First Principles reasoning, invariant/assumption
-tracking, cross-function flow tracing. Structured single-pass analysis with
-methodological rigor. Security-focused.
-*Gap vs vallorcine: single pass, security-focused, no clustering, no persistent
-knowledge. But: invariant/assumption tracking is conceptually adjacent to our
-expectation extraction.*
+**Trail of Bits Security Skills** (Claude Code plugin, 94 plugins, 201 skills,
+84 agents as of March 2026) — `audit-context-building` skill with line-by-line
+analysis, First Principles reasoning, invariant/assumption tracking, cross-
+function flow tracing. New: **Dimensional Analysis Plugin** (March 25) for
+LLM-annotated types with mechanical mismatch detection. **Agentic Actions
+Auditor** for CI/CD security. Claiming 200 bugs/week on targeted engagements.
+Security-focused, growing rapidly.
+*Gap vs vallorcine: single pass per skill, security-focused, no clustering, no
+persistent knowledge. But: invariant/assumption tracking is conceptually adjacent
+to our expectation extraction. Scale and breadth are impressive — 201 skills
+covering many security domains. Watch for consolidation into multi-pass pipelines.*
 
 **Snyk DeepCode AI** — hybrid symbolic + ML engine combining flow-sensitive
 analysis, data-flow analysis, and symbolic execution. Trained on 25M+ data
@@ -191,7 +235,7 @@ evaluation, SAST, and generative AI. Ingests past PRs and chat-based learnings.
 *Dependency-graph-level awareness, not topology-aware clustering. Accumulated
 review preferences, not analytical knowledge.*
 
-### Adjacent — Architecture governance
+### Adjacent — Architecture governance and spec-driven development
 
 **Archgate** — turns ADRs into executable rules with CI enforcement. Each ADR
 gets a `.rules.ts` companion with automated checks. Runs in CI, pre-commit, and
@@ -199,13 +243,25 @@ feeds context to AI agents. Editor plugins for Claude Code and Cursor.
 *Complementary, not competitive — handles enforcement (after the decision) but
 not the decision-making process. Potential integration partner.*
 
-**GitHub Spec Kit** (official GitHub, open source, 72.7K stars) — scaffolding
-for spec-driven workflows. Python CLI with templates for 22+ AI agent platforms.
-v0.1.4 as of Feb 2026. Provides persistent project context through structured
-spec documents but does not do analysis or bug prevention — it is scaffolding,
-not a pipeline.
-*Interesting as a standard-setter for spec formats. Watch whether it evolves
-from scaffolding to analysis.*
+**GitHub Spec Kit** (official GitHub, open source, 80K+ stars) — scaffolding
+for spec-driven workflows. Python CLI with templates for 24+ AI agent platforms.
+VS Code companion extension for visual spec browsing. Martin Fowler's team
+published a comparison of Kiro, Spec Kit, and Tessl as the three SDD tools —
+**spec-driven development is now a recognized category.**
+*Interesting as a standard-setter for spec formats. Specs are documents that
+guide implementation — no lifecycle states, no displacement detection, no
+spec-to-audit pipeline.*
+
+**Tessl Framework** (closed beta, 2026) — the most aggressive spec approach:
+spec-as-source where code is generated from specs and marked
+`// GENERATED FROM SPEC - DO NOT EDIT`. Reverse-engineers specs from existing
+code. Maintains 1:1 mapping between spec files and code files. Spec Registry
+in open beta.
+*Opposite design philosophy from vallorcine: specs replace code (generation)
+vs specs guide development (collaboration). No lifecycle states, no displacement
+detection, no adversarial verification. But: structurally the most comparable
+approach to treating specs as first-class artifacts. Watch for evolution toward
+spec lifecycle management.*
 
 **claude-plugin-adr** (andronics) — ADR templates + shell scripts, no
 deliberation loop.
@@ -241,8 +297,11 @@ files that show up as GitHub status checks. CI/CD native. Review-time focus,
 not development-time methodology.
 
 **GitHub Copilot** — issue-to-PR pipeline via Coding Agent + Workspace. Self-
-review, security scanning, semantic code search (March 2026). General-purpose
-agent, not methodology-enforcing. Locked to GitHub ecosystem.
+review, security scanning, semantic code search. **Mission Control** (GA 2026)
+adds a dashboard for assigning, steering, and tracking multiple concurrent
+Coding Agent tasks — "engineering manager UI for AI teammates." Tracks parallel
+tasks but no dependency graph, no artifact lifecycle, no readiness computation.
+General-purpose agent, not methodology-enforcing. Locked to GitHub ecosystem.
 
 **CodePrism** (rustic-ai, open source, MIT) — Rust-powered MCP server building
 Universal AST graph representation. 1000+ files/second indexing, graph-based
@@ -283,19 +342,22 @@ Validates the approach but doesn't describe a pipeline.
 
 | Differentiator | What it means | Why it matters |
 |---|---|---|
-| Crash recovery | Checkpoint-based resume from exact substage | Sessions crash — work is never lost |
-| Token-aware work unit splitting | Splits features when context cost exceeds 15K | Large features don't degrade output quality |
-| KB↔pipeline integration | Research feeds domain analysis, planning, testing | Knowledge compounds — 5th feature is faster than 1st |
-| Deliberation loop on ADRs | Constraint profiling → candidates → evaluation → confirmation | Decisions are governed, not assumed |
-| Sequential scoping interview | Structured requirements gathering with confirmation | Scope is locked before work begins |
-| Codebase curation | Cross-session quality review via correlation engine | Stale decisions, knowledge gaps, drift detected between features |
-| Composable commands | Each stage is a separate slash command | Users control granularity — skip, repeat, or reorder stages |
-| Retrospectives | Post-feature learning that feeds back into KB/ADRs | The project gets smarter with each feature |
+| **Multi-feature work coordination** | Artifact-based dependencies, computed readiness, pipeline modes | Right work happens in the right order across features |
+| **Spec lifecycle management** | DRAFT→APPROVED→INVALIDATED, displacement detection, revival | Specs stay current — contradictions caught, not silently accumulated |
+| **Pipeline mode decomposition** | Spec-only and impl-only modes for team parallelization | One person specs, another implements — same pipeline, different modes |
+| **Interface contracts** | Specs with `kind: interface-contract` for shared surfaces | Cross-feature boundaries are specified and tracked, not assumed |
 | Spec-driven auditing | Specs drive analysis passes, not just code generation | Bugs caught by spec falsification before code is written |
 | Topology-aware clustering | Multi-dimensional construct graphs clustered by domain lens | Analysis targets where bugs actually live, not structural proximity |
 | Domain-lens analysis | Concern-scoped passes (concurrency, state, contracts, etc.) | Prunes irrelevant domains, focuses analysis by concern type |
 | Analytical knowledge compounding | KB entries from prior audits improve future audits | Pipeline gets smarter per feature — 3 patterns from features 1-2 caught bugs in feature 4 |
 | Multi-pass progressive audit | 5-pass pipeline where each pass informs the next | 92% bug detection at 60% cost vs single-pass |
+| Crash recovery | Checkpoint-based resume from exact substage | Sessions crash — work is never lost |
+| Token-aware work unit splitting | Splits features when context cost exceeds 15K | Large features don't degrade output quality |
+| KB↔pipeline integration | Research feeds domain analysis, planning, testing | Knowledge compounds — 5th feature is faster than 1st |
+| Deliberation loop on ADRs | Constraint profiling → candidates → evaluation → confirmation | Decisions are governed, not assumed |
+| Codebase curation | Cross-session quality review via correlation engine | Stale decisions, knowledge gaps, spec drift detected between features |
+| Composable commands | Each stage is a separate slash command | Users control granularity — skip, repeat, or reorder stages |
+| Retrospectives | Post-feature learning that feeds back into KB/ADRs | The project gets smarter with each feature |
 
 ### The compounding advantage
 
@@ -304,38 +366,73 @@ tools that help you build (then forget) and tools that remember (but never
 review). Vallorcine does both:
 
 - **Features compound the knowledge** — domain analysis reads the KB, planning
-  reads ADRs, retrospectives write back to both.
-- **Curation keeps it honest** — `/curate` detects stale decisions, knowledge
-  gaps, implicit dependencies, and orphaned areas between features.
+  reads ADRs and specs, retrospectives write back to both.
+- **Work groups coordinate the sequence** — artifact-based dependencies ensure
+  specs are approved before implementation starts, interface contracts are
+  settled before consumers build against them.
+- **Specs compound the contracts** — displacement detection ensures new behavior
+  doesn't silently contradict existing guarantees. Revival reuses invalidated
+  specs as reference input for their replacements.
 - **Audits compound analytically** — KB adversarial findings and tendency
   profiles from prior features improve future audit detection rates.
+- **Curation keeps it honest** — 17 analyses detect stale decisions, spec-code
+  drift, knowledge gaps, work group stalls, and orphaned areas.
 - **The result:** a codebase that gets smarter over time — not just during
   active feature work, but between features too.
 
+### The work coordination gap
+
+The competitive landscape has tools for task decomposition (Copilot Mission
+Control, Maestro-Orchestrate, Deep Trilogy) but none for **artifact-aware
+work coordination**. The distinction:
+
+- **Task decomposition** splits a goal into steps and tracks completion.
+- **Work coordination** tracks dependencies on specific artifacts at specific
+  states — a spec must be APPROVED before an implementation WD becomes READY.
+  Completing one WD automatically unblocks others by producing the artifacts
+  they depend on.
+
+This is the gap between "assign tasks to agents" and "ensure the right work
+happens in the right order." Pipeline modes (spec-only, impl-only) extend this
+to team workflows where different people own different phases.
+
 ### Head-to-head comparison
 
-| Capability | vallorcine | Claude Code Security | Qodo 2.0 | Kiro | Superpowers | Copilot |
-|---|---|---|---|---|---|---|
-| TDD pipeline | Enforced | No | No | No | Enforced | No |
-| Spec authoring | Adversarial 2-pass | No | No | EARS notation | No | No |
-| Spec-driven analysis | Specs drive audit | No | No | Specs drive codegen | No | No |
-| Code analysis | Topology-aware, domain-lens | Data flow tracing | 15 specialized agents | No | No | Security scanning |
-| Multi-pass audit | 5-pass progressive | 2-pass (scan+verify) | Parallel (not sequential) | No | No | Single-pass |
-| Domain-lens scoping | Automatic detection + pruning | Security only | Agent specialization | No | No | No |
-| Knowledge base | Curated KB | No | No | No | No | No |
-| Knowledge compounding | Cross-feature | No | PR learnings | No | No | No |
-| Architecture decisions | Deliberation loop | No | No | No | No | No |
-| Curation | Correlation engine | No | No | No | No | No |
-| Crash recovery | Checkpoint-based | N/A | No | No | No | No |
-| Composable stages | Yes (20+ commands) | N/A | N/A | Partial | Partial | Workspace |
-| Scope | Codebase | Codebase | PR | Project | Session | PR/Issue |
-| Community size | Small | Anthropic backing | Growing | AWS backing | 42K stars | Massive |
+| Capability | vallorcine | Qodo 2.1 | Kiro | Claude Code Security | Tessl | Superpowers | Copilot |
+|---|---|---|---|---|---|---|---|
+| TDD pipeline | Enforced | No | No | No | No | Enforced | No |
+| Spec authoring | Adversarial 2-pass | No | EARS notation | No | From code (generated) | No | No |
+| Spec lifecycle | DRAFT/APPROVED/INVALIDATED | No | 3 phases (no states) | No | 1:1 mapping | No | No |
+| Displacement detection | Automatic | No | No | No | No | No | No |
+| Spec-driven analysis | Specs drive audit | No | Specs drive codegen | No | Specs drive codegen | No | No |
+| Code analysis | Topology-aware, domain-lens | 15 specialized agents | No | Data flow tracing | No | No | Security scanning |
+| Multi-pass audit | 5-pass progressive | Parallel (not sequential) | No | 2-pass (scan+verify) | No | No | Single-pass |
+| Multi-feature coordination | Artifact deps + readiness | No | No | No | No | No | Mission Control (no deps) |
+| Pipeline modes | Spec-only / impl-only | No | No | No | No | No | No |
+| Knowledge base | Curated KB | Rules system (conventions) | No | No | No | No | No |
+| Knowledge compounding | Cross-feature, adversarial | Convention rules (11% improvement) | No | No | No | No | No |
+| Architecture decisions | Deliberation loop | No | /architecture-selection | No | No | No | No |
+| Curation | Correlation engine (17 analyses) | Rule conflict detection | No | No | No | No | No |
+| Crash recovery | Checkpoint-based | N/A | No | N/A | No | No | No |
+| Composable stages | Yes (40+ commands) | N/A | Partial | N/A | No | Partial | Workspace |
+| Scope | Codebase | PR | Project | Codebase | Project | Session | PR/Issue |
+| Funding / community | Small | $70M raise | AWS backing | Anthropic | Closed beta | 42K stars | Massive |
 
 ---
 
 ## Competitive threats — what to watch
 
 ### High priority (could erode lead within 6 months)
+
+**Qodo post-$70M raise.** Most complete single competitor: 15 specialized
+agents + persistent rules system + convention learning. $70M means rapid
+expansion. If they add: (1) codebase-scoped analysis (not just PR), (2) rules
+that capture bug patterns (not just conventions), or (3) multi-feature
+coordination, the gap narrows significantly on multiple dimensions at once.
+*Mitigation: our lenses are topology-aware (driven by construct graph), not
+agent specialization (fixed domains). Our KB captures adversarial findings and
+behavioral patterns, not naming conventions. Hard to replicate without the
+spec → audit → KB feedback loop.*
 
 **Claude Code Security expanding beyond security.** Anthropic's two-pass
 adversarial model (scan + red/blue verification) is architecturally sound. If
@@ -346,27 +443,32 @@ Anthropic has the resources and the platform access to move fast here.
 to replicate without the empirical validation infrastructure (diagnostic tools,
 cost models, pass-over-pass yield curves). Stay ahead on pipeline sophistication.*
 
-**Qodo expanding from PR-scope to codebase-scope.** Their 15 specialized agents
-are the closest shipping implementation of domain-lens analysis. Currently
-PR-scoped. If they ship codebase-scoped analysis with persistent knowledge
-across PRs, they become a direct competitor on the analysis dimension.
-*Mitigation: our domain lenses are topology-aware (driven by construct graph
-structure), not just agent specialization (fixed domains regardless of code).
-This is a deeper integration that's harder to replicate.*
-
-**Kiro adding analysis to its spec workflow.** Kiro already has EARS specs
-and agent hooks for spec-code sync. If they add adversarial spec falsification
-or spec-driven auditing, they compete directly on spec-driven bug prevention.
-*Mitigation: our adversarial authoring (two-pass falsification with enforcement
-path tracing) is validated. Kiro's specs drive generation, not analysis — the
-architectural shift to analysis-driving-specs is non-trivial.*
+**Kiro adding analysis to its spec workflow.** Kiro already has EARS specs,
+agent hooks for spec-code sync, and now `/architecture-selection`. If they add
+adversarial spec falsification, spec lifecycle states, or spec-driven auditing,
+they compete directly on spec-driven bug prevention.
+*Mitigation: our spec lifecycle (displacement, revival, interface contracts)
+and adversarial authoring (two-pass falsification with enforcement path tracing)
+are validated. Kiro's specs drive generation, not analysis — the architectural
+shift to analysis-driving-specs is non-trivial.*
 
 ### Medium priority (watch, no immediate action needed)
 
-**GitHub Spec Kit becoming a standard.** 72.7K stars, templates for 22+
-platforms. If it defines the standard spec format, tools will build around it.
-Vallorcine's `.spec/` format is internal — may need to interop with Spec Kit
-format if it becomes dominant.
+**Tessl's spec-as-source approach gaining traction.** If Tessl exits closed
+beta with strong spec lifecycle management, they compete on "specs as first-
+class artifacts" even though the philosophy differs (generation vs guidance).
+Martin Fowler's comparison legitimizes the SDD category — watch whether Tessl's
+approach or the guidance approach wins mindshare.
+
+**GitHub Spec Kit becoming a standard.** 80K+ stars, templates for 24+
+platforms, VS Code extension. If it defines the standard spec format, tools
+will build around it. Vallorcine's `.spec/` format is internal — may need to
+interop with Spec Kit format if it becomes dominant.
+
+**Trail of Bits scaling to 200+ skills.** 201 skills across 94 plugins, 200
+bugs/week on targeted engagements. Individual skills are single-pass, but the
+breadth is impressive. If they consolidate into multi-pass pipelines or add
+persistent knowledge across audit engagements, the security analysis gap narrows.
 
 **CodeRabbit adding topology.** Their code graph analysis is dependency-level
 today. If they add relationship-type-differentiated topology (state sharing vs
@@ -397,7 +499,7 @@ philosophy (discover vs prescribe).
 |---|---|---|---|
 | Community / distribution | Superpowers (42K), feature-dev (89K) | High | Feature-complete; distribution is the bottleneck |
 | Official marketplace listing | Superpowers, feature-dev | High | Should prioritise — primary discovery channel |
-| Spec format interop | GitHub Spec Kit (72.7K stars) | Medium | Watch — may need to interop if it becomes standard |
+| Spec format interop | GitHub Spec Kit (80K+ stars), Tessl | Low | Researched: Spec Kit is unstructured markdown with no frontmatter/lifecycle/cross-refs — conceptual model mismatch, adapter not worth building. Reassess if format evolves. |
 | CI/CD integration | Archgate, Continue, Copilot | Medium | Out of scope (principle 1), Archgate is complementary |
 | Org-wide deployment | Windsurf Workflows, Cursor team rules | Medium | Not our audience yet (single-developer focus) |
 | Auto-capture memory | claude-mem, memsearch | Low | Deliberate design choice — curated > captured |

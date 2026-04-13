@@ -20,40 +20,33 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-04-09*
+*Last updated: 2026-04-12*
 
-**Spec displacement detection + script audit fixes → v0.11.0 release.**
+**Work layer shipped. Distributed collaboration designed. Next: validation.**
 
-**What happened (2026-04-09):**
+**What happened (2026-04-11/12):**
 
-- **Spec displacement detection** — new pipeline capability. When a feature's
-  new specs contradict existing APPROVED specs, the resolver detects it
-  mechanically (subject-token overlap + antonym pairs + displacement keywords)
-  and presents four resolution choices: accept invalidation, narrow new spec,
-  narrow old spec, or defer. Accepted displacements flow through the full
-  pipeline as removal work units (plan → test → implement → retro finalization).
+- **Work layer (`.work/`)** — fourth knowledge layer. All 6 phases implemented:
+  data model, creation flow, context injection, pipeline bridge, curation, pipeline
+  decomposition. 12 commits, 50 files, ~5.6K lines. PR #36 open for merge.
 
-- **Spec lifecycle fields** — `displaced_by`, `revives`, `revived_by`,
-  `displacement_reason` added to frontmatter. Validation in spec-validate.sh.
+- **Distributed collaboration design** — explored multi-party work plan merging
+  (multiple people running `/work-decompose` on different branches). Key design:
+  slug-based WD IDs (no sequential collisions), regenerable indexes (manifest.md
+  derived from WD files), additive decomposition, overlap detection at authoring
+  time, post-merge validation for the parallel-branch case. Captured in DEFERRED.md
+  for implementation when team workflows are needed.
 
-- **Revival support** — `/spec-author` detects INVALIDATED specs as reference
-  input for fresh authoring (Option B: new spec, old as input).
+- **Bug fixes** — 3 `grep -c` pipefail bugs in curate-scan.sh, 35 AskUserQuestion
+  prompt migrations, stale .bak removal.
 
-- **Orphaned spec detection** — curate Analysis 14 finds APPROVED specs whose
-  subject tokens no longer appear in source code.
-
-- **Script audit fixes** — Python/JS/bash hook scripts reviewed for runtime
-  issues. Fixed: stale subagent state on parse failure (HIGH), stdin buffering
-  defeating fast bail (HIGH), missing top-level try/catch on JS scripts,
-  redundant syscalls, context % parity, concurrent tmp file collisions.
-
-- **Tests** — scenario-spec-validate.sh (8), scenario-spec-resolve.sh (11),
-  curate-scan orphaned spec tests (4 new → 47 total). All existing tests pass.
+- **Tests** — 7 new test suites (68 tests), 137 total across all suites. Zero
+  regressions.
 
 **Where things stand:**
-v0.11.0 release in progress. All displacement detection work merged (#34).
-Next priorities from Open Questions remain: Phase 0 validation on F08,
-concurrency lens tracking, audit budget controls.
+PR #36 open on `feat/work-layer-foundation`. Next: merge PR, then real-world
+validation on a multi-feature workflow. Remaining Open Questions: Phase 0
+validation, concurrency lens, audit budget controls.
 
 ---
 
@@ -61,56 +54,14 @@ concurrency lens tracking, audit budget controls.
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-- **Combined prove-fix per-finding model** (2026-04-02) — merged Prove + Fix into
-  single subagent. Each finding gets fresh context. Test result determines path
-  (not agent's choice). Validated: same cost as prove-only with fixes included.
-  Fix cascade reduces total work via serial execution.
+*5 work layer decisions graduated to SETTLED.md (2026-04-12): artifact-based
+dependencies, interface contracts as spec subtype, computed readiness, pipeline
+mode decomposition, work context as pull-model injection.*
 
-- **Sequential execution for prove-fix** (2026-04-02) — one finding at a time,
-  no parallelism. Prevents fix conflicts on shared source files. Fix cascade
-  deduplication is a bonus. Wall-clock tradeoff acceptable.
-
-- **Effort asymmetry removal in prove-fix** (2026-04-02) — agent always writes
-  test regardless of outcome (confirmed or impossible). Test result chooses the
-  path. Prevents task-avoidance bias from sandbagging research.
-
-- **Concurrency lens per-construct filtering** (2026-04-02) — thread_sharing
-  field in cards (none/possible/explicit). Concurrency lens excludes
-  thread_sharing:none constructs. Prevents false positives on single-threaded
-  components.
-
-- **Spec conflict detection at resolution time** (2026-04-02) — spec-resolve.sh
-  checks for contradictions between included specs before emitting bundle.
-  Feature-plan blocks, feature-test marks UNTESTABLE, feature-implement
-  diagnoses spec conflicts instead of misdiagnosing as test/contract bugs.
-
-- **DRAFT specs with conflicts blocked from bundles** (2026-04-02) — specs with
-  [UNRESOLVED]/[CONFLICT] markers or open_obligations excluded from resolved
-  context. Only APPROVED specs trusted as authoritative.
-
-- **Spec extraction from implementation** (2026-04-03) — bottom-up spec
-  authoring for foundational types (JlsmSchema, JlsmDocument). Auto-discovery
-  of source, consuming specs, tests. [ABSENT] tag for behaviors code doesn't
-  have but specs may assume.
-
-- **[ABSENT] requirement lifecycle** (2026-04-03) — promote (becomes
-  implementation work with [UNIMPLEMENTED] obligation), preserve (becomes
-  negative requirement), defer (curate resurfaces). No requirement falls
-  through the cracks.
-
-- **Fix-spec conflict resolution** (2026-04-03) — three options: keep fix +
-  update spec, revert fix + mark FIX_IMPOSSIBLE, split (keep fix + add new
-  requirement that invalidates old). Fourth option: defer with [UNRESOLVED].
-
-- **Architect adversarial hardening** (2026-04-03) — 6 changes from aTDD
-  research: scope verification, constraint falsification, inline score
-  falsification, prior-scores-not-evidence, REQUIRED annotations, write-and-
-  justify checklist. Each change maps to a specific research finding.
-
-- **Phase 0 already-fixed check** (2026-04-03) — mandatory pre-flight in
-  prove-fix subagent. Reads current source before test writing. Short-circuits
-  cascade impossibles in 3 turns instead of 35. Evidence: 33 IMPOSSIBLE
-  findings in table-indices audit averaged 35 turns each.
+*9 decisions graduated to SETTLED.md (2026-04-12): effort asymmetry removal,
+concurrency lens filtering, spec conflict detection, DRAFT specs blocked,
+spec extraction from implementation, [ABSENT] lifecycle, fix-spec resolution,
+architect adversarial hardening, Phase 0 already-fixed check.*
 
 ---
 
@@ -118,35 +69,39 @@ concurrency lens tracking, audit budget controls.
 
 *Live list — resolve into SETTLED.md or drop when addressed.*
 *Prioritised: do next → do soon → do when needed → do when scale demands it.*
+*Status tags: `[implemented]` = code exists, needs validation. `[designed]` = spec
+exists, not yet coded. No tag = needs both design and implementation.*
 
-### Do next (high priority, clear direction)
+### Do next — validate existing implementations
 
-- **Validate Phase 0 on F08-streaming-block-decompression** — first real test
-  of the already-fixed check. Same domain as block-compression (28 prior fixes).
-  Measure: how many findings short-circuit at Phase 0, turn savings vs baseline.
+- **Real-world work layer validation** `[implemented]` — exercise the full
+  `/work` → `/work-decompose` → `/work-start` flow on an actual multi-feature
+  task. Validate: readiness computation, context injection, pipeline mode
+  selection, retro lifecycle updates. First candidate: a jlsm feature set or
+  a vallorcine internal refactor.
 
-- **Concurrency lens false positive rate tracking** — need multi-codebase data
-  to confirm thread_sharing field eliminates false positives. Block-compression
-  data shows 54% preventable impossibles.
+- **Validate audit budget controls** `[implemented]` — budget controls are fully
+  specified in audit/SKILL.md (4 checkpoints) with audit-budget.sh script. Need
+  a real audit run with budget to confirm: AskUserQuestion flow, scope gate,
+  discovery/suspect cost checkpoints, prove-fix soft cap, deferred finding marking.
+
+- **Validate Phase 0 on F08-streaming-block-decompression** `[implemented]` —
+  first real test of the already-fixed check. Same domain as block-compression
+  (28 prior fixes). Measure: how many findings short-circuit at Phase 0, turn
+  savings vs baseline.
+
+- **Concurrency lens false positive rate tracking** `[implemented]` — need
+  multi-codebase data to confirm thread_sharing field eliminates false positives.
+  Block-compression data shows 54% preventable impossibles.
 
 ### Do soon (medium effort, clear designs)
 
-- **Audit budget controls** — dollar cap on the prove-fix loop. Design:
-  a cost-tracking script that sums JSONL token usage after each subagent.
-  The prove-fix orchestrator calls it after each finding, stops dispatching
-  when the running total hits the budget. Remaining findings marked DEFERRED
-  in the report. Budget does NOT affect assembly, suspect, test cleanup,
-  reporting, or feedback loop — those always run. CLI: `/audit --budget 200`.
-  Needed before running the 7 remaining jlsm audits (~$3-5K total).
-
-- **Test architect hardening on a real ADR** — the 6 hardening changes are
-  in the prompt but untested on a real decision session. Next `/architect`
-  invocation will exercise scope verification, constraint falsification, and
-  inline score falsification.
+- **Test architect hardening on a real ADR** `[implemented]` — the 6 hardening
+  changes are in the prompt but untested on a real decision session. Next
+  `/architect` invocation will exercise scope verification, constraint
+  falsification, and inline score falsification.
 
 ### Do when needed (useful but workarounds exist)
-
-- **/feature-split** — split in-progress feature when scope expands.
 
 - **Large repo curation testing** — `/curate` needs testing on a repo with
   1000+ commits, 30+ contributors.

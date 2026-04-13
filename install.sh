@@ -136,6 +136,12 @@ for d in "$SCRIPT_DIR"/skills/*/; do
     skill_name="$(basename "$d")"
     install_file "$d/SKILL.md" "$TARGET/.claude/skills/$skill_name/SKILL.md"
 
+    # Install additional files in the skill directory (e.g., extraction-mode.md)
+    for extra_file in "$d"*.md; do
+        [[ "$(basename "$extra_file")" == "SKILL.md" ]] && continue
+        install_file "$extra_file" "$TARGET/.claude/skills/$skill_name/$(basename "$extra_file")"
+    done
+
     # Clean up pre-migration command file if it exists (commands/ → skills/ migration)
     old_cmd="$TARGET/.claude/commands/$skill_name.md"
     if [[ -f "$old_cmd" && "$DIFF_MODE" != "1" ]]; then
@@ -220,6 +226,12 @@ echo ""
 echo "── Spec seed files ──────────────────────────────"
 _install_seed "$SCRIPT_DIR/spec/CLAUDE.md" "$TARGET/.spec/CLAUDE.md"
 
+# ── Work seed files (never overwrite — same as KB / Decisions / Spec) ─────
+
+echo ""
+echo "── Work seed files ──────────────────────────────"
+_install_seed "$SCRIPT_DIR/work/CLAUDE.md" "$TARGET/.work/CLAUDE.md"
+
 # ── Curation directory ────────────────────────────────────────────────────
 
 echo ""
@@ -241,10 +253,8 @@ fi
 echo ""
 echo "── Audit prompts ──────────────────────────────────"
 mkdir -p "$TARGET/.claude/prompts/audit"
-for f in "$SCRIPT_DIR"/prompts/audit/*.md; do
-    install_file "$f" "$TARGET/.claude/prompts/audit/$(basename "$f")"
-done
-for f in "$SCRIPT_DIR"/prompts/audit/*.py; do
+for f in "$SCRIPT_DIR"/prompts/audit/*.md "$SCRIPT_DIR"/prompts/audit/*.py "$SCRIPT_DIR"/prompts/audit/*.sh "$SCRIPT_DIR"/prompts/audit/*.js; do
+    [[ -f "$f" ]] || continue
     install_file "$f" "$TARGET/.claude/prompts/audit/$(basename "$f")"
 done
 
@@ -264,6 +274,7 @@ install_file "$SCRIPT_DIR/scripts/adr-validate.sh" "$TARGET/.claude/scripts/adr-
 install_file "$SCRIPT_DIR/scripts/token-stop-hook.sh" "$TARGET/.claude/scripts/token-stop-hook.sh"
 install_file "$SCRIPT_DIR/scripts/curate-scan.sh" "$TARGET/.claude/scripts/curate-scan.sh"
 install_file "$SCRIPT_DIR/scripts/decisions-scan.sh" "$TARGET/.claude/scripts/decisions-scan.sh"
+install_file "$SCRIPT_DIR/scripts/audit-budget.sh" "$TARGET/.claude/scripts/audit-budget.sh"
 install_file "$SCRIPT_DIR/scripts/extract-findings.sh" "$TARGET/.claude/scripts/extract-findings.sh"
 install_file "$SCRIPT_DIR/scripts/index-verify.sh" "$TARGET/.claude/scripts/index-verify.sh"
 install_file "$SCRIPT_DIR/scripts/statusline.sh" "$TARGET/.claude/scripts/statusline.sh"
@@ -283,6 +294,10 @@ install_file "$SCRIPT_DIR/scripts/spec-validate.sh" "$TARGET/.claude/scripts/spe
 install_file "$SCRIPT_DIR/scripts/spec-stats.sh" "$TARGET/.claude/scripts/spec-stats.sh"
 install_file "$SCRIPT_DIR/scripts/spec-resolve.sh" "$TARGET/.claude/scripts/spec-resolve.sh"
 install_file "$SCRIPT_DIR/scripts/spec-obligations-gc.sh" "$TARGET/.claude/scripts/spec-obligations-gc.sh"
+install_file "$SCRIPT_DIR/scripts/work-lib.sh" "$TARGET/.claude/scripts/work-lib.sh"
+install_file "$SCRIPT_DIR/scripts/work-resolve.sh" "$TARGET/.claude/scripts/work-resolve.sh"
+install_file "$SCRIPT_DIR/scripts/work-validate.sh" "$TARGET/.claude/scripts/work-validate.sh"
+install_file "$SCRIPT_DIR/scripts/work-context.sh" "$TARGET/.claude/scripts/work-context.sh"
 install_file "$SCRIPT_DIR/scripts/narrative-wrapper.sh" "$TARGET/.claude/scripts/narrative-wrapper.sh"
 chmod +x "$TARGET/.claude/scripts/narrative-wrapper.sh" 2>/dev/null || true
 mkdir -p "$TARGET/.claude/scripts/narrative"
@@ -308,6 +323,9 @@ chmod +x "$TARGET/.claude/scripts/spec-validate.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-stats.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-resolve.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-obligations-gc.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/work-resolve.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/work-validate.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/work-context.sh" 2>/dev/null || true
 
 # ── Merge driver for index files ──────────────────────────────────────────────
 
@@ -337,6 +355,7 @@ if ! grep -qF "$MARKER" "$GITATTRIBUTES" 2>/dev/null; then
 .kb/*/CLAUDE.md         merge=vallorcine-index
 .kb/*/*/CLAUDE.md       merge=vallorcine-index
 .decisions/CLAUDE.md    merge=vallorcine-index
+.work/CLAUDE.md         merge=vallorcine-index
 GITATTR
     echo -e "  ${GREEN}write${NC} .gitattributes  (merge driver entries)"
 else
@@ -381,7 +400,10 @@ if [[ "$DIFF_MODE" != "1" ]]; then
       "Bash(bash .claude/scripts/spec-validate.sh:*)",
       "Bash(bash .claude/scripts/spec-stats.sh:*)",
       "Bash(bash .claude/scripts/spec-resolve.sh:*)",
-      "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)"
+      "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)",
+      "Bash(bash .claude/scripts/work-resolve.sh:*)",
+      "Bash(bash .claude/scripts/work-validate.sh:*)",
+      "Bash(bash .claude/scripts/work-context.sh:*)"
     ]
   },
   "hooks": {
@@ -468,7 +490,10 @@ HOOKJSON
       "Bash(bash .claude/scripts/spec-validate.sh:*)",
       "Bash(bash .claude/scripts/spec-stats.sh:*)",
       "Bash(bash .claude/scripts/spec-resolve.sh:*)",
-      "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)"
+      "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)",
+      "Bash(bash .claude/scripts/work-resolve.sh:*)",
+      "Bash(bash .claude/scripts/work-validate.sh:*)",
+      "Bash(bash .claude/scripts/work-context.sh:*)"
         ] | unique)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
         echo -e "  ${GREEN}merge${NC} Script permissions added to settings.json"
     elif [[ -f "$SETTINGS_FILE" ]]; then
@@ -502,6 +527,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
 .claude/.subagent-state
 .feature/
 .curate/
+__pycache__/
 GITIGNOREBLOCK
         echo -e "  ${GREEN}write${NC} .gitignore  (runtime file entries)"
     else

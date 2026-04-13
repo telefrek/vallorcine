@@ -32,10 +32,13 @@ If a previous PR draft exists in `.feature/<slug>/pr-draft.md`:
 A PR draft already exists for '<slug>'.
 Draft: .feature/<slug>/pr-draft.md
 
-  Type **yes**  to proceed to PR creation  ·  or: regenerate
 ```
-If "regenerate": proceed to regenerate the draft.
-If "yes": skip to Step 6 — PR creation (attempt to create the PR from the existing draft).
+Use AskUserQuestion with options:
+  - "Proceed to PR"
+  - "Regenerate"
+
+If "Regenerate": proceed to regenerate the draft.
+If "Proceed to PR": skip to Step 6 — PR creation (attempt to create the PR from the existing draft).
 
 ---
 
@@ -229,11 +232,14 @@ Title: <title>
 
 <checklist>
 ─────────────────────────────────────────────────────────────
-  Type **yes**  to finalize this draft  ·  or: describe adjustments
 ─────────────────────────────────────────────────────────────
 ```
 
-Iterate on feedback. When the user types **yes**, write to disk.
+Use AskUserQuestion with options:
+  - "Finalize"
+  - "Describe adjustments" (Other — accepts custom input)
+
+Iterate on feedback. When the user chooses "Finalize", write to disk.
 
 ---
 
@@ -373,12 +379,15 @@ When the PR merges, run:
 A retrospective captures what worked and what didn't while the feature is fresh.
 It writes back to the KB and decisions store — making the next feature better.
 
-  Type **yes**  to run /feature-retro now  ·  or: skip
 ───────────────────────────────────────────────
 ```
 
-If "yes": invoke `/feature-retro "<slug>"` as a sub-agent immediately.
-If "skip": stop.
+Use AskUserQuestion with options:
+  - "Run retro now"
+  - "Skip"
+
+If "Run retro now": invoke `/feature-retro "<slug>"` as a sub-agent immediately.
+If "Skip": stop.
 
 **If `gh` is available:**
 
@@ -431,12 +440,15 @@ When the PR merges:
 A retrospective captures what worked and what didn't while the feature is fresh.
 It writes back to the KB and decisions store — making the next feature better.
 
-  Type **yes**  to run /feature-retro now  ·  or: skip
 ───────────────────────────────────────────────
 ```
 
-If "yes": invoke `/feature-retro "<slug>"` as a sub-agent immediately.
-If "skip": stop.
+Use AskUserQuestion with options:
+  - "Run retro now"
+  - "Skip"
+
+If "Run retro now": invoke `/feature-retro "<slug>"` as a sub-agent immediately.
+If "Skip": stop.
 
 If `gh pr create` fails (e.g. branch not pushed, no remote): display the error
 and fall back to the manual instructions above. Do not retry automatically.

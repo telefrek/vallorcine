@@ -445,6 +445,34 @@ noted in "What Is Known So Far." Stop.
 
 ---
 
+## Step 2e — Work group context (if applicable)
+
+Check whether `.work/` exists. If it does, run:
+```bash
+bash .claude/scripts/work-context.sh --domains "<comma-separated domains from this decision>"
+```
+
+If the output is non-empty, read it silently and use it to inform Steps 3-5:
+
+- **Forward compatibility:** If other work definitions in the same domains are
+  planned, note which ones. The decision being made here may affect their
+  specifications. Flag any potential conflicts: "This ADR constrains
+  WD-03's planned interface — verify compatibility before accepting."
+
+- **Ordering gates:** If this decision depends on an artifact that another WD
+  is supposed to produce but hasn't yet, surface it: "This decision assumes
+  <artifact> exists, but WD-01 has not yet produced it. Consider gating this
+  decision or making the assumption explicit."
+
+- **Multi-consumer ADRs:** If the work context shows multiple WDs depend on
+  the same ADR slug, note the breadth of impact: "This decision affects N
+  work definitions — changes after acceptance will require coordinated updates."
+
+This step is silent when no work groups exist or when the decision's domains
+don't overlap with any planned work.
+
+---
+
 ## Step 3 — Commission missing research (if needed)
 
 For any candidate not in `.kb/`, write `research-brief.md` using the **Research Brief Template**.
