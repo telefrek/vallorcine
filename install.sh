@@ -288,6 +288,7 @@ install_file "$SCRIPT_DIR/scripts/subagent-hook.sh" "$TARGET/.claude/scripts/sub
 install_file "$SCRIPT_DIR/scripts/subagent-hook.py" "$TARGET/.claude/scripts/subagent-hook.py"
 install_file "$SCRIPT_DIR/scripts/subagent-hook.js" "$TARGET/.claude/scripts/subagent-hook.js"
 install_file "$SCRIPT_DIR/scripts/subagent-hook-wrapper.sh" "$TARGET/.claude/scripts/subagent-hook-wrapper.sh"
+install_file "$SCRIPT_DIR/scripts/precompact-hook.sh" "$TARGET/.claude/scripts/precompact-hook.sh"
 install_file "$SCRIPT_DIR/scripts/uninstall.sh" "$TARGET/.claude/scripts/uninstall.sh"
 install_file "$SCRIPT_DIR/scripts/spec-lib.sh" "$TARGET/.claude/scripts/spec-lib.sh"
 install_file "$SCRIPT_DIR/scripts/spec-validate.sh" "$TARGET/.claude/scripts/spec-validate.sh"
@@ -452,6 +453,22 @@ HOOKJSON
         echo -e "  ${GREEN}merge${NC} SubagentStart/SubagentStop hooks added to settings.json"
     elif [[ -f "$SETTINGS_FILE" ]]; then
         echo -e "  ${YELLOW}skip${NC}  settings.json exists but jq not available — add subagent hooks manually"
+    fi
+
+    # ── PreCompact hook for crash recovery ───────────────────────────
+    PRECOMPACT_MARKER="precompact-hook"
+    if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$PRECOMPACT_MARKER" "$SETTINGS_FILE" 2>/dev/null; then
+        echo -e "  ${YELLOW}skip${NC}  PreCompact hook already registered"
+    elif [[ -f "$SETTINGS_FILE" ]] && command -v jq &>/dev/null; then
+        jq '.hooks.PreCompact = ((.hooks.PreCompact // []) + [{
+            "hooks": [{
+                "type": "command",
+                "command": "bash .claude/scripts/precompact-hook.sh"
+            }]
+        }])' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+        echo -e "  ${GREEN}merge${NC} PreCompact hook added to settings.json"
+    elif [[ -f "$SETTINGS_FILE" ]]; then
+        echo -e "  ${YELLOW}skip${NC}  settings.json exists but jq not available — add PreCompact hook manually"
     fi
 
     # ── Migrate old direct script references to wrappers ─────────────
