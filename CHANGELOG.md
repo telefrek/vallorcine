@@ -5,6 +5,20 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.13.5] — 2026-04-14
+
+### Changed
+- **Multi-pass spec falsification** — Pass 3 (depth pass) is now mandatory.
+  Data from 5 specs shows round 2 consistently finds critical issues that
+  are consequences of round 1 fixes. Pass 4+ prompts on criticals/highs.
+
+### Fixed
+- **Spec-mode pipeline stops after spec authoring** — `/work-plan` no longer
+  routes to `/feature-retro` and `/feature-complete` after spec authoring.
+  Those run after implementation via `/work-start`.
+
+---
+
 ## [0.13.4] — 2026-04-13
 
 ### Added
