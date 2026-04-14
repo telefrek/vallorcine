@@ -1,14 +1,15 @@
 ---
-description: "Author a hardened spec through two-pass adversarial review"
+description: "Author a hardened spec through multi-pass adversarial review"
 argument-hint: "<feature-id> <title>"
 effort: high
 ---
 
 # /spec-author <feature-id> <title>
 
-Author a hardened operational specification for a feature through a two-pass
-process: structured authoring followed by adversarial falsification. The
-output is a complete spec file ready for `/spec-write` registration.
+Author a hardened operational specification for a feature through multi-pass
+adversarial review: structured authoring, falsification, and automatic
+depth passes when critical findings indicate structural gaps. The output
+is a complete spec file ready for `/spec-write` registration.
 
 This skill operates on **design intent**, not implementation. The only code
 read during authoring is pre-existing components (for prerequisite stubs).
@@ -533,6 +534,50 @@ to the spec.
 
 ---
 
+## Depth pass — additional falsification based on findings severity
+
+After applying the user's arbitration decisions from Pass 2, evaluate the
+findings that were accepted:
+
+**If any critical findings were found:** automatically run a depth pass.
+Do not prompt — criticals indicate structural gaps that almost certainly
+have siblings. The first falsification pass finds surface issues; the
+depth pass exploits those findings as attack vectors to find deeper ones.
+
+**If high-severity findings were found (no criticals):** use
+AskUserQuestion to offer a depth pass:
+- "Run depth pass" (description: "High findings suggest structural gaps worth probing further")
+- "Skip" (description: "Proceed to output — findings are sufficient")
+
+**If only medium/low findings:** skip the depth pass. Proceed to output.
+
+### Depth pass execution
+
+The depth pass is structurally identical to Pass 2 (same subagent setup,
+same falsification lenses, same arbitration mode) with two additions:
+
+1. **Prior findings as input.** The subagent receives all accepted findings
+   from Pass 2 as additional context. These are attack vectors — knowing
+   "the handshake format is undefined" tells the depth pass to probe
+   related constructs for similar vagueness.
+
+2. **Duplicate suppression.** The subagent must not re-report findings
+   already accepted in Pass 2. If a finding overlaps with an existing
+   requirement added during arbitration, skip it.
+
+After the depth pass, present findings in the same arbitration format.
+Apply the user's decisions to the spec.
+
+**After any depth pass:** use AskUserQuestion to offer one more pass:
+- "Run another pass" (description: "Diminishing returns likely, but some findings may remain")
+- "Done" (description: "Proceed to output")
+
+There is no limit on passes, but frame each subsequent offer as
+diminishing returns. Empirically: pass 2 finds ~90% of remaining issues,
+pass 3 finds ~80% of what's left, pass 4+ is rarely productive.
+
+---
+
 ## Output
 
 The final spec file, ready for `/spec-write <id> <title>` to register.
@@ -549,6 +594,7 @@ registration is mechanical.
   pre-existing code for prerequisite stubs
 - Never skip Pass 2 — nothing advances past a draft without a
   falsification pass
+- Never skip the depth pass when criticals are found — auto-trigger it
 - Never suppress uncertain findings — surface them for arbitration
 - Never add a validation requirement without tracing its enforcement path
 - Always present the draft to the user between Pass 1 and Pass 2
