@@ -534,22 +534,17 @@ to the spec.
 
 ---
 
-## Depth pass — additional falsification based on findings severity
+## Pass 3 — Depth pass (mandatory)
 
-After applying the user's arbitration decisions from Pass 2, evaluate the
-findings that were accepted:
+After applying the user's arbitration decisions from Pass 2, automatically
+run a depth pass. Do not prompt — this is mandatory.
 
-**If any critical findings were found:** automatically run a depth pass.
-Do not prompt — criticals indicate structural gaps that almost certainly
-have siblings. The first falsification pass finds surface issues; the
-depth pass exploits those findings as attack vectors to find deeper ones.
-
-**If high-severity findings were found (no criticals):** use
-AskUserQuestion to offer a depth pass:
-- "Run depth pass" (description: "High findings suggest structural gaps worth probing further")
-- "Skip" (description: "Proceed to output — findings are sufficient")
-
-**If only medium/low findings:** skip the depth pass. Proceed to output.
+Round 2 fixes create new attack surface that round 1 could not see.
+Empirical data across multiple specs shows round 2 consistently finds
+critical/high issues that are *consequences* of round 1 fixes: deadlocks
+from new thread models, budget fictions from abstraction changes,
+duplicate data from retry semantics. These are invisible to a single
+falsification pass.
 
 ### Depth pass execution
 
@@ -558,8 +553,8 @@ same falsification lenses, same arbitration mode) with two additions:
 
 1. **Prior findings as input.** The subagent receives all accepted findings
    from Pass 2 as additional context. These are attack vectors — knowing
-   "the handshake format is undefined" tells the depth pass to probe
-   related constructs for similar vagueness.
+   "credits shifted from physical slabs to logical budget" tells the depth
+   pass to probe whether the budget actually bounds what it claims to.
 
 2. **Duplicate suppression.** The subagent must not re-report findings
    already accepted in Pass 2. If a finding overlaps with an existing
@@ -568,13 +563,20 @@ same falsification lenses, same arbitration mode) with two additions:
 After the depth pass, present findings in the same arbitration format.
 Apply the user's decisions to the spec.
 
-**After any depth pass:** use AskUserQuestion to offer one more pass:
-- "Run another pass" (description: "Diminishing returns likely, but some findings may remain")
+### Pass 4+ — Prompted on severity
+
+After the depth pass, evaluate the accepted findings:
+
+**If any critical or high findings were found:** use AskUserQuestion:
+- "Run another pass" (description: "Critical/high findings suggest more may remain")
 - "Done" (description: "Proceed to output")
 
-There is no limit on passes, but frame each subsequent offer as
-diminishing returns. Empirically: pass 2 finds ~90% of remaining issues,
-pass 3 finds ~80% of what's left, pass 4+ is rarely productive.
+**If only medium/low findings:** proceed to output. Diminishing returns
+are likely.
+
+There is no limit on passes, but each subsequent offer beyond pass 3
+should note diminishing returns. Empirically: pass 3 captures the
+fix-consequence bugs, pass 4+ is rarely productive.
 
 ---
 
@@ -594,7 +596,7 @@ registration is mechanical.
   pre-existing code for prerequisite stubs
 - Never skip Pass 2 — nothing advances past a draft without a
   falsification pass
-- Never skip the depth pass when criticals are found — auto-trigger it
+- Never skip Pass 3 — the depth pass is mandatory, not severity-gated
 - Never suppress uncertain findings — surface them for arbitration
 - Never add a validation requirement without tracing its enforcement path
 - Always present the draft to the user between Pass 1 and Pass 2
