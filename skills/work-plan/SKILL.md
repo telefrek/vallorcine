@@ -228,9 +228,22 @@ bypass spec authoring for any WD type.
 
 ---
 
-## Step 6 — Finalize WD status
+## Step 6 — Verify specs and finalize WD status
 
-After spec authoring completes, update the WD to SPECIFIED:
+Before marking the WD as SPECIFIED, verify that all specs produced by
+this WD are in APPROVED state (not DRAFT). Check `.spec/registry/manifest.json`
+for each spec ID produced during this session.
+
+**If any spec is still DRAFT:** the adversarial falsification passes
+(Pass 2 + Pass 3) were not completed. Do NOT mark the WD as SPECIFIED.
+Instead:
+```
+⚠ Spec <ID> is still in DRAFT state — falsification incomplete.
+Run /spec-author "<feature-id>" "<title>" to complete adversarial review.
+```
+Stop and wait for the user to resolve.
+
+**If all specs are APPROVED:** update the WD:
 
 1. Edit `.work/<group-slug>/WD-<nn>.md` — set `status: SPECIFIED`
 
