@@ -24,6 +24,7 @@ Claude Code's native lazy-loading memory system.
 - Never overwrite an existing subject file — append ## Updates YYYY-MM-DD instead.
 - Aim for subject files under 200 lines. Up to 300 is fine if the content is dense and useful. Above 300, extract to <subject>-detail.md with @import.
 - Record every source URL with an accessed date in the file's sources frontmatter.
+- When searching for recent work, use the current year and previous year — never hardcode years from training data. Your training cutoff may be outdated; always derive years from today's date.
 - Cross-link all new articles to each other and update existing related entries.
 
 ## Pre-flight guard
