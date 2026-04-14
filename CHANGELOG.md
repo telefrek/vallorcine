@@ -17,6 +17,13 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
   it directly improves bug-finding quality.
 - **KB article line limit relaxed** — soft target 200 lines, hard limit
   300 (was hard 200). Prevents unnecessary article splits on dense research.
+- **Research agent date anchoring** — web searches use current year, not
+  training-era years.
+
+### Fixed
+- **Spec authoring mandatory for all WD types** — agent was skipping spec
+  authoring for decisions-only WDs. Specs capture the behavioral implications
+  of ADRs; without them, hardening and audit have nothing to falsify.
 
 ---
 
