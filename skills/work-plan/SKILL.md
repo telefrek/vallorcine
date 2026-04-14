@@ -202,7 +202,9 @@ Stage Completion table — specification mode only:
 ### 4c — Update WD status
 
 Edit `.work/<group-slug>/WD-<nn>.md` — set `status: SPECIFYING`.
-Update `.work/<group-slug>/manifest.md` — update the WD's status in the table.
+
+The manifest table is automatically synced by `work-resolve.sh` — do not
+update it manually.
 
 ---
 
@@ -231,8 +233,9 @@ bypass spec authoring for any WD type.
 After spec authoring completes, update the WD to SPECIFIED:
 
 1. Edit `.work/<group-slug>/WD-<nn>.md` — set `status: SPECIFIED`
-2. Update `.work/<group-slug>/manifest.md` — set the WD's status to
-   SPECIFIED in the Work Definitions table
+
+The manifest table is automatically synced by `work-resolve.sh` — do not
+update it manually.
 
 Do NOT proceed to `/feature-retro` or `/feature-complete` — those run
 after implementation.
