@@ -5,6 +5,22 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.13.6] — 2026-04-14
+
+### Changed
+- **Explicit WD lifecycle phases** — `DRAFT → READY → SPECIFYING → SPECIFIED
+  → IMPLEMENTING → COMPLETE` replaces ambiguous `IN_PROGRESS`. `/work-plan`
+  sets SPECIFYING/SPECIFIED, `/work-start` requires SPECIFIED and sets
+  IMPLEMENTING. Legacy `IN_PROGRESS` auto-maps to IMPLEMENTING.
+
+### Fixed
+- **`/work-start` no longer accepts READY WDs** — must go through `/work-plan`
+  first to produce specs. Prevents skipping the specification phase.
+- **`/work-plan` no longer marks WDs COMPLETE** — sets SPECIFIED instead,
+  correctly indicating specs are done but implementation hasn't started.
+
+---
+
 ## [0.13.5] — 2026-04-14
 
 ### Changed

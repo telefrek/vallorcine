@@ -1,6 +1,6 @@
 {
   "name": "vallorcine",
-  "version": "0.13.5",
+  "version": "0.13.6",
   "description": "A reliable engineering partner for Claude Code. Persistent knowledge base, structured architecture decisions, crash-recoverable TDD pipeline, and codebase curation. Sessions compound — each feature makes the next one faster, and curation keeps the knowledge honest over time.",
   "author": {
     "name": "Telefrek"
