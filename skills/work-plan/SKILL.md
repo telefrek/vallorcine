@@ -224,10 +224,20 @@ WHAT the system must do as a result. Without specs, the adversarial
 hardening and audit pipeline have nothing to falsify. Do not skip or
 bypass spec authoring for any WD type.
 
-**After spec authoring completes, stop.** Update the WD status to
-`SPECIFIED` in `.work/<group-slug>/WD-<nn>.md` and the manifest. Do not
-proceed to `/feature-retro` or `/feature-complete` — those run after
-implementation. Display:
+---
+
+## Step 6 — Finalize WD status
+
+After spec authoring completes, update the WD to SPECIFIED:
+
+1. Edit `.work/<group-slug>/WD-<nn>.md` — set `status: SPECIFIED`
+2. Update `.work/<group-slug>/manifest.md` — set the WD's status to
+   SPECIFIED in the Work Definitions table
+
+Do NOT proceed to `/feature-retro` or `/feature-complete` — those run
+after implementation.
+
+Display:
 ```
 ───────────────────────────────────────────────
 📝 WORK PLAN complete · <group-slug> / WD-<nn>
