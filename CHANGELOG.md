@@ -5,6 +5,26 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.13.7] — 2026-04-14
+
+### Changed
+- **Sequential per-spec authoring** — each spec gets its own `/spec-author`
+  subagent with clean context. Sequential ordering means each spec's
+  falsification sees prior specs, catching cross-spec contradictions.
+- **Manifest is single source of truth** — `work-resolve.sh` regenerates the
+  manifest table from WD frontmatter on every run. Skills no longer update
+  manifest manually.
+- **`/feature-domains` specification mode** — returns after domain analysis
+  without chaining into spec authoring. `/work-plan` controls the iteration.
+
+### Fixed
+- **APPROVED gate on spec completion** — `/work-plan` verifies each spec is
+  APPROVED (not DRAFT) before proceeding. DRAFT specs block WD completion.
+- **kb-freshness false positive** — no longer warns when branch is ahead of
+  main (differences are our changes, not missing entries).
+
+---
+
 ## [0.13.6] — 2026-04-14
 
 ### Changed
