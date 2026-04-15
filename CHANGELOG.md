@@ -5,6 +5,26 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.13.8] — 2026-04-14
+
+### Changed
+- **`/spec-author` owns full lifecycle** — draft → falsify → arbitrate →
+  register. Callers never call `/spec-write` separately, removing the
+  shortcut that allowed unfalsified specs to be registered.
+- **Manifest single source of truth** — `work-resolve.sh` regenerates
+  manifest table from WD frontmatter on every run. No manual manifest updates.
+
+### Fixed
+- **Agent bypassing `/spec-author`** — agent was calling `/spec-write`
+  directly, skipping adversarial falsification. Self-contained `/spec-author`
+  eliminates the shortcut.
+- **APPROVED gate** — `/work-plan` verifies each spec is APPROVED before
+  marking WD as SPECIFIED. DRAFT specs block completion.
+- **kb-freshness false positive** — no longer warns when branch is ahead
+  of main.
+
+---
+
 ## [0.13.7] — 2026-04-14
 
 ### Changed
