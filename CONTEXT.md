@@ -20,47 +20,52 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-04-13*
+*Last updated: 2026-04-16*
 
-**Spec hardening validated. Audit → pipeline feedback loop proven.**
+**Work-start blocked by decisions-only WDs. Deep spec audit in progress.**
 
-**What happened (2026-04-12/13):**
+**What happened (2026-04-15/16):**
 
-- **v0.13.0** — work layer shipped (PR #36 merged). 7 concerns, 40+ commands,
-  137 tests. Documentation overhauled (README, DESIGN, COMPETITIVE). MANIFEST
-  integrity fixes. Narrative generation made reliable. 50 prose prompts migrated
-  to AskUserQuestion. Session-end prevention rule. Status line truncation.
+Attempted `/work-start decisions-backlog` in jlsm. Discovered all 13 WDs in the
+decisions-backlog group are decisions-only (produce only ADRs, no specs or
+implementation). This is structurally wrong — every spec change requires an
+implementation pass. The work layer was completely disconnected from the
+spec→audit→test→code chain that already exists in jlsm.
 
-- **v0.13.1** — spec falsification hardened with 7 mandatory probe lenses derived
-  from 51 real audit findings: degenerate values, boundary validation, resource
-  lifecycle, cross-construct atomicity, error propagation, identity/equality, trust
-  boundaries. Mandatory concurrency contracts in every spec. KB adversarial findings
-  loaded into falsification. Concurrency contracts flow through full pipeline
-  (feature-test, feature-harden, audit cards, aTDD breaker).
+**Key findings:**
 
-- **v0.13.2** — standards compliance probe. RFC compliance claims checked against
-  all other requirements for contradictions.
-
-- **json-only-simd-jsonl audit** — 16 confirmed bugs fixed (vs 33 avg for earlier
-  features without specs). 13 of 16 map to spec lenses shipped in v0.13.1/v0.13.2.
-  2 are SIMD algorithm bugs (spec was correct, impl was wrong). Cost: $233 total,
-  $14.58/bug. 4 KB patterns created, 13 spec requirements added (R47-R59).
-
-- **ROI validated**: spec analysis costs ~$30 extra, saves ~$216 in audit costs.
-  With v0.13.1 spec improvements, projected reduction from 16 to ~3 audit bugs
-  (81% reduction). Feature pipeline is the quality gate; audit is the diagnostic.
-
-- **Roadmap → work group bridge** — `/decisions roadmap` now offers "Create work
-  group" (Step 9) that translates clusters into `.work/` WDs. New `/work-plan`
-  command for specification-only pipeline. `/work-start` simplified to
-  implementation-only (mode auto-detection removed).
+- **Decisions-only WDs are invalid.** Agreed: there is no valid "decisions-only"
+  WD type. Every WD must scope through to implementation consequences.
+- **26 DRAFT specs (F01-F26) deeply integrated with code** — 63 adversarial test
+  classes reference spec IDs, audit artifacts link to specs, code comments cite
+  spec requirements (`F17.R1-R3`). Not decorative artifacts.
+- **Work layer doesn't see the spec layer.** `/work-decompose` had no visibility
+  into `.spec/` state — created WDs around ADR resolution and completely missed
+  that specs already existed downstream of those decisions.
+- **Coverage script unreliable.** R-number matching across specs gives false
+  positives (F13 claimed 88% coverage, actual dedicated tests cover ~15 reqs).
+  Script at `jlsm/tools/spec-audit/` needs redesign.
+- **8 anchor spec audits completed** — requirement-by-requirement verification
+  against implementation code. Three tiers emerged:
+  - **Tier A (solid):** F13, F08, F15, F17, F02 — ~240 reqs, ~0 real gaps.
+    Ready for APPROVED with spec wording fixes.
+  - **Tier B (bugs found):** F11 — 2 genuine code bugs (mergeTopK tie handling
+    R60, suppressed exceptions lost R103). Needs code fixes before promotion.
+  - **Tier C (aspirational):** F04, F05 — 12 genuine gaps where specs describe
+    target architecture but implementation is a working simplification (F04:
+    no RAPID consensus/expander graph; F05: catalog not crash-safe, builder
+    not public, state filtering missing).
 
 **Where things stand:**
-Released v0.13.2. Roadmap → work group bridge implemented (pending release).
-Next jlsm feature will be the first authored with the hardened spec
-falsification — the real test of whether the 7 lenses prevent the bugs
-upstream. Remaining: lightweight post-TDD audit design (deferred, waiting for
-next feature's audit data).
+Anchor audits complete. Next: walk partial specs (F03, F06, F07, F09, F10, F14,
+F18) using the same process, then cross-check greenfield and WD-created specs
+against approved anchors. After spec integrity is established, fix the existing
+jlsm WDs, validate `/work-start` flow, then fix `/work-decompose` to prevent
+this pattern.
+
+**Analysis scripts at:** `jlsm/tools/spec-audit/` (req-inventory, ref-map,
+adr-linkage, test-coverage, run-audit.sh). Dashboard output at
+`tools/spec-audit/output/summary.md`.
 
 ---
 
@@ -68,14 +73,25 @@ next feature's audit data).
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-*5 work layer decisions graduated to SETTLED.md (2026-04-12): artifact-based
-dependencies, interface contracts as spec subtype, computed readiness, pipeline
-mode decomposition, work context as pull-model injection.*
+*14 decisions graduated to SETTLED.md (2026-04-12): work layer (5), spec
+hardening (9). See SETTLED.md for details.*
 
-*9 decisions graduated to SETTLED.md (2026-04-12): effort asymmetry removal,
-concurrency lens filtering, spec conflict detection, DRAFT specs blocked,
-spec extraction from implementation, [ABSENT] lifecycle, fix-spec resolution,
-architect adversarial hardening, Phase 0 already-fixed check.*
+- **Decisions-only WDs are invalid** (2026-04-16) — every WD that produces or
+  modifies specs must include an implementation pass. If a decision results in
+  no spec changes and no code changes, it's a close/re-defer, not a WD.
+
+- **Spec promotion requires cross-check** (2026-04-16) — before DRAFT→APPROVED,
+  a spec must be verified against all APPROVED specs in its domain. Anchors go
+  first (nothing to cross-check), subsequent specs have a growing constraint set.
+
+- **Three-tier spec health model** (2026-04-16) — Tier A (code matches spec,
+  promote), Tier B (spec correct but code has bugs, fix then promote), Tier C
+  (spec describes target architecture, code is a working simplification, keep
+  DRAFT with annotations).
+
+- **Work-decompose must check spec state** (2026-04-16) — decomposition without
+  visibility into `.spec/` produces WDs disconnected from reality. The algorithm
+  must read spec registry as part of its analysis.
 
 ---
 
@@ -88,22 +104,34 @@ exists, not yet coded. No tag = needs both design and implementation.*
 
 ### Do next
 
-- **First feature with hardened spec falsification** — author a jlsm feature
-  using v0.13.2 (7 falsification lenses, mandatory concurrency contracts, KB
-  adversarial findings, standards compliance probe). Then audit it. Compare
-  audit findings to json-only-simd-jsonl baseline (16 bugs). Target: <5 bugs.
+- **Complete jlsm spec integrity audit** — walk partial specs (F03, F06, F07,
+  F09, F10, F14, F18) then cross-check greenfield and WD-created specs against
+  approved anchors. Four-round promotion process:
+  - Round 1 (done): anchor promotion (5 Tier A specs → APPROVED)
+  - Round 2: partial specs (7 specs, cross-check against anchors)
+  - Round 3: greenfield specs (11 specs, cross-check against Rounds 1+2)
+  - Round 4: WD-created specs (F27-F48, cross-check against everything)
 
-- **Real-world work layer validation** `[implemented]` — exercise the full
-  `/work` → `/work-decompose` → `/work-start` flow on an actual multi-feature
-  task. First candidate: a jlsm feature set.
+- **Fix jlsm F11 code bugs** — R60 (mergeTopK tie handling) and R103
+  (suppressed exceptions lost in closeIterators). Real implementation defects.
+
+- **Unblock jlsm work-start** — restructure decisions-backlog WDs to include
+  implementation scope, then validate `/work-start` flow end-to-end.
 
 ### Do soon (medium effort, clear designs)
 
-- **Validate audit budget controls** `[implemented]` — run an audit with a
-  dollar budget to confirm the AskUserQuestion flow and soft cap work.
+- **Fix `/work-decompose`** — must check `.spec/` state during decomposition,
+  prevent decisions-only WDs, ensure every WD scopes through implementation.
+  Test with synthetic work group + jlsm validation run.
 
-- **Test architect hardening on a real ADR** `[implemented]` — the 6 hardening
-  changes are in the prompt but untested on a real decision session.
+- **Spec cross-check mechanism** — before DRAFT→APPROVED promotion, cross-check
+  against all APPROVED specs in same domain/overlapping types. Doesn't exist
+  yet. Design question: spec-side `enforced_by` annotations, code-side `F13.R59`
+  test comments, or script-side type tracing.
+
+- **Redesign coverage script** — current R-number matching gives false positives
+  across specs. Needs spec-scoped matching (only count R-numbers in files that
+  reference the specific spec ID in context).
 
 ### Do when needed (useful but workarounds exist)
 
