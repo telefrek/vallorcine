@@ -70,3 +70,68 @@ R2. ...
 
 **Registry:** `.spec/registry/manifest.json` — machine-readable index.
 **Obligations:** `.spec/registry/_obligations.json` — cross-feature work items.
+
+## Code Traceability — @spec Annotations
+
+Implementation and test code links back to specs via `@spec` annotations in
+comments. These annotations are the primary mechanism for finding where a
+requirement is enforced (implementation) and where it is validated (tests).
+
+### Format
+
+```
+@spec FXX.RN              — single requirement
+@spec FXX.RN,RN,RN        — multiple reqs from same spec
+@spec FXX.RN FYY.RN       — multiple specs (space-separated)
+@spec FXX.RN — description — optional human-readable note after dash
+```
+
+**Identifier rules:**
+- Feature ID is always `FXX` — zero-padded, minimum 2 digits (`F01` not `F1`)
+- Requirement number is `RN` — no zero-padding (`R1`, `R27`, `R156`)
+- The `FXX.` prefix is mandatory on every reference — bare `R1` is invalid
+- Canonical grep pattern: `@spec\s+F\d{2,}\.R\d+`
+
+### Placement
+
+- Use the host language's comment syntax (`//`, `#`, `/* */`, `--`, etc.)
+- Place above the enforcing method or code block (like `@Override` in Java)
+- One annotation per enforcement region — if a whole method implements R1,
+  annotate the method once, not each line
+- Same format in both implementation files and test files
+
+### Examples
+
+```java
+// @spec F13.R1 — rejects null keys at index boundary
+public void add(Key key, Value value) {
+    if (key == null) throw new NullKeyException();
+    ...
+}
+
+// @spec F13.R1,R3
+@Test void testNullKeyRejection() { ... }
+```
+
+```python
+# @spec F08.R12 F05.R4 — shared serialization constraint
+def serialize(self, record):
+    ...
+```
+
+### Relationship model
+
+- **Many-to-many:** one requirement can have many enforcement points across
+  files; one code location can enforce multiple requirements
+- **No primary/secondary distinction:** all annotations are equal
+- **Implementation vs test:** distinguished by file path, not annotation syntax
+- **Drift detection:** `/curate` checks annotation consistency — annotations
+  are written at implementation time and verified periodically, not maintained
+  in real-time
+
+### Tooling
+
+- `spec-trace.sh <FXX>` — finds all `@spec` annotations for a feature,
+  grouped by file, distinguishing implementation vs test locations
+- `spec-verify` uses annotations as discovery hints when verifying requirements
+- Coverage scripts use scoped `FXX.RN` matching (not bare R-numbers)
