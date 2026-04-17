@@ -46,12 +46,11 @@ classify, repair, confirm.
 Read the spec file's machine section (requirements only, not narrative).
 Note the feature ID and version.
 
-### Step 1.2 — Load the implementation
+### Step 1.2 — Discover and annotate implementation
 
 Identify the implementation files. Sources (in priority order):
 1. **@spec annotations** — run `bash .claude/scripts/spec-trace.sh <id>`
-   to find all annotated enforcement points. This is the primary discovery
-   mechanism.
+   to find all annotated enforcement points.
 2. If `.feature/<slug>/` exists for this feature, read the work plan and
    implementation files listed there.
 3. Otherwise, use the spec's `domains` to identify likely source
@@ -59,6 +58,23 @@ Identify the implementation files. Sources (in priority order):
 
 Focus on the code that implements the requirements. Do not read the entire
 codebase — read targeted files.
+
+**Annotate as you go.** For every enforcement point discovered during
+verification — whether from existing annotations, work plans, or domain
+scanning — ensure an `@spec` annotation exists in the code. If an
+enforcement point is found but not annotated, add the annotation before
+proceeding to the verdict. This ensures that every verification pass
+leaves the codebase with complete traceability for the verified spec.
+
+Annotation rules (from `.spec/CLAUDE.md` Code Traceability section):
+- Format: `// @spec FXX.RN` or `// @spec FXX.RN — brief description`
+- Place above the enforcing method or code block
+- Same format in both implementation and test files
+- Multiple requirements per annotation: `// @spec FXX.R1,R3,R7`
+
+After discovery and annotation, run `spec-trace.sh` again to confirm
+coverage. Report any requirements with zero enforcement points — these
+are candidates for UNTESTABLE or may indicate missing implementation.
 
 ### Step 1.3 — Verify each requirement
 
