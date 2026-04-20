@@ -312,7 +312,13 @@ echo ""
 echo "── Test 7: --dev installs to temp directory"
 
 dev_output="$(bash "$REPO_ROOT/install.sh" --dev 2>&1)"
-dev_target="$(echo "$dev_output" | grep -o '/tmp/[^ ]*' | head -1)"
+# Use bash regex (not grep|head) — the pipe SIGPIPEs grep under `set -euo pipefail`
+# and kills the whole test script. BASH_REMATCH gives us the first match directly.
+if [[ "$dev_output" =~ /tmp/[^[:space:]]+ ]]; then
+    dev_target="${BASH_REMATCH[0]}"
+else
+    dev_target=""
+fi
 
 if [[ -n "$dev_target" && -d "$dev_target" ]]; then
     if [[ -f "$dev_target/.claude/skills/feature-quick/SKILL.md" ]]; then
