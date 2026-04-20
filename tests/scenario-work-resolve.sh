@@ -292,10 +292,10 @@ Test.
 EOF
 
 output="$(bash .claude/scripts/work-resolve.sh auth-migration 2>&1)"
-if echo "$output" | grep "WD-05" | grep -q "IN_PROGRESS"; then
-    pass "IN_PROGRESS status is respected"
+if echo "$output" | grep "WD-05" | grep -q "IMPLEMENTING"; then
+    pass "IN_PROGRESS status is normalized to IMPLEMENTING"
 else
-    fail "IN_PROGRESS status should be reported as-is" "got: $output"
+    fail "IN_PROGRESS should be normalized to IMPLEMENTING" "got: $output"
 fi
 
 # ── Test 8: Scope signal for high-dep-count WDs ─────────────────────────────
@@ -359,8 +359,164 @@ else
     fail "curate mode should emit correlation data" "got: $output"
 fi
 
-# ── Cleanup WDs used only for specific tests ─────────────────────────────────
-# (Already cleaned up by trap)
+# ── Test 11: SPECIFIED WD with unmet wd dep is BLOCKED ──────────────────────
+
+echo ""
+echo "── Test 11: SPECIFIED WD with unmet wd dep is BLOCKED"
+
+# Create a fresh group for wd-dep tests
+mkdir -p "$TEST_BASE/project/.work/wd-dep-test"
+
+cat > .work/wd-dep-test/WD-01.md << 'EOF'
+---
+id: WD-01
+title: Foundation work
+group: wd-dep-test
+status: SPECIFIED
+domains: [auth]
+artifact_deps: []
+produces: []
+---
+
+## Summary
+Foundation that must complete first.
+
+## Acceptance Criteria
+Test.
+EOF
+
+cat > .work/wd-dep-test/WD-02.md << 'EOF'
+---
+id: WD-02
+title: Dependent work
+group: wd-dep-test
+status: SPECIFIED
+domains: [auth]
+artifact_deps:
+  - { type: wd, ref: "WD-01", required_state: COMPLETE }
+produces: []
+---
+
+## Summary
+Depends on WD-01 completing.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-resolve.sh wd-dep-test 2>&1)"
+if echo "$output" | grep "WD-02" | grep -q "BLOCKED"; then
+    pass "SPECIFIED WD with unmet wd dep is BLOCKED"
+else
+    fail "SPECIFIED WD with unmet wd dep should be BLOCKED" "got: $output"
+fi
+
+# ── Test 12: SPECIFIED WD with met wd dep stays SPECIFIED ───────────────────
+
+echo ""
+echo "── Test 12: SPECIFIED WD with met wd dep stays SPECIFIED"
+
+# Mark WD-01 as COMPLETE
+sed -i 's/status: SPECIFIED/status: COMPLETE/' .work/wd-dep-test/WD-01.md
+
+output="$(bash .claude/scripts/work-resolve.sh wd-dep-test 2>&1)"
+if echo "$output" | grep "WD-02" | grep -q "SPECIFIED"; then
+    pass "SPECIFIED WD with met wd dep stays SPECIFIED"
+else
+    fail "SPECIFIED WD with met wd dep should stay SPECIFIED" "got: $output"
+fi
+
+# ── Test 13: wd dep creates unblocks edge in graph ──────────────────────────
+
+echo ""
+echo "── Test 13: wd dep creates unblocks edge in graph"
+
+# Reset WD-01 to SPECIFIED so WD-02 is blocked again
+sed -i 's/status: COMPLETE/status: SPECIFIED/' .work/wd-dep-test/WD-01.md
+
+output="$(bash .claude/scripts/work-resolve.sh wd-dep-test 2>&1)"
+if echo "$output" | grep "WD-01" | grep -q "WD-02"; then
+    pass "wd dep creates unblocks edge (WD-01 unblocks WD-02)"
+else
+    fail "WD-01 should show it unblocks WD-02" "got: $output"
+fi
+
+# ── Test 14: DRAFT WD with unmet wd dep is BLOCKED ─────────────────────────
+
+echo ""
+echo "── Test 14: DRAFT WD with unmet wd dep is BLOCKED"
+
+cat > .work/wd-dep-test/WD-03.md << 'EOF'
+---
+id: WD-03
+title: Draft with wd dep
+group: wd-dep-test
+status: DRAFT
+domains: [auth]
+artifact_deps:
+  - { type: wd, ref: "WD-01", required_state: COMPLETE }
+produces: []
+---
+
+## Summary
+DRAFT that depends on WD-01.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-resolve.sh wd-dep-test 2>&1)"
+if echo "$output" | grep "WD-03" | grep -q "BLOCKED"; then
+    pass "DRAFT WD with unmet wd dep is BLOCKED"
+else
+    fail "DRAFT WD with unmet wd dep should be BLOCKED" "got: $output"
+fi
+
+# ── Test 15: Blocker detail shows wd dep reason ────────────────────────────
+
+echo ""
+echo "── Test 15: Blocker detail shows wd dep reason"
+
+output="$(bash .claude/scripts/work-resolve.sh wd-dep-test 2>&1)"
+if echo "$output" | grep -q "wd:WD-01 — need COMPLETE"; then
+    pass "blocker detail shows wd dep reason"
+else
+    fail "blocker should mention wd:WD-01 and required state" "got: $output"
+fi
+
+# ── Test 16: Chained wd deps compute transitively ──────────────────────────
+
+echo ""
+echo "── Test 16: Chained wd deps block transitively"
+
+cat > .work/wd-dep-test/WD-04.md << 'EOF'
+---
+id: WD-04
+title: End of chain
+group: wd-dep-test
+status: SPECIFIED
+domains: [auth]
+artifact_deps:
+  - { type: wd, ref: "WD-02", required_state: COMPLETE }
+produces: []
+---
+
+## Summary
+Depends on WD-02 which depends on WD-01.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-resolve.sh wd-dep-test 2>&1)"
+if echo "$output" | grep "WD-04" | grep -q "BLOCKED"; then
+    pass "chained wd deps block transitively"
+else
+    fail "WD-04 should be BLOCKED (WD-02 is BLOCKED)" "got: $output"
+fi
+
+# ── Cleanup wd-dep-test group ───────────────────────────────────────────────
+rm -rf .work/wd-dep-test
 
 # ── Summary ──────────────────────────────────────────────────────────────────
 

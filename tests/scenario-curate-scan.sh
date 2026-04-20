@@ -966,6 +966,102 @@ fi
 
 rm -rf "$GREP_TEST_DIR" 2>/dev/null || true
 
+# ── Test 28: Obligation registry scanning ─────────────────────────────────────
+
+echo ""
+echo "── Test 28: Obligation registry scanning"
+
+OB_TEST_DIR="/tmp/vallorcine/scenario-ob-registry"
+rm -rf "$OB_TEST_DIR" 2>/dev/null || true
+mkdir -p "$OB_TEST_DIR/.curate"
+mkdir -p "$OB_TEST_DIR/.spec/registry"
+mkdir -p "$OB_TEST_DIR/.spec/domains/engine"
+mkdir -p "$OB_TEST_DIR/.claude/scripts"
+
+cp "$REPO_ROOT/scripts/curate-scan.sh" "$OB_TEST_DIR/.claude/scripts/"
+
+cd "$OB_TEST_DIR"
+git init -q .
+git add -A && git commit -q -m "init" --allow-empty
+
+# Create obligation registry with 2 open and 1 resolved obligation
+cat > .spec/registry/_obligations.json << 'OBJEOF'
+{
+  "version": 1,
+  "obligations": [
+    {
+      "id": "OBL-F04-R39",
+      "spec": "F04",
+      "domains": ["engine"],
+      "description": "Async listeners not implemented",
+      "blocked_by": "listener executor design",
+      "affects": ["F04.R39"],
+      "status": "open",
+      "created": "2026-04-18"
+    },
+    {
+      "id": "OBL-F04-R53",
+      "spec": "F04",
+      "domains": ["engine"],
+      "description": "Monotonic clock not used",
+      "blocked_by": "MonotonicClock design",
+      "affects": ["F04.R53"],
+      "status": "open",
+      "created": "2026-04-18"
+    },
+    {
+      "id": "OBL-F02-R33",
+      "spec": "F02",
+      "domains": ["serialization"],
+      "description": "Already fixed",
+      "affects": ["F02.R33"],
+      "status": "resolved",
+      "resolved_by": "spec-verify",
+      "created": "2026-04-16"
+    }
+  ]
+}
+OBJEOF
+
+git add -A && git commit -q -m "add obligations"
+
+if command -v jq >/dev/null 2>&1; then
+    output="$(bash .claude/scripts/curate-scan.sh --init 2>&1)"
+
+    # Check that obligation registry section exists in summary
+    if grep -q "Open Obligations Registry" .curate/scan-summary.md 2>/dev/null; then
+        pass "obligation registry section present in summary"
+    else
+        fail "obligation registry section should be in scan-summary.md" "got: $(cat .curate/scan-summary.md 2>/dev/null)"
+    fi
+
+    # Check that only open obligations appear (not resolved)
+    if grep -q "OBL-F04-R39" .curate/scan-summary.md 2>/dev/null && \
+       grep -q "OBL-F04-R53" .curate/scan-summary.md 2>/dev/null; then
+        pass "open obligations listed in summary"
+    else
+        fail "both open obligations should appear" "got: $(cat .curate/scan-summary.md 2>/dev/null)"
+    fi
+
+    if ! grep -q "OBL-F02-R33" .curate/scan-summary.md 2>/dev/null; then
+        pass "resolved obligations excluded from summary"
+    else
+        fail "resolved obligations should not appear" "got: $(grep F02 .curate/scan-summary.md 2>/dev/null)"
+    fi
+
+    # Check stats output includes obligation registry count
+    if echo "$output" | grep -q "Obligation registry: 2"; then
+        pass "obligation registry count in stats output"
+    else
+        fail "stats should show 'Obligation registry: 2'" "got: $(echo "$output" | grep -i oblig)"
+    fi
+else
+    echo "  SKIP  jq not available"
+fi
+
+rm -rf "$OB_TEST_DIR" 2>/dev/null || true
+cd "$REPO_ROOT"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""
