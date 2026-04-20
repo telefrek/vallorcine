@@ -587,6 +587,29 @@ Append `refactor-complete` to cycle-log.md:
 
 Update `.feature/CLAUDE.md`.
 
+### Step 6b — Work group finalization
+
+Run the finalization script. This is a **script call, not an LLM task** —
+the script handles WD status, obligation resolution, and spec frontmatter
+updates mechanically.
+
+```bash
+bash .claude/scripts/work-finalize.sh "<slug>"
+```
+
+The script:
+1. Sets the WD status to COMPLETE
+2. Resolves obligations referenced in brief.md (`_obligations.json`)
+3. Removes resolved IDs from spec `open_obligations` frontmatter
+
+It is idempotent and exits cleanly if the feature is not work-group-sourced.
+Display the script output to the user.
+
+These changes are committed with the feature so the PR includes the
+updated obligation and work group state.
+
+---
+
 Read `automation_mode` from status.md.
 
 **If `execution_strategy` is `balanced` or `speed` (parallel mode):**
