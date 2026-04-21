@@ -5,6 +5,80 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.14.0] — 2026-04-21
+
+### Added
+- **@spec annotation standard** — `@spec FXX.RN` code comments for spec↔code
+  traceability. Documented in `spec/CLAUDE.md` Code Traceability section.
+- **`spec-trace.sh`** — finds `@spec` annotations across codebases, groups by
+  file, distinguishes implementation vs test locations. Summary / detail /
+  JSON output formats. 13 scenario tests. Accepts both `FXX.RN` and
+  `domain.slug.RN` spec ID formats.
+- **Work layer (`.work/`)** — fourth knowledge layer for composable
+  multi-feature work. Decompose large goals into work definitions with
+  artifact-based dependencies and computed readiness. Same pull-model
+  pattern as KB, decisions, and specs.
+- **`/work "<goal>"`** — create a work group with scoping interview.
+- **`/work-decompose "<slug>"`** — break a work group into work definitions
+  with dependency graph and shared interface contracts. Supports
+  `--from-obligations` to carry deferred work forward.
+- **`/work-status "<slug>"` / `--all`** — readiness report: what is READY,
+  BLOCKED, IN_PROGRESS, or COMPLETE.
+- **`/work-plan "<slug>" [WD-nn | next]`** — specification-only pipeline on
+  a WD (domain analysis + spec authoring, stops before implementation).
+- **`/work-start "<slug>" [WD-nn | next]`** — start implementing a ready
+  work definition, bridging into the feature pipeline. Distinguishes hard
+  `type: wd` blocks from soft artifact blocks.
+- **Interface contracts** — specs with `kind: interface-contract` for shared
+  surfaces between work definitions. Reuses all existing spec tooling.
+- **Pipeline modes** — `specification` (produce artifacts only),
+  `implementation` (consume existing specs, skip scoping/domains), `full`
+  (default, backwards compatible). Mode-aware routing in `feature-resume`.
+- **Work-aware context injection** — architect (forward compatibility,
+  ordering gates), spec-author (downstream consumers), feature-domains
+  (cross-WD domain reuse), feature-plan (interface stability constraints),
+  feature-resume (work group grouping).
+- **Obligation lifecycle** — `type: wd` WD-to-WD dependencies in
+  `artifact_deps`; obligation scanning in `/curate` (analysis 10e);
+  `work-finalize.sh` auto-resolves WDs + obligations on feature complete.
+- **Curate analyses 15-17** — cross-WD spec displacement, stalled work
+  groups, artifact dependency drift.
+- **Manifest schema v2** — `.spec/registry/manifest.json` supports
+  `{schema_version: 2, specs: [{id, path, ...}]}`. Kit detects both v1 and
+  v2 automatically.
+- **EXAMPLES.md** — added "Coordinating multi-feature goals with work
+  groups" walkthrough.
+
+### Changed
+- **`/spec-verify` redesigned as verify-and-repair loop** — 6-phase flow:
+  verify all requirements → classify findings (code-bug / stale-spec /
+  needs-decision / test-gap) → resolve decisions → amend stale specs → fix
+  code via TDD with regression tests → finalize. Violations repaired
+  inline, not parked as obligations.
+- **`/spec-verify` annotates during discovery** — adds `@spec` annotations
+  to implementation and test files as it reads them.
+- **`/spec-verify` fills test gaps** — writes structural/behavioral tests
+  for requirements with no test-side annotation coverage.
+- **Spec ID format support** — `spec-trace.sh`, `spec-validate.sh`,
+  `spec-resolve.sh`, and `spec-lib.sh` accept both legacy `FXX.RN` and new
+  `domain.slug.RN` formats. Backwards-compatible — existing user projects
+  continue working unchanged.
+
+### Fixed
+- **`test-install.sh` SIGPIPE** — tests 8-14 silently weren't running due
+  to a SIGPIPE early-exit in the harness. Fixed; test count went from
+  13 PASS to 56 PASS.
+- **`curate-scan.sh`** — 3 `grep -c` pipefail bugs producing `0\n0` instead
+  of clean integers on zero matches (lines 104, 439, 637). Pattern:
+  `var="$(grep -c ...)" || var=0`.
+- **Interactive prompts** — migrated all 35 "Type yes" prompts across 15
+  skills to AskUserQuestion with labeled options, per kit-development rules.
+
+### Removed
+- Stale `skills/audit/SKILL.md.bak` backup file.
+
+---
+
 ## [0.13.8] — 2026-04-14
 
 ### Changed
