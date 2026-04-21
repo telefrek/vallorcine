@@ -403,6 +403,91 @@ else
     fail "acyclic group should pass" "got: $output"
 fi
 
+# ── Test 11: wd type in artifact_deps is valid ──────────────────────────────
+
+echo ""
+echo "── Test 11: wd type in artifact_deps is valid"
+
+cat > "$TEST_BASE/wd-type-valid.md" << 'EOF'
+---
+id: WD-02
+title: Depends on WD-01
+group: test-group
+status: SPECIFIED
+domains: [auth]
+artifact_deps:
+  - { type: wd, ref: "WD-01", required_state: COMPLETE }
+produces: []
+---
+
+## Summary
+Depends on another WD completing.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-validate.sh "$TEST_BASE/wd-type-valid.md" 2>&1)"
+if echo "$output" | grep -q "PASS"; then
+    pass "wd type in artifact_deps is valid"
+else
+    fail "wd type should be accepted" "got: $output"
+fi
+
+# ── Test 12: Circular wd deps detected (group mode) ────────────────────────
+
+echo ""
+echo "── Test 12: Circular wd deps detected (group mode)"
+
+mkdir -p "$TEST_BASE/project/.work/wd-circular"
+
+cat > "$TEST_BASE/project/.work/wd-circular/WD-01.md" << 'EOF'
+---
+id: WD-01
+title: First
+group: wd-circular
+status: SPECIFIED
+domains: [auth]
+artifact_deps:
+  - { type: wd, ref: "WD-02", required_state: COMPLETE }
+produces: []
+---
+
+## Summary
+Depends on WD-02.
+
+## Acceptance Criteria
+Test.
+EOF
+
+cat > "$TEST_BASE/project/.work/wd-circular/WD-02.md" << 'EOF'
+---
+id: WD-02
+title: Second
+group: wd-circular
+status: SPECIFIED
+domains: [auth]
+artifact_deps:
+  - { type: wd, ref: "WD-01", required_state: COMPLETE }
+produces: []
+---
+
+## Summary
+Depends on WD-01.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-validate.sh --group wd-circular 2>&1)" || true
+if echo "$output" | grep -q "CIRCULAR"; then
+    pass "circular wd deps detected"
+else
+    fail "circular wd deps should be detected" "got: $output"
+fi
+
+rm -rf "$TEST_BASE/project/.work/wd-circular"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

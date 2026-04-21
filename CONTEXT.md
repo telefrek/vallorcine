@@ -20,47 +20,45 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-04-13*
+*Last updated: 2026-04-19*
 
-**Spec hardening validated. Audit → pipeline feedback loop proven.**
+**Spec verification and repair in progress. Kit tooling shipped. Domain reorg designed.**
 
-**What happened (2026-04-12/13):**
+**What happened (2026-04-16/17/19):**
 
-- **v0.13.0** — work layer shipped (PR #36 merged). 7 concerns, 40+ commands,
-  137 tests. Documentation overhauled (README, DESIGN, COMPETITIVE). MANIFEST
-  integrity fixes. Narrative generation made reliable. 50 prose prompts migrated
-  to AskUserQuestion. Session-end prevention rule. Status line truncation.
+Built the spec traceability and verification system, then used it to verify all
+jlsm specs with existing implementation code.
 
-- **v0.13.1** — spec falsification hardened with 7 mandatory probe lenses derived
-  from 51 real audit findings: degenerate values, boundary validation, resource
-  lifecycle, cross-construct atomicity, error propagation, identity/equality, trust
-  boundaries. Mandatory concurrency contracts in every spec. KB adversarial findings
-  loaded into falsification. Concurrency contracts flow through full pipeline
-  (feature-test, feature-harden, audit cards, aTDD breaker).
+**Kit changes (vallorcine, feat/spec-traceability branch, 5 commits):**
+- `@spec FXX.RN` annotation standard for code↔spec traceability
+- `spec-trace.sh` — finds annotations across codebases (13 scenario tests)
+- spec-verify redesigned as 6-phase verify-and-repair loop (verify → classify →
+  decide → amend specs → fix code via TDD → finalize)
+- spec-verify annotates implementation AND test files during discovery
+- spec-verify fills test gaps (writes structural/reflection tests for uncovered
+  requirements)
 
-- **v0.13.2** — standards compliance probe. RFC compliance claims checked against
-  all other requirements for contradictions.
+**jlsm verification results (in progress):**
+- **7 specs APPROVED:** F02 (v2), F06, F08 (v3), F13 (v1), F14 (v2), F15 (v3),
+  F17 (v1) — real bugs found and fixed, stale spec text amended, regression tests
+  added, `@spec` annotations throughout
+- **Remaining:** F01, F03, F04, F05, F07, F09, F10 (in progress), F11, F12, F16, F18
+- **6 pipeline failure patterns identified** — each has root cause and fix task
 
-- **json-only-simd-jsonl audit** — 16 confirmed bugs fixed (vs 33 avg for earlier
-  features without specs). 13 of 16 map to spec lenses shipped in v0.13.1/v0.13.2.
-  2 are SIMD algorithm bugs (spec was correct, impl was wrong). Cost: $233 total,
-  $14.58/bug. 4 KB patterns created, 13 spec requirements added (R47-R59).
+**Comprehensive gap analysis completed:** 11 spec-layer gaps found across skills,
+scripts, and agents. 4 critical (feature-implement, feature-refactor, spec-write
+invalidation, work-decompose state validation), 4 important (cross-spec conflict,
+audit feedback, displacement, test traceability), 3 lower priority.
 
-- **ROI validated**: spec analysis costs ~$30 extra, saves ~$216 in audit costs.
-  With v0.13.1 spec improvements, projected reduction from 16 to ~3 audit bugs
-  (81% reduction). Feature pipeline is the quality gate; audit is the diagnostic.
-
-- **Roadmap → work group bridge** — `/decisions roadmap` now offers "Create work
-  group" (Step 9) that translates clusters into `.work/` WDs. New `/work-plan`
-  command for specification-only pipeline. `/work-start` simplified to
-  implementation-only (mode auto-detection removed).
+**Spec reorganization designed:** Feature-centric (`F13-jlsm-schema.md`) →
+behavioral-domain (`schema/construction.md`). 12 top-level domains, ~60 spec files.
+Annotation format changes from `@spec F13.R1` to `@spec schema.construction.R1`.
+Execute after verification pass completes.
 
 **Where things stand:**
-Released v0.13.2. Roadmap → work group bridge implemented (pending release).
-Next jlsm feature will be the first authored with the hardened spec
-falsification — the real test of whether the 7 lenses prevent the bugs
-upstream. Remaining: lightweight post-TDD audit design (deferred, waiting for
-next feature's audit data).
+Verification pass ~50% complete (7/18 implementation specs APPROVED). F10 (139
+reqs, largest) in progress. After verification: domain reorg, then fix the 11
+spec-layer gaps, then unblock work-start with restructured WDs.
 
 ---
 
@@ -68,14 +66,30 @@ next feature's audit data).
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-*5 work layer decisions graduated to SETTLED.md (2026-04-12): artifact-based
-dependencies, interface contracts as spec subtype, computed readiness, pipeline
-mode decomposition, work context as pull-model injection.*
+*4 decisions graduated to SETTLED.md (2026-04-19): WD validity, spec promotion,
+health model, work-decompose spec state. See SETTLED.md.*
 
-*9 decisions graduated to SETTLED.md (2026-04-12): effort asymmetry removal,
-concurrency lens filtering, spec conflict detection, DRAFT specs blocked,
-spec extraction from implementation, [ABSENT] lifecycle, fix-spec resolution,
-architect adversarial hardening, Phase 0 already-fixed check.*
+- **Spec violations are contracts, not backlog** (2026-04-16) — spec-verify
+  repairs violations inline (fix code or amend spec). Obligations created only
+  on explicit user deferral, never as default path.
+
+- **@spec annotations as primary traceability** (2026-04-16) — `@spec FXX.RN`
+  comments in code link requirements to enforcement points. spec-verify
+  annotates during discovery. spec-trace.sh provides the reverse index.
+
+- **Correctness over context cost** (2026-04-17) — never drop correctness-relevant
+  context to save tokens. Solve context problems via phase splitting and condensed
+  handoffs instead of skipping information agents need.
+
+- **Spec reorganization: behavioral domains** (2026-04-17) — specs will migrate
+  from feature-centric (F13-jlsm-schema.md) to behavioral-domain
+  (schema/construction.md). 12 domains, ~60 files. Annotation format changes
+  to `@spec domain.slug.RN`. Execute after verification pass.
+
+- **Partial implementation state needed** (2026-04-19) — current model is binary
+  (APPROVED or DRAFT). Need a clean representation for "90% implemented, 10%
+  explicitly deferred." Domain reorg may solve naturally (implemented parts in
+  one spec, stubs in another).
 
 ---
 
@@ -88,27 +102,38 @@ exists, not yet coded. No tag = needs both design and implementation.*
 
 ### Do next
 
-- **First feature with hardened spec falsification** — author a jlsm feature
-  using v0.13.2 (7 falsification lenses, mandatory concurrency contracts, KB
-  adversarial findings, standards compliance probe). Then audit it. Compare
-  audit findings to json-only-simd-jsonl baseline (16 bugs). Target: <5 bugs.
+- **Complete jlsm spec verification** — 11 specs remaining with implementation
+  code (F01, F03, F04, F05, F07, F09, F10, F11, F12, F16, F18). F10 in progress.
+  Each goes through verify-and-repair loop: annotate, verify, classify, fix.
 
-- **Real-world work layer validation** `[implemented]` — exercise the full
-  `/work` → `/work-decompose` → `/work-start` flow on an actual multi-feature
-  task. First candidate: a jlsm feature set.
+- **Spec domain reorganization** — migrate from feature-centric to behavioral-domain
+  organization. 12 domains, ~60 files. Mechanical: rename script + manifest rebuild
+  + `@spec` annotation find/replace. Execute after verification pass. `[designed]`
+
+- **Unblock jlsm work-start** — restructure decisions-backlog WDs, then validate
+  `/work-start` flow. Depends on spec verification + reorg completing first.
 
 ### Do soon (medium effort, clear designs)
 
-- **Validate audit budget controls** `[implemented]` — run an audit with a
-  dollar budget to confirm the AskUserQuestion flow and soft cap work.
+- **Fix spec-layer gaps (11 identified)** — 4 critical: feature-implement spec
+  awareness, feature-refactor spec awareness, spec-write two-file invalidation,
+  work-decompose spec state validation. Full gap analysis in session memory.
 
-- **Test architect hardening on a real ADR** `[implemented]` — the 6 hardening
-  changes are in the prompt but untested on a real decision session.
+- **Fix 6 pipeline failure patterns** — one-sided invalidation, audit outpacing
+  specs, assert-only guards, dead code wiring, spec asymmetry, feature-centric
+  organization. Each has root cause and fix task documented.
+
+- **Partial implementation state model** — binary APPROVED/DRAFT insufficient for
+  specs that are 90% implemented. Need either per-requirement states, split specs,
+  or APPROVED-with-obligations. Data from verification pass will inform design.
 
 ### Do when needed (useful but workarounds exist)
 
 - **Large repo curation testing** — `/curate` needs testing on a repo with
   1000+ commits, 30+ contributors.
+
+- **spec-trace.sh sub-lettered IDs** — R39a-h pattern not matched by numeric-only
+  regex. Annotations exist in code but uncounted. Fix when reorg drops FXX IDs.
 
 ### Do when scale demands it (team/scale features)
 

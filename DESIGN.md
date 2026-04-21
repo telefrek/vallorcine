@@ -787,7 +787,7 @@ vallorcine/
 │   ├── spec/SKILL.md                ← /spec — query specs, discover gaps, trace change impact
 │   ├── spec-author/SKILL.md         ← /spec-author — two-pass adversarial spec authoring
 │   ├── spec-write/SKILL.md          ← /spec-write — register a spec in .spec/ storage
-│   ├── spec-verify/SKILL.md         ← /spec-verify — verify spec against implementation
+│   ├── spec-verify/SKILL.md         ← /spec-verify — verify spec against implementation, repair violations inline
 │   ├── spec-resolve/SKILL.md        ← /spec-resolve — resolved context bundle with displacement detection
 │   ├── spec-init/SKILL.md           ← /spec-init — initialise .spec/ directory structure
 │   │
@@ -858,6 +858,7 @@ vallorcine/
 │   ├── adr-validate.sh              ← warns if contradictory accepted ADRs exist
 │   ├── spec-resolve.sh             ← spec resolution with conflict detection
 │   ├── spec-validate.sh            ← spec structural validation (displacement fields, lifecycle)
+│   ├── spec-trace.sh               ← @spec annotation discovery across codebases
 │   ├── work-lib.sh                 ← work layer shared functions (YAML parsing, dep checking)
 │   ├── work-resolve.sh             ← work definition readiness computation + dependency graph
 │   ├── work-validate.sh            ← work definition structural validation + circular dep detection
@@ -890,6 +891,7 @@ vallorcine/
 │   ├── scenario-decisions-scan.sh    ← decisions scan tests
 │   ├── scenario-spec-validate.sh     ← spec validation: displacement fields (8 tests)
 │   ├── scenario-spec-resolve.sh      ← spec resolution: displacement detection (11 tests)
+│   ├── scenario-spec-trace.sh       ← @spec annotation discovery (13 tests)
 │   ├── scenario-index-verify.sh
 │   ├── scenario-narrative.sh         ← narrative pipeline parity tests (16 tests)
 │   ├── scenario-work-validate.sh     ← work definition structural validation (50 tests)

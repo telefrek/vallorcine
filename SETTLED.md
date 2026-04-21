@@ -687,3 +687,29 @@ compatibility, ordering gates), spec-author (downstream consumers),
 feature-domains (cross-WD domain reuse), feature-plan (interface stability
 constraints), and feature-resume (work group grouping). Zero cost when no
 work groups exist — scripts exit immediately.
+
+## Decisions-only WDs are invalid (2026-04-16)
+
+Every WD that produces or modifies specs must include an implementation pass.
+If a decision results in no spec changes and no code changes, it's a close or
+re-defer, not a WD. Found when all 13 jlsm decisions-backlog WDs produced only
+ADRs with no implementation scope.
+
+## Spec promotion requires cross-check (2026-04-16)
+
+Before DRAFT→APPROVED, a spec must be verified against all APPROVED specs in
+its domain. Anchors go first (nothing to cross-check), subsequent specs have a
+growing constraint set. Prevents contradictory APPROVED specs in the same domain.
+
+## Three-tier spec health model (2026-04-16)
+
+Tier A: code matches spec → promote to APPROVED. Tier B: spec correct but code
+has bugs → fix code then promote. Tier C: spec describes target architecture,
+code is a working simplification → keep DRAFT with annotations. Found during
+jlsm anchor audit of 8 specs (5 Tier A, 1 Tier B, 2 Tier C).
+
+## Work-decompose must check spec state (2026-04-16)
+
+Decomposition without visibility into `.spec/` produces WDs disconnected from
+reality. The algorithm must read spec registry as part of its analysis. Found
+when work-decompose created 13 WDs that completely missed 26 existing DRAFT specs.

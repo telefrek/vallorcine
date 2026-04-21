@@ -52,7 +52,7 @@ R2. ...
 - `domains` — array of domain slugs this spec belongs to
 - `amends` / `amended_by` — cross-feature amendment links
 - `requires` — feature IDs this spec depends on at runtime
-- `invalidates` — specific FXX.RN references this spec supersedes
+- `invalidates` — specific `<spec-id>.RN` references this spec supersedes
 - `decision_refs` — ADR slugs from .decisions/ (cross-reference, not duplication)
 - `kb_refs` — KB paths from .kb/ (topic/category/subject)
 - `open_obligations` — work items that must be addressed
@@ -70,3 +70,82 @@ R2. ...
 
 **Registry:** `.spec/registry/manifest.json` — machine-readable index.
 **Obligations:** `.spec/registry/_obligations.json` — cross-feature work items.
+
+## Code Traceability — @spec Annotations
+
+Implementation and test code links back to specs via `@spec` annotations in
+comments. These annotations are the primary mechanism for finding where a
+requirement is enforced (implementation) and where it is validated (tests).
+
+### Format
+
+```
+@spec <spec-id>.RN              — single requirement
+@spec <spec-id>.RN,RN,RN        — multiple reqs from same spec
+@spec <spec-id>.RN <other>.RN   — multiple specs (space-separated)
+@spec <spec-id>.RN — description — optional human-readable note after dash
+```
+
+`<spec-id>` is the spec's identifier from its frontmatter `id` field. Two
+formats are supported:
+
+- **`FXX`** (legacy) — zero-padded numeric feature ID like `F01`, `F13`.
+  Example: `@spec F13.R1`.
+- **`domain.slug`** (recommended for new projects) — behavioral-domain
+  identifier like `schema.field-access`, `query.full-text-index`.
+  Example: `@spec schema.field-access.R1`.
+
+Use whichever format your project's specs use — check `.spec/domains/`
+to see the convention. Mixing both formats in the same project works but
+is discouraged.
+
+**Identifier rules:**
+- Requirement number is `RN` (with optional letter suffix for amendments —
+  `R1`, `R27`, `R51a`). No zero-padding.
+- The `<spec-id>.` prefix is mandatory on every reference — bare `R1` is invalid
+- Canonical grep pattern: `@spec\s+(F\d{2,}|[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*)\.R\d+[a-z]?`
+
+### Placement
+
+- Use the host language's comment syntax (`//`, `#`, `/* */`, `--`, etc.)
+- Place above the enforcing method or code block (like `@Override` in Java)
+- One annotation per enforcement region — if a whole method implements R1,
+  annotate the method once, not each line
+- Same format in both implementation files and test files
+
+### Examples
+
+```java
+// @spec F13.R1 — rejects null keys at index boundary
+public void add(Key key, Value value) {
+    if (key == null) throw new NullKeyException();
+    ...
+}
+
+// @spec F13.R1,R3
+@Test void testNullKeyRejection() { ... }
+```
+
+```python
+# @spec F08.R12 F05.R4 — shared serialization constraint
+def serialize(self, record):
+    ...
+```
+
+### Relationship model
+
+- **Many-to-many:** one requirement can have many enforcement points across
+  files; one code location can enforce multiple requirements
+- **No primary/secondary distinction:** all annotations are equal
+- **Implementation vs test:** distinguished by file path, not annotation syntax
+- **Drift detection:** `/curate` checks annotation consistency — annotations
+  are written at implementation time and verified periodically, not maintained
+  in real-time
+
+### Tooling
+
+- `spec-trace.sh <spec-id>` — finds all `@spec` annotations for a spec
+  (accepts FXX or domain.slug),
+  grouped by file, distinguishing implementation vs test locations
+- `spec-verify` uses annotations as discovery hints when verifying requirements
+- Coverage scripts use scoped `<spec-id>.RN` matching (not bare R-numbers)
