@@ -115,10 +115,28 @@ PY
 # ── Test 1: Invalid feature ID rejected ─────────────────────────────────────
 
 output=$(cd "$TEST_BASE/project" && bash "$TRACE_SCRIPT" F1 2>&1 || true)
-if echo "$output" | grep -q "Invalid feature ID"; then
+if echo "$output" | grep -q "Invalid spec ID"; then
     pass "rejects F1 (not zero-padded)"
 else
     fail "should reject F1" "got: $output"
+fi
+
+# ── Test 1b: Accepts new domain.slug format ─────────────────────────────────
+
+output=$(cd "$TEST_BASE/project" && bash "$TRACE_SCRIPT" schema.field-access 2>&1 || true)
+if echo "$output" | grep -q "Invalid spec ID"; then
+    fail "should accept domain.slug format" "got: $output"
+else
+    pass "accepts domain.slug format (schema.field-access)"
+fi
+
+# ── Test 1c: Rejects malformed mixed format ─────────────────────────────────
+
+output=$(cd "$TEST_BASE/project" && bash "$TRACE_SCRIPT" "Schema.field" 2>&1 || true)
+if echo "$output" | grep -q "Invalid spec ID"; then
+    pass "rejects uppercase domain (Schema.field)"
+else
+    fail "should reject uppercase domain" "got: $output"
 fi
 
 # ── Test 2: Valid feature ID accepted ────────────────────────────────────────
@@ -204,13 +222,13 @@ fi
 # ── Test 10: JSON format produces valid structure ────────────────────────────
 
 output_json=$(cd "$TEST_BASE/project" && SPEC_TRACE_FORMAT=json bash "$TRACE_SCRIPT" F01 2>/dev/null)
-if echo "$output_json" | grep -q '"feature": "F01"' && \
+if echo "$output_json" | grep -q '"spec": "F01"' && \
    echo "$output_json" | grep -q '"F01.R1"' && \
    echo "$output_json" | grep -q '"implementation"' && \
    echo "$output_json" | grep -q '"test"'; then
-    pass "JSON format produces structured output with feature, requirements, impl/test arrays"
+    pass "JSON format produces structured output with spec, requirements, impl/test arrays"
 else
-    fail "JSON format should have feature, requirements, impl/test" "got: $output_json"
+    fail "JSON format should have spec, requirements, impl/test" "got: $output_json"
 fi
 
 # ── Test 11: SPEC_TRACE_DIRS limits scan scope ──────────────────────────────

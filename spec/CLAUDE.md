@@ -52,7 +52,7 @@ R2. ...
 - `domains` — array of domain slugs this spec belongs to
 - `amends` / `amended_by` — cross-feature amendment links
 - `requires` — feature IDs this spec depends on at runtime
-- `invalidates` — specific FXX.RN references this spec supersedes
+- `invalidates` — specific `<spec-id>.RN` references this spec supersedes
 - `decision_refs` — ADR slugs from .decisions/ (cross-reference, not duplication)
 - `kb_refs` — KB paths from .kb/ (topic/category/subject)
 - `open_obligations` — work items that must be addressed
@@ -80,17 +80,30 @@ requirement is enforced (implementation) and where it is validated (tests).
 ### Format
 
 ```
-@spec FXX.RN              — single requirement
-@spec FXX.RN,RN,RN        — multiple reqs from same spec
-@spec FXX.RN FYY.RN       — multiple specs (space-separated)
-@spec FXX.RN — description — optional human-readable note after dash
+@spec <spec-id>.RN              — single requirement
+@spec <spec-id>.RN,RN,RN        — multiple reqs from same spec
+@spec <spec-id>.RN <other>.RN   — multiple specs (space-separated)
+@spec <spec-id>.RN — description — optional human-readable note after dash
 ```
 
+`<spec-id>` is the spec's identifier from its frontmatter `id` field. Two
+formats are supported:
+
+- **`FXX`** (legacy) — zero-padded numeric feature ID like `F01`, `F13`.
+  Example: `@spec F13.R1`.
+- **`domain.slug`** (recommended for new projects) — behavioral-domain
+  identifier like `schema.field-access`, `query.full-text-index`.
+  Example: `@spec schema.field-access.R1`.
+
+Use whichever format your project's specs use — check `.spec/domains/`
+to see the convention. Mixing both formats in the same project works but
+is discouraged.
+
 **Identifier rules:**
-- Feature ID is always `FXX` — zero-padded, minimum 2 digits (`F01` not `F1`)
-- Requirement number is `RN` — no zero-padding (`R1`, `R27`, `R156`)
-- The `FXX.` prefix is mandatory on every reference — bare `R1` is invalid
-- Canonical grep pattern: `@spec\s+F\d{2,}\.R\d+`
+- Requirement number is `RN` (with optional letter suffix for amendments —
+  `R1`, `R27`, `R51a`). No zero-padding.
+- The `<spec-id>.` prefix is mandatory on every reference — bare `R1` is invalid
+- Canonical grep pattern: `@spec\s+(F\d{2,}|[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*)\.R\d+[a-z]?`
 
 ### Placement
 
@@ -131,7 +144,8 @@ def serialize(self, record):
 
 ### Tooling
 
-- `spec-trace.sh <FXX>` — finds all `@spec` annotations for a feature,
+- `spec-trace.sh <spec-id>` — finds all `@spec` annotations for a spec
+  (accepts FXX or domain.slug),
   grouped by file, distinguishing implementation vs test locations
 - `spec-verify` uses annotations as discovery hints when verifying requirements
-- Coverage scripts use scoped `FXX.RN` matching (not bare R-numbers)
+- Coverage scripts use scoped `<spec-id>.RN` matching (not bare R-numbers)
