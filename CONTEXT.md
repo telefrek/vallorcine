@@ -20,45 +20,64 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-04-19*
+*Last updated: 2026-04-20*
 
-**Spec verification and repair in progress. Kit tooling shipped. Domain reorg designed.**
+**Spec domain migration complete end-to-end. Two PRs open awaiting review.**
 
-**What happened (2026-04-16/17/19):**
+**What happened (2026-04-20):**
 
-Built the spec traceability and verification system, then used it to verify all
-jlsm specs with existing implementation code.
+Single session executed the full spec-to-domains migration in jlsm + kit-side
+support in vallorcine. Both branches pushed, both PRs open.
 
-**Kit changes (vallorcine, feat/spec-traceability branch, 5 commits):**
-- `@spec FXX.RN` annotation standard for code↔spec traceability
-- `spec-trace.sh` — finds annotations across codebases (13 scenario tests)
-- spec-verify redesigned as 6-phase verify-and-repair loop (verify → classify →
-  decide → amend specs → fix code via TDD → finalize)
-- spec-verify annotates implementation AND test files during discovery
-- spec-verify fills test gaps (writes structural/reflection tests for uncovered
-  requirements)
+### PR telefrek/vallorcine#43 — `feat/spec-traceability` (10 commits)
 
-**jlsm verification results (in progress):**
-- **7 specs APPROVED:** F02 (v2), F06, F08 (v3), F13 (v1), F14 (v2), F15 (v3),
-  F17 (v1) — real bugs found and fixed, stale spec text amended, regression tests
-  added, `@spec` annotations throughout
-- **Remaining:** F01, F03, F04, F05, F07, F09, F10 (in progress), F11, F12, F16, F18
-- **6 pipeline failure patterns identified** — each has root cause and fix task
+Three bundled layers:
 
-**Comprehensive gap analysis completed:** 11 spec-layer gaps found across skills,
-scripts, and agents. 4 critical (feature-implement, feature-refactor, spec-write
-invalidation, work-decompose state validation), 4 important (cross-spec conflict,
-audit feedback, displacement, test traceability), 3 lower priority.
+**Layer 1 — spec-verify verify-and-repair loop** (previously on the branch):
+`@spec FXX.RN` annotation standard, `spec-trace.sh`, 6-phase verify-and-repair
+in `/spec-verify` with discovery-time annotation and test-gap filling.
 
-**Spec reorganization designed:** Feature-centric (`F13-jlsm-schema.md`) →
-behavioral-domain (`schema/construction.md`). 12 top-level domains, ~60 spec files.
-Annotation format changes from `@spec F13.R1` to `@spec schema.construction.R1`.
-Execute after verification pass completes.
+**Layer 2 — Obligation lifecycle kit** (new this session):
+- `type: wd` WD-to-WD dependencies in `artifact_deps`
+- Obligation scanning in `/curate` (analysis 10e)
+- `/work-decompose --from-obligations` mode
+- `work-finalize.sh` auto-resolves WDs + obligations on feature complete
+- `/work-start` distinguishes hard wd-type blocks from soft artifact blocks
+- `test-install.sh` SIGPIPE fix — tests 8-14 hadn't been running (13 PASS →
+  56 PASS)
+
+**Layer 3 — Kit-side domain.slug support** (new this session):
+Scripts (spec-trace, spec-validate, spec-resolve, spec-lib) and skills
+(spec-write, spec-verify, spec/CLAUDE.md, work-decompose) accept both legacy
+`FXX.RN` and new `domain.slug.RN` formats. `spec_file_for_id` supports both
+manifest schema versions. Backwards-compatible — existing user projects work.
+
+### PR nathannorthcutt/jlsm#40 — `spec-refactor` (13 commits)
+
+Full migration execution:
+- `.spec/MIGRATION.md` — 500-line plan with all 11 design decisions resolved
+- 48 → 75 spec files across 12 canonical domains (schema, serialization,
+  compression, sstable, wal, vector, query, encryption, engine, partitioning,
+  transport, membership)
+- 2838 source→destination RN mappings
+- 8 dropped reqs (F02.R2-R10 invalidated by F17, F14.R48-R49 YAML never built)
+  → historical comment markers
+- 188+34 source files had `@spec` annotations rewritten
+- F03 follow-up split: 22 application reqs extracted from
+  `encryption/primitives-*` to `query/` + `serialization/`
+- Two quality fixes landed in the branch: self-reference in
+  compression.codec-contract, missing narrative separator on 29 migration-
+  generated specs (Design Narrative stubs now point to the archive)
+
+**Verified:**
+- `./gradlew test` — BUILD SUCCESSFUL in 3m 47s on jlsm
+- Round-trip validation passes (every source.rn resolves in the new layout)
+- Kit's `spec-validate.sh` passes on all 75 jlsm specs end-to-end
 
 **Where things stand:**
-Verification pass ~50% complete (7/18 implementation specs APPROVED). F10 (139
-reqs, largest) in progress. After verification: domain reorg, then fix the 11
-spec-layer gaps, then unblock work-start with restructured WDs.
+Both PRs awaiting review. Backup of pre-migration specs lives at
+`.spec/_archive/migration-2026-04-20/` in jlsm. MIGRATION.md + the
+`_migration_f03_followup/` scripts are preserved in the branch for reference.
 
 ---
 
@@ -91,6 +110,21 @@ health model, work-decompose spec state. See SETTLED.md.*
   explicitly deferred." Domain reorg may solve naturally (implemented parts in
   one spec, stubs in another).
 
+- **Primitives vs applications — encryption pattern** (2026-04-20) — encryption
+  spec content splits cleanly by abstraction level. Primitives (keys, rotation,
+  algorithms, variants) live in `encryption/`. Applications (how WAL/query/
+  indices use encryption) live in their functional domain with a multi-domain
+  tag for discovery from encryption. Codified as MIGRATION.md P6 and applied
+  to F42/F46/F47/F03 during jlsm migration. Same principle generalizes to any
+  cross-cutting primitive (compression, serialization would follow same pattern).
+
+- **Manifest schema v2** (2026-04-20) — post-migration manifest uses
+  `{schema_version: 2, specs: [{id, path, ...}]}` (array of specs with id
+  field) instead of legacy `{features: {FXX: {...}}}` (object keyed by ID).
+  Kit's `spec_file_for_id` detects both and adapts. Schema v2 handles
+  `domain.slug` spec IDs naturally; v1 is retained for backwards compat
+  with legacy projects.
+
 ---
 
 ## Open questions
@@ -102,16 +136,16 @@ exists, not yet coded. No tag = needs both design and implementation.*
 
 ### Do next
 
-- **Complete jlsm spec verification** — 11 specs remaining with implementation
-  code (F01, F03, F04, F05, F07, F09, F10, F11, F12, F16, F18). F10 in progress.
-  Each goes through verify-and-repair loop: annotate, verify, classify, fix.
+*vallorcine#43 and jlsm#40 merged 2026-04-21.*
 
-- **Spec domain reorganization** — migrate from feature-centric to behavioral-domain
-  organization. 12 domains, ~60 files. Mechanical: rename script + manifest rebuild
-  + `@spec` annotation find/replace. Execute after verification pass. `[designed]`
+- **Post-migration cleanup in jlsm** (small follow-up PR):
+  - Remove `.spec/MIGRATION.md` (plan doc, no longer needed)
+  - Remove `.spec/_migration_f03_followup/` (kept through merge for reference)
+  - Keep `.spec/_archive/migration-2026-04-20/` through one release cycle,
+    then remove
 
 - **Unblock jlsm work-start** — restructure decisions-backlog WDs, then validate
-  `/work-start` flow. Depends on spec verification + reorg completing first.
+  `/work-start` flow against the new domain.slug specs.
 
 ### Do soon (medium effort, clear designs)
 
