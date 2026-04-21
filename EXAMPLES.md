@@ -80,6 +80,62 @@ Archives the feature directory to `.feature/_archive/`.
 
 ---
 
+## Coordinating multi-feature goals with work groups
+
+When a goal spans multiple features — a module rewrite, a new subsystem,
+a family of related specs — the `.work/` layer coordinates it. A work
+group decomposes the goal into work definitions (WDs) with artifact-based
+dependencies. Readiness is computed mechanically by `work-resolve.sh`
+from each WD's declared inputs, so completing one WD automatically
+unblocks whatever depended on it.
+
+```
+/work "implement-transport-layer"
+```
+
+Scopes the group interactively — what's in, what's out, rough ordering.
+Writes `.work/implement-transport-layer/work.md`.
+
+```
+/work-decompose "implement-transport-layer"
+```
+
+Breaks the group into WDs. Each WD declares `artifact_deps` (specs, ADRs,
+interface contracts it needs at required states) and `produces` (what it
+will deliver). Interface contracts are specs with `kind: interface-contract`
+— shared surfaces between WDs, so one team can stub a contract and
+another can consume it before the first lands.
+
+```
+/work-status "implement-transport-layer"
+```
+
+Reports readiness across the group — WDs marked READY (all deps met),
+BLOCKED (waiting on another WD's output), IN_PROGRESS, or COMPLETE. Use
+`/work-status --all` for a summary across every active group.
+
+```
+/work-plan "implement-transport-layer" WD-01
+```
+
+Runs the specification-only pipeline on a WD — domain analysis and spec
+authoring, stopping before implementation. WD moves to SPECIFIED.
+
+```
+/work-start "implement-transport-layer" next
+```
+
+Picks the next ready WD and runs the implementation pipeline against its
+already-produced specs. Omit `next` and name a specific `WD-nn` to target
+one. On completion, `work-resolve.sh` automatically re-evaluates the
+group and marks downstream WDs READY.
+
+Work groups are a pull-model layer: they inject context into `/architect`,
+`/spec-author`, `/feature-domains`, and `/feature-plan` only when you're
+working inside a group, so solo feature work pays no cost.
+
+---
+
 ## Working with work units
 
 For larger features, the Work Planner splits work into units. Each unit
