@@ -67,8 +67,12 @@ is becoming crowded.
   execution, best-of-N model compare, and Bugbot rules that *self-improve
   from PR feedback* — the closest any IDE-scale tool has come to
   vallorcine's knowledge-compounding loop.
-- **New direct-lane entrant: GSD** (~48K stars) positions explicitly on
-  spec-driven development + context engineering. Same lane as vallorcine.
+- **New direct-lane entrant: GSD** (55,791 stars as of 2026-04-21, up from
+  ~48K in the initial research window) positions explicitly on spec-driven
+  development + context engineering. Same lane as vallorcine. 2026-04-21
+  audit confirmed real feature depth — falsifiable specs, audit pipeline,
+  knowledge graph, retrospectives, wave-based multi-feature parallelism,
+  83 commands across 14 runtime platforms. Not a shallow lookalike.
 - **Cross-reference-aware ADR tooling** appeared in Ars Contexta (`/reflect`,
   `/reweave`). Our decision/KB cross-linking is no longer conceptually
   unique at the command level, though the spec-integration + adversarial
@@ -161,16 +165,86 @@ pipeline. Breadth over depth; no ADR or KB integration.
 **Shipyard** — Superpowers-style lifecycle + IaC validation (Terraform, Ansible,
 Docker, K8s) + security auditing. Positioned for production/DevOps workflows.
 
-**GSD — "Get Shit Done"** (gsd-build/get-shit-done, new on radar 2026-04-21) —
-**~48.4K GitHub stars** [source: Augment Code article], v1.34.2 shipped
-2026-04-06, ~1,693 commits across 47 releases since Dec 2025. Community OSS,
-no disclosed funding. Positions explicitly as "spec-driven development +
-context engineering" — the **closest new lookalike to vallorcine in the
-window.** Crossed from obscure to marketplace-visible in March-April 2026.
-*Watch closely — direct-lane entrant that didn't exist on the April 12 radar.
-Understanding their spec model, whether they have lifecycle states, and
-whether they do any adversarial review is the first question for the next
-refresh.*
+**GSD — "Get Shit Done"** (gsd-build/get-shit-done, audited 2026-04-21) —
+**55,791 GitHub stars as of 2026-04-21** [direct GitHub API fetch; up
+from ~48K in the 2026-04-12 research — still accelerating]. Active: pushed
+<1 hour before audit. TypeScript + Node.js CLI (`npx get-shit-done-cc`),
+multi-runtime support across 14 platforms (Claude Code, Cursor, Windsurf,
+Gemini CLI, Codex, Copilot, OpenCode, Antigravity, Augment, Trae, Qwen
+Code, CodeBuddy, Cline, Kilo). 83 `/gsd-*` commands. Positions explicitly
+as "spec-driven development + context engineering + meta-prompting."
+Distribution and reach both dwarf vallorcine.
+
+**Feature depth (from 2026-04-21 audit — broader than initially assessed):**
+- ✅ **Falsifiable specs with Socratic refinement** — `/gsd-spec-phase` runs
+  up to 6 rounds of Socratic questioning, scores ambiguity across 4
+  weighted dimensions, gates on ambiguity ≤ 0.20 before producing
+  `SPEC.md` with falsifiable requirements. *This weakens our "adversarial
+  spec authoring is unique" positioning significantly.* Different
+  technique (Socratic vs adversarial falsification) but similar effect:
+  drive out ambiguity before implementation.
+- ✅ **Audit pipeline** — `/gsd-audit-fix` (autonomous audit-to-fix with
+  severity classification, auto-fixable-vs-manual triage, atomic commits),
+  `/gsd-audit-milestone`, `/gsd-audit-uat`. They have audit automation.
+- ✅ **Knowledge graph** — `/gsd-graphify` builds/queries/inspects a
+  project knowledge graph in `.planning/graphs/`. Config-gated, opt-in.
+  Richer than the "artifact store" framing.
+- ✅ **Security workflow** — `/gsd-secure-phase` retroactively verifies
+  threat mitigations against PLAN.md threat model, produces SECURITY.md.
+  *Post-phase verification timing — different from vallorcine's proposed
+  security lens (pre/mid-dev prove-fix loop), but they have a security
+  story.*
+- ✅ **Retrospectives / learning capture** — `/gsd-extract_learnings`.
+- ✅ **Multi-feature coordination via waves** — dependency-aware parallel
+  execution grouped into "waves" that run sequentially; plans within a
+  wave run in parallel. Dependencies inferred from file reads/writes
+  rather than declared.
+- ✅ **Session persistence** — `/gsd-pause-work` / `/gsd-resume-work` +
+  thread persistence in `.planning/threads/`.
+- ✅ **Deferred-ideas workflow** — `/gsd-add-backlog`, `/gsd-plant-seed`
+  (forward-looking ideas with "trigger conditions"), `/gsd-review-backlog`.
+
+**Still uniquely vallorcine after this audit:**
+- ❌ **Spec lifecycle states** (DRAFT/APPROVED/INVALIDATED). GSD specs are
+  phase-scoped ephemera (SPEC.md per phase), not documents with explicit
+  lifecycle state.
+- ❌ **Displacement detection + spec revival.** New specs that contradict
+  older ones are handled by editing; no tracking of displacement
+  relationships or revival of INVALIDATED predecessors.
+- ❌ **Specs driving audit passes.** Their `/gsd-audit-*` commands are
+  autonomous-fix-oriented and not grounded in per-requirement spec
+  falsification. Our `/audit` + spec lifecycle feedback loop remains
+  architecturally distinct.
+- ❌ **Behavioral-domain spec organization** (12 canonical domains with
+  cross-cutting primitive vs application separation). GSD is
+  phase-organized, which can't represent cross-phase behavioral contracts
+  cleanly.
+- ❌ **Interface contracts as first-class specs** (`kind: interface-contract`).
+- ❌ **Artifact-dependency readiness computation with pipeline modes**
+  (spec-only / impl-only / full). Their waves infer dependencies from
+  file reads/writes; we declare and compute readiness from artifact state.
+- ❌ **Multi-pass progressive audit with analytical knowledge compounding
+  across audits.** Their audit is autonomous-fix-oriented, single-pass.
+- ❌ **Crash recovery via idempotent per-substage checkpoints.** They have
+  pause/resume but no status.md-style checkpoint model documented.
+
+*Strategic read (2026-04-21): GSD is a real direct-lane competitor, not a
+shallow lookalike. Their feature depth is substantially greater than the
+initial 2026-04-21 research implied. Our defensible moat is narrower —
+we cannot lean on "we do spec-driven, they do prompt scaffolding" because
+they have falsifiable specs too. Our remaining differentiation is:
+**spec lifecycle + spec-driven audit + artifact-dependency readiness + multi-pass
+knowledge-compounding audit**. These are architectural properties, not
+feature-label claims. Our positioning should emphasize the depth-of-spec-rigor
+axis (lifecycle, displacement, audit-feedback loop) rather than the
+"spec-driven" label, which GSD owns at 55K+ stars.*
+
+*Deeper audit needed for next refresh: compare our `.kb/` cross-references
+vs GSD's `/gsd-graphify` knowledge graph (what relationship types does it
+model?); compare our `/audit` lens model vs `/gsd-audit-fix` autonomous
+triage (where does each catch bugs the other misses?); understand what
+"wave-based parallel execution with fresh 200K contexts" costs vs saves
+relative to our work-unit splitting.*
 
 **The Agentic Startup** (rsmdt/the-startup) — multi-agent AI framework
 framed as "Claude Code working like a startup team" with spec-first then
@@ -543,18 +617,36 @@ table for which items remain genuinely unique versus which are now narrowing.
 
 **Still uniquely vallorcine (nothing in the window closes these):**
 - **Spec lifecycle management** (DRAFT/APPROVED/INVALIDATED + displacement
-  + revival). Kiro CLI 2.0 went horizontal, not into the spec-quality axis;
-  Tessl still closed beta on Framework; GSD's spec model is not yet visible
-  at lifecycle granularity.
+  + revival). Kiro CLI 2.0 went horizontal, not into the spec-quality
+  axis; Tessl still closed beta on Framework. **GSD audit 2026-04-21
+  confirmed no lifecycle states** — their SPEC.md is phase-scoped
+  ephemera, not a lifecycle-tracked artifact. Displacement, invalidation,
+  and revival are all absent. This is now one of our strongest
+  architectural differentiators.
 - **Adversarial spec authoring** (two-pass falsification with enforcement
-  path tracing). No competitor shipped anything adjacent.
+  path tracing). **Narrowed 2026-04-21 audit:** GSD's `/gsd-spec-phase`
+  runs Socratic ambiguity scoring over 6 rounds with a quantitative gate
+  (ambiguity ≤ 0.20) before producing falsifiable SPEC.md — a different
+  technique but an adjacent effect (drive ambiguity out of specs before
+  implementation). Our two-pass adversarial falsification with enforcement
+  path tracing remains unmatched at that specific technique, but the
+  broader "we're unique in not shipping-vague-specs" story is weaker than
+  it reads in our differentiators table.
 - **Spec-driven auditing** (specs drive analysis, not just code generation).
   Unmatched — Kiro's specs drive codegen, Tessl's specs drive codegen,
-  Qodo's rules are convention-derived. This is our strongest moat.
+  Qodo's rules are convention-derived. **GSD audit 2026-04-21 confirmed
+  their `/gsd-audit-fix` is autonomous-fix-oriented, not spec-grounded**
+  — findings aren't falsified against SPEC.md requirements.  This is our
+  strongest moat.
 - **Multi-feature work coordination with computed readiness**
   (`.work/` + artifact-based deps + `work-resolve.sh`). Copilot Mission
   Control / Cursor 3 Agents Window / Google Antigravity "Manager view" all
   surface parallel-agent UI but none compute readiness from artifact state.
+  **GSD audit 2026-04-21 narrowed this:** GSD has "wave-based" parallel
+  execution where plans within a wave run in parallel and waves run
+  sequentially, with dependencies inferred from file reads/writes. This
+  is a weaker primitive than declared artifact dependencies with computed
+  readiness gates, but closer than the landscape implied before the audit.
 - **Pipeline mode decomposition** (spec-only / impl-only) for team
   parallelization.
 - **Interface contracts** as first-class specs.
@@ -649,7 +741,36 @@ to team workflows where different people own different phases.
 | Crash recovery | Checkpoint-based | N/A | No | N/A | No | No | No |
 | Composable stages | Yes (40+ commands) | N/A | Partial | N/A | No | Partial | Workspace |
 | Scope | Codebase | PR | Project | Codebase | Project | Session | PR/Issue |
-| Funding / community | Small | $70M raise | AWS backing | Anthropic | Closed beta | 42K stars | Massive |
+| Funding / community | Small | $70M raise | AWS backing | Anthropic | Closed beta | 163K stars | Massive |
+
+### GSD head-to-head (post-2026-04-21 audit)
+
+Not in the table above because GSD wasn't in scope at the last table
+revision. Added here as a discrete mapping since GSD is the closest
+direct-lane competitor we now face.
+
+| Capability | vallorcine | GSD |
+|---|---|---|
+| Spec authoring | Adversarial 2-pass (falsification + enforcement path tracing) | Socratic ambiguity scoring, 6 rounds, gate at ≤ 0.20 |
+| Spec lifecycle | DRAFT / APPROVED / INVALIDATED | Phase-scoped ephemera (no lifecycle) |
+| Displacement detection | Yes (with revival) | No |
+| Specs driving audit | Yes (per-requirement falsification) | No — audit is autonomous-fix-oriented |
+| Audit model | Multi-pass progressive, topology-aware, knowledge-compounding | Autonomous triage + fix, severity classification, atomic commits |
+| Knowledge store | Curated `.kb/` with cross-refs (decision_refs, kb_refs, related) | `/gsd-graphify` project knowledge graph (opt-in) |
+| Multi-feature coordination | Declared `.work/` artifact deps + computed readiness | Wave-based parallelism, dependencies inferred from file I/O |
+| TDD | Enforced (test-first, can't modify tests from code writer) | Verification post-execution (acceptance criteria) |
+| Curation | Correlation engine, 17+ analyses | `/gsd-map-codebase` pre-planning; some drift signals |
+| Retrospectives | `/feature-retro` with KB/ADR write-back | `/gsd-extract_learnings` |
+| Crash recovery | Checkpoint-based resume (substage granularity) | `/gsd-pause-work` / `/gsd-resume-work` + thread persistence |
+| Platform | Claude Code (bash-first, zero required deps) | 14 runtimes (Node.js required) |
+| Commands | ~40 | 83 |
+| GitHub stars | Small | 55,791 |
+| Distribution | Unlisted on official marketplace | Mainstream |
+
+**Read:** GSD is broader-and-lighter; vallorcine is narrower-and-deeper on
+the spec-rigor + audit-integration + artifact-dependency axes. Their
+distribution and platform reach are decisively ahead; our architectural
+depth on the four axes above is still decisively ahead.
 
 ---
 
@@ -700,13 +821,23 @@ Still "limited research preview." That keeps this a high-priority watch, not
 a realized threat. Watchpoint: a GA release that adds persistent per-scan
 knowledge or extends red-blue to non-security domains.
 
-**GSD ("Get Shit Done", ~48K stars).** Direct-lane entrant that explicitly
-positions on "spec-driven development + context engineering" — same framing
-as vallorcine. Crossed from obscure to visible in the March-April window.
-*Mitigation: unknown — we haven't analyzed their spec model, lifecycle
-approach, or review discipline yet. First task for next refresh: a
-head-to-head feature comparison so we know whether they're a lookalike in
-name only or a real lane competitor.*
+**GSD ("Get Shit Done", now 55,791 stars as of 2026-04-21).** Direct-lane
+entrant. 2026-04-21 audit confirmed GSD is a **real direct-lane competitor
+with substantial feature depth**, not a shallow lookalike. They ship:
+falsifiable specs (Socratic ambiguity scoring), an audit pipeline
+(`/gsd-audit-fix` autonomous triage), a knowledge graph (`/gsd-graphify`),
+retroactive security verification (`/gsd-secure-phase`), retrospectives
+(`/gsd-extract_learnings`), wave-based multi-feature parallelism, and 83
+`/gsd-*` commands across 14 runtime platforms (Claude Code + 13 others).
+*Mitigation: our defensible moat is narrower than the pre-audit
+COMPETITIVE framing implied. We cannot lean on "spec-driven vs prompt
+scaffolding" — they have falsifiable specs too. Remaining differentiation
+is **architectural**: spec lifecycle states + displacement detection +
+specs driving audit passes + multi-pass knowledge-compounding audit +
+declared artifact dependencies with readiness computation.  Positioning
+needs to shift from the "spec-driven" label (GSD owns that mindshare) to
+the depth-of-spec-rigor axis — lifecycle, audit integration, computed
+readiness. See full GSD entry under "Closest competitors — Tier 1".*
 
 ### Medium priority (watch, no immediate action needed)
 
