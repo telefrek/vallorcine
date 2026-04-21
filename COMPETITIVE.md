@@ -3,7 +3,7 @@
 Market positioning and ecosystem context for prioritisation decisions.
 Updated during marketplace research sessions, not every development session.
 
-*Last updated: 2026-04-12*
+*Last updated: 2026-04-21*
 
 ---
 
@@ -41,12 +41,51 @@ This is now a recognized category. Vallorcine's spec layer goes further than
 any of them — lifecycle states, displacement detection, adversarial authoring,
 and specs driving audit passes rather than just code generation.
 
-**New since April 2026:** A sixth dimension — **multi-feature work
-coordination** — remains unaddressed by any competitor. Copilot Mission
-Control tracks parallel tasks but has no dependency graph. Maestro-Orchestrate
-decomposes single tasks across specialists. Neither computes readiness from
-artifact state or coordinates specification/implementation modes across
-features. Vallorcine's work layer is alone in this space.
+**Multi-feature work coordination** — the sixth dimension — remains
+unaddressed by any shipping competitor. Copilot Mission Control (now an
+in-repo "Agents tab" as of Jan 2026) tracks parallel tasks but has no
+dependency graph. Maestro-Orchestrate decomposes single tasks across
+specialists. Cursor 3's Agents Window (Apr 2026) and Google Antigravity's
+"Manager view" both surface parallel-agent UI but without artifact
+lifecycle or readiness computation. Vallorcine's work layer is alone in
+this space — but the *agent-orchestration UI* category it sits adjacent to
+is becoming crowded.
+
+**Significant shifts since the 2026-04-12 baseline (research refreshed
+2026-04-21):**
+
+- **Methodology-plugin space went mainstream.** Superpowers grew 42K → 163K
+  stars (~4x in 5 weeks); feature-dev installs 89K → ~176K (~2x). The
+  "niche methodology tool" framing no longer applies to competitors — but
+  vallorcine is still not listed on the official Anthropic marketplace.
+  Distribution gap is *wider*, not narrower.
+- **Qodo 2.1 (Feb 17) already closed one of our flagged narrowing conditions.**
+  Their new Rules System is codebase-indexed (not PR-scoped) and learns from
+  actual codebases, not just PR feedback. The baseline's "PR-scoped not
+  codebase-scoped" framing is now incorrect.
+- **Cursor 3 (Apr 2) repositioned as agent-manager** with worktree-parallel
+  execution, best-of-N model compare, and Bugbot rules that *self-improve
+  from PR feedback* — the closest any IDE-scale tool has come to
+  vallorcine's knowledge-compounding loop.
+- **New direct-lane entrant: GSD** (~48K stars) positions explicitly on
+  spec-driven development + context engineering. Same lane as vallorcine.
+- **Cross-reference-aware ADR tooling** appeared in Ars Contexta (`/reflect`,
+  `/reweave`). Our decision/KB cross-linking is no longer conceptually
+  unique at the command level, though the spec-integration + adversarial
+  authoring layers remain distinctive.
+- **Auto-capture memory became a category** — claude-mem at 46.1K stars.
+  Vallorcine's KB differentiation now lives in curation + cross-linking,
+  not just "sessions remember things."
+- **Kiro CLI 2.0 (Apr 14) went horizontal** (headless + Windows + subagents)
+  but did not move onto the spec-quality axis. Spec lifecycle, adversarial
+  authoring, and spec-driven auditing remain uncontested by Kiro.
+- **Claude Code Security did not move.** Still security-scoped, still
+  limited research preview. The spec-integration / persistent-knowledge /
+  domain-lens gaps all remain open.
+- **GitHub commoditized AI-bug-finding via its platform** (Incremental
+  CodeQL GA'd Mar 24, AI-powered detections for Shell/Dockerfile/Terraform/PHP)
+  rather than via a standalone AutoFL-style product. Academic research
+  (AutoFL, LLMAO, LLM4FL) did not ship as products in the window.
 
 ---
 
@@ -54,14 +93,18 @@ features. Vallorcine's work layer is alone in this space.
 
 ### Tier 1 — Methodology enforcers
 
-**Superpowers** (obra) — 42K GitHub stars. Accepted into official Anthropic
-marketplace January 2026. TDD (red-green-refactor), Socratic brainstorming,
-micro-task planning, subagent-driven code review, systematic debugging. Free,
-MIT. The dominant structured-development plugin by community size.
-**March-April 2026 updates:** Brainstorming reworked with hard gates — models
-were skipping design and jumping to implementation, now blocked until design is
-approved. Platform expansion to 6 tools: Claude Code, Cursor, OpenCode, Codex,
-Gemini CLI, GitHub Copilot CLI. Still no persistent knowledge or analysis.
+**Superpowers** (obra) — **163K GitHub stars as of April 2026 (up from 42K at
+baseline; ~4x growth in 5 weeks).** v5.0.7 released 2026-03-31. Accepted
+into official Anthropic marketplace January 2026. TDD (red-green-refactor),
+Socratic brainstorming, micro-task planning, subagent-driven code review,
+systematic debugging. Free, MIT. The dominant structured-development plugin
+by community size — now an order of magnitude more visible than at baseline.
+**March-April 2026 updates:** Brainstorming hard-gates (models were skipping
+design, now blocked until design approved). **Inline Self-Review** replaced
+prior subagent-dispatch review loops (claimed ~25 min overhead cut).
+"20+ battle-tested skills" (up from ~14 at baseline). Still supports 6 tools
+(Claude Code, Cursor, OpenCode, Codex, Gemini CLI, GitHub Copilot CLI).
+Still no persistent knowledge or analysis.
 *Gap vs vallorcine: no KB, no ADRs, no specs, no curation, no retrospectives,
 no work coordination, no code analysis pipeline. Session-scoped — each feature
 starts from zero. The hard-gate addition confirms the problem we solve with
@@ -77,9 +120,12 @@ orchestration (team lead coordinating specialist agents). Niche.
 
 ### Tier 2 — Workflow automators
 
-**feature-dev** (Anthropic official) — 89K installs. 7-phase structured
+**feature-dev** (Anthropic official) — **~176K installs as of April 2026
+(up from 89K at baseline; roughly doubled in 5 weeks).** 7-phase structured
 workflow: requirements → exploration → architecture → implementation → testing →
-review → documentation. Official Anthropic backing makes it the "safe default."
+review → documentation. Official Anthropic backing makes it the "safe
+default" — a position reinforced by the install growth. No visible feature
+additions in the window; growth is distribution, not product surface.
 *Gap vs vallorcine: monolithic (one command, not composable), no persistent KB,
 no ADRs, no curation, no crash recovery, no work unit splitting, no session
 continuity.*
@@ -90,8 +136,12 @@ user stories → acceptance criteria → technical design → implementation tas
 Agent hooks trigger on file save/create/delete to keep specs and code in sync.
 Deeply integrated with AWS services. **April 2026 updates:** `/quick-spec`
 collapses three phases into one command; `/architecture-selection` adds
-systematic architecture analysis between spec phases. Accelerates single-feature
-spec workflow but does not address multi-feature coordination.
+systematic architecture analysis between spec phases. **Kiro CLI 2.0
+released 2026-04-14** adds headless mode (API-key-driven, CI/CD-usable),
+native Windows support, and a subagent experience for parallelized work
+with context isolation. This is a horizontal expansion — platform reach +
+orchestration — **not a move into the spec-quality axis**. No adversarial
+spec falsification, no lifecycle states, no spec-driven auditing.
 *Gap vs vallorcine: specs don't drive adversarial analysis. No spec lifecycle
 states (DRAFT/APPROVED/INVALIDATED), no displacement detection, no spec revival.
 No multi-pass auditing. No persistent KB or knowledge compounding. No multi-
@@ -111,6 +161,24 @@ pipeline. Breadth over depth; no ADR or KB integration.
 **Shipyard** — Superpowers-style lifecycle + IaC validation (Terraform, Ansible,
 Docker, K8s) + security auditing. Positioned for production/DevOps workflows.
 
+**GSD — "Get Shit Done"** (gsd-build/get-shit-done, new on radar 2026-04-21) —
+**~48.4K GitHub stars** [source: Augment Code article], v1.34.2 shipped
+2026-04-06, ~1,693 commits across 47 releases since Dec 2025. Community OSS,
+no disclosed funding. Positions explicitly as "spec-driven development +
+context engineering" — the **closest new lookalike to vallorcine in the
+window.** Crossed from obscure to marketplace-visible in March-April 2026.
+*Watch closely — direct-lane entrant that didn't exist on the April 12 radar.
+Understanding their spec model, whether they have lifecycle states, and
+whether they do any adversarial review is the first question for the next
+refresh.*
+
+**The Agentic Startup** (rsmdt/the-startup) — multi-agent AI framework
+framed as "Claude Code working like a startup team" with spec-first then
+parallel specialist-agent execution. Lower profile than GSD, same lane.
+
+**SDD Plugin** (LiorCohen/sdd) — small/nascent spec-driven plugin with
+Given/When/Then acceptance criteria and phased implementation plans.
+
 **Maestro-Orchestrate** (josstei, 2026) — 22 specialized subagents, 4-phase
 workflows (Design/Plan/Execute/Complete), parallel execution, persistent
 sessions. Express vs Standard workflow paths with approval gates. Decomposes
@@ -122,12 +190,15 @@ agent delegation. Native plan mode integration.
 
 ### Tier 3 — Memory / knowledge
 
-**claude-mem** (thedotmack) — SQLite + ChromaDB, automatic capture via session
-hooks. Semantic summaries, hybrid search with vector embeddings. Claims ~10x
-token efficiency. Push-model (always loaded). Has a docs site and dedicated
-website.
+**claude-mem** (thedotmack) — **46.1K GitHub stars as of April 2026** —
+auto-capture memory has become a real category signal. SQLite + ChromaDB,
+automatic capture via session hooks. Semantic summaries, hybrid search with
+vector embeddings. Claims ~10x token efficiency. Push-model (always loaded).
+Docs site at docs.claude-mem.ai.
 *Gap vs vallorcine: passive capture, opaque storage, no structure, no ADR
-concept. Accumulates but never curates.*
+concept. Accumulates but never curates. **Our KB differentiation now lives
+in curation + cross-linking, not just "sessions remember things"** — the
+auto-capture category is commoditizing.*
 
 **memsearch** (Zilliz) — markdown-first memory system. Session summaries +
 semantic search via local ONNX embeddings (no API key). Git-friendly. Runs
@@ -166,20 +237,35 @@ blunt context loading, no ADR concept. Passive and unstructured.
 
 ### Analysis and auditing (new competitive dimension)
 
-**Claude Code Security** (Anthropic, Feb 2026) — the most significant new
-entrant. Multi-stage verification: (1) initial scan tracing data flows across
-files, identifying complex multi-component vulnerability patterns, (2) independent
-red-vs-blue adversarial verification where a second agent challenges each finding
-through exploitability testing, mitigation detection, and logical consistency
-checks. Found 500+ vulnerabilities in production open-source codebases. Available
-to Enterprise/Team customers. This is genuine multi-pass adversarial analysis.
+**Claude Code Security** (Anthropic, announced 2026-02-20) — the most
+significant new analysis entrant. Multi-stage verification: (1) initial scan
+tracing data flows across files, identifying complex multi-component
+vulnerability patterns, (2) independent red-vs-blue adversarial verification
+where a second agent challenges each finding through exploitability testing,
+mitigation detection, and logical consistency checks. Accessible via the
+`/security-review` slash command built into Claude Code; findings appear in
+the Claude Code Security dashboard. Found 500+ vulnerabilities in production
+open-source codebases. **Still labelled "limited research preview" for
+Claude Enterprise/Team customers — not GA as of 2026-04-21.** Genuine
+multi-pass adversarial analysis.
+*Refresh status (2026-04-21): **CCS did NOT close any of the three flagged
+narrowing conditions** — no spec integration, no persistent knowledge from
+prior scans, no domain-scoped analysis beyond security. Still security-only.
+SpecterOps' secure-code-review guidance (2026-03-26) added ecosystem tooling
+around it (prompt injection scanning, base64 payload detection, secret
+scanning, PreToolUse guard hook) but the product itself didn't expand scope.
+Unrelated-but-notable: CVE-2026-2796 (deny-rule bypass when commands exceed
+50 subcommands) was disclosed in April 2026 — reputational event for the
+Claude Code brand, not a product regression for CCS specifically.*
 *Gap vs vallorcine: security-focused only (not general bug categories).
-Two passes (scan + verify), not N passes with progressive refinement. No spec
-integration — findings aren't grounded in behavioral contracts. No topology-aware
-clustering — scans by data flow trace, not by construct neighborhood. No
-persistent knowledge — each scan starts fresh. No domain-lens scoping.*
-*Watch closely: Anthropic has the resources to expand this into general-purpose
-analysis. If they add spec integration or persistent knowledge, the gap narrows.*
+Two passes (scan + verify), not N passes with progressive refinement. No
+spec integration — findings aren't grounded in behavioral contracts. No
+topology-aware clustering — scans by data flow trace, not by construct
+neighborhood. No persistent knowledge — each scan starts fresh. No
+domain-lens scoping. **Watch closely:** Anthropic has the resources and
+platform access to expand this. If/when they ship a GA release that adds
+persistent per-scan knowledge or extends red-blue to non-security domains,
+re-evaluate immediately.*
 
 **OpenAI Codex Security** (March 2026, research preview) — builds project
 context, creates editable threat model, identifies complex vulnerabilities,
@@ -191,34 +277,49 @@ single-pass with post-hoc classification. No persistent knowledge.*
 **Qodo 2.0/2.1** (Feb 2026, $70M raise March 2026) — multi-agent architecture
 with 15+ specialized review agents (correctness, security, performance,
 observability, requirements). F1 score 60.1%, highest recall at 56.7%.
-**Qodo 2.1** (Feb 17, 2026) added "Continuous Learning Rules System" —
-auto-discovers coding standards from the codebase, maintains them, enforces
-during reviews, tracks analytics. 11% precision/recall improvement. This is
-the closest analog to vallorcine's KB for review patterns, but operates at
-the convention level (naming, formatting, patterns), not bug-pattern or
-behavioral-specification level.
-*Gap vs vallorcine: multi-agent parallel (domain specialization) not multi-pass
-sequential (progressive refinement). PR-scoped, not codebase-scoped. Rules
-system captures conventions, not adversarial findings or spec violations. No
-topology awareness. No spec integration. But: domain-specialized agents +
-persistent rules make this the most complete single competitor. Watch closely
-— $70M raise means rapid expansion is likely.*
+**Qodo 2.1** (2026-02-17) added "Continuous Learning Rules System" —
+marketed as "the first and only intelligent Rules System for AI governance"
+(VentureBeat). Three features matter for the vallorcine comparison:
+(1) **Automatic Rule Discovery** — a Rules Discovery Agent generates
+standards from **actual codebases** (not just PRs) and PR feedback;
+(2) **Intelligent Maintenance** — Rules Expert Agent catches conflicts,
+duplicates, and decay; (3) **Scoped enforcement + permission-aware Context
+Engine** — org / repo-group / repo inheritance, indexes 10-1000 repos. 11%
+precision boost claim.
+*Gap re-assessment (2026-04-21): the baseline framing of "PR-scoped not
+codebase-scoped" **is no longer accurate.** Qodo's learning substrate is
+codebase-wide; enforcement surface is still PR-gated, but they have closed
+one of the three "narrowing conditions" flagged at baseline. Differentiation
+now lives in: (a) **spec-driven integration** — Qodo rules are behavior-learned
+from convention/quality signals, not spec-derived; (b) **adversarial review**
+— Qodo's judge-agent filters findings but doesn't adversarially challenge
+them; (c) **multi-feature coordination via .work/ layer** — Qodo still
+operates per-PR, not per-feature-set; and (d) **multi-pass sequential
+refinement** vs Qodo's multi-agent parallel. These axes hold — but the easy
+differentiators are gone.*
 
 **Sourcery** — "series of AI code reviewers each with different specialties"
 plus validation pass for false positive reduction. Multi-angle review with
 post-hoc filtering. Similar approach to Qodo but less mature.
 
-**Trail of Bits Security Skills** (Claude Code plugin, 94 plugins, 201 skills,
-84 agents as of March 2026) — `audit-context-building` skill with line-by-line
-analysis, First Principles reasoning, invariant/assumption tracking, cross-
-function flow tracing. New: **Dimensional Analysis Plugin** (March 25) for
-LLM-annotated types with mechanical mismatch detection. **Agentic Actions
-Auditor** for CI/CD security. Claiming 200 bugs/week on targeted engagements.
-Security-focused, growing rapidly.
-*Gap vs vallorcine: single pass per skill, security-focused, no clustering, no
-persistent knowledge. But: invariant/assumption tracking is conceptually adjacent
-to our expectation extraction. Scale and breadth are impressive — 201 skills
-covering many security domains. Watch for consolidation into multi-pass pipelines.*
+**Trail of Bits Security Skills** (Claude Code plugin marketplace) —
+`audit-context-building` skill with line-by-line analysis, First Principles
+reasoning, invariant/assumption tracking, cross-function flow tracing.
+Marketplace composition as of 2026-03-17 shows 35 plugins / 11 capabilities /
+18 commands / 60 skills / 4 hooks — **materially smaller than the 94-plugin
+/ 201-skill figure in the prior baseline**. Either the baseline counted
+across multiple Trail of Bits marketplaces, or a consolidation happened.
+[unverified which is correct — flag for next refresh.] New: **Dimensional
+Analysis Plugin** (2026-03-25) uses the LLM to annotate code with dimensional
+types, then flags mismatches mechanically. Claims 93% recall vs 50% for
+baseline prompts. **This is the first multi-stage (LLM-then-mechanical-check)
+signal from Trail of Bits** — if they generalize the pattern, it starts to
+resemble a multi-pass pipeline rather than single-pass skills. Also noted:
+**Agentic Actions Auditor** for CI/CD security. Claiming 200 bugs/week on
+targeted engagements.
+*Gap vs vallorcine: most skills still single-pass, security-focused, no
+clustering, no persistent knowledge. But: the Dimensional Analysis pattern
+is a watchpoint — one plugin doesn't close the gap, but the direction matters.*
 
 **Snyk DeepCode AI** — hybrid symbolic + ML engine combining flow-sensitive
 analysis, data-flow analysis, and symbolic execution. Trained on 25M+ data
@@ -228,12 +329,20 @@ vulnerabilities, memory safety issues. 80% fix accuracy.
 (knows what a concurrency bug looks like) but not domain-scoped analysis.
 Complementary rather than competitive.*
 
-**CodeRabbit** — added "code graph analysis" in 2026 for cross-file dependency
-understanding. Expanding context graph with runtime traces, CI/CD data,
-observability signals. 46% accuracy on real-world runtime bugs. Combines AST
-evaluation, SAST, and generative AI. Ingests past PRs and chat-based learnings.
-*Dependency-graph-level awareness, not topology-aware clustering. Accumulated
-review preferences, not analytical knowledge.*
+**CodeRabbit** — **Codegraph + cross-repo multi-repository analysis launched
+March 2026** — builds cross-file dependency graph across linked repos,
+detects downstream breakage when PRs change shared APIs / types / schemas.
+This is the most direct signal that topology-aware clustering will be
+commoditized — not yet at vallorcine's relationship-type differentiation
+(state-sharing vs execution vs contracts), but approaching. Expanding
+context graph with runtime traces, CI/CD data, observability signals. 46%
+accuracy on real-world runtime bugs. Combines AST evaluation, SAST, and
+generative AI. Ingests past PRs and chat-based learnings. **Traction: 2M+
+repos connected, 13M+ PRs processed, 8,000+ paying customers; revenue
+doubled within 6 months of $60M Series B (Sept 2025, $550M valuation,
+NVIDIA-backed). Well-funded and growing fast.**
+*Dependency-graph-level awareness, approaching but not yet topology-aware
+clustering. Accumulated review preferences, not analytical knowledge.*
 
 ### Adjacent — Architecture governance and spec-driven development
 
@@ -272,21 +381,58 @@ analysing code structure and dependencies. Automates MADR-style generation.
 **adr-management** (melodic-software) — manages ADR lifecycle. Available on
 playbooks.com.
 
+**Ars Contexta** (new on radar 2026-04-15) — Claude Code plugin with `/reduce`,
+`/reflect`, `/reweave` commands for generating and cross-linking ADRs from
+conversation. **Cross-reference-aware ADR tooling is a direct analog to
+vallorcine's `related` / `decision_refs` / `kb_refs` cross-linking** — this
+concept is no longer uniquely vallorcine-positioned at the command level,
+though the spec-integration + adversarial authoring + lifecycle layers
+remain distinctive. Worth a deeper look for the next refresh. Source:
+blog.brightcoding.dev, April 15 2026.
+
+**cc-skills** (terrylica) — 23 plugins, ADR-driven workflow with 11 bundled
+skills including `adr-code-traceability` and `adr-graph-easy-architect`.
+Claude Code open issue #13853 requests automatic ADR loading from
+`~/.claude/adr/` (mirroring CLAUDE.md) — may eventually ship natively.
+
 ### Adjacent — Broader ecosystem
 
-**Cursor** — AI IDE with rules system (`.cursor/rules/*.mdc`), plan mode, agent
-workflows, parallel agents. Huge user base. No built-in TDD enforcement, no KB,
-no ADRs, no curation. General-purpose IDE, not methodology.
+**Cursor** — AI IDE. **Cursor 3 (GA 2026-04-02) is the most significant
+landscape change in the refresh window.** Interface overhaul replaces
+Composer with an "Agents Window"; worktree-first parallel agents with
+best-of-N (run the same prompt on multiple models in parallel worktrees,
+side-by-side compare); Design Mode (browser UI annotation for agents);
+**Bugbot now auto-learns review rules from PR feedback** — the closest any
+IDE-scale tool has come to vallorcine's KB compounding loop, at per-repo
+review scope (not cross-session knowledge accumulation). Composer 2 model
+(2026-03-19, first Cursor model with continued pre-training). JetBrains
+support via ACP (2026-03-04). Self-hosted cloud agents (2026-03-25).
+Rules remain `.cursor/rules/*.mdc` files without structured relationships.
+Huge user base — reported in advanced talks for a $2B round at $50B
+pre-money [unverified], $2B ARR as of Feb 2026, 1M+ paying customers.
+No built-in TDD enforcement, no KB/ADRs/curation.
 
-**Windsurf** (Cognition AI, formerly Codeium) — AI IDE with "Cascade" agentic
-system. Markdown-based Workflows deployable org-wide for process enforcement.
-Enterprise play. No TDD pipeline, no KB, no ADRs, no curation.
+**Windsurf** (Cognition AI, formerly Codeium) — **Windsurf 2.0 (April 2026)
+ships with Agent Command Center and one-click handoff from Cascade (local
+planning) to Devin (cloud execution)** following Cognition's ~$250M Windsurf
+acquisition (Dec 2025). SWE-1.5 model powers Cascade. Pricing revamp in
+March 2026. Markdown-based Workflows remain the customization surface. 59%
+Fortune 500 claim [unverified, trade source]. Positioning shift: from "IDE
+with AI" to "local planner + cloud executor." No TDD pipeline, no KB, no
+ADRs, no curation.
 
 **Augment Code** — indexes 400K+ files to build dependency graphs and
-architectural pattern models. Context Engine understands API contracts across
-repositories, can flag contract violations during review. Closest to "spec as
-live contract" by inferring specifications from codebase rather than explicit
-authoring. Structural knowledge, not analytical findings.
+architectural pattern models. **February 2026: Context Engine went MCP**
+(api.augmentcode.com/mcp), exposing Augment's semantic search to any
+MCP-compatible agent (Claude Code, Cursor, Codex). Claims 70%+ agent
+performance improvement in benchmarks. *Strategic shift:* Augment is
+repositioning from IDE-native product to **context-infrastructure
+underneath other tools** — potentially including under Claude Code.
+Different competitive axis than rules/skills. Context Engine understands
+API contracts across repositories, can flag contract violations during
+review. Closest to "spec as live contract" by inferring specifications
+from codebase rather than explicit authoring. Structural knowledge, not
+analytical findings.
 
 **Aider** — open-source CLI pair programmer. Deep git integration, auto-commits,
 automatic lint+test after changes. Reactive testing (run after changes) not
@@ -297,22 +443,43 @@ files that show up as GitHub status checks. CI/CD native. Review-time focus,
 not development-time methodology.
 
 **GitHub Copilot** — issue-to-PR pipeline via Coding Agent + Workspace. Self-
-review, security scanning, semantic code search. **Mission Control** (GA 2026)
-adds a dashboard for assigning, steering, and tracking multiple concurrent
-Coding Agent tasks — "engineering manager UI for AI teammates." Tracks parallel
-tasks but no dependency graph, no artifact lifecycle, no readiness computation.
+review, security scanning, semantic code search. **Mission Control moved to
+an in-repo "Agents tab" in Jan 2026** — centralized session logs with inline
+previews, direct PR jumps. Copilot metrics GA (2026-02-27) added an
+engineering-manager dashboard. Tracks parallel tasks but no dependency graph,
+no artifact lifecycle, no readiness computation. **Major GitHub move in
+the refresh window: AI-powered security detections (2026-03-24) now ship
+alongside CodeQL, targeting Shell/Dockerfile/Terraform/PHP** (170K findings
+over 30 days, >80% positive dev feedback in internal testing). **Incremental
+CodeQL (GA 2026-03-24) cuts PR scan time by 80%** via a persistent Partial
+Semantic Graph. *This is the commoditization-of-AI-bug-finding showing up
+inside GitHub's platform* — not as a standalone AutoFL-style product.
 General-purpose agent, not methodology-enforcing. Locked to GitHub ecosystem.
 
 **CodePrism** (rustic-ai, open source, MIT) — Rust-powered MCP server building
 Universal AST graph representation. 1000+ files/second indexing, graph-based
 queries, system-level relationship understanding. Query engine, not analysis
 pipeline — provides the graph but doesn't cluster or analyze. 100% AI-generated
-code. Interesting as potential infrastructure.
+code. Interesting as potential infrastructure. *No dated activity found in
+the 2026-03-18 → 2026-04-21 refresh window — maintenance status unclear.*
+
+**Google Antigravity** (announced Nov 18, 2025; public preview v1.22.2 by
+April 2026) — agent-first IDE, VS Code fork, Gemini 3 + third-party model
+support (Claude Opus/Sonnet 4.6, GPT-OSS). "Manager view" for parallel
+agents across workspaces. ~6% developer adoption within 2 months of launch
+per trade coverage. Free for individuals in preview. Google's entry
+legitimizes agent-first IDEs as a category. No TDD/KB/spec equivalent.
 
 **CodeQL** — compiles source to queryable relational database (AST, data flow,
 control flow). QL queries can express topology-aware patterns. Closest to real
 topology awareness in a shipping tool, but requires manual query authoring — no
-automatic topology detection or clustering.
+automatic topology detection or clustering. **Incremental CodeQL (GA
+2026-03-24) cuts PR scan time by 80%** via a persistent Partial Semantic
+Graph — a structural change that makes CodeQL viable for per-PR gating at
+large repo scale. AI-powered detections (2026-03-24) fill the gaps CodeQL
+doesn't cover well (Shell, Dockerfile, Terraform, PHP). Together these are
+GitHub's consolidated response to the AI bug-finding space — a platform-scale
+commoditization, not a standalone AutoFL/LLMAO-style product.
 
 ### Adjacent — Academic frontier
 
@@ -332,13 +499,26 @@ assessment. Academic frontier, not shipped.
 **Spec-driven development paper** (arxiv 2602.00180, Feb 2026) — frames
 theoretical basis for spec-driven AI development. Notes LLMs generate vulnerable
 code at 9.8%-42.1% across benchmarks; explicit specs significantly reduce this.
-Validates the approach but doesn't describe a pipeline.
+Validates the approach but doesn't describe a pipeline. Reports up to 50%
+error reduction with human-refined specs.
+
+**Understanding Specification-Driven Code Generation with LLMs** (arxiv
+2601.03878, SANER 2026 Registered Report) — describes CURRANTE, a VS Code
+extension implementing a three-stage workflow: Specification → Tests →
+Function. The closest academic analog to vallorcine's Enhanced TDD tier in
+scope. Academic validation of the spec → tests → code pipeline is
+accelerating. Our edge remains execution (multi-tier, KB accumulation,
+cross-session, adversarial authoring) rather than the pipeline idea itself.
 
 ---
 
 ## Where vallorcine leads
 
-### Unique differentiators (no competitor has these)
+### Unique differentiators
+
+The table below enumerates what no shipping competitor matched as of the
+previous refresh (2026-04-12). See "Status notes (2026-04-21)" below the
+table for which items remain genuinely unique versus which are now narrowing.
 
 | Differentiator | What it means | Why it matters |
 |---|---|---|
@@ -358,6 +538,59 @@ Validates the approach but doesn't describe a pipeline.
 | Codebase curation | Cross-session quality review via correlation engine | Stale decisions, knowledge gaps, spec drift detected between features |
 | Composable commands | Each stage is a separate slash command | Users control granularity — skip, repeat, or reorder stages |
 | Retrospectives | Post-feature learning that feeds back into KB/ADRs | The project gets smarter with each feature |
+
+### Status notes (2026-04-21)
+
+**Still uniquely vallorcine (nothing in the window closes these):**
+- **Spec lifecycle management** (DRAFT/APPROVED/INVALIDATED + displacement
+  + revival). Kiro CLI 2.0 went horizontal, not into the spec-quality axis;
+  Tessl still closed beta on Framework; GSD's spec model is not yet visible
+  at lifecycle granularity.
+- **Adversarial spec authoring** (two-pass falsification with enforcement
+  path tracing). No competitor shipped anything adjacent.
+- **Spec-driven auditing** (specs drive analysis, not just code generation).
+  Unmatched — Kiro's specs drive codegen, Tessl's specs drive codegen,
+  Qodo's rules are convention-derived. This is our strongest moat.
+- **Multi-feature work coordination with computed readiness**
+  (`.work/` + artifact-based deps + `work-resolve.sh`). Copilot Mission
+  Control / Cursor 3 Agents Window / Google Antigravity "Manager view" all
+  surface parallel-agent UI but none compute readiness from artifact state.
+- **Pipeline mode decomposition** (spec-only / impl-only) for team
+  parallelization.
+- **Interface contracts** as first-class specs.
+- **Crash recovery** via checkpoint-based resume.
+- **Multi-pass progressive audit** (5-pass pipeline).
+
+**Gap narrowing (real erosion in the window):**
+- **Analytical knowledge compounding.** Qodo 2.1's codebase-indexed Rules
+  System (Feb 17) learns rules from *actual codebases*, not just PR feedback.
+  Still convention/quality rules rather than adversarial bug-pattern findings,
+  but the "rules learn from a codebase" primitive is now theirs too. Cursor 3's
+  Bugbot self-improving review rules (Apr 2) is the same pattern scaled to
+  per-repo review. Our differentiation: **adversarial findings + cross-feature
+  reuse**, not just "rules update from feedback."
+- **Topology-aware clustering / domain-lens analysis.** CodeRabbit Codegraph
+  cross-repo (March) approaches dependency-level topology with cross-repo
+  awareness. Not yet relationship-type-differentiated (state/execution/contract),
+  but well-funded and iterating. Our differentiation still holds at the
+  *relationship-type* level.
+- **Knowledge base (as a category).** claude-mem at 46.1K stars and
+  Ars Contexta's cross-reference-aware ADR commands (`/reflect`, `/reweave`)
+  mean "Claude Code plugin has persistent memory" is no longer uniquely
+  positioned. Our differentiation now lives in **curation + cross-linking +
+  adversarial-findings integration**, not in having a KB at all.
+- **ADR cross-references.** Ars Contexta's command model (`/reflect`,
+  `/reweave`) is conceptually adjacent to our `decision_refs` / `kb_refs`
+  linkage. The integration with spec lifecycle and audit findings is still
+  vallorcine-specific, but the cross-reference primitive itself is no longer
+  novel at the concept level.
+
+**Eroded (competitive framing invalidated by this refresh):**
+- The baseline claim that **Qodo is "PR-scoped, not codebase-scoped"** is
+  no longer accurate. Qodo's Rules System learns codebase-wide. The
+  enforcement surface is still PR, but the learning substrate isn't. Any
+  vallorcine messaging that leans on "Qodo is just a PR reviewer" needs
+  rewriting.
 
 ### The compounding advantage
 
@@ -422,64 +655,105 @@ to team workflows where different people own different phases.
 
 ## Competitive threats — what to watch
 
+### Threat has materialized (narrowed in the last 6 weeks)
+
+**Qodo 2.1 codebase-indexed Rules System (2026-02-17).** Qodo already made
+one of the three moves we flagged as "would narrow the gap" — the Rules
+Discovery Agent learns from *actual codebases*, not just PR feedback, with
+org/repo-scoped inheritance and a permission-aware Context Engine indexing
+10-1000 repos. The "PR-scoped not codebase-scoped" framing is now incorrect.
+*Mitigation: differentiation moved to the axes they haven't yet touched —
+spec-driven integration (Qodo rules are convention/quality-learned, not
+spec-derived), adversarial review (judge-agent filters findings, doesn't
+adversarially challenge them), multi-feature coordination, and multi-pass
+progressive refinement. The easy framing ("they do PRs, we do codebases")
+is gone.*
+
+**Mainstreaming of methodology-plugin space.** Superpowers 42K → 163K
+stars, feature-dev 89K → 176K installs. The "niche methodology tool"
+framing no longer applies to our competitors. Our product advantages are
+intact but we're now competing against much bigger brands for mindshare.
+*Mitigation: this is a distribution problem more than a product problem.
+See Confirmed Gaps — Community/Distribution (now the highest-severity open
+item).*
+
 ### High priority (could erode lead within 6 months)
 
-**Qodo post-$70M raise.** Most complete single competitor: 15 specialized
-agents + persistent rules system + convention learning. $70M means rapid
-expansion. If they add: (1) codebase-scoped analysis (not just PR), (2) rules
-that capture bug patterns (not just conventions), or (3) multi-feature
-coordination, the gap narrows significantly on multiple dimensions at once.
-*Mitigation: our lenses are topology-aware (driven by construct graph), not
-agent specialization (fixed domains). Our KB captures adversarial findings and
-behavioral patterns, not naming conventions. Hard to replicate without the
-spec → audit → KB feedback loop.*
+**Cursor 3's self-improving Bugbot + agent-manager positioning.** Cursor
+went from "IDE with AI" to "agent manager" with worktree-parallel best-of-N
+and Bugbot that learns review rules from PR feedback — the closest any
+IDE-scale tool has come to our KB compounding loop. Cursor's scale
+(~$2B ARR, 1M+ paying customers) dwarfs ours. If they add spec-driven
+structure or cross-session knowledge accumulation, they approach from the
+IDE side with a distribution advantage we can't match.
+*Mitigation: their rules-learning is per-repo review scope, not cross-session
+structural knowledge. Our spec lifecycle and multi-feature coordination
+are architecturally upstream of review. Stay ahead on spec-integration
+and the audit → KB adversarial feedback loop.*
 
-**Claude Code Security expanding beyond security.** Anthropic's two-pass
-adversarial model (scan + red/blue verification) is architecturally sound. If
-they add: (1) spec integration, (2) persistent knowledge from prior scans, or
-(3) domain-scoped analysis beyond security, the gap narrows significantly.
-Anthropic has the resources and the platform access to move fast here.
-*Mitigation: our topology-aware clustering and knowledge compounding are hard
-to replicate without the empirical validation infrastructure (diagnostic tools,
-cost models, pass-over-pass yield curves). Stay ahead on pipeline sophistication.*
+**Claude Code Security expanding beyond security.** Baseline concern unchanged
+— Anthropic's two-pass adversarial model (scan + red/blue verification) is
+architecturally sound, and they have platform access. **This refresh (2026-04-21)
+finds they did NOT move on any of the three narrowing conditions (spec
+integration, persistent knowledge, domain-scoped analysis beyond security).**
+Still "limited research preview." That keeps this a high-priority watch, not
+a realized threat. Watchpoint: a GA release that adds persistent per-scan
+knowledge or extends red-blue to non-security domains.
 
-**Kiro adding analysis to its spec workflow.** Kiro already has EARS specs,
-agent hooks for spec-code sync, and now `/architecture-selection`. If they add
-adversarial spec falsification, spec lifecycle states, or spec-driven auditing,
-they compete directly on spec-driven bug prevention.
-*Mitigation: our spec lifecycle (displacement, revival, interface contracts)
-and adversarial authoring (two-pass falsification with enforcement path tracing)
-are validated. Kiro's specs drive generation, not analysis — the architectural
-shift to analysis-driving-specs is non-trivial.*
+**GSD ("Get Shit Done", ~48K stars).** Direct-lane entrant that explicitly
+positions on "spec-driven development + context engineering" — same framing
+as vallorcine. Crossed from obscure to visible in the March-April window.
+*Mitigation: unknown — we haven't analyzed their spec model, lifecycle
+approach, or review discipline yet. First task for next refresh: a
+head-to-head feature comparison so we know whether they're a lookalike in
+name only or a real lane competitor.*
 
 ### Medium priority (watch, no immediate action needed)
 
-**Tessl's spec-as-source approach gaining traction.** If Tessl exits closed
-beta with strong spec lifecycle management, they compete on "specs as first-
-class artifacts" even though the philosophy differs (generation vs guidance).
-Martin Fowler's comparison legitimizes the SDD category — watch whether Tessl's
-approach or the guidance approach wins mindshare.
+**Kiro CLI 2.0 went horizontal, not vertical.** Baseline concern was "if
+Kiro adds adversarial spec falsification, spec lifecycle states, or
+spec-driven auditing, they compete directly." This refresh: Kiro CLI 2.0
+(Apr 14) added headless mode, Windows, and subagents — platform reach and
+orchestration, **not spec quality.** Kiro's spec model still ends at the
+three-file handoff. Downgrading from High to Medium. Re-evaluate if Kiro
+adds lifecycle states or adversarial review in a future release.
 
-**GitHub Spec Kit becoming a standard.** 80K+ stars, templates for 24+
-platforms, VS Code extension. If it defines the standard spec format, tools
-will build around it. Vallorcine's `.spec/` format is internal — may need to
-interop with Spec Kit format if it becomes dominant.
+**Tessl's spec-as-source approach gaining traction.** Unchanged from baseline
+— Framework still closed beta, Spec Registry claims 10,000+ specs. If/when
+Framework opens, they become the closest direct competitor on
+knowledge-resident-in-repo positioning.
 
-**Trail of Bits scaling to 200+ skills.** 201 skills across 94 plugins, 200
-bugs/week on targeted engagements. Individual skills are single-pass, but the
-breadth is impressive. If they consolidate into multi-pass pipelines or add
-persistent knowledge across audit engagements, the security analysis gap narrows.
+**GitHub Spec Kit becoming a standard.** Unchanged. 80K+ stars, no major
+first-party release in the window. Third-party integrations (SpecKit
+Companion VS Code extension, Caramelo UI) growing around it. Watch whether
+any format becomes de-facto.
 
-**CodeRabbit adding topology.** Their code graph analysis is dependency-level
-today. If they add relationship-type-differentiated topology (state sharing vs
-execution flow vs contracts), they could offer graph-based analysis without
-vallorcine's full pipeline.
+**Trail of Bits' Dimensional Analysis pattern.** New multi-stage (LLM
+annotate → mechanical verify) design signals experimentation beyond
+single-pass skills. One plugin doesn't close the gap, but if the pattern
+spreads across their skill library it starts to resemble multi-pass
+pipelines. Also worth tracking: marketplace size data conflict (35 plugins
+in the current listing vs 94 baseline) — reconcile before next refresh.
 
-**Academic tools shipping.** AutoFL (338% improvement over spectrum-based FL)
-and LLMAO (test-free fault localization) are research tools today. If they ship
-as products or get integrated into Copilot/Cursor/Qodo, the general "AI finds
-bugs" capability becomes commodity. Our edge is the pipeline architecture
-(spec-driven, topology-aware, knowledge-compounding), not the raw analysis.
+**CodeRabbit Codegraph cross-repo scale.** 2M+ repos, 13M+ PRs, revenue
+doubled in 6 months. Codegraph cross-repo multi-repo analysis (March 2026)
+is dependency-level, not relationship-type-differentiated, but they're
+well-funded ($60M Series B, $550M valuation) and iterating fast. If they
+add state-sharing / execution / contract differentiation, the topology
+clustering gap narrows materially.
+
+**Academic → product via GitHub, not standalone.** AutoFL / LLMAO / LLM4FL
+have not shipped as commercial products. Instead, GitHub consolidated
+AI-bug-finding inside its platform: Incremental CodeQL GA (2026-03-24, 80%
+faster PR scans via persistent Partial Semantic Graph) and AI-powered
+security detections for Shell / Dockerfile / Terraform / PHP. This is the
+commoditization risk showing up at platform scale rather than as a
+standalone tool — different shape than the baseline modeled.
+
+**Auto-capture memory as a category.** claude-mem at 46.1K stars and
+memsearch dedicated Claude Code plugin signal that "sessions remember things"
+is becoming a default expectation, not a differentiator. Our KB differentiation
+now lives in *curation + cross-linking + adversarial-findings integration*.
 
 ### Low priority (structurally different approaches)
 
@@ -497,13 +771,15 @@ philosophy (discover vs prescribe).
 
 | Gap | Who has it | Severity | Our position |
 |---|---|---|---|
-| Community / distribution | Superpowers (42K), feature-dev (89K) | High | Feature-complete; distribution is the bottleneck |
-| Official marketplace listing | Superpowers, feature-dev | High | Should prioritise — primary discovery channel |
-| Spec format interop | GitHub Spec Kit (80K+ stars), Tessl | Low | Researched: Spec Kit is unstructured markdown with no frontmatter/lifecycle/cross-refs — conceptual model mismatch, adapter not worth building. Reassess if format evolves. |
-| CI/CD integration | Archgate, Continue, Copilot | Medium | Out of scope (principle 1), Archgate is complementary |
-| Org-wide deployment | Windsurf Workflows, Cursor team rules | Medium | Not our audience yet (single-developer focus) |
-| Auto-capture memory | claude-mem, memsearch | Low | Deliberate design choice — curated > captured |
-| LSP awareness | Cursor, Windsurf (native) | Low | Recommended as companion, not bundled (principle 1) |
+| **Community / distribution** | Superpowers (163K), feature-dev (176K), GSD (~48K) | **Critical** | Still feature-complete. Distribution gap is *wider*, not narrower — competitors 2-4x'd in 5 weeks. Primary constraint on vallorcine's near-term growth. |
+| **Official marketplace listing** | Superpowers, feature-dev | **Critical** | Still unlisted. The primary discovery channel. Should be blocking priority. |
+| Spec format interop | GitHub Spec Kit (80K+ stars), Tessl | Low | Spec Kit is unstructured markdown with no frontmatter/lifecycle/cross-refs — conceptual model mismatch, adapter not worth building. Reassess if format standardizes. |
+| Agent-first IDE surface | Cursor 3 Agents Window, Google Antigravity Manager view, Copilot Mission Control | Medium | Structurally different (we're CLI + agent pipeline, not IDE). Not our audience directly, but ambient familiarity with parallel-agent UI shapes user expectations. |
+| CI/CD integration | Archgate, Continue, Copilot | Medium | Out of scope (principle 1). Archgate is complementary. |
+| Org-wide deployment | Windsurf Workflows, Cursor team rules | Medium | Not our audience yet (single-developer focus). Revisit if we target teams. |
+| Auto-capture memory | claude-mem (46K), memsearch, Cursor 3 Bugbot rules-learning | Low | Deliberate design choice — curated > captured. But the category growth means we should be explicit about *why* curation wins in our positioning. |
+| Cross-repo dependency graph | CodeRabbit Codegraph, Augment Context Engine MCP | Medium | We have in-repo topology via construct graph and audit neighborhoods. Cross-repo is not a design goal today. Reassess if jlsm or showcase projects grow to span repos. |
+| LSP awareness | Cursor, Windsurf (native) | Low | Recommended as companion, not bundled (principle 1). |
 
 ---
 
