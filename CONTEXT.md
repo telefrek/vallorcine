@@ -20,64 +20,67 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-04-20*
+*Last updated: 2026-04-21*
 
-**Spec domain migration complete end-to-end. Two PRs open awaiting review.**
+**v0.14.0 released. jlsm on v0.14.0 kit with 15-WD planning snapshot landed.
+`/curate` drift detection shipped.**
 
-**What happened (2026-04-20):**
+**What happened (2026-04-21):**
 
-Single session executed the full spec-to-domains migration in jlsm + kit-side
-support in vallorcine. Both branches pushed, both PRs open.
+Single day, three lanes cleanly closed.
 
-### PR telefrek/vallorcine#43 — `feat/spec-traceability` (10 commits)
+### vallorcine — v0.14.0 released
 
-Three bundled layers:
+`/release` cut v0.14.0 from main at commit `d09bc33`. Release notes bundle
+the spec-verify verify-and-repair loop, the `.work/` layer and its 5
+commands, `@spec` annotation standard + `spec-trace.sh`, interface contracts,
+pipeline modes, obligation lifecycle, and manifest schema v2. GitHub Release
+created with zip attached; retention policy left all 4 releases intact.
 
-**Layer 1 — spec-verify verify-and-repair loop** (previously on the branch):
-`@spec FXX.RN` annotation standard, `spec-trace.sh`, 6-phase verify-and-repair
-in `/spec-verify` with discovery-time annotation and test-gap filling.
+### vallorcine#46 — `/curate` drift detection (merged)
 
-**Layer 2 — Obligation lifecycle kit** (new this session):
-- `type: wd` WD-to-WD dependencies in `artifact_deps`
-- Obligation scanning in `/curate` (analysis 10e)
-- `/work-decompose --from-obligations` mode
-- `work-finalize.sh` auto-resolves WDs + obligations on feature complete
-- `/work-start` distinguishes hard wd-type blocks from soft artifact blocks
-- `test-install.sh` SIGPIPE fix — tests 8-14 hadn't been running (13 PASS →
-  56 PASS)
+Two new analyses in `curate-scan.sh`:
+- **Analysis 18** — enumerate APPROVED specs via manifest (dual-schema v1/v2
+  aware), call `spec-trace.sh` for each, flag reqs missing impl / test / both
+  annotations. Routes to `/spec-verify`.
+- **Analysis 19** — enumerate specs with non-empty `open_obligations`,
+  compute age from last commit touching the spec, flag obligations older
+  than `--obligation-age-days` (default 30). Routes to `/spec-author` or
+  `/spec-resolve`.
 
-**Layer 3 — Kit-side domain.slug support** (new this session):
-Scripts (spec-trace, spec-validate, spec-resolve, spec-lib) and skills
-(spec-write, spec-verify, spec/CLAUDE.md, work-decompose) accept both legacy
-`FXX.RN` and new `domain.slug.RN` formats. `spec_file_for_id` supports both
-manifest schema versions. Backwards-compatible — existing user projects work.
+New CLI flags: `--obligation-age-days`, `--max-specs-traced` (caps
+`spec-trace` fan-out for large repos). `.changelog-staging.md` seeded for
+next release.
 
-### PR nathannorthcutt/jlsm#40 — `spec-refactor` (13 commits)
+### jlsm — PR #41 + #42 both merged
 
-Full migration execution:
-- `.spec/MIGRATION.md` — 500-line plan with all 11 design decisions resolved
-- 48 → 75 spec files across 12 canonical domains (schema, serialization,
-  compression, sstable, wal, vector, query, encryption, engine, partitioning,
-  transport, membership)
-- 2838 source→destination RN mappings
-- 8 dropped reqs (F02.R2-R10 invalidated by F17, F14.R48-R49 YAML never built)
-  → historical comment markers
-- 188+34 source files had `@spec` annotations rewritten
-- F03 follow-up split: 22 application reqs extracted from
-  `encryption/primitives-*` to `query/` + `serialization/`
-- Two quality fixes landed in the branch: self-reference in
-  compression.codec-contract, missing narrative separator on 29 migration-
-  generated specs (Design Narrative stubs now point to the archive)
+**#41** — 6 query specs promoted DRAFT → APPROVED with direct-coverage
+annotations on 86/86 reqs (closed a claimed-but-false "100% coverage" hedge
+by adding 8 new tests for R1, R2, R6, R8, R26 that previously relied on
+sibling-subtype transitive coverage).
 
-**Verified:**
-- `./gradlew test` — BUILD SUCCESSFUL in 3m 47s on jlsm
-- Round-trip validation passes (every source.rn resolves in the new layout)
-- Kit's `spec-validate.sh` passes on all 75 jlsm specs end-to-end
+**#42** — three-commit landing:
+1. Kit upgrade v0.13.8 → v0.14.0 in jlsm (`.claude/upgrade.sh`, 131/131
+   MANIFEST parity). Cosmetic `upgrade.sh` bug filed as
+   telefrek/vallorcine#45.
+2. Planning snapshot: 5 work groups / 15 WDs in `.work/` for the 13 still-
+   DRAFT specs: `close-coverage-gaps` (2 WDs, both READY),
+   `implement-transport` (3 WDs, 1/2), `implement-membership` (2 WDs, 1/1,
+   cross-group blocks on transport), `implement-sstable-enhancements`
+   (3 WDs, all READY), `implement-encryption-lifecycle` (5 WDs, 1/4, F41
+   decomposed by section). All WDs at `status: DRAFT` because specs are
+   DRAFT — WDs will promote them through `/work-plan` → `/work-start` when
+   scheduled. Validated with `work-validate.sh` (15/15 ok) and
+   `work-resolve.sh` (readiness matches graph).
+3. `.spec/MIGRATION.md` + `_migration_f03_followup/` moved into
+   `_archive/migration-2026-04-20/`; 25 spec Design Narratives had their
+   cross-reference updated.
 
 **Where things stand:**
-Both PRs awaiting review. Backup of pre-migration specs lives at
-`.spec/_archive/migration-2026-04-20/` in jlsm. MIGRATION.md + the
-`_migration_f03_followup/` scripts are preserved in the branch for reference.
+jlsm main now has everything needed to start picking up the planning
+snapshot WDs. Nine are READY, six are BLOCKED on within-group predecessors.
+vallorcine main has the `/curate` drift entries staged for the next
+release (likely v0.14.1 — additive, backwards-compatible).
 
 ---
 
@@ -125,9 +128,20 @@ health model, work-decompose spec state. See SETTLED.md.*
   `domain.slug` spec IDs naturally; v1 is retained for backwards compat
   with legacy projects.
 
----
+- **Fix now, not defer — positive justification required** (2026-04-21) —
+  generalises the existing kit-failures and spec-violations rules: when a
+  problem surfaces mid-session, default to fixing it in the current PR.
+  Phrases like "not X's problem", "separate concern", "covered transitively
+  by Y" are red flags that need positive justification before they're
+  acceptable. No transitive / side-effect coverage for claimed behaviour —
+  test what is claimed, directly. Memory: `feedback_fix_now_not_defer.md`.
 
-## Open questions
+- **Planning-snapshot work groups: DRAFT status** (2026-04-21) — WDs that
+  point at specs still in DRAFT should use `status: DRAFT`, not SPECIFIED.
+  SPECIFIED implies the spec is APPROVED and ready for implementation;
+  DRAFT matches the actual state where the WD will promote the spec via
+  `/work-plan` before implementation can proceed. Applied to the 5 jlsm
+  work groups shipped in #42.
 
 *Live list — resolve into SETTLED.md or drop when addressed.*
 *Prioritised: do next → do soon → do when needed → do when scale demands it.*
@@ -136,16 +150,34 @@ exists, not yet coded. No tag = needs both design and implementation.*
 
 ### Do next
 
-*vallorcine#43 and jlsm#40 merged 2026-04-21.*
+*vallorcine#43, #44, #46 merged 2026-04-21. v0.14.0 released.*
+*jlsm#40, #41, #42 merged 2026-04-21. Kit at v0.14.0; 15-WD planning
+snapshot on main.*
 
-- **Post-migration cleanup in jlsm** (small follow-up PR):
-  - Remove `.spec/MIGRATION.md` (plan doc, no longer needed)
-  - Remove `.spec/_migration_f03_followup/` (kept through merge for reference)
-  - Keep `.spec/_archive/migration-2026-04-20/` through one release cycle,
-    then remove
+- **Start picking up jlsm work-group WDs** — 9 READY across the 5 groups.
+  Most actionable first ones:
+  - `close-coverage-gaps/WD-01` — engine.clustering + engine.in-process-
+    database-engine gap closure (pure annotation sweep + test fills,
+    stays in-repo, no new modules)
+  - `close-coverage-gaps/WD-02` — query.index-types + query.query-executor
+    gap closure
+  - `implement-sstable-enhancements/WD-01/02/03` — three independent
+    parallel WDs, all READY
+  - `implement-transport/WD-01` and `implement-encryption-lifecycle/WD-01`
+    are READY but greenfield (new modules) — biggest scope, expect to pick
+    last of the batch
+  First WD run will validate the end-to-end `/work-plan` → spec-author →
+  `/work-start` flow against a DRAFT-start WD. Resolver changes landed in
+  vallorcine#43; haven't yet been exercised on a real WD with a
+  `domain.slug.RN` artifact_dep.
 
-- **Unblock jlsm work-start** — restructure decisions-backlog WDs, then validate
-  `/work-start` flow against the new domain.slug specs.
+- **Release v0.14.1 for `/curate` drift detection** when there's enough
+  to batch. `.changelog-staging.md` already seeded. No urgency — jlsm is
+  consuming v0.14.0 first.
+
+- **telefrek/vallorcine#45** (cosmetic) — `upgrade.sh` emits misleading
+  "skip … refusing to remove" lines for files that are correctly in
+  MANIFEST. Fix when revisiting upgrade.sh for any reason.
 
 ### Do soon (medium effort, clear designs)
 
