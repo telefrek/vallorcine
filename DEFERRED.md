@@ -13,6 +13,17 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 
 ## Active deferrals
 
+- **Spec model v2 — retirement of displacement machinery** (2026-04-21) —
+  replace `invalidates` / `displaced_by` / `amends` / `revives` /
+  `revived_by` / `displacement_reason` with requirement-level `because_of`
+  refs (forward provenance + reverse-scan for impact). Domain-era
+  reframing: domains are orthogonal and stable; change is add/subtract
+  requirements in place; Claude maintains all spec files. Strategy:
+  design-first, jlsm pilot (75 specs / 12 domains), kit last. Estimated
+  3-5 sessions. See `project_spec_model_redesign.md` memory. Subsumes
+  Items 3+5 (one-sided displaced_by bug) from the post-v0.14.0 priority
+  stack — those become moot once the machinery retires.
+
 - **LSP integration** — document in README which LSP plugins pair well with
   vallorcine's Code Writer stage as a recommended companion. No bundled dependency.
 
