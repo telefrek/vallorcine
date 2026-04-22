@@ -496,6 +496,118 @@ else
     fail "sort order wrong" "got: $order"
 fi
 
+# ── Test 8: FIX_IMPOSSIBLE finding surfaces relaxation request ──────────────
+# Regression: FIX_IMPOSSIBLE used to be invisible after audit completed —
+# the relaxation request stayed in the individual prove-fix file and the
+# orchestrator had no way to escalate it. Now aggregate-results.py extracts
+# the relaxation_request, structural_reason, and approaches_tried into the
+# Fix Impossible group of prove-fix-summary.md so the report subagent can
+# surface it for the orchestrator's AskUserQuestion flow.
+
+echo ""
+echo "  FIX_IMPOSSIBLE relaxation surfacing"
+echo "  ───────────────────────────────────"
+
+relax_dir="$TEST_BASE/run-relax"
+rm -rf "$relax_dir"
+mkdir -p "$relax_dir"
+
+cat > "$relax_dir/prove-fix-F-R1-cb-1-1.md" << 'EOF'
+# Prove-Fix — F-R1.cb.1.1
+
+## Result: FIX_IMPOSSIBLE
+
+### Phase 0: Already-fixed check
+- **Result:** STILL_VULNERABLE
+- **Detail:** splitmix64 produces correlated outputs for sequential seeds.
+
+### Phase 1: Verify
+- **Test method:** test_splitmix64_decorrelated_seeds
+- **Test class:** src/test/HashTest.java
+- **Result:** CONFIRMED
+- **Detail:** Sequential seeds produce hashes within 1 bit of each other.
+
+### Phase 2: Fix
+- **Change:** Replace splitmix64 with rrxmrrxmsx_0
+- **File:** src/main/Hash.java:42
+- **Result:** FIX_IMPOSSIBLE
+- **Detail:** Pin test test_splitmix64_known_outputs asserts specific output values.
+
+### Impossibility proof
+- **Approaches tried:** Replace algorithm, add post-mixing step, change seed encoding
+- **Structural reason:** test_splitmix64_known_outputs encodes hex values from the original splitmix64 paper as ground truth; any change to the hash function fails the pin test.
+- **Relaxation request:** Replace splitmix64 with rrxmrrxmsx_0; requires updating test_splitmix64_known_outputs to either (a) accept the new hash's outputs or (b) be removed if the pin was an implementation-detail not a contract.
+EOF
+
+output=$(python3 "$SCRIPT" "$relax_dir" 2>&1)
+
+if echo "$output" | grep -q "FIX_IMPOSSIBLE: 1"; then
+    pass "FIX_IMPOSSIBLE counted in tally"
+else
+    fail "FIX_IMPOSSIBLE not in tally" "got: $output"
+fi
+
+if grep -q "## Fix Impossible (1)" "$relax_dir/prove-fix-summary.md"; then
+    pass "summary has 'Fix Impossible' section"
+else
+    fail "missing Fix Impossible section" \
+        "$(cat "$relax_dir/prove-fix-summary.md")"
+fi
+
+if grep -q "Relaxation request:" "$relax_dir/prove-fix-summary.md"; then
+    pass "summary surfaces relaxation request"
+else
+    fail "relaxation request missing from summary" \
+        "$(cat "$relax_dir/prove-fix-summary.md")"
+fi
+
+if grep -q "Structural reason:" "$relax_dir/prove-fix-summary.md"; then
+    pass "summary surfaces structural reason"
+else
+    fail "structural reason missing from summary" \
+        "$(cat "$relax_dir/prove-fix-summary.md")"
+fi
+
+if grep -q "Approaches tried:" "$relax_dir/prove-fix-summary.md"; then
+    pass "summary surfaces approaches tried"
+else
+    fail "approaches tried missing from summary" \
+        "$(cat "$relax_dir/prove-fix-summary.md")"
+fi
+
+if grep -q "needs explicit user resolution" "$relax_dir/prove-fix-summary.md"; then
+    pass "Fix Impossible section instructs orchestrator to escalate"
+else
+    fail "missing escalation guidance in section header"
+fi
+
+# Confirm IMPOSSIBLE and FIX_IMPOSSIBLE remain distinct categories
+mixed_dir="$TEST_BASE/run-mixed"
+rm -rf "$mixed_dir"
+mkdir -p "$mixed_dir"
+
+cp "$relax_dir/prove-fix-F-R1-cb-1-1.md" "$mixed_dir/"
+
+cat > "$mixed_dir/prove-fix-F-R1-cb-2-1.md" << 'EOF'
+# Prove-Fix — F-R1.cb.2.1
+
+## Result: IMPOSSIBLE
+
+### Phase 0: Already-fixed check
+- **Result:** ALREADY_FIXED
+- **Detail:** Defensive copy added in earlier finding.
+EOF
+
+output_mixed=$(python3 "$SCRIPT" "$mixed_dir" 2>&1)
+
+if grep -q "## Fix Impossible (1)" "$mixed_dir/prove-fix-summary.md" \
+   && grep -q "## Impossible (1)" "$mixed_dir/prove-fix-summary.md"; then
+    pass "FIX_IMPOSSIBLE and IMPOSSIBLE remain in separate sections"
+else
+    fail "FIX_IMPOSSIBLE / IMPOSSIBLE not separated" \
+        "$(cat "$mixed_dir/prove-fix-summary.md")"
+fi
+
 # ── Summary ─────────────────────────────────────────────────────────────────
 
 echo ""
