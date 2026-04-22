@@ -5,6 +5,77 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.14.1] — 2026-04-21
+
+### Added
+- **Curate drift-detection analyses** — `/curate` now surfaces two new
+  spec-drift signals. Analysis 18 enumerates APPROVED specs from
+  `.spec/registry/manifest.json`, invokes `spec-trace.sh` for each, and
+  flags requirements whose `@spec` annotations are missing on the
+  implementation or test side (plus APPROVED specs that have zero
+  annotations anywhere). Analysis 19 enumerates specs with non-empty
+  `open_obligations` frontmatter, computes age from the last commit
+  touching the spec file, and flags obligations older than a
+  configurable threshold. Both dual-schema aware (v1 `features` object +
+  v2 `specs` array). New `curate-scan.sh` flags:
+  `--obligation-age-days <n>` (default 30) and
+  `--max-specs-traced <n>` (default 50). Routes: annotation gaps to
+  `/spec-verify`; aging obligations to `/spec-author` or `/spec-resolve`.
+
+### Changed
+- **`/feature-test` no longer silently falls back when spec resolution
+  misses** — Step 1a used to set SPEC_BUNDLE empty and proceed if
+  `spec-resolve.sh` returned nothing, even when the project had `.spec/`
+  with APPROVED specs. Tests generated in that path lost `covers: R<N>`
+  annotations downstream implementers rely on. Now when `.spec/` exists
+  with APPROVED specs and the resolver returns empty, `/feature-test`
+  stops and offers three remediation paths: re-invoke with
+  `--specs <ids>`, list spec IDs in `.feature/<slug>/brief.md`, or
+  rewrite the brief. Projects without `.spec/` or with no APPROVED
+  specs proceed silently as before.
+- **`/feature-test` gains `--specs <id1,id2>` flag** for explicit spec
+  ID pass-through when fuzzy match misses. Plumbed through to
+  `spec-resolve.sh` via new `EXPLICIT_SPEC_IDS` env var that bypasses
+  domain inference. Feature briefs can also list explicit spec IDs via
+  a `specs:` field in `.feature/<slug>/brief.md`.
+- **`/feature-refactor` runs inline `/spec-verify` before the
+  adversarial audit pass** (new Step 4a) — resolves the APPROVED specs
+  this feature touches (via `spec-bundle.md`, `@spec` annotations in
+  changed files, or `work-plan.md` frontmatter) and invokes
+  `/spec-verify` per spec as a sub-agent. Drift surfaces directly as
+  spec violations rather than masquerading as adversarial findings in
+  the broader Step 4b audit. Skipped when no `.spec/` directory, no
+  specs loaded for the feature, or running via `/feature-quick`.
+
+### Fixed
+- **`/audit` refuses to run against non-APPROVED specs** for `spec:<id>`
+  entry points. A DRAFT or INVALIDATED spec has no authoritative
+  contract, so Lens A SPEC-REQ findings have nothing to prove against
+  and the pipeline produces adversarial-only findings a user would
+  mistake for conformance bugs. New `scripts/audit-state-gate.sh` gates
+  the entry; feature/file/prior-report entries are unaffected.
+  Regression tests in `tests/scenario-audit-state-gate.sh`.
+- **`work-validate.sh` resolves `artifact_deps` references** — dead
+  references (spec ID not in registry, WD that doesn't exist) and
+  state mismatches (WD declares `required_state: APPROVED` against a
+  DRAFT spec) used to pass validation and fail later during
+  `/work-plan` or `/work-start`. Now resolves each reference (spec via
+  manifest, ADR file, WD scan, KB file) and either matches state or
+  errors with a clear message. Missing infrastructure (no manifest,
+  no `.decisions/`, etc.) emits WARN and proceeds — projects not yet
+  using that layer aren't blocked. Five regression tests in
+  `tests/scenario-work-validate.sh` (Tests 13-17).
+- **`upgrade.sh` no longer prints false "skip … refusing to remove" for
+  kept kit files** ([#45](https://github.com/telefrek/vallorcine/issues/45))
+  — the stale-file loop now checks the new manifest first, so files in
+  both the old and new manifests skip silently. `.claude/prompts/*`
+  added to the whitelist for when prompts are legitimately removed in
+  future versions. Previously a clean v0.13.8 → v0.14.0 upgrade emitted
+  29 misleading skip messages. Regression test in
+  `tests/test-install.sh` Test 9e.
+
+---
+
 ## [0.14.0] — 2026-04-21
 
 ### Added
