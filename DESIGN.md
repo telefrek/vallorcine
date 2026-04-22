@@ -856,22 +856,32 @@ vallorcine/
 │   ├── merge-driver-index.sh        ← git merge driver for CLAUDE.md index files
 │   ├── ensure-merge-driver.sh       ← registers merge driver on first pipeline run
 │   ├── adr-validate.sh              ← warns if contradictory accepted ADRs exist
+│   ├── spec-lib.sh                 ← shared functions sourced by all spec scripts (manifest I/O, YAML helpers)
 │   ├── spec-resolve.sh             ← spec resolution with conflict detection
 │   ├── spec-validate.sh            ← spec structural validation (displacement fields, lifecycle)
 │   ├── spec-trace.sh               ← @spec annotation discovery across codebases
+│   ├── spec-stats.sh               ← corpus health summary (~200 tokens, safe for preflight)
+│   ├── spec-obligations-gc.sh      ← resolve obligations when their target spec reaches APPROVED
 │   ├── spec-ambiguity-score.sh     ← quantitative ambiguity gate for /spec-write (token/heuristic scoring)
 │   ├── audit-state-gate.sh         ← refuse /audit on non-APPROVED specs (spec: entry points)
 │   ├── work-lib.sh                 ← work layer shared functions (YAML parsing, dep checking)
 │   ├── work-resolve.sh             ← work definition readiness computation + dependency graph
 │   ├── work-validate.sh            ← work definition structural validation + circular dep detection
 │   ├── work-context.sh             ← work group context injection for existing commands
+│   ├── work-finalize.sh            ← finalize work group state after feature refactor (feature-refactor Step 6b)
 │   ├── curate-scan.sh              ← curation scanner (17 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill, work group health)
 │   ├── decisions-scan.sh           ← decisions roadmap clustering and classification
 │   ├── extract-findings.sh         ← audit finding extraction for orchestrator context optimization
 │   ├── audit-budget.sh             ← budget tracking and proportional allocation for audit prove-fix loop
 │   ├── index-verify.sh             ← self-healing index verification for crash recovery
 │   ├── token-stop-hook.sh          ← Stop hook for automatic token tracking
+│   ├── token-hook-wrapper.sh       ← runtime detection wrapper for token Stop hook (python → node → bash)
 │   ├── statusline.sh               ← status line showing pipeline stage + cost
+│   ├── statusline-wrapper.sh       ← runtime detection wrapper for status line (python → node → bash)
+│   ├── subagent-hook.sh            ← SubagentStart/Stop hook — writes .claude/.subagent-state for status line
+│   ├── subagent-hook-wrapper.sh    ← runtime detection wrapper for subagent hook (python → node → bash)
+│   ├── precompact-hook.sh          ← PreCompact hook — checkpoint feature state before context compaction (<5ms)
+│   ├── uninstall.sh                ← remove all kit-managed files while preserving user data
 │   ├── narrative-wrapper.sh        ← runtime detection for narrative generation
 │   └── narrative/                  ← 3-stage narrative pipeline (Python + JS)
 │       ├── model.{py,js}          ← Token, TokenStream, Node, Story data model
@@ -879,6 +889,38 @@ vallorcine/
 │       ├── parse.{py,js}          ← stage 2: TokenStream → Story AST
 │       ├── render_narrative.{py,js} ← stage 3: Story → polished markdown
 │       └── generate.{py,js}       ← orchestrator: chains stages, cleans up
+│
+├── prompts/                         ← subagent prompts + mechanical helpers (installed to .claude/prompts/)
+│   └── audit/                       ← /audit pipeline prompts and scripts
+│       │  Subagent prompts (consumed by /audit orchestrator)
+│       ├── classification.md        ← entry-point resolution, context gathering, scope confirmation
+│       ├── exploration.md           ← construct-graph discovery, tiering, domain-signal detection
+│       ├── card-construction.md     ← per-construct assertion sweeps → relationship cards
+│       ├── domain-pruning.md        ← challenge each candidate domain lens for applicability
+│       ├── assembly.md              ← cluster constructs by lens, build Suspect input packets
+│       ├── suspect.md               ← per-cluster bug finding against a specific domain lens
+│       ├── prove-fix-orchestrator.md ← sequential per-finding dispatcher
+│       ├── prove-fix.md             ← per-finding agent: write test, prove bug, fix source
+│       ├── report.md                ← synthesize pipeline outputs → audit-report.md + audit-prior.md
+│       ├── reconcile-findings.md    ← feedback loop → spec-updates.md + kb-suggestions.md
+│       │
+│       │  Lens references (consulted by Suspect when activated)
+│       ├── lens-security.md         ← adversary-model attack patterns (crypto, auth, injection, info flow)
+│       │
+│       │  Design notes
+│       ├── view-extraction.md       ← mechanical view-extraction spec (script, not LLM pass)
+│       │
+│       │  Mechanical helpers (run between subagent phases — no LLM cost)
+│       ├── audit-state.py           ← deterministic resume detection + run-dir init
+│       ├── aggregate-results.py     ← pre-aggregate prove-fix + suspect outputs for Report
+│       ├── dedup-findings.py        ← cross-finding duplicate detection
+│       ├── check-test-coverage.py   ← pre-prove test coverage gate
+│       ├── reconcile-cards.{sh,py,js} ← reconcile per-construct cards after construction
+│       ├── reconcile-cards-wrapper.sh ← runtime detection (python → node → bash)
+│       ├── extract-views.{sh,py,js} ← project cards to per-lens views
+│       └── extract-views-wrapper.sh ← runtime detection (python → node → bash)
+│
+│       Deprecated (superseded by prove-fix.md): fix.md, prove.md, regression.md
 │
 ├── tests/                           ← test scripts (not installed)
 │   ├── test-install.sh              ← install + upgrade smoke tests (33 tests)
