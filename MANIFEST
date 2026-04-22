@@ -47,6 +47,7 @@
 .claude/prompts/audit/assembly.md
 .claude/prompts/audit/card-construction.md
 .claude/prompts/audit/classification.md
+.claude/prompts/audit/lens-security.md
 .claude/prompts/audit/domain-pruning.md
 .claude/prompts/audit/exploration.md
 .claude/prompts/audit/fix.md
