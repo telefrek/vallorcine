@@ -859,6 +859,7 @@ vallorcine/
 │   ├── spec-resolve.sh             ← spec resolution with conflict detection
 │   ├── spec-validate.sh            ← spec structural validation (displacement fields, lifecycle)
 │   ├── spec-trace.sh               ← @spec annotation discovery across codebases
+│   ├── audit-state-gate.sh         ← refuse /audit on non-APPROVED specs (spec: entry points)
 │   ├── work-lib.sh                 ← work layer shared functions (YAML parsing, dep checking)
 │   ├── work-resolve.sh             ← work definition readiness computation + dependency graph
 │   ├── work-validate.sh            ← work definition structural validation + circular dep detection
