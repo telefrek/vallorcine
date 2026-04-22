@@ -652,6 +652,45 @@ else
     fail "stale kit file should be removed" "old-removed-command.md still exists"
 fi
 
+# ── Test 9e: Upgrade does not emit false skip for kept kit files (#45) ───────
+# Regression: .claude/prompts/* entries fell through the safety whitelist and
+# printed "skip … refusing to remove" even though the files were in both the
+# old and new manifests (no removal was actually going to happen).
+
+echo ""
+echo "── Test 9e: upgrade does not emit false skip for kept kit files (#45)"
+
+PROMPTS_TARGET="$(make_temp)"
+bash "$REPO_ROOT/install.sh" "$PROMPTS_TARGET" >/dev/null 2>&1
+
+if grep -q "^\.claude/prompts/" "$PROMPTS_TARGET/.claude/.vallorcine-manifest" \
+   && [[ -f "$PROMPTS_TARGET/.claude/prompts/audit/assembly.md" ]]; then
+    pass "setup: kit prompts installed and listed in manifest"
+else
+    fail "setup: kit prompts should be installed and listed" \
+        "manifest or prompt files missing"
+fi
+
+prompts_output="$(bash "$REPO_ROOT/upgrade.sh" \
+    --apply \
+    --kit-root "$REPO_ROOT" \
+    --project-root "$PROMPTS_TARGET" \
+    --from-version "$VERSION" \
+    --to-version "$VERSION" 2>&1)"
+
+if echo "$prompts_output" | grep "refusing to remove" | grep -q "\.claude/prompts/"; then
+    fail "upgrade emits false skip for kit prompt paths" \
+        "$(echo "$prompts_output" | grep 'refusing to remove' | grep '\.claude/prompts/' | head -3)"
+else
+    pass "no false skip messages for kept kit prompts"
+fi
+
+if [[ -f "$PROMPTS_TARGET/.claude/prompts/audit/assembly.md" ]]; then
+    pass "kit prompts preserved after upgrade"
+else
+    fail "kit prompts should be preserved after upgrade"
+fi
+
 # ── Test 9d: Install migrates stale commands/ to skills/ ──────────────────────
 
 echo ""
