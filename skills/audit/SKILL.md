@@ -102,6 +102,30 @@ Store the entry point type and value for the Classification subagent.
 
 ---
 
+## Spec-state gate (spec: entry points only)
+
+Before proceeding, verify the target spec is APPROVED. `/audit` on a
+DRAFT or INVALIDATED spec cannot do conformance checking — there is no
+authoritative contract to prove code against. Adversarial exploration
+alone would produce misleading findings that the user will interpret as
+conformance bugs.
+
+```bash
+# Only for "spec:" entry points. Skip for feature / file / prior-report.
+bash .claude/scripts/audit-state-gate.sh "<spec-id>"
+```
+
+If the script exits non-zero, stop immediately. It prints a clear error
+message and the recommended next step (usually `/spec-verify` to promote
+DRAFT → APPROVED). Do not ask the user to override — a non-APPROVED spec
+makes /audit structurally unsound for this entry point.
+
+For **feature-slug** or **file** entry points, do not run this check —
+those entry points don't target a specific spec, and if specs are
+resolved during classification, that phase handles state awareness.
+
+---
+
 ## Budget
 
 After determining the entry point, ask the user for a budget using
