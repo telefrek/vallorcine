@@ -115,6 +115,7 @@
 .claude/scripts/spec-lib.sh
 .claude/scripts/audit-state-gate.sh
 .claude/scripts/spec-validate.sh
+.claude/scripts/spec-ambiguity-score.sh
 .claude/scripts/spec-stats.sh
 .claude/scripts/spec-resolve.sh
 .claude/scripts/spec-obligations-gc.sh
