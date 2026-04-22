@@ -382,6 +382,55 @@ else
     fail "should handle missing file gracefully" "got: $output_missing"
 fi
 
+# ── Test 10: EXPLICIT_SPEC_IDS bypasses fuzzy match ─────────────────────────
+# Regression for Item 1 of the post-v0.14.0 bug fix sweep: /feature-test's
+# fuzzy match could miss specs that don't share vocabulary with the brief
+# title. EXPLICIT_SPEC_IDS lets callers pass IDs directly.
+
+echo ""
+echo "── Test 10: EXPLICIT_SPEC_IDS bypasses fuzzy match"
+
+# Feature description does NOT mention serialization/yaml/json — fuzzy match
+# would miss F01 and F02. Explicit IDs must still load them.
+output_explicit="$(EXPLICIT_SPEC_IDS="F01,F02" \
+  bash .claude/scripts/spec-resolve.sh "completely unrelated description" 8000 2>/dev/null)"
+
+if echo "$output_explicit" | grep -q "F01" && echo "$output_explicit" | grep -q "F02"; then
+    pass "EXPLICIT_SPEC_IDS loads both requested specs"
+else
+    fail "explicit IDs should load F01 and F02" "got: $output_explicit"
+fi
+
+# Should not mention F03 (INVALIDATED, not in explicit list)
+if echo "$output_explicit" | grep -q "## INVALIDATED"; then
+    fail "INVALIDATED section should not appear when not explicitly requested"
+else
+    pass "INVALIDATED section absent without INCLUDE_INVALIDATED"
+fi
+
+# ── Test 11: EXPLICIT_SPEC_IDS with unknown ID emits warning ────────────────
+
+echo ""
+echo "── Test 11: EXPLICIT_SPEC_IDS with unknown ID emits warning (doesn't crash)"
+
+stderr_output="$(EXPLICIT_SPEC_IDS="F01,F99-phantom" \
+  bash .claude/scripts/spec-resolve.sh "any" 8000 2>&1 >/dev/null)"
+
+if echo "$stderr_output" | grep -q "explicit spec 'F99-phantom' not in registry"; then
+    pass "unknown explicit ID surfaces clear warning"
+else
+    fail "unknown ID should warn" "stderr: $stderr_output"
+fi
+
+# The known ID must still load despite the unknown one
+output_mixed="$(EXPLICIT_SPEC_IDS="F01,F99-phantom" \
+  bash .claude/scripts/spec-resolve.sh "any" 8000 2>/dev/null)"
+if echo "$output_mixed" | grep -q "F01"; then
+    pass "known explicit ID loads despite unknown sibling"
+else
+    fail "F01 should load even when F99 is unknown" "got: $output_mixed"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

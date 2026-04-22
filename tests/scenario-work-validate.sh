@@ -58,6 +58,7 @@ mkdir -p "$TEST_BASE/project/.claude/scripts"
 # Copy scripts
 cp "$REPO_ROOT/scripts/work-validate.sh" "$TEST_BASE/project/.claude/scripts/"
 cp "$REPO_ROOT/scripts/work-lib.sh" "$TEST_BASE/project/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$TEST_BASE/project/.claude/scripts/"
 
 cd "$TEST_BASE/project"
 
@@ -487,6 +488,185 @@ else
 fi
 
 rm -rf "$TEST_BASE/project/.work/wd-circular"
+
+# ── Tests 13-17: artifact_dep resolution (state + existence checks) ─────────
+# Regression coverage for Items 4 + 8 of the post-v0.14.0 bug fix sweep:
+# work-validate.sh used to accept artifact_deps that pointed at non-existent
+# specs/WDs or declared wrong required_state. Now it resolves each reference
+# and errors on dead wiring or state mismatches.
+
+echo ""
+echo "── Test 13: spec artifact_dep with matching state passes"
+
+mkdir -p "$TEST_BASE/project/.spec/domains/auth"
+mkdir -p "$TEST_BASE/project/.spec/registry"
+
+cat > "$TEST_BASE/project/.spec/domains/auth/jwt-contract.md" << 'EOF'
+---
+{
+  "id": "auth.jwt-contract",
+  "version": 1,
+  "state": "APPROVED",
+  "status": "ACTIVE",
+  "domains": ["auth"]
+}
+---
+
+# auth.jwt-contract — JWT Contract
+
+## Requirements
+R1. JWT tokens must verify via the published public key.
+EOF
+
+cat > "$TEST_BASE/project/.spec/registry/manifest.json" << 'EOF'
+{
+  "schema_version": 2,
+  "specs": [
+    {"id": "auth.jwt-contract", "path": ".spec/domains/auth/jwt-contract.md", "state": "APPROVED"}
+  ]
+}
+EOF
+
+mkdir -p "$TEST_BASE/project/.work/resolve-group"
+cat > "$TEST_BASE/project/.work/resolve-group/WD-01.md" << 'EOF'
+---
+id: WD-01
+title: Depends on real APPROVED spec
+group: resolve-group
+status: DRAFT
+domains: [auth]
+artifact_deps:
+  - { type: spec, path: "auth.jwt-contract", required_state: APPROVED }
+---
+
+## Summary
+Test.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-validate.sh .work/resolve-group/WD-01.md 2>&1)"
+if echo "$output" | grep -q "PASS" && ! echo "$output" | grep -q "FAIL"; then
+    pass "spec artifact_dep with matching state passes"
+else
+    fail "spec dep with real APPROVED target should pass" "got: $output"
+fi
+
+echo ""
+echo "── Test 14: spec artifact_dep with state mismatch fails"
+
+cat > "$TEST_BASE/project/.work/resolve-group/WD-02.md" << 'EOF'
+---
+id: WD-02
+title: Declares wrong state
+group: resolve-group
+status: DRAFT
+domains: [auth]
+artifact_deps:
+  - { type: spec, path: "auth.jwt-contract", required_state: DRAFT }
+---
+
+## Summary
+Test.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-validate.sh .work/resolve-group/WD-02.md 2>&1 || true)"
+if echo "$output" | grep -q "FAIL" && echo "$output" | grep -q "has state 'APPROVED', required_state is 'DRAFT'"; then
+    pass "spec artifact_dep with state mismatch fails"
+else
+    fail "state mismatch should fail with clear message" "got: $output"
+fi
+
+echo ""
+echo "── Test 15: spec artifact_dep with dead reference fails"
+
+cat > "$TEST_BASE/project/.work/resolve-group/WD-03.md" << 'EOF'
+---
+id: WD-03
+title: References a spec that does not exist
+group: resolve-group
+status: DRAFT
+domains: [auth]
+artifact_deps:
+  - { type: spec, path: "auth.phantom-spec", required_state: APPROVED }
+---
+
+## Summary
+Test.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-validate.sh .work/resolve-group/WD-03.md 2>&1 || true)"
+if echo "$output" | grep -q "FAIL" && echo "$output" | grep -q "not found in registry"; then
+    pass "spec artifact_dep with dead reference fails"
+else
+    fail "dead spec reference should fail with 'not found in registry'" "got: $output"
+fi
+
+echo ""
+echo "── Test 16: wd artifact_dep with nonexistent WD fails"
+
+cat > "$TEST_BASE/project/.work/resolve-group/WD-04.md" << 'EOF'
+---
+id: WD-04
+title: References nonexistent WD
+group: resolve-group
+status: DRAFT
+domains: [auth]
+artifact_deps:
+  - { type: wd, ref: "WD-99", required_state: COMPLETE }
+---
+
+## Summary
+Test.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-validate.sh .work/resolve-group/WD-04.md 2>&1 || true)"
+if echo "$output" | grep -q "FAIL" && echo "$output" | grep -q "wd 'WD-99' not found in .work/"; then
+    pass "wd artifact_dep with nonexistent WD fails"
+else
+    fail "nonexistent wd reference should fail" "got: $output"
+fi
+
+echo ""
+echo "── Test 17: wd artifact_dep with status mismatch fails"
+
+cat > "$TEST_BASE/project/.work/resolve-group/WD-05.md" << 'EOF'
+---
+id: WD-05
+title: Wants WD-01 COMPLETE but WD-01 is DRAFT
+group: resolve-group
+status: DRAFT
+domains: [auth]
+artifact_deps:
+  - { type: wd, ref: "WD-01", required_state: COMPLETE }
+---
+
+## Summary
+Test.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-validate.sh .work/resolve-group/WD-05.md 2>&1 || true)"
+if echo "$output" | grep -q "FAIL" && echo "$output" | grep -q "wd 'WD-01' has status 'DRAFT', required_status is 'COMPLETE'"; then
+    pass "wd artifact_dep with status mismatch fails"
+else
+    fail "wd status mismatch should fail with clear message" "got: $output"
+fi
+
+rm -rf "$TEST_BASE/project/.work/resolve-group"
+rm -rf "$TEST_BASE/project/.spec"
 
 # ── Summary ──────────────────────────────────────────────────────────────────
 

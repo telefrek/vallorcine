@@ -291,6 +291,7 @@ install_file "$SCRIPT_DIR/scripts/subagent-hook-wrapper.sh" "$TARGET/.claude/scr
 install_file "$SCRIPT_DIR/scripts/precompact-hook.sh" "$TARGET/.claude/scripts/precompact-hook.sh"
 install_file "$SCRIPT_DIR/scripts/uninstall.sh" "$TARGET/.claude/scripts/uninstall.sh"
 install_file "$SCRIPT_DIR/scripts/spec-lib.sh" "$TARGET/.claude/scripts/spec-lib.sh"
+install_file "$SCRIPT_DIR/scripts/audit-state-gate.sh" "$TARGET/.claude/scripts/audit-state-gate.sh"
 install_file "$SCRIPT_DIR/scripts/spec-validate.sh" "$TARGET/.claude/scripts/spec-validate.sh"
 install_file "$SCRIPT_DIR/scripts/spec-stats.sh" "$TARGET/.claude/scripts/spec-stats.sh"
 install_file "$SCRIPT_DIR/scripts/spec-resolve.sh" "$TARGET/.claude/scripts/spec-resolve.sh"
@@ -317,6 +318,7 @@ echo "── Upgrade script ─────────────────�
 install_file "$SCRIPT_DIR/upgrade.sh" "$TARGET/.claude/upgrade.sh"
 chmod +x "$TARGET/.claude/upgrade.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/uninstall.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/audit-state-gate.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-validate.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-stats.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-resolve.sh" 2>/dev/null || true
@@ -398,6 +400,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
       "Bash(bash .claude/scripts/index-verify.sh:*)",
       "Bash(bash .claude/scripts/narrative-wrapper.sh:*)",
       "Bash(bash .claude/scripts/spec-validate.sh:*)",
+      "Bash(bash .claude/scripts/audit-state-gate.sh:*)",
       "Bash(bash .claude/scripts/spec-stats.sh:*)",
       "Bash(bash .claude/scripts/spec-resolve.sh:*)",
       "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)",
@@ -506,6 +509,7 @@ HOOKJSON
             "Bash(bash .claude/scripts/index-verify.sh:*)",
             "Bash(bash .claude/scripts/narrative-wrapper.sh:*)",
       "Bash(bash .claude/scripts/spec-validate.sh:*)",
+      "Bash(bash .claude/scripts/audit-state-gate.sh:*)",
       "Bash(bash .claude/scripts/spec-stats.sh:*)",
       "Bash(bash .claude/scripts/spec-resolve.sh:*)",
       "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)",

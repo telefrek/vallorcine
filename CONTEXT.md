@@ -82,6 +82,34 @@ snapshot WDs. Nine are READY, six are BLOCKED on within-group predecessors.
 vallorcine main has the `/curate` drift entries staged for the next
 release (likely v0.14.1 — additive, backwards-compatible).
 
+### Later in the session — competitive refresh + GSD audit
+
+PRs #48 and #49 landed a two-step competitive analysis pass: the refresh
+brought COMPETITIVE.md to current data (Superpowers 42K→163K, feature-dev
+89K→176K, Qodo 2.1 Rules System, Cursor 3, Google Antigravity, claude-mem
+as a category signal, academic commoditization via GitHub Code Security
+instead of standalone AutoFL/LLMAO), and the GSD audit (55,791 stars)
+corrected the pre-audit framing of GSD as a shallow lookalike.
+
+**Strategic finding from the GSD audit:** GSD is a real direct-lane
+competitor with substantial feature depth — falsifiable specs (Socratic
+ambiguity scoring), audit pipeline, project knowledge graph, security
+verification, retrospectives, wave-based multi-feature parallelism, 83
+commands across 14 runtime platforms. Our defensible moat is narrower
+than the pre-audit framing implied and is now architectural, not
+feature-label: **spec lifecycle (DRAFT/APPROVED/INVALIDATED) +
+displacement detection + specs driving audit passes + declared
+artifact-dependency readiness + multi-pass knowledge-compounding audit**.
+Positioning should shift from the "spec-driven" label (GSD owns that
+mindshare at 55K+ stars) to depth-of-spec-rigor.
+
+### Active plan on pause
+
+WIP.md carries a 9-item priority stack for `/ideate continue` to resume.
+Next action: item 2 — v0.14.1 release (`.changelog-staging.md` already has
+the `/curate` drift entry seeded). After that: security-aware analysis
+lens + four critical spec-layer gaps exposed by jlsm dogfood.
+
 ---
 
 ## Recent decisions
@@ -143,6 +171,18 @@ health model, work-decompose spec state. See SETTLED.md.*
   `/work-plan` before implementation can proceed. Applied to the 5 jlsm
   work groups shipped in #42.
 
+- **GSD is a real direct-lane competitor, not a shallow lookalike**
+  (2026-04-21). Hands-on audit (55,791 GitHub stars, 83 commands, 14
+  runtime platforms) found falsifiable specs via Socratic ambiguity
+  scoring, autonomous audit-to-fix, a project knowledge graph,
+  retrospectives, security verification, and wave-based multi-feature
+  parallelism. Confirmed still uniquely vallorcine: spec lifecycle states,
+  displacement detection, specs driving audit, declared artifact-dep
+  readiness + pipeline modes, multi-pass knowledge-compounding audit.
+  Positioning must emphasize the depth-of-spec-rigor axis, not the
+  "spec-driven" label (GSD owns that mindshare at 55K+ stars). See
+  PR #49 for full head-to-head.
+
 *Live list — resolve into SETTLED.md or drop when addressed.*
 *Prioritised: do next → do soon → do when needed → do when scale demands it.*
 *Status tags: `[implemented]` = code exists, needs validation. `[designed]` = spec
@@ -150,34 +190,38 @@ exists, not yet coded. No tag = needs both design and implementation.*
 
 ### Do next
 
-*vallorcine#43, #44, #46 merged 2026-04-21. v0.14.0 released.*
+*vallorcine#43, #44, #46, #47, #48, #49 merged 2026-04-21. v0.14.0
+released.*
 *jlsm#40, #41, #42 merged 2026-04-21. Kit at v0.14.0; 15-WD planning
-snapshot on main.*
+snapshot on main. Nathan working through WDs on the jlsm side.*
 
-- **Start picking up jlsm work-group WDs** — 9 READY across the 5 groups.
-  Most actionable first ones:
-  - `close-coverage-gaps/WD-01` — engine.clustering + engine.in-process-
-    database-engine gap closure (pure annotation sweep + test fills,
-    stays in-repo, no new modules)
-  - `close-coverage-gaps/WD-02` — query.index-types + query.query-executor
-    gap closure
-  - `implement-sstable-enhancements/WD-01/02/03` — three independent
-    parallel WDs, all READY
-  - `implement-transport/WD-01` and `implement-encryption-lifecycle/WD-01`
-    are READY but greenfield (new modules) — biggest scope, expect to pick
-    last of the batch
-  First WD run will validate the end-to-end `/work-plan` → spec-author →
-  `/work-start` flow against a DRAFT-start WD. Resolver changes landed in
-  vallorcine#43; haven't yet been exercised on a real WD with a
-  `domain.slug.RN` artifact_dep.
+**Active plan on pause — see WIP.md for full 9-item stack.**
+The session ended after item 1 (GSD audit) with PR #49 merged. `/ideate
+continue` resumes from item 2. Summary of the stack in priority order:
 
-- **Release v0.14.1 for `/curate` drift detection** when there's enough
-  to batch. `.changelog-staging.md` already seeded. No urgency — jlsm is
-  consuming v0.14.0 first.
+1. ~~GSD feature audit~~ — **done 2026-04-21** (PR #49)
+2. **v0.14.1 release** — next action. `.changelog-staging.md` already has
+   the `/curate` drift entry seeded. Trivial `/release` invocation.
+3. Marketplace submission currency check — user-driven; Nathan to confirm
+   whether the pending submission is pinned to v0.13.x.
+4. **Security-aware analysis lens** — targeted `/audit` lens for
+   adversary-model bug classes (timing channels, IV reuse, ciphertext
+   integrity) that generic lenses miss. Triggered by the jlsm encryption
+   audit empirical data.
+5. **Fix 4 critical spec-layer gaps** — feature-implement spec awareness,
+   feature-refactor spec awareness, spec-write two-file invalidation,
+   work-decompose spec state validation.
+6. Partial implementation state model (depends on data from jlsm WDs in
+   progress; revisit once 2-3 have run).
+7. Fix 6 pipeline failure patterns.
+8. Distributed work layer (deferred — team-mode feature).
+9. #45 cosmetic `upgrade.sh` output bug (low priority).
 
-- **telefrek/vallorcine#45** (cosmetic) — `upgrade.sh` emits misleading
-  "skip … refusing to remove" lines for files that are correctly in
-  MANIFEST. Fix when revisiting upgrade.sh for any reason.
+**Positioning shift to encode across user-facing docs** (README,
+EXAMPLES.md, landing content) when time permits: emphasize the
+depth-of-spec-rigor axis (lifecycle, displacement, audit integration,
+computed readiness) over the "spec-driven" label. GSD owns the
+spec-driven label at 55K+ stars.
 
 ### Do soon (medium effort, clear designs)
 
