@@ -5,6 +5,29 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.14.2] — 2026-04-22
+
+### Added
+- **`/audit` security lens** — adversary-model bug classes (info flow, auth,
+  injection, crypto, config sensitivity) activate automatically when a cluster
+  touches crypto APIs, credential stores, PII handling, auth paths, or input
+  boundaries. Findings are split into TESTABLE (routed through prove-fix) and
+  ADVISORY (non-functional properties flagged for user review). (#53)
+- **`/audit` FIX_IMPOSSIBLE escalation** — when prove-fix cannot satisfy a
+  finding under current spec constraints, the audit pipeline surfaces a
+  relaxation request with a structured escalation report; the finding stays
+  FIX_IMPOSSIBLE but is recorded as a spec obligation referencing the request. (#51)
+- **`/spec-write` quantitative ambiguity gate** — `spec-ambiguity-score.sh`
+  scores a spec on token/heuristic ambiguity before registration, blocking
+  specs that exceed the threshold. (#52)
+- **`/work-start --parallel [N]`** — start every SPECIFIED work definition
+  concurrently, optionally capping at N concurrent sub-agents. (#54)
+
+### Changed
+- DESIGN.md scripts manifest now lists `spec-ambiguity-score.sh`.
+
+---
+
 ## [0.14.1] — 2026-04-21
 
 ### Added
