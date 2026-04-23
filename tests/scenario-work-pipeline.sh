@@ -214,10 +214,10 @@ echo "── Test 5: WD completion triggers readiness cascade"
 # Complete WD-01 and create the spec it produces
 sed -i 's/^status: IN_PROGRESS/status: COMPLETE/' .work/auth-migration/WD-01.md
 
-cat > .spec/domains/auth/F01-jwt-token-contract.md << 'EOF'
+cat > .spec/domains/auth/jwt-token-contract.md << 'EOF'
 ---
 {
-  "id": "F01",
+  "id": "auth/jwt-token-contract",
   "version": 1,
   "status": "ACTIVE",
   "state": "APPROVED",
@@ -230,7 +230,7 @@ cat > .spec/domains/auth/F01-jwt-token-contract.md << 'EOF'
 }
 ---
 
-# F01 — JWT Token Contract
+# JWT Token Contract
 
 ## Requirements
 R1. JWT tokens created with configurable claims.
@@ -241,18 +241,23 @@ R1. JWT tokens created with configurable claims.
 Token format.
 EOF
 
+# v2 manifest schema — `specs` array keyed by domain-slug IDs. v1's
+# `features{}` object keyed by "FNN" IDs cannot resolve v2-style
+# artifact_deps like `auth/jwt-token-contract`.
 cat > .spec/registry/manifest.json << 'EOF'
 {
+  "schema_version": 2,
   "domains": {
     "auth": { "description": "authentication", "feature_count": 1 }
   },
-  "features": {
-    "F01": {
-      "latest_file": "domains/auth/F01-jwt-token-contract.md",
+  "specs": [
+    {
+      "id": "auth/jwt-token-contract",
+      "path": "domains/auth/jwt-token-contract.md",
       "state": "APPROVED",
       "domains": ["auth"]
     }
-  }
+  ]
 }
 EOF
 
@@ -329,15 +334,75 @@ else
 fi
 
 # ── Test 10: Validate all WDs still pass validation after status changes ─────
+#
+# work-validate.sh resolves artifact_dep references against the manifest
+# (commit 2e15cdc). WD-02 declared `produces: auth/token-validator` and
+# WD-03 depends on it with required_state: APPROVED. Completing WD-02 in
+# production registers the produced spec — mirror that here so Test 10 is
+# checking validation against a realistic end-state, not a half-registered one.
+
+cat > .spec/domains/auth/token-validator.md << 'EOF'
+---
+{
+  "id": "auth/token-validator",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["auth"],
+  "requires": [],
+  "invalidates": [],
+  "decision_refs": [],
+  "kb_refs": [],
+  "open_obligations": []
+}
+---
+
+# Token Validator
+
+## Requirements
+R1. Interface contract for validating JWT tokens in middleware.
+
+---
+
+## Design Narrative
+Interface-contract spec produced by WD-02.
+EOF
+
+cat > .spec/registry/manifest.json << 'EOF'
+{
+  "schema_version": 2,
+  "domains": {
+    "auth": { "description": "authentication", "feature_count": 2 }
+  },
+  "specs": [
+    {
+      "id": "auth/jwt-token-contract",
+      "path": "domains/auth/jwt-token-contract.md",
+      "state": "APPROVED",
+      "domains": ["auth"]
+    },
+    {
+      "id": "auth/token-validator",
+      "path": "domains/auth/token-validator.md",
+      "state": "APPROVED",
+      "domains": ["auth"]
+    }
+  ]
+}
+EOF
 
 echo ""
 echo "── Test 10: WDs valid after status lifecycle changes"
 
 all_valid=true
 for wd in .work/auth-migration/WD-*.md; do
-    output="$(bash .claude/scripts/work-validate.sh "$wd" 2>&1)"
-    if ! echo "$output" | grep -q "PASS"; then
-        fail "validation failed for $(basename "$wd")" "got: $output"
+    if output="$(bash .claude/scripts/work-validate.sh "$wd" 2>&1)"; then
+        if ! echo "$output" | grep -q "PASS"; then
+            fail "validation failed for $(basename "$wd")" "got: $output"
+            all_valid=false
+        fi
+    else
+        fail "validation exited nonzero for $(basename "$wd")" "got: $output"
         all_valid=false
     fi
 done

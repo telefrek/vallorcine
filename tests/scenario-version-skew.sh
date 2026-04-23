@@ -88,7 +88,7 @@ git -C "$PROJECT" commit -m "start feature work" >/dev/null 2>&1
 git -C "$PROJECT" checkout main >/dev/null 2>&1
 echo "99.99.99" > "$PROJECT/.claude/.vallorcine-version"
 # Add a marker to a command file to detect staleness
-echo "# upgraded-marker" >> "$PROJECT/.claude/commands/quick.md"
+echo "# upgraded-marker" >> "$PROJECT/.claude/skills/feature-quick/SKILL.md"
 git -C "$PROJECT" add -A
 git -C "$PROJECT" commit -m "upgrade vallorcine to v99.99.99" >/dev/null 2>&1
 
@@ -110,9 +110,9 @@ else
     fail "versions should differ" "both are $BRANCH_STAMP"
 fi
 
-# Check that the command file on the branch lacks the upgrade marker
-if ! grep -q "upgraded-marker" "$PROJECT/.claude/commands/quick.md" 2>/dev/null; then
-    pass "feature branch has stale command files"
+# Check that the skill file on the branch lacks the upgrade marker
+if ! grep -q "upgraded-marker" "$PROJECT/.claude/skills/feature-quick/SKILL.md" 2>/dev/null; then
+    pass "feature branch has stale skill files"
 else
     fail "feature branch should have stale files" "upgrade marker found"
 fi
@@ -136,11 +136,11 @@ else
     fail "upgrade should set version to $VERSION" "got: $NEW_STAMP"
 fi
 
-# Verify command files were updated
-if [[ -f "$PROJECT/.claude/commands/quick.md" ]]; then
-    pass "command files present after upgrade"
+# Verify skill files were updated
+if [[ -f "$PROJECT/.claude/skills/feature-quick/SKILL.md" ]]; then
+    pass "skill files present after upgrade"
 else
-    fail "command files should exist after upgrade"
+    fail "skill files should exist after upgrade"
 fi
 
 # ── Assert: version comparison works correctly ───────────────────────────────
