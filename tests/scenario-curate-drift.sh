@@ -60,6 +60,7 @@ mkdir -p "$PROJECT/.claude/scripts" "$PROJECT/src/schema" "$PROJECT/tests/schema
 mkdir -p "$PROJECT/.spec/registry" "$PROJECT/.spec/domains/schema"
 
 cp "$REPO_ROOT/scripts/curate-scan.sh" "$PROJECT/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$PROJECT/.claude/scripts/"
 cp "$REPO_ROOT/scripts/spec-trace.sh" "$PROJECT/.claude/scripts/"
 chmod +x "$PROJECT/.claude/scripts/spec-trace.sh"
 
@@ -285,6 +286,7 @@ mkdir -p "$OB_PROJECT/.claude/scripts"
 mkdir -p "$OB_PROJECT/.spec/registry" "$OB_PROJECT/.spec/domains/widgets"
 
 cp "$REPO_ROOT/scripts/curate-scan.sh" "$OB_PROJECT/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$OB_PROJECT/.claude/scripts/"
 
 cat > "$OB_PROJECT/.spec/registry/manifest.json" << 'REGEOF'
 {
@@ -465,6 +467,7 @@ mkdir -p "$V1_PROJECT/.claude/scripts" "$V1_PROJECT/src"
 mkdir -p "$V1_PROJECT/.spec/registry" "$V1_PROJECT/.spec/domains/legacy"
 
 cp "$REPO_ROOT/scripts/curate-scan.sh" "$V1_PROJECT/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$V1_PROJECT/.claude/scripts/"
 cp "$REPO_ROOT/scripts/spec-trace.sh" "$V1_PROJECT/.claude/scripts/"
 chmod +x "$V1_PROJECT/.claude/scripts/spec-trace.sh"
 
@@ -529,6 +532,7 @@ cd "$REPO_ROOT"
 NO_SPEC="$TEST_BASE/project-no-spec"
 mkdir -p "$NO_SPEC/.claude/scripts"
 cp "$REPO_ROOT/scripts/curate-scan.sh" "$NO_SPEC/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$NO_SPEC/.claude/scripts/"
 
 cd "$NO_SPEC"
 git init -q --initial-branch=main .
