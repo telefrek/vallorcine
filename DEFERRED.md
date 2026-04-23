@@ -167,6 +167,19 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
 - **KB cross-referencing** — reverse mapping from decisions to KB entries. One-way
   (KB → decisions) exists in `/kb query`. Low urgency until KB is large enough.
 
+- **Flaky-test surfacing in `/feature-retro`** (2026-04-23) — retro phase
+  scans per-unit and feature-level `cycle-log.md` for flakiness signals
+  ("timed out on first run", "passed on rerun", "flaky", "retry") and
+  emits a dedicated "Flaky tests observed" section in the retro summary
+  so the user can triage rather than discover them by reading the full
+  log. Motivated by the 2026-04-23 WU-3 run, which noted a pre-existing
+  `SharedStateAdversarialTest` timeout-then-pass in jlsm that would
+  otherwise be buried. Open shape questions: how to distinguish "flaky
+  in this feature's test surface" from "pre-existing flaky that the run
+  happened to touch" — probably a frontmatter field on the surfaced
+  entry rather than a guess. Pairs well with (but is not blocked by)
+  retro's existing stage summary structure.
+
 - **Internal research KB for vallorcine development** — ~~structure and capture
   mechanism~~ **done** (2026-03-26): `.claude/research/` directory + /save-work
   Step 3.5 learnings capture. Remaining: bootstrap by scanning recent session
