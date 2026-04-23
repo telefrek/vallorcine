@@ -431,6 +431,177 @@ else
     fail "F01 should load even when F99 is unknown" "got: $output_mixed"
 fi
 
+# ── Test 12-16: v2 manifest schema compatibility ────────────────────────────
+# Regression for the v2 migration gap (post-2026-04-20): spec-resolve.sh
+# previously used `.features | keys[]` and `.domains | keys[]` jq queries
+# that return null on a v2 manifest, causing `set -euo pipefail` failures
+# and spurious NEEDS_DOMAIN_INFERENCE emissions.
+
+echo ""
+echo "── v2 manifest compatibility ────────────────────"
+
+V2_ROOT="$TEST_BASE/project-v2"
+mkdir -p "$V2_ROOT/.spec/registry" "$V2_ROOT/.spec/domains/serialization"
+mkdir -p "$V2_ROOT/.claude/scripts"
+cp "$REPO_ROOT/scripts/spec-resolve.sh" "$V2_ROOT/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$V2_ROOT/.claude/scripts/"
+
+# v2 manifest: .specs[] array, .path instead of .latest_file, no .domains map.
+cat > "$V2_ROOT/.spec/registry/manifest.json" << 'EOF'
+{
+  "schema_version": 2,
+  "generated_at": "2026-04-23T00:00:00Z",
+  "spec_count": 2,
+  "specs": [
+    {
+      "id": "serialization.yaml-support",
+      "path": ".spec/domains/serialization/yaml-support.md",
+      "state": "APPROVED",
+      "version": 1,
+      "domains": ["serialization"],
+      "requires": [],
+      "invalidates": [],
+      "decision_refs": [],
+      "kb_refs": []
+    },
+    {
+      "id": "serialization.json-parsing",
+      "path": ".spec/domains/serialization/json-parsing.md",
+      "state": "APPROVED",
+      "version": 1,
+      "domains": ["serialization"],
+      "requires": [],
+      "invalidates": [],
+      "decision_refs": [],
+      "kb_refs": []
+    }
+  ]
+}
+EOF
+
+cat > "$V2_ROOT/.spec/domains/serialization/yaml-support.md" << 'EOF'
+---
+{
+  "id": "serialization.yaml-support",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["serialization"],
+  "amends": [],
+  "amended_by": [],
+  "requires": [],
+  "invalidates": [],
+  "decision_refs": [],
+  "kb_refs": [],
+  "open_obligations": []
+}
+---
+
+# serialization.yaml-support — YAML Support
+
+## Requirements
+R1. The serialization layer must accept YAML input.
+EOF
+
+cat > "$V2_ROOT/.spec/domains/serialization/json-parsing.md" << 'EOF'
+---
+{
+  "id": "serialization.json-parsing",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["serialization"],
+  "amends": [],
+  "amended_by": [],
+  "requires": [],
+  "invalidates": [],
+  "decision_refs": [],
+  "kb_refs": [],
+  "open_obligations": []
+}
+---
+
+# serialization.json-parsing — JSON Parsing
+
+## Requirements
+R1. The serialization layer must accept JSON input.
+EOF
+
+cd "$V2_ROOT"
+
+# ── Test 12: v2 manifest — no jq error under set -euo pipefail ──────────────
+
+echo ""
+echo "── Test 12: v2 manifest produces no jq null-has-no-keys error"
+
+v2_stderr="$(bash .claude/scripts/spec-resolve.sh "serialization format" 8000 2>&1 >/dev/null)"
+if echo "$v2_stderr" | grep -q "null (null) has no keys"; then
+    fail "v2 manifest must not trigger jq null-traversal error" "stderr: $v2_stderr"
+else
+    pass "v2 manifest does not emit jq schema-mismatch error"
+fi
+
+# ── Test 13: v2 manifest — domain name matching works ──────────────────────
+
+echo ""
+echo "── Test 13: v2 fuzzy match finds specs by domain name"
+
+v2_output="$(bash .claude/scripts/spec-resolve.sh "serialization format" 8000 2>/dev/null)"
+if echo "$v2_output" | grep -q "serialization.yaml-support" \
+    && echo "$v2_output" | grep -q "serialization.json-parsing"; then
+    pass "v2 fuzzy match loads both specs by domain name"
+else
+    fail "v2 fuzzy match should surface both specs" "got: $v2_output"
+fi
+
+# ── Test 14: v2 manifest — NEEDS_DOMAIN_INFERENCE graceful fallback ────────
+# Feature description with no domain-name hits should cleanly fall through
+# to the inference-needed path (not die with a jq error).
+
+echo ""
+echo "── Test 14: v2 NEEDS_DOMAIN_INFERENCE fallback is graceful"
+
+v2_nomatch_stderr="$(bash .claude/scripts/spec-resolve.sh "completely unrelated thing" 8000 2>&1 >/dev/null)"
+v2_nomatch_stdout="$(bash .claude/scripts/spec-resolve.sh "completely unrelated thing" 8000 2>/dev/null)"
+if echo "$v2_nomatch_stderr" | grep -q "NEEDS_DOMAIN_INFERENCE=true"; then
+    pass "NEEDS_DOMAIN_INFERENCE=true signal emitted"
+else
+    fail "should emit NEEDS_DOMAIN_INFERENCE on no match" "stderr: $v2_nomatch_stderr"
+fi
+
+if echo "$v2_nomatch_stdout" | grep -q "serialization"; then
+    pass "available-domains list includes v2 domain"
+else
+    fail "partial bundle should list v2 domains" "stdout: $v2_nomatch_stdout"
+fi
+
+# ── Test 15: v2 manifest — EXPLICIT_SPEC_IDS with domain.slug format ───────
+
+echo ""
+echo "── Test 15: EXPLICIT_SPEC_IDS works with v2 domain.slug IDs"
+
+v2_explicit="$(EXPLICIT_SPEC_IDS="serialization.yaml-support" \
+    bash .claude/scripts/spec-resolve.sh "anything" 8000 2>/dev/null)"
+if echo "$v2_explicit" | grep -q "serialization.yaml-support"; then
+    pass "explicit domain.slug ID resolves in v2 manifest"
+else
+    fail "explicit ID should load in v2" "got: $v2_explicit"
+fi
+
+# ── Test 16: v2 manifest — OVERRIDE_DOMAINS selects from v2 specs ──────────
+
+echo ""
+echo "── Test 16: OVERRIDE_DOMAINS filters v2 specs correctly"
+
+v2_override="$(OVERRIDE_DOMAINS="serialization" \
+    bash .claude/scripts/spec-resolve.sh "x" 8000 2>/dev/null)"
+if echo "$v2_override" | grep -q "serialization.yaml-support" \
+    && echo "$v2_override" | grep -q "serialization.json-parsing"; then
+    pass "OVERRIDE_DOMAINS loads both v2 specs"
+else
+    fail "OVERRIDE_DOMAINS should load serialization specs" "got: $v2_override"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""
