@@ -668,6 +668,49 @@ fi
 rm -rf "$TEST_BASE/project/.work/resolve-group"
 rm -rf "$TEST_BASE/project/.spec"
 
+# ── Test 18: produces: accepts slug: for ADR artifacts ──────────────────────
+#
+# jlsm dry-run (2026-04-24) surfaced a parser asymmetry: work_fm_artifact_deps
+# accepts { type: adr, slug: "..." } / { ref: "..." } / { path: "..." } but
+# work_fm_produces only accepted path:. Real-world ADR produces entries use
+# slug: (matches .decisions/<slug>/adr.md layout), so 78 false-alarm
+# "missing path for adr artifact" errors were raised across jlsm's
+# decisions-backlog group. Both parsers must agree on identifier shape.
+
+echo ""
+echo "── Test 18: produces: slug: accepted for ADR artifacts"
+
+mkdir -p "$TEST_BASE/project/.work/produces-group"
+cat > "$TEST_BASE/project/.work/produces-group/WD-01.md" << 'EOF'
+---
+id: WD-01
+title: ADR-producing WD using slug identifier
+group: produces-group
+status: DRAFT
+domains: [decisions]
+produces:
+  - { type: adr, slug: "token-format" }
+  - { type: adr, ref: "session-storage" }
+  - { type: spec, path: "auth/jwt-token-contract" }
+---
+
+## Summary
+Test.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-validate.sh .work/produces-group/WD-01.md 2>&1 || true)"
+if echo "$output" | grep -q "PASS" \
+   && ! echo "$output" | grep -q "missing path"; then
+    pass "produces: accepts slug: and ref: for ADR entries"
+else
+    fail "produces: with slug: / ref: must validate clean" "got: $output"
+fi
+
+rm -rf "$TEST_BASE/project/.work/produces-group"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

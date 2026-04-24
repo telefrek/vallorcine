@@ -169,6 +169,9 @@ work_fm_artifact_deps() {
 
 # ── Extract produces as structured records ───────────────────────────────────
 # Same format as artifact_deps output: type|path|state|kind
+# Accepts path:, slug:, or ref: as the identifier — ADR produces conventionally
+# use slug: (matches .decisions/<slug>/adr.md layout), while spec produces use
+# path:. Mirrors work_fm_artifact_deps so the two parsers agree on shape.
 work_fm_produces() {
   local file="$1"
   awk '
@@ -181,7 +184,7 @@ work_fm_produces() {
           line = $0
           sub(/^  - \{[ ]*/, "", line)
           sub(/\}[ ]*$/, "", line)
-          dep_type = ""; dep_path = ""; kind = ""
+          dep_type = ""; dep_path = ""; dep_slug = ""; kind = ""
           n_fields = split(line, fields, ",")
           for (i = 1; i <= n_fields; i++) {
             gsub(/^[ ]+|[ ]+$/, "", fields[i])
@@ -196,9 +199,12 @@ work_fm_produces() {
             gsub(/^["'"'"']|["'"'"']$/, "", val)
             if (kv[1] == "type") dep_type = val
             else if (kv[1] == "path") dep_path = val
+            else if (kv[1] == "slug") dep_slug = val
+            else if (kv[1] == "ref") dep_path = val
             else if (kv[1] == "kind") kind = val
           }
-          print dep_type "|" dep_path "||" kind
+          ref = (dep_path != "") ? dep_path : dep_slug
+          print dep_type "|" ref "||" kind
         } else if ($0 !~ /^  /) {
           in_prod = 0
         }
