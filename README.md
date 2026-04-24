@@ -345,6 +345,19 @@ bash install.sh --diff /path/to/your/project
 
 ---
 
+## New here? Read this first
+
+- **[GETTING-STARTED.md](GETTING-STARTED.md)** — the mental model: how
+  KB / ADRs / specs / features relate, the feature pipeline in plain
+  language, when work groups apply, and a "what to run when" decision
+  tree.
+- **[GETTING-STARTED-EXISTING.md](GETTING-STARTED-EXISTING.md)** — how
+  to bring vallorcine into a codebase that already has real history.
+  `/curate --init`, the lazy-spec rule, realistic Day 1 / Week 1 /
+  Month 1 / Month 3 progression, and common pitfalls.
+
+---
+
 ## Usage
 
 **New feature (full pipeline):**
