@@ -22,11 +22,13 @@ state of the project — what's happening now and what's next.
 
 *Last updated: 2026-04-24*
 
-**v0.14.3 shipped (main@`f23cc79`). Active branch `fix/kb-scan-actionable`
-— three coordinated fixes that make `.kb/` actionable across the
-coordinator, audit Suspect, and audit prove-fix. PR not yet opened; two
-follow-on investigations running on the same jlsm session (other
-workflow deviations, audit cost-per-bug) before cutting the PR.**
+**PR #59 merged (v0.14.4 + Phase A/B/C + /work-status routing).
+Follow-up PR open on `fix/work-layer-followups` — bundles Gap 4
+(cross-group deps via `external_deps:`) + Gap 3 (/work-plan and
+/feature-domains honour the group envelope). Two commits, 36/36
+scenario tests green, 59/59 install tests green. jlsm migration of
+`implement-membership` to `external_deps:` deferred to post-release —
+jlsm needs the upgraded kit first.**
 
 ### What's shipped since 2026-04-21
 
@@ -176,55 +178,43 @@ exists, not yet coded. No tag = needs both design and implementation.*
 
 ### Do next
 
-**Wrap the `fix/kb-scan-actionable` investigation, then open the PR.**
+**Merge the work-layer-followups PR, cut a release, then migrate
+jlsm's `implement-membership` cross-group dep.**
 
-The morning's WIP framing (KB isn't being loaded) was half-right. The
-shipped fix covers three distinct failure modes uncovered empirically
-on jlsm session `763f30a6-4194-4137-812f-97502540135e`:
+Gap 3 + Gap 4 from the original `/ideate continue` WIP are landed on
+`fix/work-layer-followups` (2 commits). Once merged and released, jlsm
+can upgrade the kit and the prose cross-group-dep declaration in
+`.work/implement-membership/work.md` can be replaced with an
+`external_deps:` entry. Also archive `implement-sstable-enhancements`
+(all WDs COMPLETE per prior session notes — verify and archive).
 
-| Surface | Subagents | Empirical finding | Fix shipped |
-|---|---:|---|---|
-| WU-TDD coordinator dispatch | 4 | All 4 dispatch prompts omit Step 8 entirely (zero KB keywords across 39K chars) | `/feature-coordinate` Step 1a now carries a **KB tendency-scan contract (MANDATORY)** fragment; Step 8 is MANDATORY with `tendency-scan-complete` substage + cycle-log append; coordinator-side verification greps for evidence post-return |
-| Audit Suspect | 27 | KB *does* flow through to packet (17/17 have KB content) — Suspect treats it as passive reference, not attack vectors; 2/95 findings cite KB | `suspect.md` adds a KB attack-pattern sweep step; finding schema gets `KB refs:`; summary reports `KB-driven` count |
-| Audit prove-fix | 83 | `prove-fix.md` has zero KB integration; 0/95 outputs cite KB | `prove-fix.md` Phase 1a1 KB fix-pattern lookup; `kb_refs` input/output; orchestrator forwards `kb_refs` per finding |
+**Shipped in v0.14.4 (2026-04-24):** KB actionable across coordinator /
+suspect / prove-fix, and prove-fix Phase 0c upstream-mitigation
+short-circuit. Empirical baseline on jlsm audit: $14.03/finding
+(95 findings, $1,333), projected floor ~$11/finding once fixes soak.
+Full narrative in SETTLED.md once graduated; summary preserved in
+git history via PR #58 + PR #59.
 
-The workflow-deviation scan also surfaced **D4: Phase 0 short-circuit
-bypassed for upstream-mitigated findings** — 16 of 36 IMPOSSIBLE
-returns on the jlsm run were mitigated by a prior prove-fix's upstream
-guard, but Phase 0 only checked the local construct and the agent went
-through full Phase 1 anyway. Bundled on this branch: `prove-fix.md`
-Phase 0 budget raised 2 → 4 turns, new 0c "upstream-mitigation check"
-reads up to 2 sibling `prove-fix-*.md` outputs and short-circuits to
-`IMPOSSIBLE / UPSTREAM_MITIGATED` when a caller-side guard blocks the
-attack path.
-
-Status: 22/22 regression invariants pass, 59/59 install tests pass,
-all related audit scenarios green (lens-security 23/23, state-gate 5/5,
-wontfix-obligation 5/5, aggregate-results 32/32, check-test-coverage
-13/13, dedup-findings 12/12), no regressions on hang-prevention
-scenario (10/10).
-
-**Cost-per-bug snapshot (Opus 4.7 API rates):** jlsm audit total
-$1,333, 95 findings, **$14.03/finding** (on trend with 7-audit historical
-$13.61 avg). Prove-fix is 82% of audit-subagent cost. D4 targets ~11%
-prove-fix waste (~$86/audit at this size); KB-actionable fixes
-(D1-D3) target another ~15-25% of findings that should pre-clear.
-Combined ceiling: projected $/finding floor ~$11 on audits with
-similar KB density.
-
-Non-findings verified: the initial "Suspect writing test files" signal
-was a classifier bug (prove-fix dispatch prompts reference
-`Suspect: <filename>`); TodoWrite discipline holding (0 subagent
-violations). Context thrash (D5 — 37/126 agents re-read same file 5+
-times) is intentional per the re-read-before-edit protocol; revisit
-only if post-D4 cost data shows it's still material.
-
-**Next: open the PR.**
+**Landed on fix/work-layer-followups (not yet released):**
+- **Gap 4** — `external_deps:` on `work.md` lets a group declare that
+  all its WDs are BLOCKED until a sibling group reaches COMPLETE.
+  `scripts/work-resolve.sh` applies the gate to DRAFT and SPECIFIED
+  WDs; IMPLEMENTING/COMPLETE/SPECIFYING are left alone.
+  `scripts/work-validate.sh` checks shape and referenced-group
+  existence, and now rejects cross-group `wd:` artifact_deps so
+  validate and runtime agree on what's reachable.
+  Tests: `scenario-work-cross-group-deps.sh` (11/11).
+- **Gap 3** — `/work-plan` Step 4a brief template has an AUTHORITATIVE
+  "Group Envelope" section. `/feature-domains` Step 2 reads it,
+  classifies envelope-covered domains as `resolved` without a fresh
+  `/architect` dispatch, and escalates WD-local contradictions back to
+  `/work-decompose` via a new `escalate-decompose` classification.
+  `/work-plan` Step 5b dedupes spec authoring against the envelope.
+  Tests: 5 new invariants in `scenario-work-layer-alignment.sh` (25/25).
 
 **Positioning shift (still outstanding — carries over from v0.14.3):**
 emphasize depth-of-spec-rigor axis over the "spec-driven" label across
-user-facing docs. Not a blocker for the current PR; bundle with the
-next docs pass.
+user-facing docs. Bundle with the next docs pass.
 
 ### Do soon (medium effort, clear designs)
 
