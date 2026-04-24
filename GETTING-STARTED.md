@@ -31,6 +31,25 @@ directory and its own lifecycle.
 .feature/    — active feature work (what we're building right now)
 ```
 
+A fifth directory, `.capabilities/`, is a lightweight index of what the
+project can do — searchable by natural language, useful for "do we
+support X?" questions and as input to future feature scoping. It's
+created alongside the four layers but isn't part of the core mental
+model.
+
+### When each layer gets created
+
+`/setup-vallorcine` bootstraps `.kb/`, `.decisions/`, `.capabilities/`,
+and `.feature/` in one shot on first install. `.spec/` is deliberately
+*not* created by `/setup-vallorcine` — specs are opt-in. When you're
+ready to start writing specs for a feature area, run `/spec-init` once
+to initialize the spec registry, then use `/spec-author` per feature.
+This matches the lazy-spec philosophy: the spec layer has real
+ergonomic cost, and you don't want it active until you have behavior
+worth specifying. See
+[GETTING-STARTED-EXISTING.md](GETTING-STARTED-EXISTING.md) for the
+incremental-adoption path on brownfield projects.
+
 Think of them as the four questions a mature project has to answer:
 
 | Layer | Answers | Written by | Read by |
@@ -303,13 +322,17 @@ Not sure?
 
 If you just installed vallorcine on a fresh project:
 
-1. Run `/setup-vallorcine` — creates `.kb/`, `.decisions/`, `.spec/`,
-   `.feature/`, and the project config.
+1. Run `/setup-vallorcine` — creates `.kb/`, `.decisions/`,
+   `.capabilities/`, `.feature/`, and the project config. `.spec/` is
+   not created yet; run `/spec-init` separately when you're ready to
+   start writing specs.
 2. Run `/vallorcine-help` — get a guided tour of what each concern does.
 3. Pick a small first feature and run `/feature-quick "<description>"`
    — learn the rhythm before you commit to the full pipeline.
 4. Once you have one feature under your belt, run `/feature` on a
-   normal-sized change and watch how specs/tests/code connect.
+   normal-sized change and watch how domain analysis, tests, and code
+   connect — and run `/spec-init` when that feature introduces
+   behavior worth specifying.
 
 If you installed on an existing codebase that already has significant
 history, read [GETTING-STARTED-EXISTING.md](GETTING-STARTED-EXISTING.md)
