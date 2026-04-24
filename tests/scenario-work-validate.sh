@@ -638,12 +638,19 @@ else
 fi
 
 echo ""
-echo "── Test 17: wd artifact_dep with status mismatch fails"
+echo "── Test 17: wd artifact_dep state mismatch is NOT a validation FAIL"
+#
+# wd: deps describe the eventual ordering between siblings in a group. At
+# any moment some siblings are upstream and some downstream — that's the
+# normal mid-flight state, not a structural error. The resolver surfaces
+# this as BLOCKED with a clear reason; the validator must not double-report.
+# Earlier versions of this test asserted the inverted behavior and made
+# fresh decompose output appear FAILED.
 
 cat > "$TEST_BASE/project/.work/resolve-group/WD-05.md" << 'EOF'
 ---
 id: WD-05
-title: Wants WD-01 COMPLETE but WD-01 is DRAFT
+title: Wants WD-01 COMPLETE but WD-01 is DRAFT (legitimate mid-flight state)
 group: resolve-group
 status: DRAFT
 domains: [auth]
@@ -659,10 +666,11 @@ Test.
 EOF
 
 output="$(bash .claude/scripts/work-validate.sh .work/resolve-group/WD-05.md 2>&1 || true)"
-if echo "$output" | grep -q "FAIL" && echo "$output" | grep -q "wd 'WD-01' has status 'DRAFT', required_status is 'COMPLETE'"; then
-    pass "wd artifact_dep with status mismatch fails"
+if echo "$output" | grep -q "PASS" \
+   && ! echo "$output" | grep -q "has status 'DRAFT'"; then
+    pass "wd state mismatch is not flagged as validation FAIL"
 else
-    fail "wd status mismatch should fail with clear message" "got: $output"
+    fail "validate must not FAIL on wd: state mismatch (resolver's job)" "got: $output"
 fi
 
 rm -rf "$TEST_BASE/project/.work/resolve-group"
@@ -710,6 +718,103 @@ else
 fi
 
 rm -rf "$TEST_BASE/project/.work/produces-group"
+
+# ── Test 19: spec dep accepts slash-path form ───────────────────────────────
+#
+# Surfaced during jlsm dry-run (2026-04-24): single-WD validate previously
+# used spec_file_for_id (ID-only), but resolve + decompose-invariant used
+# work_check_spec_dep's multi-strategy matcher (slash-paths). A WD with
+# `path: "engine/catalog-operations"` would PASS decompose-invariant but
+# FAIL single-WD validate as a "dead reference". Both must agree.
+
+echo ""
+echo "── Test 19: spec dep accepts slash-path form (validate parity with resolve)"
+
+mkdir -p "$TEST_BASE/project/.spec/domains/auth"
+mkdir -p "$TEST_BASE/project/.spec/registry"
+mkdir -p "$TEST_BASE/project/.work/path-style-group"
+
+cat > "$TEST_BASE/project/.spec/domains/auth/jwt-contract.md" << 'EOF'
+---
+{
+  "id": "auth.jwt-contract",
+  "version": 1,
+  "state": "APPROVED",
+  "status": "ACTIVE",
+  "domains": ["auth"]
+}
+---
+
+# auth.jwt-contract — JWT Contract
+
+## Requirements
+R1. JWT tokens must verify via the published public key.
+EOF
+
+cat > "$TEST_BASE/project/.spec/registry/manifest.json" << 'EOF'
+{
+  "schema_version": 2,
+  "specs": [
+    {"id": "auth.jwt-contract", "path": ".spec/domains/auth/jwt-contract.md", "state": "APPROVED"}
+  ]
+}
+EOF
+
+cat > "$TEST_BASE/project/.work/path-style-group/WD-01.md" << 'EOF'
+---
+id: WD-01
+title: Uses slash-path form for spec ref
+group: path-style-group
+status: DRAFT
+domains: [auth]
+artifact_deps:
+  - { type: spec, path: "auth/jwt-contract", required_state: APPROVED }
+---
+
+## Summary
+Test slash-path resolution.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-validate.sh .work/path-style-group/WD-01.md 2>&1 || true)"
+if echo "$output" | grep -q "PASS" \
+   && ! echo "$output" | grep -q "dead reference"; then
+    pass "single-WD validate accepts slash-path spec ref (parity with resolve)"
+else
+    fail "single-WD validate must accept slash-path spec refs" "got: $output"
+fi
+
+# State mismatch should still fire under slash-path form
+cat > "$TEST_BASE/project/.work/path-style-group/WD-02.md" << 'EOF'
+---
+id: WD-02
+title: Slash-path with wrong required_state
+group: path-style-group
+status: DRAFT
+domains: [auth]
+artifact_deps:
+  - { type: spec, path: "auth/jwt-contract", required_state: DRAFT }
+---
+
+## Summary
+Test.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-validate.sh .work/path-style-group/WD-02.md 2>&1 || true)"
+if echo "$output" | grep -q "FAIL" \
+   && echo "$output" | grep -q "state 'APPROVED', required_state is 'DRAFT'"; then
+    pass "single-WD validate state-mismatch under slash-path form"
+else
+    fail "slash-path form must still report state mismatches clearly" "got: $output"
+fi
+
+rm -rf "$TEST_BASE/project/.work/path-style-group"
+rm -rf "$TEST_BASE/project/.spec"
 
 # ── Summary ──────────────────────────────────────────────────────────────────
 

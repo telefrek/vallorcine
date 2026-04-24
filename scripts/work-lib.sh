@@ -272,11 +272,16 @@ work_list_groups() {
 }
 
 # ── Check if a spec artifact exists and is in required state ─────────────────
+# Accepts either a spec ID (e.g., "auth.jwt-contract", period form) or a
+# slash-path (e.g., "auth/jwt-contract"). The two forms are equivalent —
+# Strategy 0 tries the ID lookup first; Strategies 1-3 fall back to path
+# matching. validate and resolve both delegate here so single-WD validate
+# and decompose-invariant treat refs identically.
 # Returns 0 if met, 1 if not. Writes reason to stdout on failure.
 work_check_spec_dep() {
   local project_root="$1"
-  local spec_path="$2"       # e.g., "auth/jwt-token-contract"
-  local required_state="$3"  # e.g., "APPROVED"
+  local spec_path="$2"
+  local required_state="$3"
   local manifest="$project_root/.spec/registry/manifest.json"
 
   if [[ ! -f "$manifest" ]]; then
@@ -284,56 +289,64 @@ work_check_spec_dep() {
     return 1
   fi
 
-  # Search by multiple matching strategies against manifest features
   local found_file=""
   local found_state=""
 
-  # Extract domain and name from spec_path (e.g., "auth/jwt-token-contract")
-  local spec_domain="${spec_path%%/*}"
-  local spec_name="${spec_path##*/}"
+  # Strategy 0: spec_path is a literal spec ID. Direct manifest lookup.
+  local id_file
+  id_file=$(spec_file_for_id "$manifest" "$spec_path")
+  if [[ -n "$id_file" && -f "$id_file" ]]; then
+    found_file="$id_file"
+    found_state=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$id_file" \
+      | jq -r '.state // ""' 2>/dev/null || true)
+  fi
 
-  while IFS= read -r fid; do
-    # spec_file_for_id resolves the absolute path for both v1 and v2 manifests.
-    local absfile
-    absfile=$(spec_file_for_id "$manifest" "$fid")
-    [[ -z "$absfile" ]] && continue
-    # Re-derive the path relative to .spec/ for substring matching. Callers
-    # pass spec_path as "<domain>/<name>", so we match against the tail of the
-    # resolved path.
-    local latest="${absfile#"$project_root"/.spec/}"
+  # Strategies 1-3: slash-path matching. Iterate manifest IDs and substring-
+  # match the spec_path against each spec's relative file path. Used when
+  # callers pass "<domain>/<name>" rather than a registered ID.
+  if [[ -z "$found_file" ]]; then
+    local spec_domain="${spec_path%%/*}"
+    local spec_name="${spec_path##*/}"
 
-    local match=false
+    while IFS= read -r fid; do
+      local absfile
+      absfile=$(spec_file_for_id "$manifest" "$fid")
+      [[ -z "$absfile" ]] && continue
+      local latest="${absfile#"$project_root"/.spec/}"
 
-    # Strategy 1: exact substring match
-    [[ "$latest" == *"$spec_path"* ]] && match=true
+      local match=false
 
-    # Strategy 2: domain directory match + filename contains spec_name
-    if [[ "$match" != "true" ]]; then
-      local latest_basename="${latest##*/}"
-      latest_basename="${latest_basename%.md}"  # strip .md
-      if [[ "$latest" == *"/$spec_domain/"* && "$latest_basename" == *"$spec_name"* ]]; then
-        match=true
+      # Strategy 1: exact substring match
+      [[ "$latest" == *"$spec_path"* ]] && match=true
+
+      # Strategy 2: domain directory match + filename contains spec_name
+      if [[ "$match" != "true" ]]; then
+        local latest_basename="${latest##*/}"
+        latest_basename="${latest_basename%.md}"
+        if [[ "$latest" == *"/$spec_domain/"* && "$latest_basename" == *"$spec_name"* ]]; then
+          match=true
+        fi
       fi
-    fi
 
-    # Strategy 3: spec_name is a suffix of the filename (handles F01- prefix)
-    if [[ "$match" != "true" ]]; then
-      local latest_basename="${latest##*/}"
-      latest_basename="${latest_basename%.md}"
-      if [[ "$latest_basename" == *"-$spec_name" || "$latest_basename" == "$spec_name" ]]; then
-        match=true
+      # Strategy 3: spec_name is a suffix of the filename (handles F01- prefix)
+      if [[ "$match" != "true" ]]; then
+        local latest_basename="${latest##*/}"
+        latest_basename="${latest_basename%.md}"
+        if [[ "$latest_basename" == *"-$spec_name" || "$latest_basename" == "$spec_name" ]]; then
+          match=true
+        fi
       fi
-    fi
 
-    if [[ "$match" == "true" ]]; then
-      found_file="$absfile"
-      if [[ -f "$found_file" ]]; then
-        found_state=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$found_file" \
-          | jq -r '.state // ""' 2>/dev/null || true)
+      if [[ "$match" == "true" ]]; then
+        found_file="$absfile"
+        if [[ -f "$found_file" ]]; then
+          found_state=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$found_file" \
+            | jq -r '.state // ""' 2>/dev/null || true)
+        fi
+        break
       fi
-      break
-    fi
-  done < <(spec_manifest_ids "$manifest")
+    done < <(spec_manifest_ids "$manifest")
+  fi
 
   if [[ -z "$found_file" || ! -f "$found_file" ]]; then
     echo "spec not found: $spec_path"

@@ -115,18 +115,27 @@ validate_wd_file() {
             local manifest="$project_root/.spec/registry/manifest.json"
             if [[ ! -f "$manifest" ]]; then
               echo "  WARN: cannot verify spec '$dep_ref' — no .spec/registry/manifest.json" >&2
-            elif ! declare -f spec_file_for_id >/dev/null; then
-              echo "  WARN: cannot verify spec '$dep_ref' — spec-lib.sh not loaded" >&2
             else
-              local target
-              target="$(spec_file_for_id "$manifest" "$dep_ref")"
-              if [[ -z "$target" || ! -f "$target" ]]; then
-                errors+=("artifact_deps: spec '$dep_ref' not found in registry (dead reference)")
-              elif [[ -n "$dep_req_state" ]]; then
-                local actual
-                actual="$(fm "$target" '.state // ""')"
-                if [[ -n "$actual" && "$actual" != "$dep_req_state" ]]; then
-                  errors+=("artifact_deps: spec '$dep_ref' has state '$actual', required_state is '$dep_req_state'")
+              # Delegate to work_check_spec_dep so validate and resolve agree
+              # on what counts as a resolvable reference. Accepts both spec ID
+              # (period-style) and slash-path forms.
+              local spec_reason
+              spec_reason="$(work_check_spec_dep "$project_root" "$dep_ref" "$dep_req_state")" || true
+              if [[ -n "$spec_reason" ]]; then
+                if [[ "$spec_reason" == "spec not found"* ]]; then
+                  errors+=("artifact_deps: spec '$dep_ref' not found in registry (dead reference)")
+                elif [[ "$spec_reason" == *"need "* ]]; then
+                  # Re-format as "has state 'X', required_state is 'Y'" for the
+                  # established test contract.
+                  local actual_state
+                  actual_state="$(echo "$spec_reason" | sed -n "s/^spec [^ ]* is \(.*\) (need .*)$/\1/p")"
+                  if [[ -n "$actual_state" ]]; then
+                    errors+=("artifact_deps: spec '$dep_ref' has state '$actual_state', required_state is '$dep_req_state'")
+                  else
+                    errors+=("artifact_deps: spec '$dep_ref' state mismatch: $spec_reason")
+                  fi
+                else
+                  errors+=("artifact_deps: spec '$dep_ref': $spec_reason")
                 fi
               fi
             fi
@@ -146,6 +155,13 @@ validate_wd_file() {
             # to another group validates OK today but is unreachable at
             # runtime (scripts/work-resolve.sh populates its WD table from
             # the current group only), so catch the mismatch here.
+            #
+            # State mismatch (target WD's current status != required_state) is
+            # NOT a validation FAIL. wd: deps describe the eventual ordering;
+            # at any moment, some siblings are upstream and some are downstream
+            # of one another. scripts/work-resolve.sh surfaces this as BLOCKED
+            # with a clear reason. Double-reporting it as FAIL here was noisy
+            # for active groups and blocked legitimate fresh decompositions.
             if [[ ! -d "$project_root/.work" ]]; then
               echo "  WARN: cannot verify wd '$dep_ref' — no .work/ directory" >&2
             else
@@ -159,13 +175,6 @@ validate_wd_file() {
                 wd_id="$(work_fm "$wd_f" "id")"
                 if [[ "$wd_id" == "$dep_ref" ]]; then
                   wd_found=1
-                  if [[ -n "$dep_req_state" ]]; then
-                    local wd_status
-                    wd_status="$(work_fm "$wd_f" "status")"
-                    if [[ -n "$wd_status" && "$wd_status" != "$dep_req_state" ]]; then
-                      errors+=("artifact_deps: wd '$dep_ref' has status '$wd_status', required_status is '$dep_req_state'")
-                    fi
-                  fi
                   break
                 fi
               done < <(find "$current_group_dir" -maxdepth 1 -name "WD-*.md" 2>/dev/null)
