@@ -48,8 +48,13 @@ Process findings ONE AT A TIME. For each finding:
    - Suspect file: .feature/float16-vector-support/[suspect filename]
      (your finding only — [finding ID])
    - Cluster packet: .feature/float16-vector-support/[matching packet file]
+   - kb_refs: [comma-separated paths from the finding's `KB refs` field, or "none"]
    - Write output to: .feature/float16-vector-support/prove-fix-[short-id].md
    ```
+
+   Extract `kb_refs` from the Suspect finding's `**KB refs:**` line. When the
+   finding has `KB refs: none`, pass `kb_refs: none` verbatim. When it lists
+   paths, pass them comma-separated so prove-fix can read them in Phase 1a1.
 
    For the short-id in the output filename, use the finding ID with dots
    replaced by dashes (e.g., F-R5.cb.1.1 → prove-fix-F-R5-cb-1-1.md).
