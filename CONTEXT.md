@@ -22,8 +22,10 @@ state of the project — what's happening now and what's next.
 
 *Last updated: 2026-04-23*
 
-**v0.14.2 shipped. GSD-gap capabilities landed. Two fix branches held for
-PR review. Doc refresh + getting-started docs in progress this session.**
+**v0.14.2 shipped. GSD-gap capabilities landed. Post-v0.14.2 bundle
+(manifest-v2 compat + parallel-subagent hang prevention + doc refresh +
+getting-started guides) collapsed into a single PR on
+`chore/v0.14.3-bundle`.**
 
 ### What's shipped since 2026-04-21
 
@@ -57,50 +59,64 @@ PR review. Doc refresh + getting-started docs in progress this session.**
   `/curate` analysis 19 aging logic once past the threshold. Closes the
   last graveyard path for FIX_IMPOSSIBLE outcomes.
 
-### Two branches held for PR review
+### The v0.14.3 bundle (this PR on `chore/v0.14.3-bundle`)
 
-- **`fix/manifest-v2-schema-compat`** (commits `98f2e35` + `5570e9e`) —
-  dual-schema (v1 + v2) manifest compat across `spec-resolve.sh`,
-  `work-lib.sh`, `work-finalize.sh`, `curate-scan.sh`, `spec-stats.sh`.
-  Root cause: the 2026-04-20 spec migration flipped the manifest from
+Three workstreams collapsed into one PR for reviewability. Six commits:
+
+**Fixes:**
+- **`fix(spec): v2 manifest schema compatibility`** — dual-schema (v1 +
+  v2) manifest compat across `spec-resolve.sh`, `work-lib.sh`,
+  `work-finalize.sh`, `curate-scan.sh`, `spec-stats.sh`. Root cause:
+  the 2026-04-20 spec migration flipped the manifest from
   `{features: {FXX: ...}}` (v1) to `{schema_version: 2, specs: [...]}`
   (v2), and several read-path scripts were still hardcoded against v1
   keys — they silently failed under `set -euo pipefail` or fell through
   to `NEEDS_DOMAIN_INFERENCE=true` for every call, blocking
   `/work-start`, `/spec-write`, `/feature-plan`, `/feature-test`,
   `/spec-author`, and `/audit` on v2 repos. Added four dual-schema
-  manifest query helpers to `spec-lib.sh`. Second commit closes four
-  pre-existing scenario-test failures found during the same sweep.
-- **`fix/parallel-subagent-hang-prevention`** (commit `e1dc37a`) —
-  mode-gates every unconditional `AskUserQuestion` in the three
-  pipeline skills (`/feature-test`, `/feature-implement`,
-  `/feature-refactor`) so they bypass to `cycle-log.md` +
-  `escalated-<reason>` substage + `ESCALATED` return in parallel mode
-  instead of hanging on a missing human. Strengthens
-  `/feature-refactor`'s parallel-mode exit with an explicit
+  manifest query helpers to `spec-lib.sh`.
+- **`fix(tests): close four pre-existing scenario-test failures`** —
+  found during the manifest-v2 sweep, closed here per the
+  fix-now-not-defer rule: `scenario-index-verify` arithmetic bug,
+  `scenario-narrative` stale exit-code assertions, `scenario-version-skew`
+  legacy install-layout reference, `scenario-work-pipeline` v1-manifest
+  fixture paired with v2-style WD deps.
+- **`fix(pipeline): prevent parallel-subagent hangs`** — mode-gates
+  every unconditional `AskUserQuestion` in the three pipeline skills
+  (`/feature-test`, `/feature-implement`, `/feature-refactor`) so they
+  bypass to `cycle-log.md` + `escalated-<reason>` substage + `ESCALATED`
+  return in parallel mode instead of hanging on a missing human.
+  Strengthens `/feature-refactor`'s parallel-mode exit with an explicit
   termination contract ("your very next message MUST be the summary
   line — no more tools"). Adds Step 1a to `/feature-coordinate`
   documenting the subagent dispatch contract every coordinator must
-  embed. Root-caused from the 2026-04-23 jlsm WU-3 hang (subagent
-  wrote `status.md = COMPLETE` at 10:41:32, then kept running ~2 min
-  before the user had to Ctrl+C to unblock the coordinator).
-  Regression: `scenario-parallel-subagent-hang-prevention.sh` (10
-  structural invariants).
+  embed. Root-caused from the 2026-04-23 jlsm WU-3 hang (subagent wrote
+  `status.md = COMPLETE` at 10:41:32, then kept running ~2 min before
+  the user had to Ctrl+C). Regression:
+  `scenario-parallel-subagent-hang-prevention.sh` (10 structural
+  invariants).
 
-### This session — doc refresh + getting-started docs
-
-On branch `docs/getting-started-and-refresh`:
-1. **Doc freshness pass** — this edit and CONTEXT / SETTLED / DEFERRED
-   refresh to reflect state through v0.14.2 + the two held branches.
-2. **`GETTING-STARTED.md`** (new repo file, not shipped to user
-   projects) — for people landing on the GitHub repo: how the four
-   knowledge layers (KB / ADR / spec / code) relate, the feature
-   pipeline at a glance, work groups, decision tree for what to run.
-3. **`GETTING-STARTED-EXISTING.md`** (new repo file) — slow-adoption
-   path for existing codebases. Day 1 / week 1 / month 1 / month 3
-   progression anchored on `/setup-vallorcine` + `/curate --init`.
-4. `/vallorcine-help` gains a hint pointing new users at the
-   GitHub-hosted getting-started docs.
+**Documentation:**
+- **`docs: freshness pass through v0.14.2 + held branches`** — CONTEXT
+  refresh, 7 decisions graduated to SETTLED.md, DEFERRED marked
+  security-aware lens as done.
+- **`docs: add GETTING-STARTED + GETTING-STARTED-EXISTING guides`** —
+  two new repo-only onboarding docs (316 + 333 lines) for people
+  landing on the GitHub page. Not shipped via MANIFEST. README gains a
+  "New here?" link section; `/vallorcine-help` gains URL hints for
+  conceptual questions.
+- **`docs: spot-check fixes for EXAMPLES + COMPETITIVE + GETTING-STARTED`**
+  — corrected the `.spec/` bug I introduced in GETTING-STARTED (`.spec/`
+  is `/spec-init`-gated, not created by `/setup-vallorcine`); added
+  `/feature-harden` to the EXAMPLES.md walkthrough (was missing);
+  reconciled the split threshold in EXAMPLES to match SETTLED (~15K
+  tokens / 5+ constructs); added four new walkthrough sections to
+  EXAMPLES (parallel execution via `/feature-coordinate`, spec workflow,
+  standalone `/audit`, `/capabilities`); refreshed COMPETITIVE's "Closed
+  gaps" with the four v0.14.2 GSD-parity shipments and sharpened the
+  standalone-security-scanner boundary; added `/feature-harden` and
+  `/capabilities` to the `.claude/rules/kit-development.md` user-facing
+  command list.
 
 ---
 
@@ -139,7 +155,7 @@ snapshot-WD-DRAFT-status. See SETTLED.md.*
   substage, returning `ESCALATED`. Pairs with an explicit termination
   contract at `/feature-refactor`'s parallel-mode exit — the single-line
   summary *is* the return, no more tools after `status.md = complete`.
-  Shipped as `fix/parallel-subagent-hang-prevention` (held for PR).
+  Bundled in `chore/v0.14.3-bundle` (this PR).
 
 - **Dual-schema manifest compatibility is permanent, not transitional**
   (2026-04-23) — v1 manifests (`{features: {FXX: ...}}`) remain valid for
@@ -150,7 +166,7 @@ snapshot-WD-DRAFT-status. See SETTLED.md.*
   writes use v1 shape. Decision implication: we do NOT plan a forced
   migration window or auto-upgrade tool — v1 stays working indefinitely
   so projects can migrate (or not) at their own pace. Shipped as
-  `fix/manifest-v2-schema-compat` (held for PR).
+  bundled in `chore/v0.14.3-bundle` (this PR).
 
 *Live list — resolve into SETTLED.md or drop when addressed.*
 *Prioritised: do next → do soon → do when needed → do when scale demands it.*
@@ -159,20 +175,10 @@ exists, not yet coded. No tag = needs both design and implementation.*
 
 ### Do next
 
-**v0.14.3 bundle is accumulating.** Two branches held for PR review:
-`fix/manifest-v2-schema-compat` (dual-schema compat + 4 test fixes) and
-`fix/parallel-subagent-hang-prevention` (mode-gated AskUserQuestion +
-termination contract). After they merge, cut v0.14.3.
-
-**This session — documentation hardening** (branch
-`docs/getting-started-and-refresh`):
-1. Doc freshness (CONTEXT + SETTLED + DEFERRED) — in progress.
-2. `GETTING-STARTED.md` for repo visitors — explains knowledge layers,
-   feature pipeline, work groups, what to run when.
-3. `GETTING-STARTED-EXISTING.md` — slow-adoption path for brownfield
-   projects anchored on `/curate --init`.
-4. `/vallorcine-help` hint pointing to the repo docs for tutorial-style
-   onboarding.
+**Merge `chore/v0.14.3-bundle` (this PR), then cut v0.14.3.** The
+`.changelog-staging.md` entries for both fix commits are already in
+place; the doc changes are additive. After merge, `/release` will pick
+up the staged notes and bundle them.
 
 **Positioning shift to encode across user-facing docs** (README,
 EXAMPLES.md, landing content, the new getting-started docs): emphasize
