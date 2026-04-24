@@ -5,6 +5,135 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.15.0] — 2026-04-24
+
+Work-layer redesign. Two PRs: #59 ships `/work-decompose` Phase A/B/C
+plus `/work-status` state-routing; #60 adds cross-group dependencies,
+the Group Envelope handoff into `/work-plan`, and three pre-existing
+bug fixes surfaced empirically by exercising the kit end-to-end
+against a fresh work group on a local jlsm clone.
+
+### Added
+- **`external_deps:` frontmatter on `work.md`** declares cross-group
+  dependencies. A group with `external_deps: [{ type: group, ref:
+  "<other-group>", required_state: COMPLETE }]` reports every DRAFT
+  and SPECIFIED WD as BLOCKED until the referenced group reaches
+  COMPLETE. IMPLEMENTING/COMPLETE/SPECIFYING WDs bypass the gate —
+  in-flight or finished work is not retroactively un-done. Closes
+  the gap where `implement-membership/work.md` declared its
+  cross-group blocker in prose with no machine enforcement.
+- **`/work-plan` Step 4a brief.md gains an authoritative "Group
+  Envelope" section** listing every artifact_dep with state and
+  summary, plus `out_of_scope` and `external_deps` from `work.md`.
+  Frames Phase B outputs as authoritative for WD-local analysis.
+- **`/feature-domains` reads the Group Envelope** in Step 2 and
+  classifies covered domains as `resolved` with source annotation
+  `group envelope: <ref>`. Avoids redundant `/architect` dispatches
+  on decisions already settled at the group level.
+- **New `escalate-decompose` classification state.** When WD-local
+  analysis would contradict an envelope item, the scout halts rather
+  than self-resolving and points the user back to `/work-decompose`.
+- **`/work-plan` Step 5b dedupes spec authoring against the
+  envelope** — specs already APPROVED at the group level are
+  skipped with a "deferred to group-level spec" log line.
+- **`work-validate.sh --decompose` invariant check** — verifies every
+  cross-WD reference resolves to (a) an existing artifact, (b)
+  another WD's `produces:`, or (c) an explicit `out_of_scope:`
+  declaration. Prevents parallel `/work-plan` runs from diverging.
+- **`out_of_scope:` frontmatter field on `work.md`** — explicit list
+  of references the group intentionally doesn't handle. Satisfies
+  the invariant check without forcing unwanted Phase B work.
+
+### Changed
+- **`/work-decompose` rewritten as Phase A/B/C** (PR #59). Was
+  LLM-only scope-splitting; now Phase A is seam-finding with
+  `/research` dispatch for unknowns that change WD shape, Phase B
+  is user-serial `/architect` + `/spec-author` for cross-WD
+  decisions and shared specs, Phase C re-carves WDs with Phase B
+  outputs in hand and runs the mandatory invariant check.
+  Target-count framing dropped — natural composition drives WD
+  count.
+- **`/work-status` routes by state.** READY → suggests `/work-plan`
+  only; SPECIFIED → suggests `/work-start` only; `--all` mode has
+  separate sections (Ready to specify / Ready to implement / Resume
+  in progress / Blocked). Closes the wrong-command round-trip where
+  `/work-status` would suggest `/work-start` for READY WDs which
+  `/work-start` then rejected.
+- **`produces:` in WD frontmatter is now optional.** Previously the
+  LLM was instructed to predict outputs at decompose time — a
+  prediction often wrong since WD-local artifact shape emerges
+  during `/work-plan`. Honest empty preferred over guesses. Only
+  populated for artifacts whose shape is settled at decompose time.
+- **Scope discipline made explicit:** `/work-decompose` shapes
+  relationships between chunks, never fully scopes each chunk.
+  Zero-new-artifact decompositions are valid.
+- **`work-validate.sh` no longer treats `wd:` state mismatch as a
+  hard FAIL.** State alignment is the resolver's responsibility;
+  validate now checks only structural correctness for `wd:` refs
+  (target exists, in same group). Eliminates the false-FAIL noise
+  on every freshly-decomposed downstream WD.
+- **`work-validate.sh` and `work-resolve.sh` now share one spec
+  lookup path (`work_check_spec_dep`).** Both accept ID-style
+  (`engine.catalog-operations`) and slash-path (`engine/catalog-operations`)
+  refs uniformly. Eliminates the asymmetry where validate would
+  reject what resolve accepted.
+
+### Fixed
+- **`work_fm_produces` parser dropped `slug:` for ADR produces.**
+  The artifact_deps parser accepted path/slug/ref, but produces
+  only accepted path. Real ADR produces use `{ type: adr, slug:
+  "<slug>" }` (matches `.decisions/<slug>/adr.md`), so the
+  identifier was silently dropped. Surfaced 78 false-alarm
+  validation errors in jlsm; verified 78 → 0 after fix.
+- **Cross-group `wd:` artifact_deps now rejected by validate** with
+  a pointer at `external_deps`. Previously validated OK but were
+  unreachable at runtime because `work-resolve.sh` populates its
+  WD table from the current group only. Validate and runtime now
+  agree on what's reachable.
+
+### Documentation
+- **`/work` scoping interview should lead with tradeoff analysis
+  before AskUserQuestion** when the choice has non-obvious
+  implications. Bare option-and-description works for label
+  picking, not for architectural decisions.
+- **`/work-decompose` Phase A research-dispatch criterion added:**
+  dispatch when the answer would change the *shape* of WD chunks,
+  not just internal details.
+- **`/work-decompose` Phase B "decidability" test added:**
+  Phase B-author when the artifact's shape isn't decidable from
+  any single WD's perspective alone. Bilateral
+  producer→consumer flows can sequence WD-locally; multi-producer
+  schemas, cross-WD invariants, and shape-ambiguous multi-consumer
+  artifacts qualify for Phase B.
+- **`/work-decompose` Phase C surfaces the SPECIFIED-vs-COMPLETE
+  choice for `wd:` deps** explicitly. Default-by-precedent was
+  COMPLETE, forcing fully sequential planning; SPECIFIED unlocks
+  parallel `/work-plan` execution while still gating on spec
+  contracts.
+- **WD template documents both accepted forms for spec refs**
+  (slash-path + ID), the same-group constraint for `wd:` refs,
+  and the slug/path/ref distinction across artifact types.
+
+### Tests
+- New `tests/scenario-work-cross-group-deps.sh` (11 invariants):
+  block/unblock flow, missing-group handling, malformed
+  `external_deps` shapes, IMPLEMENTING/COMPLETE bypass, cross-group
+  `wd:` rejection.
+- `tests/scenario-work-layer-alignment.sh` extended from 20 → 25
+  invariants covering Phase A/B/C contract and Group Envelope
+  handoff structure.
+- `tests/scenario-work-validate.sh` extended from 17 → 20 with
+  tests for symmetric ID/path lookup, slug parsing in produces,
+  and the corrected `wd:` state-mismatch behavior.
+
+### Note
+Empirical Gap 3 validation is post-merge. Structural tests prove the
+SKILL.md says the right things; the first real `/work-plan` run on a
+WD with a Group Envelope is the actual test of the LLM following
+those instructions.
+
+---
+
 ## [0.14.4] — 2026-04-24
 
 ### Fixed
