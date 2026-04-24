@@ -713,3 +713,103 @@ jlsm anchor audit of 8 specs (5 Tier A, 1 Tier B, 2 Tier C).
 Decomposition without visibility into `.spec/` produces WDs disconnected from
 reality. The algorithm must read spec registry as part of its analysis. Found
 when work-decompose created 13 WDs that completely missed 26 existing DRAFT specs.
+
+## @spec annotations as primary traceability (2026-04-16)
+
+`@spec FXX.RN` (and after the 2026-04-20 migration, `@spec domain.slug.RN`)
+comments in code link requirements to enforcement points. `spec-verify`
+annotates during discovery; `spec-trace.sh` provides the reverse index.
+Together they make spec→code traceability queryable in both directions
+without a separate registry. `/curate` analysis 18 enumerates APPROVED
+specs and calls `spec-trace.sh` for each to flag reqs missing impl/test
+annotations.
+
+## Correctness over context cost (2026-04-17)
+
+Never drop correctness-relevant context from an agent prompt to save tokens.
+When prompts grow past budget, the fix is phase splitting + condensed
+handoff files (analysis-phase writes a structured finding doc, next-phase
+reads that instead of inheriting the conversation), not cutting information
+the agent needs to make decisions. Codified in
+`.claude/rules/context-efficiency.md`.
+
+## Spec reorganization to behavioral domains (2026-04-17, executed 2026-04-20)
+
+Specs migrated from feature-centric layout (`F13-jlsm-schema.md`) to
+behavioral-domain layout (`domains/schema/construction.md`). 12 domains,
+~60-75 files depending on how cross-cutting concerns split. Annotation
+format changed from `@spec FXX.RN` to `@spec domain.slug.RN`. Executed in
+jlsm PR #40 + vallorcine PR #43 (2026-04-20) — 75 specs reshaped
+domain-first. The kit stays backwards-compatible with feature-ID specs
+via the dual-schema manifest detection (see next entry).
+
+## Primitives vs applications spec pattern (2026-04-20)
+
+When a concern is cross-cutting (encryption, compression, serialization),
+split the spec content by abstraction level: primitives (keys, rotation,
+algorithms, variants) live in their own domain directory; applications
+(how WAL/query/indices *use* encryption) live in their functional domain
+with a multi-domain tag for cross-discovery. Codified as MIGRATION.md P6
+and applied to jlsm F42/F46/F47/F03 during migration. Same rule
+generalizes to any cross-cutting primitive.
+
+## Manifest schema v2 + dual-schema read path (2026-04-20, hardened 2026-04-23)
+
+Post-migration manifests use `{schema_version: 2, specs: [{id, path, ...}]}`
+(array of specs with domain-slug IDs) instead of legacy
+`{features: {FXX: {...}}}`. Schema v2 handles `domain.slug` IDs natively;
+v1 is retained for projects that haven't migrated. Every read-path
+script uses `spec-lib.sh` helpers (`spec_file_for_id`,
+`spec_manifest_ids`, `spec_manifest_state`, `spec_manifest_domains_for`)
+that detect the schema at read time. Writes to v2 manifests use v2 shape;
+v1 writes use v1 shape. No forced migration window — v1 stays working
+indefinitely. The 2026-04-23 `fix/manifest-v2-schema-compat` branch
+closed the remaining silent-failure paths in `spec-resolve.sh`,
+`work-lib.sh`, `work-finalize.sh`, `curate-scan.sh`, and `spec-stats.sh`.
+
+## Fix now, not defer — positive justification required (2026-04-21)
+
+Generalises the existing kit-failures and spec-violations rules: when a
+problem surfaces mid-session, default to fixing it in the current PR.
+Phrases like "not X's problem", "separate concern", "covered
+transitively by Y" are red flags that need positive justification before
+they're acceptable. No transitive / side-effect coverage for claimed
+behaviour — test what is claimed, directly. Memory:
+`feedback_fix_now_not_defer.md`.
+
+## Planning-snapshot work groups use DRAFT status (2026-04-21)
+
+WDs that point at specs still in DRAFT use `status: DRAFT`, not
+SPECIFIED. SPECIFIED implies the spec is APPROVED and ready for
+implementation; DRAFT matches the actual state where the WD will promote
+the spec via `/work-plan` before implementation can proceed. Applied to
+the 5 jlsm work groups shipped in PR #42 (15 WDs, 13 still-DRAFT specs).
+
+## Parallel-subagent hang prevention — mode-gated prompts + termination contract (2026-04-23)
+
+When `/feature-coordinate` dispatches work units as concurrent
+sub-agents, the coordinator's `Agent` tool calls block until each child
+emits its final assistant message. Two failure modes had to be closed:
+
+1. **Unconditional AskUserQuestion sites** in the three pipeline skills
+   (`/feature-test`, `/feature-implement`, `/feature-refactor`) —
+   including several explicitly marked "regardless of automation_mode"
+   — would hang forever in a subagent with no human attached. Every site
+   now has a `balanced | speed` bypass that records
+   `escalated-<reason>` to `cycle-log.md` + substage and returns
+   `ESCALATED`, letting the coordinator surface it via its existing
+   escalation flow.
+
+2. **Weak termination signal** at `/feature-refactor`'s parallel-mode
+   exit — saying "STOP" as prose is not a forcing function at the LLM
+   level. The skill now carries an explicit subagent termination
+   contract: "your very next message MUST be the single-line summary —
+   no more Read, Bash, Grep, Edit." `/feature-coordinate` gained a
+   Step 1a documenting the dispatch contract every coordinator must
+   embed in Agent prompts.
+
+Root cause came from a 2026-04-23 jlsm WU-3 run: status.md flipped to
+COMPLETE at 10:41:32, but the subagent kept running ~2 min before the
+user had to Ctrl+C to unblock the coordinator. Regression:
+`tests/scenario-parallel-subagent-hang-prevention.sh` (10 structural
+invariants; grep-based so it's durable against future skill edits).

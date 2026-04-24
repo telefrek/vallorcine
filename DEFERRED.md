@@ -96,21 +96,16 @@ CONTEXT.md when you're ready to act on them, or drop them if no longer relevant.
   now handles everything: KB, decisions, feature pipeline, project profile, and
   .gitignore. `/feature-init` removed.
 
-- **Security-aware analysis lens** — add a security domain lens to the audit
-  pipeline, scoped to code handling keys, credentials, PII, or sensitive data.
-  NOT a full security audit — targeted checks within the existing prove-fix
-  model. Examples: key material not zeroed after use, IV/nonce reuse potential,
-  plaintext leaking into logs/exceptions, non-constant-time secret comparison,
-  credentials in memory longer than necessary. Triggers only when constructs
-  handle sensitive data (encryption APIs, credential stores, PII fields).
-  Evidence: encryption audit found 10 critical key-lifecycle bugs through
-  generic resource_lifecycle lens, but missed timing channels, IV reuse, and
-  ciphertext integrity — bugs that require adversary-model reasoning. The
-  security lens would ask "what can an attacker extract?" not just "is this
-  resource cleaned up?" Verification model: same prove-fix for testable
-  findings (key not zeroed = testable), advisory output for untestable ones
-  (timing channel = needs manual review). Promote to Open questions when
-  ready to design the lens prompt and advisory output format.
+- ~~**Security-aware analysis lens**~~ — **done** (v0.14.2, PR #53). Shipped as
+  `prompts/audit/lens-security.md` with attack-pattern-by-concern coverage and
+  TESTABLE vs ADVISORY finding taxonomy. Four new exploration signals
+  (credential store, PII, auth middleware, deserialization) activate the lens
+  when sensitive-data handling is detected. Assembly + suspect wired to consult
+  the lens. Motivated by jlsm encryption-audit evidence (10 key-lifecycle bugs
+  found via generic lens; 3 adversary-model classes missed: timing channels,
+  IV reuse, ciphertext integrity). Scope shipped was MVP — full integration
+  (active-lenses.md "security" candidate, domain pruning with security
+  evidence) remains deferred as architect-deliberation work.
 
 - ~~`/decisions roadmap`~~ — **done** (v0.13.3). Bulk planning pass with clustering,
   effort classification, dependency analysis. Now includes "Create work group" option
