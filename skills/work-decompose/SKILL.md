@@ -184,8 +184,14 @@ arbitrary and wrong.
 
 ### 2b — Dispatch /research for unknowns that affect seam identification
 
-As you analyze the scope, if you hit an unknown that affects where the
-seams go, dispatch `/research` as a subagent:
+**Criterion:** dispatch `/research` when you cannot choose between two
+materially different decompositions without external information. If
+your uncertainty would only change WD-internal details, defer to
+`/work-plan`. If it would change the *shape* of the WD chunks or their
+boundaries, research now.
+
+As you analyze the scope, if you hit such an unknown, dispatch
+`/research` as a subagent:
 
 ```
 Invoke `/research "<subject>" context: "work-decompose for <group-slug>,
@@ -196,16 +202,20 @@ After each research subagent completes, verify the KB entry exists and
 continue seam analysis with the new findings. Multiple research
 dispatches are allowed — seam-finding is exploratory.
 
-Examples of unknowns that warrant `/research`:
+Examples that meet the criterion (different decompositions hinge on
+the answer):
 - "We're touching an unfamiliar protocol — what are the conventional
-  layering boundaries?"
+  layering boundaries?" (boundaries decide WD count and shape)
 - "Is there a canonical way to decompose this class of problem that we
-  should follow?"
+  should follow?" (canonical pattern dictates the carve)
 - "What existing patterns does the project already use here?"
+  (consistency with prior carves)
 
-Examples that do NOT warrant `/research`:
+Examples that do NOT meet the criterion (decomposition unaffected):
 - WD-internal technology choices (those surface in `/work-plan` later)
 - Implementation details (deferred to the feature pipeline)
+- Performance tuning decisions (don't change WD shape)
+- Algorithmic alternatives within a single WD (WD-local concern)
 
 ### 2c — Produce the seam analysis (internal — do not display yet)
 
@@ -287,7 +297,37 @@ If "Proceed to Phase B": continue to Step 4.
 Work through the coordination surfaces from Step 3 **one at a time**.
 Architect passes require user deliberation and cannot be parallelized.
 
-For each surface, in order:
+### When does an artifact belong in Phase B?
+
+The test is **decidability**: an artifact belongs in Phase B if its
+shape cannot be decided correctly from any single WD's perspective
+alone. Phase B authoring brings input from all future producers and
+consumers of the artifact at once, settling the shape before any of
+them plan.
+
+Concrete signals an artifact belongs in Phase B:
+- **Multi-producer.** Two or more WDs will emit data matching the
+  artifact's contract (the columnar telemetry signal schema is the
+  canonical example — both memtable and reader emit signals; neither
+  alone has the full picture).
+- **Multi-consumer with shape ambiguity.** Multiple WDs will consume
+  the artifact AND there's no canonical author whose perspective is
+  authoritative. (Bilateral producer→consumer relationships generally
+  do not need Phase B — the producer authors during `/work-plan` and
+  consumers reference via `artifact_deps`.)
+- **Cross-WD invariant.** The artifact enforces a property that must
+  hold across multiple WDs (e.g., "all WDs must use the same encoding
+  for IDs"). Local authoring would bake in one WD's needs and miss the
+  others'.
+
+When the test fails — the shape *is* decidable from one WD's
+perspective — let it sequence. The producing WD authors during
+`/work-plan`; downstream WDs reference via `artifact_deps` with
+`required_state: APPROVED`. This is the Group Envelope (Gap 3) flow
+and it's preferable when applicable: less coordination, less
+authoring-while-decomposing, simpler sequencing.
+
+For each surface that passes the decidability test, in order:
 
 ### Breakdown ADR (if seam shape was unclear)
 
@@ -373,6 +413,29 @@ For each final WD, determine:
   artifacts whose shape is already settled (typically Phase B outputs
   that this WD is the author-of-record for).
 
+### Choosing `required_state` for `wd:` deps
+
+`wd:` deps take a `required_state`. Pick deliberately — the default
+choice has real planning consequences:
+
+- **`required_state: SPECIFIED`** — downstream WD can be PLANNED as
+  soon as the upstream's spec is APPROVED (i.e., upstream `/work-plan`
+  finished, even if implementation hasn't). Allows planning to overlap
+  implementation: WD-03 can have its spec authored against WD-01's
+  approved spec while WD-01 is still being implemented. Use this when
+  the downstream consumes the upstream's *spec contract*, not its
+  implemented behavior.
+
+- **`required_state: COMPLETE`** — downstream WD cannot start planning
+  until upstream is fully implemented. Strict sequential. Use this when
+  the downstream needs the upstream's runtime behavior (e.g.,
+  integration tests against the real implementation, not the spec).
+
+Default: prefer `SPECIFIED` for spec-consumer relationships; reach for
+`COMPLETE` only when there's a runtime-coupling reason. The Group
+Envelope (Gap 3) reads `artifact_deps` to feed `/work-plan` — using
+`SPECIFIED` extends the parallelism the envelope enables.
+
 Present the final decomposition:
 
 ```
@@ -427,11 +490,19 @@ group: <group-slug>
 status: DRAFT
 domains: [<domain1>, <domain2>]
 artifact_deps:
+  # spec refs use `path:`. Either form is accepted:
+  #   - slash form  : "<domain>/<spec-name>"  (matches .spec/domains/<...>)
+  #   - ID form     : "<domain>.<spec-name>"  (matches the spec's id field)
   - { type: spec, path: "<domain>/<spec-name>", required_state: APPROVED }
+  # adr refs use `slug:` (matches .decisions/<slug>/adr.md)
   - { type: adr, slug: "<decision-slug>", required_status: accepted }
+  # wd refs use `ref:` (must point to a WD in the same group; cross-group
+  # coordination uses external_deps: on work.md instead)
+  - { type: wd, ref: "WD-<NN>", required_state: SPECIFIED }
 produces:
   - { type: spec, path: "<domain>/<spec-name>" }
   - { type: spec, path: "<domain>/<interface-name>", kind: interface-contract }
+  - { type: adr, slug: "<decision-slug>" }
 ---
 
 ## Summary
@@ -447,17 +518,26 @@ produces:
 **Numbering:** WD-01, WD-02, etc. — sequential, zero-padded to 2 digits.
 
 **artifact_deps rules:**
-- Only list artifacts this WD needs that don't yet exist or aren't in the
-  required state. Don't list artifacts that already exist and are APPROVED.
-- `type: spec` — path is relative to `.spec/domains/`, must include domain prefix
-- `type: adr` — slug matches `.decisions/<slug>/adr.md`
-- `type: kb` — path matches `.kb/<path>.md`
-- `type: wd` — ref is a WD ID in the same group (e.g., "WD-01"). Use for
-  code-level dependencies where one WD's implementation must complete before
-  another can start. Unlike artifact deps, wd deps express ordering constraints
-  that aren't mediated by a spec or ADR artifact.
-- spec, adr, and wd deps must include `required_state` or `required_status`
-- kb deps are existence-only (no state check)
+- Only list artifacts this WD needs whose state is part of the contract.
+  Always-APPROVED foundational specs that every WD reads are listed by
+  Phase A as "existing artifacts that apply" — they don't need per-WD
+  declaration unless the WD specifically gates on them.
+- `type: spec` uses `path:`. Both forms accepted:
+  - **slash form** — `"<domain>/<spec-name>"`, matches `.spec/domains/<...>.md`
+  - **ID form** — `"<domain>.<spec-name>"`, matches the spec's `id` field in
+    `.spec/registry/manifest.json`
+  Resolver and validator both accept either via `work_check_spec_dep`.
+- `type: adr` uses `slug:` — matches `.decisions/<slug>/adr.md` (single token,
+  no domain prefix).
+- `type: kb` uses `path:` — matches `.kb/<path>.md`.
+- `type: wd` uses `ref:` — a WD ID in the **same group** (e.g., `"WD-01"`).
+  Cross-group coordination uses `external_deps:` on `work.md` instead; the
+  validator rejects cross-group `wd:` refs with a pointer at `external_deps`.
+- `spec`, `adr`, `wd` deps must include `required_state` or `required_status`.
+  See "Choosing required_state for wd: deps" in Step 5 — `SPECIFIED` allows
+  parallel planning; `COMPLETE` forces sequential. Don't reach for `COMPLETE`
+  by reflex.
+- `kb` deps are existence-only (no state check).
 
 **produces rules:**
 - **Optional.** Leave empty (`produces: []`) for any WD whose outputs aren't
