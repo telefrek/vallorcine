@@ -25,10 +25,12 @@ state of the project — what's happening now and what's next.
 **PR #59 merged (v0.14.4 + Phase A/B/C + /work-status routing).
 Follow-up PR open on `fix/work-layer-followups` — bundles Gap 4
 (cross-group deps via `external_deps:`) + Gap 3 (/work-plan and
-/feature-domains honour the group envelope). Two commits, 36/36
-scenario tests green, 59/59 install tests green. jlsm migration of
-`implement-membership` to `external_deps:` deferred to post-release —
-jlsm needs the upgraded kit first.**
+/feature-domains honour the group envelope) plus three pre-existing
+bugs and four SKILL.md guidance refinements surfaced empirically by
+exercising the kit end-to-end against a fresh work group on a local
+jlsm clone. Six commits, 36/36 scenario tests + 59/59 install tests
+green. jlsm migration of `implement-membership` to `external_deps:`
+deferred to post-release — jlsm needs the upgraded kit first.**
 
 ### What's shipped since 2026-04-21
 
@@ -211,6 +213,29 @@ git history via PR #58 + PR #59.
   `/work-decompose` via a new `escalate-decompose` classification.
   `/work-plan` Step 5b dedupes spec authoring against the envelope.
   Tests: 5 new invariants in `scenario-work-layer-alignment.sh` (25/25).
+- **Three pre-existing bugs surfaced empirically by dry-running the
+  kit against a local jlsm clone:**
+  - `work_fm_produces` parser dropped `slug:` for ADR produces (78
+    false-alarm validation errors across 13 jlsm decisions-backlog
+    WDs → 0).
+  - Validate-vs-resolve spec lookup asymmetry (single-WD validate was
+    ID-only; resolve accepted slash-paths). Both now share
+    `work_check_spec_dep` with Strategy 0 ID lookup + path fallbacks.
+  - `wd:` state mismatch was incorrectly a validation FAIL — natural
+    mid-flight state was being double-reported. Now resolver-only
+    (resolver continues to surface as BLOCKED). Test 17 inverted to
+    match the corrected contract.
+- **Four SKILL.md guidance refinements** from the same dry-run:
+  /work scoping interview leads with tradeoff analysis before
+  AskUserQuestion; /work-decompose Phase A research-dispatch criterion
+  ("dispatch when the answer changes WD shape"); Phase B decidability
+  test ("settle now when shape isn't decidable from any single WD's
+  perspective"); SPECIFIED-vs-COMPLETE choice for `wd:` deps surfaced
+  explicitly (default-by-precedent was COMPLETE → fully sequential;
+  SPECIFIED unlocks parallel planning under Group Envelope).
+- **Empirical Gap 3 still untested.** Structural tests prove the
+  SKILL.md says the right things; first real `/work-plan` run on a
+  WD with a Group Envelope is the actual validation.
 
 **Positioning shift (still outstanding — carries over from v0.14.3):**
 emphasize depth-of-spec-rigor axis over the "spec-driven" label across
