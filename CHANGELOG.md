@@ -5,6 +5,87 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.14.4] — 2026-04-24
+
+### Fixed
+- **Parallel WU-TDD subagents silently skipped the `/feature-implement`
+  Step 8 KB tendency scan.** Root cause: `/feature-coordinate`'s
+  dispatch-prompt template embedded the termination contract added in
+  v0.14.3 but not the KB-scan instruction. Subagents ran the rich
+  self-contained prompt and never reached Step 8. Empirical gap
+  (2026-04-24): 0 of 4 WU-TDD subagents consulted `.kb/` across a
+  real jlsm parallel run. Fix: `/feature-coordinate` Step 1a now
+  carries a "KB tendency-scan contract (MANDATORY)" fragment that
+  subagent prompts must include verbatim, referencing `kb-search.sh`
+  and the `tendency-scan-complete` substage.
+- **`/feature-implement` Step 8 was missing a substage checkpoint,
+  which made skipped scans invisible.** Fix: Step 8 is now labelled
+  MANDATORY and requires both a `status.md` substage write
+  (`tendency-scan-complete: <construct> — <n> patterns checked,
+  <n> applied`) and a `cycle-log.md` append (`tendency-scan
+  (<construct>): <n> results / <n> applied / <n> skipped`) after
+  every scan, including zero-result scans. The coordinator's
+  post-return verification now greps for these entries and surfaces
+  a `tendency-scan-missing: WU-<n>` marker when a COMPLETE unit has
+  no scan evidence despite a non-empty `.kb/`.
+- **Audit Suspect treated KB entries in cluster packets as passive
+  reference material, not attack vectors.** Empirical result
+  (2026-04-24): KB content flowed correctly Classification →
+  Assembly → packet (17/17 packets carried KB summaries), but only
+  2/95 Suspect findings referenced KB — per-construct protocol
+  never iterated the packet KB as a sweep list. Fix: `suspect.md`
+  adds step 4 "KB attack-pattern sweep (MANDATORY when packet lists
+  KB entries)" which iterates each `type: adversarial-finding` entry
+  as a candidate attack and emits FINDING with `kb_refs`, CLEARED
+  with KB reference + defense evidence, or no-op. Finding schema
+  gains `KB refs:` field; Clearings table gains a `KB ref` column;
+  summary line reports `KB-driven` count alongside `card-driven`.
+- **Audit prove-fix had no KB integration at all — 0/95 outputs
+  referenced KB guidance.** Fix: `prove-fix.md` gains Phase 1a1 "KB
+  fix-pattern lookup (when kb_refs present)" which reads
+  orchestrator-supplied KB paths for `## Test guidance` and fix
+  patterns before writing the test. Output schema records
+  `KB refs consulted`. Hard-rules block carves out KB reads for
+  paths listed in `kb_refs`. `prove-fix-orchestrator.md` now
+  forwards each Suspect finding's `KB refs` value through the
+  dispatch template as `kb_refs: <paths | none>`.
+
+### Changed
+- `prompts/audit/suspect.md` finding schema and summary reporting
+  (non-breaking — consumers that don't read `KB refs` keep working;
+  per-finding field is additive).
+- `prompts/audit/prove-fix.md` output schema adds a top-level
+  `KB refs consulted` block and recognises a new `UPSTREAM_MITIGATED`
+  Phase 0 result (additive).
+- `prompts/audit/prove-fix.md` Phase 0 budget raised from 2 to 4 turns
+  to accommodate up to 2 prior-output reads in step 0c. Existing 2-turn
+  short-circuits for local `ALREADY_FIXED` are unchanged.
+
+### Performance
+- **Audit cost-per-bug reduction target.** Analysis of a 95-finding
+  jlsm audit run (Opus 4.7, $1,333 audit share, $14.03/finding)
+  showed 16 of 36 IMPOSSIBLE returns (~17% of total findings) were
+  actually mitigated by a prior prove-fix's upstream guard — the
+  agent didn't have a Phase 0 path for that case and went through
+  full Phase 1 anyway. New Phase 0c "upstream-mitigation check"
+  scans up to 2 sibling `prove-fix-*.md` outputs for a caller-side
+  guard that blocks the attack path and short-circuits to
+  `IMPOSSIBLE / UPSTREAM_MITIGATED`. Estimated savings: ~11% of
+  prove-fix cost per audit. Combined with KB-actionable fixes
+  (suspect KB sweep pre-clears patterns that match existing KB
+  entries), projected audit cost floor is ~$11/finding on runs
+  with similar KB density.
+
+### Tests
+- New `tests/scenario-kb-scan-contract.sh` — 22 structural invariants
+  across 7 surfaces (coordinator dispatch, coordinator verification,
+  Step 8 checkpoints, suspect sweep + schema, prove-fix KB lookup +
+  schema, orchestrator forwarding, Phase 0 upstream-mitigation
+  short-circuit). Mirrors the
+  `scenario-parallel-subagent-hang-prevention.sh` pattern from v0.14.3.
+
+---
+
 ## [0.14.3] — 2026-04-24
 
 ### Added
