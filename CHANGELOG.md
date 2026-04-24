@@ -5,6 +5,87 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.14.3] — 2026-04-24
+
+### Added
+- **Onboarding guides** (repo-only, not shipped to user projects) —
+  `GETTING-STARTED.md` covers the mental model: the four knowledge
+  layers (KB / ADR / spec / code) and how they feed each other, the
+  feature pipeline at a glance, when work groups apply, and a
+  "what to run when" decision tree.
+  `GETTING-STARTED-EXISTING.md` covers the slow-adoption path for
+  brownfield projects — Day 1 / Week 1 / Month 1 / Month 3 progression
+  anchored on `/setup-vallorcine` + `/curate --init`, the lazy-spec
+  rule, and common pitfalls. README links both from a new "New here?"
+  section; `/vallorcine-help` gains URL hints for conceptual questions.
+- **Four new `EXAMPLES.md` walkthroughs** for v0.14.2 features that had
+  none: parallel execution via `/feature-coordinate` +
+  `/work-start --parallel`, the opt-in spec workflow (`/spec-init` →
+  `/spec-author` → `/spec-write` → `/spec-verify` → `/spec`),
+  standalone `/audit` with all four entry-point shapes, and
+  `/capabilities`.
+
+### Changed
+- **`/audit` wontfix findings now resurface via `/curate`** (#56) —
+  option 2 ("Accept as wontfix") in the FIX_IMPOSSIBLE escalation flow
+  now logs a non-blocking `wontfix: <finding-id> — <rationale>`
+  obligation on the most-relevant spec (if `.spec/` exists).
+  `/curate` analysis 19 (aging-obligations) ages the obligation by
+  last-commit time and resurfaces it once past the threshold. The spec
+  stays APPROVED — wontfix is a landed design decision, not a gap.
+  Closes the only remaining graveyard path for FIX_IMPOSSIBLE outcomes.
+
+### Fixed
+- **v2 manifest schema compatibility across spec/work/curate scripts**
+  — `spec-resolve.sh`, `work-lib.sh`, `work-finalize.sh`,
+  `curate-scan.sh`, and `spec-stats.sh` were written against the v1
+  manifest schema (`.features`/`.domains` as keyed maps) and broke
+  silently after the 2026-04-20 v2 migration (`.specs[]` array, no
+  top-level `.domains`). `spec-resolve.sh` hit `jq: null has no keys`
+  under `set -euo pipefail` and fell through to
+  `NEEDS_DOMAIN_INFERENCE=true` for every call, blocking `/work-start`,
+  `/spec-write`, `/feature-plan`, `/feature-test`, `/spec-author`, and
+  `/audit` on v2 repositories. Added four dual-schema manifest query
+  helpers to `spec-lib.sh` (`spec_manifest_ids`,
+  `spec_manifest_state`, `spec_manifest_domains_for`,
+  `spec_manifest_all_domains`, plus an `is_v2` probe) and updated
+  every caller to use them. `spec_registry_update` now writes v2-shape
+  entries when the manifest is v2 instead of silently injecting a v1
+  `features` key alongside the v2 `specs` array. Regression: 5 new
+  v2-fixture tests in `scenario-spec-resolve.sh` (16 → 21 total).
+- **Parallel-subagent hang prevention** — when `/feature-coordinate`
+  dispatches work units as concurrent sub-agents, two failure modes
+  could leave the coordinator blocked indefinitely on `Agent` tool
+  calls: (a) pipeline skills (`/feature-test`, `/feature-implement`,
+  `/feature-refactor`) had `AskUserQuestion` sites that fired
+  regardless of `automation_mode`, which hang with no human attached;
+  (b) the refactor skill's parallel-mode exit said only "STOP" as
+  prose, so subagents that wrote `status.md = complete` could keep
+  running tools for minutes before emitting their final summary.
+  Every unconditional `AskUserQuestion` now has a `balanced | speed`
+  bypass that records to `cycle-log.md`, marks substage
+  `escalated-<reason>`, and returns `ESCALATED` so the coordinator can
+  surface it via its existing escalation flow. `/feature-refactor`'s
+  parallel exit now carries an explicit termination contract
+  ("your next message MUST be the summary — no more tools"), and
+  `/feature-coordinate` documents the subagent dispatch contract so
+  coordinators embed the termination rules in every Agent prompt.
+  Root-caused from the 2026-04-23 jlsm WU-3 hang (subagent finished
+  work, wrote status complete, kept running ~2 min before user
+  Ctrl+C). Regression:
+  `tests/scenario-parallel-subagent-hang-prevention.sh` (10
+  structural invariants).
+- **Four pre-existing scenario-test failures** — baseline on main,
+  surfaced during the manifest-v2 compat sweep and closed in the same
+  PR. `scenario-index-verify` (grep output concatenation bug in
+  `scripts/index-verify.sh`), `scenario-narrative` (stale exit-code
+  assertions that pre-dated the narrative-wrapper retry contract),
+  `scenario-version-skew` (legacy `.claude/commands/` path reference),
+  `scenario-work-pipeline` Test 10 (v1-manifest fixture collided with
+  v2-style WD artifact deps).
+
+---
+
 ## [0.14.2] — 2026-04-22
 
 ### Added
