@@ -439,6 +439,96 @@ fi
 # Go back to repo root for cleanup
 cd "$REPO_ROOT"
 
+# ── Invariant 10: /work-plan brief.md names the group envelope ──────────────
+#
+# Gap 3 — /work-plan's Step 4a brief template must declare the group envelope
+# as AUTHORITATIVE so /feature-domains can defer to it instead of re-deciding.
+
+echo ""
+echo "── Invariant 10: /work-plan brief.md names Group Envelope"
+
+plan_skill="$REPO_ROOT/skills/work-plan/SKILL.md"
+if grep -q "Group Envelope" "$plan_skill" \
+   && grep -q "AUTHORITATIVE" "$plan_skill" \
+   && grep -qi "phase b" "$plan_skill"; then
+    pass "/work-plan brief template declares Group Envelope (AUTHORITATIVE)"
+else
+    fail "/work-plan must document a Group Envelope section in brief.md" \
+         "expected 'Group Envelope' + 'AUTHORITATIVE' + 'Phase B' in $plan_skill"
+fi
+
+# ── Invariant 11: /feature-domains reads the group envelope ──────────────────
+#
+# Gap 3 — /feature-domains Step 2 must consult the brief.md Group Envelope and
+# classify domains covered by it as `resolved` with source annotation.
+
+echo ""
+echo "── Invariant 11: /feature-domains consumes brief's Group Envelope"
+
+domains_skill="$REPO_ROOT/skills/feature-domains/SKILL.md"
+if grep -q "Group envelope" "$domains_skill" \
+   && grep -q "AUTHORITATIVE" "$domains_skill" \
+   && grep -q "group envelope: <ref>" "$domains_skill"; then
+    pass "/feature-domains Step 2 reads brief Group Envelope as authoritative"
+else
+    fail "/feature-domains must consult Group Envelope in Step 2" \
+         "expected 'Group envelope' + 'AUTHORITATIVE' + source annotation in $domains_skill"
+fi
+
+# ── Invariant 12: /feature-domains escalates envelope contradictions ─────────
+#
+# Gap 3 — when WD-local analysis contradicts a group envelope item, the scout
+# must classify `escalate-decompose` and halt rather than self-resolve.
+
+echo ""
+echo "── Invariant 12: /feature-domains flags envelope contradictions"
+
+if grep -q "escalate-decompose" "$domains_skill" \
+   && grep -q "ESCALATE to /work-decompose" "$domains_skill"; then
+    pass "/feature-domains has escalate-decompose classification + halt path"
+else
+    fail "/feature-domains must handle envelope contradictions via escalate-decompose" \
+         "expected 'escalate-decompose' state + 'ESCALATE to /work-decompose' prompt"
+fi
+
+# ── Invariant 13: Step 3 runs the escalation check before resolution ────────
+#
+# Gap 3 — the escalation halt must fire BEFORE Step 3's per-domain resolution
+# loop, otherwise the scout would commission work against contradicted
+# envelope assumptions.
+
+echo ""
+echo "── Invariant 13: /feature-domains Step 3 checks escalation first"
+
+# Extract lines between "## Step 3" and the next "## Step" heading; the
+# escalation header must appear before the per-domain resolution content.
+step3_block="$(awk '/^## Step 3/,/^## Step [4-9]/' "$domains_skill")"
+if echo "$step3_block" | grep -q "Escalation check (always first)" \
+   && echo "$step3_block" | grep -q "domains-escalated-decompose"; then
+    pass "/feature-domains Step 3 fires escalation check before resolution"
+else
+    fail "/feature-domains Step 3 must start with escalation check" \
+         "expected 'Escalation check (always first)' in Step 3 block"
+fi
+
+# ── Invariant 14: /work-plan Step 5b dedupes against the envelope ───────────
+#
+# Gap 3 — /work-plan must NOT re-author group-level specs already listed in
+# the WD's artifact_deps. This is what keeps group and WD specs from forking.
+
+echo ""
+echo "── Invariant 14: /work-plan Step 5b skips envelope-covered specs"
+
+step5b_block="$(awk '/^## Step 5b/,/^## Step 6/' "$plan_skill")"
+if echo "$step5b_block" | grep -qi "dedupe against the group envelope" \
+   && echo "$step5b_block" | grep -q "artifact_deps" \
+   && echo "$step5b_block" | grep -q "deferred to group-level spec"; then
+    pass "/work-plan Step 5b dedupes spec authoring against artifact_deps"
+else
+    fail "/work-plan Step 5b must skip specs already covered by group envelope" \
+         "expected 'dedupe against the group envelope' + 'artifact_deps' + 'deferred to group-level spec'"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""
