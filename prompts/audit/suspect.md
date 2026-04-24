@@ -176,7 +176,41 @@ These clearings apply ONLY to concurrency-domain findings. They do not
 clear findings in other concern areas (validation, transformation, etc.)
 for the same construct.
 
-### 4. Card-driven analysis
+### 4. KB attack-pattern sweep (MANDATORY when packet lists KB entries)
+
+Your packet's `### KB entries` section lists KB summaries that Assembly
+projected from `classification.md` as relevant to this cluster. Treat each
+`type: adversarial-finding` entry as a **candidate attack vector**, not as
+background reference material. The KB is where the project records bugs
+already found; you are sweeping this cluster for recurrences.
+
+For each KB entry in the packet:
+
+1. Read the summary and identify the `applies_to` pattern (construct
+   kind, domain, language feature — e.g., "any JVM class holding
+   SecretKeySpec", "cache entries with external invalidation").
+2. Match against this cluster's constructs. Does any construct in your
+   file list exhibit the `applies_to` pattern?
+   - **Yes, pattern present and not mitigated** → emit a FINDING. Record
+     the KB entry path in `kb_refs` on the finding. The KB entry is the
+     card evidence.
+   - **Yes, pattern present and mitigated** → emit a CLEARED row with
+     evidence (the specific defense + line number) AND the KB entry path.
+     This explicitly proves you checked the known pattern rather than
+     silently passing over it.
+   - **No, pattern does not apply to this cluster** → do not emit
+     anything; the KB entry is a no-op for this cluster.
+
+If the packet has zero KB entries: skip the sweep. Do not invent KB
+references — `kb_refs: none` is the correct output when the packet
+carried no KB content.
+
+**Why this is mandatory.** Without the sweep, Suspect agents rediscover
+patterns the project has already catalogued, inflating finding volume
+and prove-fix cost. The packet is the KB channel — if you ignore it,
+KB compounding fails silently.
+
+### 5. Card-driven analysis
 
 Use construct cards to systematically check interaction points:
 
@@ -195,7 +229,7 @@ For each reconciliation inconsistency in the cluster:
 - The invokes/entry_points mismatch may indicate a caller using an
   API differently than intended. Analyze the actual call site.
 
-### 5. Cross-cluster boundary observations
+### 6. Cross-cluster boundary observations
 
 For constructs that have invokes/invoked_by edges to constructs outside
 this cluster:
@@ -246,11 +280,12 @@ Write `.feature/<slug>/suspect-<lens>-cluster-<N>.md`:
 - **Card evidence:** <which card field (assumption, co_mutator,
   inconsistency) led to this finding, or "independent">
 - **Spec requirement:** <ID or "none">
+- **KB refs:** <packet KB entry paths that informed this finding, or "none">
 - **Lines:** <relevant line numbers>
 
 ## Clearings
 
-| Construct | Concern | Clearing | Evidence (line) |
+| Construct | Concern | Clearing | Evidence (line) | KB ref (if any) |
 
 ## Boundary Observations
 
@@ -262,10 +297,12 @@ Write `.feature/<slug>/suspect-<lens>-cluster-<N>.md`:
 ## Summary
 - Constructs analyzed: <n>
 - Applicable cells checked: <n>
-- Findings: <n>
-- Cleared: <n>
+- KB entries in packet: <n>
+- KB entries swept: <n> (must equal "entries in packet" unless explicitly skipped — record reason)
+- Findings: <n> (of which <n> card-driven, <n> KB-driven)
+- Cleared: <n> (of which <n> KB-verified — explicit clearings against a KB pattern)
 - Boundary observations: <n>
 ```
 
 Return a single summary line:
-"Suspect <lens>/C<N> — <n> findings, <n> cleared, <n> boundary observations, <n> card-driven"
+"Suspect <lens>/C<N> — <n> findings, <n> cleared, <n> boundary observations, <n> card-driven, <n> KB-driven"

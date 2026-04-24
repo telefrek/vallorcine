@@ -20,12 +20,13 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-04-23*
+*Last updated: 2026-04-24*
 
-**v0.14.2 shipped. GSD-gap capabilities landed. Post-v0.14.2 bundle
-(manifest-v2 compat + parallel-subagent hang prevention + doc refresh +
-getting-started guides) collapsed into a single PR on
-`chore/v0.14.3-bundle`.**
+**v0.14.3 shipped (main@`f23cc79`). Active branch `fix/kb-scan-actionable`
+— three coordinated fixes that make `.kb/` actionable across the
+coordinator, audit Suspect, and audit prove-fix. PR not yet opened; two
+follow-on investigations running on the same jlsm session (other
+workflow deviations, audit cost-per-bug) before cutting the PR.**
 
 ### What's shipped since 2026-04-21
 
@@ -175,17 +176,55 @@ exists, not yet coded. No tag = needs both design and implementation.*
 
 ### Do next
 
-**Merge `chore/v0.14.3-bundle` (this PR), then cut v0.14.3.** The
-`.changelog-staging.md` entries for both fix commits are already in
-place; the doc changes are additive. After merge, `/release` will pick
-up the staged notes and bundle them.
+**Wrap the `fix/kb-scan-actionable` investigation, then open the PR.**
 
-**Positioning shift to encode across user-facing docs** (README,
-EXAMPLES.md, landing content, the new getting-started docs): emphasize
-the depth-of-spec-rigor axis (lifecycle, displacement, audit
-integration, computed readiness) over the "spec-driven" label. GSD owns
-the spec-driven label at 55K+ stars. The GETTING-STARTED docs are the
-first place to seed this framing.
+The morning's WIP framing (KB isn't being loaded) was half-right. The
+shipped fix covers three distinct failure modes uncovered empirically
+on jlsm session `763f30a6-4194-4137-812f-97502540135e`:
+
+| Surface | Subagents | Empirical finding | Fix shipped |
+|---|---:|---|---|
+| WU-TDD coordinator dispatch | 4 | All 4 dispatch prompts omit Step 8 entirely (zero KB keywords across 39K chars) | `/feature-coordinate` Step 1a now carries a **KB tendency-scan contract (MANDATORY)** fragment; Step 8 is MANDATORY with `tendency-scan-complete` substage + cycle-log append; coordinator-side verification greps for evidence post-return |
+| Audit Suspect | 27 | KB *does* flow through to packet (17/17 have KB content) — Suspect treats it as passive reference, not attack vectors; 2/95 findings cite KB | `suspect.md` adds a KB attack-pattern sweep step; finding schema gets `KB refs:`; summary reports `KB-driven` count |
+| Audit prove-fix | 83 | `prove-fix.md` has zero KB integration; 0/95 outputs cite KB | `prove-fix.md` Phase 1a1 KB fix-pattern lookup; `kb_refs` input/output; orchestrator forwards `kb_refs` per finding |
+
+The workflow-deviation scan also surfaced **D4: Phase 0 short-circuit
+bypassed for upstream-mitigated findings** — 16 of 36 IMPOSSIBLE
+returns on the jlsm run were mitigated by a prior prove-fix's upstream
+guard, but Phase 0 only checked the local construct and the agent went
+through full Phase 1 anyway. Bundled on this branch: `prove-fix.md`
+Phase 0 budget raised 2 → 4 turns, new 0c "upstream-mitigation check"
+reads up to 2 sibling `prove-fix-*.md` outputs and short-circuits to
+`IMPOSSIBLE / UPSTREAM_MITIGATED` when a caller-side guard blocks the
+attack path.
+
+Status: 22/22 regression invariants pass, 59/59 install tests pass,
+all related audit scenarios green (lens-security 23/23, state-gate 5/5,
+wontfix-obligation 5/5, aggregate-results 32/32, check-test-coverage
+13/13, dedup-findings 12/12), no regressions on hang-prevention
+scenario (10/10).
+
+**Cost-per-bug snapshot (Opus 4.7 API rates):** jlsm audit total
+$1,333, 95 findings, **$14.03/finding** (on trend with 7-audit historical
+$13.61 avg). Prove-fix is 82% of audit-subagent cost. D4 targets ~11%
+prove-fix waste (~$86/audit at this size); KB-actionable fixes
+(D1-D3) target another ~15-25% of findings that should pre-clear.
+Combined ceiling: projected $/finding floor ~$11 on audits with
+similar KB density.
+
+Non-findings verified: the initial "Suspect writing test files" signal
+was a classifier bug (prove-fix dispatch prompts reference
+`Suspect: <filename>`); TodoWrite discipline holding (0 subagent
+violations). Context thrash (D5 — 37/126 agents re-read same file 5+
+times) is intentional per the re-read-before-edit protocol; revisit
+only if post-D4 cost data shows it's still material.
+
+**Next: open the PR.**
+
+**Positioning shift (still outstanding — carries over from v0.14.3):**
+emphasize depth-of-spec-rigor axis over the "spec-driven" label across
+user-facing docs. Not a blocker for the current PR; bundle with the
+next docs pass.
 
 ### Do soon (medium effort, clear designs)
 

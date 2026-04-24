@@ -16,17 +16,24 @@ The orchestrator provides:
 - Domain lens (shared_state, contract_boundaries, etc.)
 - Test class path (shared adversarial test class for this lens)
 - Cluster packet path (for construct context)
+- `kb_refs` — KB entry paths that informed the finding (may be "none"). When
+  present, these are the authoritative source for fix guidance — read them
+  in Phase 1a before writing the test.
 
-## Phase 0 — ALREADY-FIXED CHECK (mandatory, max 2 turns)
+## Phase 0 — ALREADY-FIXED CHECK (mandatory, max 4 turns)
 
 Before writing any test, check whether prior fixes in this audit run have
 already resolved this finding. Findings are processed sequentially — earlier
 fixes may have added guards, rollback logic, or exception handling that
-make later findings moot.
+make later findings moot, either *locally* (defense added to this
+construct) or *upstream* (defense added to a caller or guard that
+intercepts the attack input before it reaches this construct).
 
-**Budget: 2 turns maximum.** Turn 1: read the source. Turn 2: write the
-output file (if ALREADY_FIXED) or proceed to Phase 1 (if STILL_VULNERABLE).
-Do NOT read any file other than the construct source in Phase 0.
+**Budget: 4 turns maximum.** Turn 1: read the source. Turn 2: decide
+local defense. Turns 3–4 (only if local defense is absent): scan and read
+at most 2 prior prove-fix outputs for upstream mitigation. Do NOT read
+any file other than the construct source and `prove-fix-*.md` files in
+the same run directory during Phase 0.
 
 ### 0a. Read current source
 
@@ -34,7 +41,7 @@ Read the construct source at the file path and line range from the finding.
 Read it NOW — do not reuse any cached view. The code may have changed
 since the finding was written.
 
-### 0b. Check for the described vulnerability
+### 0b. Check for the described vulnerability locally
 
 The finding describes a specific vulnerability — a missing guard, an
 unchecked cast, a missing rollback, a race condition. Check whether the
@@ -49,14 +56,58 @@ current source code **already has the defense** the finding says is missing:
 - If the finding says "race condition on X" → check if X is now a
   concurrent data structure or has synchronization
 
-### 0c. Decide
+If the local defense is present, go to 0d with result `ALREADY_FIXED`.
 
-**Vulnerability still present:** The described bug exists in the current
-source. Proceed to Phase 1.
+### 0c. Check for upstream mitigation by a prior prove-fix
 
-**Vulnerability already fixed:** The current source already has the
-defense. Short-circuit to IMPOSSIBLE immediately — do NOT read any
-other files, do NOT run git blame, do NOT check test classes:
+If 0b found **no local defense**, do NOT immediately conclude
+`STILL_VULNERABLE`. Many findings that look vulnerable in isolation are
+actually mitigated by a prior prove-fix that added a guard in a caller
+(validation at the entry point, bounds check before dispatch, early
+throw on bad input). Empirical data: on a 95-finding jlsm audit run,
+~17% of findings were upstream-mitigated but reached Phase 1 anyway
+because Phase 0 only checked the construct itself, costing ~11% of
+prove-fix budget per audit.
+
+Do this check exactly once, with a hard 2-file cap:
+
+1. List the other `prove-fix-*.md` files in the same run directory
+   (sibling of your output path). Cheap `ls` / Glob — do NOT read them yet.
+2. From your finding, identify the **attack entry points**: the method
+   signatures a caller would invoke to reach the buggy path (often named
+   in the finding's "Attack" line, or visible at the top of the construct
+   source you just read). Callers above those entry points are where an
+   upstream guard could live.
+3. Scan the filename list for prior findings on constructs that plausibly
+   invoke or wrap your construct (name overlap, same package, same lens,
+   adjacent cluster). Pick AT MOST 2 candidates — prefer the ones most
+   recently completed and whose construct name appears in your source's
+   imports or call chain.
+4. Read the candidates' `Phase 2: Fix` / `Diff` sections only. For each,
+   ask: does the fix block the attack input from reaching my construct?
+   Concrete signs:
+   - A new validation / null-check / size guard at the caller
+   - A new early-throw on the input condition the finding exploits
+   - A new synchronized/locked region that serialises access such that
+     the race you'd need can't occur
+
+If yes → `UPSTREAM_MITIGATED`. Record the prior finding ID and the
+specific line range of the guard.
+
+If no → `STILL_VULNERABLE`. Proceed to Phase 1.
+
+If the 2-file budget is exhausted without finding a match → default to
+`STILL_VULNERABLE` and proceed to Phase 1. Do not read a third file.
+
+### 0d. Decide
+
+**Vulnerability still present (`STILL_VULNERABLE`):** The described bug
+exists in the current source and no upstream prior fix blocks the attack
+path. Proceed to Phase 1.
+
+**Vulnerability already fixed locally (`ALREADY_FIXED`):** The current
+source has the defense. Short-circuit to IMPOSSIBLE immediately — do NOT
+read any other files, do NOT run git blame, do NOT check test classes:
 
 1. Note which lines contain the defense (you already see them from 0a)
 2. Write the output file with:
@@ -64,13 +115,23 @@ other files, do NOT run git blame, do NOT check test classes:
    - Phase 0 result: ALREADY_FIXED
    - Phase 0 detail: "<defense type> at lines <N-M>" (one sentence)
    - Phase 1 result: "Skipped — vulnerability already fixed in current source"
-3. STOP. Do not write a test. Do not proceed to Phase 1. Do not
-   investigate which prior finding added the fix — that is the
-   orchestrator's concern, not yours.
+3. STOP.
 
-**Uncertain:** If the source read in 0a doesn't make the answer obvious,
-proceed to Phase 1 immediately. Do not investigate further — the test
-will determine the truth.
+**Vulnerability mitigated upstream (`UPSTREAM_MITIGATED`):** A prior
+prove-fix in this run added a caller-side or entry-guard that blocks the
+attack path. Short-circuit to IMPOSSIBLE:
+
+1. Write the output file with:
+   - Result: IMPOSSIBLE
+   - Phase 0 result: UPSTREAM_MITIGATED
+   - Phase 0 detail: "Attack path blocked by <prior finding ID> at
+     <file:lines> — <how the guard blocks this input>"
+   - Phase 1 result: "Skipped — attack input intercepted upstream"
+2. STOP. Do not read further construct source, do not attempt Phase 1.
+
+**Uncertain:** If you genuinely cannot decide from 0a–0c within the
+4-turn budget, proceed to Phase 1 immediately. Phase 1's test will
+determine the truth. Do not burn additional Phase 0 turns.
 
 ---
 
@@ -85,6 +146,28 @@ without either a Phase 0 proof or a test that compiles and runs.
 Read the construct source using offset/limit with the line range from
 the finding. You are reading to understand the API — types, method
 signatures, constructors, required setup.
+
+### 1a1. KB fix-pattern lookup (when kb_refs present)
+
+If the finding's `kb_refs` lists one or more `.kb/` entry paths, read them
+before writing the test or fix. These entries encode the project's prior
+experience with this class of bug — they commonly include:
+
+- `## Test guidance` — the adversarial test shape that reliably triggers
+  the pattern (inputs, setup, assertions). Use this as your test template.
+- `## Fix pattern` / recommended mitigation — the canonical defense for
+  this pattern (e.g., "wrap SecretKeySpec lifetime in try-with-resources",
+  "use AES-GCM with 96-bit random IV, never reuse"). Use this as your
+  fix baseline unless the test proves it insufficient.
+- `applies_to` — the scope of the pattern. Confirm your construct matches
+  before applying the fix blindly; if the pattern does not actually apply
+  to this finding, note the mismatch and proceed with independent reasoning.
+
+Budget: 2-3 turns. Read only the KB entries listed in `kb_refs`. Do NOT
+run `kb-search.sh` or browse `.kb/` — the packet already filtered for
+relevance. If `kb_refs: none`, skip this step entirely.
+
+Record consulted paths in the output file's `KB refs consulted` field.
 
 ### 1a2. Check existing test coverage
 
@@ -317,8 +400,13 @@ FIX_IMPOSSIBLE with:
   already-fixed proof or a test that compiles and runs.
 - **Cannot modify tests in Phase 2.** Only source code. If you need a
   test changed, emit a relaxation request.
-- **Cannot read files outside the finding's construct paths** and the
-  test class.
+- **Cannot read files outside the finding's construct paths**, the test
+  class, the KB entries listed in `kb_refs`, and sibling `prove-fix-*.md`
+  outputs in the same run directory. Direct `.kb/` reads are allowed
+  only for paths the orchestrator passed in `kb_refs` — do not browse
+  `.kb/` or run `kb-search.sh`. Sibling `prove-fix-*.md` reads are
+  allowed only during Phase 0c (upstream-mitigation check) with a hard
+  2-file cap — do not read them during Phase 1 or Phase 2.
 - **Cannot make speculative improvements** to surrounding code.
 - **Cannot read Suspect's analysis reasoning** — the finding description
   and source code are sufficient.
@@ -332,9 +420,14 @@ Write the output file to the path the orchestrator specified:
 
 ## Result: <CONFIRMED_AND_FIXED | IMPOSSIBLE | FIX_IMPOSSIBLE>
 
+### KB refs consulted
+- <.kb/path/to/entry.md> — <what guidance it provided, or "pattern did not apply">
+- (or "none" if finding carried kb_refs: none)
+
 ### Phase 0: Already-fixed check
-- **Result:** <STILL_VULNERABLE | ALREADY_FIXED | UNCERTAIN>
-- **Detail:** <what was checked — specific lines that provide/lack the defense>
+- **Result:** <STILL_VULNERABLE | ALREADY_FIXED | UPSTREAM_MITIGATED | UNCERTAIN>
+- **Detail:** <what was checked — specific lines that provide/lack the defense, OR the prior finding ID + guard location for UPSTREAM_MITIGATED>
+- **Prior prove-fix consulted (UPSTREAM_MITIGATED only):** <list of prove-fix-*.md paths read during 0c, up to 2, or "none">
 
 ### Phase 1: Verify (skipped if Phase 0 = ALREADY_FIXED)
 - **Test method:** <method name> (or "removed" if impossible, or "skipped" if Phase 0)
