@@ -36,15 +36,35 @@ you exactly what to run before continuing.
 ```
 
 The Work Planner writes contracts and stubs into your source tree. If the
-feature is large enough (6+ constructs with clean dependency boundaries),
-it proposes splitting into work units that each run their own TDD cycle.
+feature's estimated session size exceeds ~15K tokens (roughly 5+ constructs
+at the ~3K-per-construct heuristic) and there are clean dependency
+boundaries, it proposes splitting into work units that each run their own
+TDD cycle. Step 4 also picks an `execution_strategy` — `cost` (sequential,
+default), `balanced` (batched parallel), or `speed` (max parallelism). The
+first two run sequentially via Step 5 below; the `balanced` / `speed`
+strategies are covered in the parallel-coordinator section later in this
+document.
 
-**4. Write tests, then implement**
+**4. Write tests, then (optionally) harden, then implement**
 
 ```
 /feature-test "rate-limiting-middleware"
+/feature-harden "rate-limiting-middleware"     # optional — see below
 /feature-implement "rate-limiting-middleware"
 ```
+
+`/feature-harden` sits between test writing and implementation. It adds
+an adversarial test pass against domain-lens behavioral attacks on the
+contracts (concurrency races, boundary conditions, resource-lifecycle
+edges — which lens runs depends on the feature's domains). The command
+auto-selects `skip` / `lite` / `full` based on the feature's risk
+profile, so you can usually leave it in the flow and let it decide. If
+you want the pipeline to skip it entirely, `/feature-harden "<slug>"
+--skip` marks it done without running.
+
+In autonomous mode, hardening chains automatically between test and
+implement. In manual mode, invoke it yourself between the two — or
+skip it.
 
 On first `/feature-implement`, you'll be asked to choose a TDD loop mode:
 
@@ -181,6 +201,55 @@ The pipeline picks up cleanly from where it stopped.
 
 ---
 
+## Parallel execution with the feature coordinator
+
+When a feature was planned with `execution_strategy: balanced` or `speed`
+and has multiple work units with a dependency graph, the TDD loop runs
+under `/feature-coordinate` instead of the usual sequential
+test → implement → refactor chain. The coordinator dispatches work units
+as concurrent sub-agents, waits for them, then launches the next batch.
+
+Entry point, invoked automatically by the pipeline at the end of planning
+when strategy is `balanced`/`speed`:
+
+```
+/feature-coordinate "rate-limiting-middleware"
+```
+
+Behavior depends on the strategy:
+
+- **`balanced`** — grouped batches. All units with satisfied dependencies
+  launch together, coordinator waits for the batch to finish, then
+  launches the next batch. Predictable checkpoints between batches.
+- **`speed`** — completion-driven. As each unit finishes, any newly
+  unblocked units launch immediately — a unit deep in the dependency
+  chain starts the moment its last predecessor finishes, without waiting
+  for an unrelated batch to complete.
+
+Each sub-agent runs the full `/feature-test` → `/feature-implement` →
+`/feature-refactor` pipeline against its assigned work unit in an
+isolated context. Progress is tracked in a single TodoWrite list owned
+by the coordinator (sub-agents don't write to TodoWrite — it's a shared
+surface). Per-unit progress is also visible in each unit's
+`.feature/<slug>/units/WU-N/status.md`.
+
+### Multi-feature parallel dispatch
+
+At the work-group level, `/work-start --parallel [N]` dispatches every
+SPECIFIED work definition in a group as a concurrent sub-agent,
+optionally capped at N simultaneous runs:
+
+```
+/work-start "implement-transport-layer" --parallel 3
+```
+
+The coordinator shows the dispatch plan, asks you to confirm (parallel
+mode burns N× the tokens of a sequential run), then fans out. Concurrency
+caveats — shared KB writes, test contention, cost budget — are surfaced
+before you confirm.
+
+---
+
 ## Crash recovery
 
 Session crash, timeout, or context overflow? Resume cleanly:
@@ -311,6 +380,140 @@ Review all deferred items:
 
 ---
 
+## Writing and maintaining specs
+
+Specs are opt-in — not every project uses them, and within a project
+you add them lazily as features introduce behavior worth specifying
+(see [GETTING-STARTED-EXISTING.md](GETTING-STARTED-EXISTING.md) for the
+adoption rationale). The spec layer has its own small pipeline.
+
+**1. Initialize the spec corpus** (once per project, when you're ready
+to start writing specs):
+
+```
+/spec-init
+```
+
+This creates `.spec/registry/manifest.json`, the domain taxonomy seed,
+and shard indexes. Safe to run even if other layers are already set
+up — it's a no-op if the spec corpus already exists.
+
+**2. Author a hardened spec** through two-pass adversarial review:
+
+```
+/spec-author "F12" "token bucket rate limiter"
+```
+
+The Spec Author Agent runs a structured-draft pass, then a falsification
+pass that adversarially challenges the draft — trying to break each
+requirement with edge cases, boundary conditions, and contradictory
+scenarios. You confirm the final requirement set before it lands in
+`.spec/` with DRAFT state.
+
+**3. Register and promote.** `/spec-author` calls `/spec-write` under
+the hood to land the file, but you can also register a hand-authored
+spec:
+
+```
+/spec-write "F12" "token bucket rate limiter"
+```
+
+`/spec-write` checks for conflicts and displacement (new specs that
+contradict existing APPROVED specs) before registering. If displacement
+is detected, you choose how to resolve (accept replacement, narrow
+scope, or defer). Quantitative ambiguity is gated at this step — specs
+with score >0.20 (`[UNVERIFIED]+[UNRESOLVED]+[CONFLICT]` fraction) stay
+DRAFT until clarified.
+
+**4. Verify against implementation** after the feature lands:
+
+```
+/spec-verify "F12"
+```
+
+`/spec-verify` traces each requirement to its enforcement point in
+code (via `@spec FXX.RN` annotations), flags drift, and repairs inline
+— either updating the code to match the spec or amending the spec to
+match the reality. It's a repair loop, not a gap report.
+
+**5. Query specs** when you need them:
+
+```
+/spec "what guarantees do we make about rate limit windows?"
+```
+
+`/spec` searches requirements across all specs, surfaces gaps (domains
+with no spec coverage), and traces change impact ("if I change R5, what
+else breaks?"). Useful during feature scoping to see what's already
+promised.
+
+---
+
+## Running the audit pipeline standalone
+
+`/audit` runs at the end of every `/feature` flow via `/feature-refactor`,
+but it's also a standalone command for adversarial analysis of existing
+code — either to revisit shipped features, validate a refactor, or
+respond to a bug report with a systematic search.
+
+Standalone entry points:
+
+```
+/audit "auth-middleware-rewrite"      # feature slug — audits that feature's constructs
+/audit "src/crypto/wrap.rs"           # file path — audits all constructs in that file
+/audit "encryption/primitives-lifecycle"  # spec id — audits against that spec's requirements
+/audit "reports/2026-03-15-vector-index.md"  # prior audit report — resumes from it
+```
+
+The audit pipeline runs a multi-pass analysis (inventory → triage →
+construct clustering → per-cluster deep analysis → reconciliation)
+with pre-prove gates that filter findings before the expensive
+prove-fix cycle. Every finding gets either proved with a failing test
++ fix, recorded as a spec obligation (wontfix cases, per PR #56), or
+surfaced as advisory (non-testable — timing channels, for instance).
+
+Domain-conditional lenses activate based on what the code does. The
+security lens (v0.14.2+) triggers on credential stores, PII, auth
+middleware, and deserialization — it adds adversary-model reasoning
+(key lifecycle, IV/nonce reuse, ciphertext integrity, constant-time
+comparisons) on top of the generic audit passes.
+
+Budget caps are respected: Phase 0 detects already-fixed findings from
+prior runs to avoid re-proving them. If a finding can't be fixed
+because an existing test pins the current behavior, the FIX_IMPOSSIBLE
+escalation flow gives you four routes (relax the pin test, wontfix
+with obligation, spec-author to resolve the conflict, or defer).
+
+---
+
+## Capability tracking
+
+`/capabilities` is a lightweight index of what the project can do —
+useful for product questions ("do we support X?"), onboarding, and as
+input to feature scoping.
+
+```
+/capabilities "do we support rate limiting per tenant?"   # natural-language search
+/capabilities list                                         # browse by domain
+/capabilities add "tenant-scoped rate limiting"            # create a new entry
+/capabilities update "rate-limiting"                       # refine an existing entry
+/capabilities backfill                                     # bootstrap from existing
+                                                           # features, specs, ADRs
+```
+
+On a brownfield project, `/capabilities backfill` is the fastest way to
+populate `.capabilities/` without manual entry — it reads existing
+features, APPROVED specs, and accepted ADRs and proposes capability
+entries for your review. Nothing lands without confirmation.
+
+Capability entries are kept small and natural-language-searchable. They
+are not specs — specs describe *guarantees*, capabilities describe
+*what's available*. A spec tells you "if you call `rateLimit(tenant,
+n)`, the system enforces the limit within 100ms"; a capability tells
+you "rate limiting exists and is tenant-scoped."
+
+---
+
 ## Quick tasks
 
 For small changes that don't need the full pipeline — a single construct,
@@ -334,9 +537,15 @@ After installing vallorcine into a project:
 /setup-vallorcine
 ```
 
-`/setup-vallorcine` is a one-time command that initialises everything:
-`.kb/`, `.decisions/`, `.feature/`, project profile (language, framework,
-test runner, conventions), and `.gitignore` entries.
+`/setup-vallorcine` is a one-time command that initialises the core
+layers: `.kb/`, `.decisions/`, `.capabilities/`, `.feature/`, a project
+profile (language, framework, test runner, conventions), and
+`.gitignore` entries.
+
+The spec layer (`.spec/`) is deliberately *not* created here — run
+`/spec-init` separately when you're ready to start writing specs. This
+matches the lazy-spec adoption path: specs have real ergonomic cost and
+are opt-in per feature area.
 
 Not sure where to start?
 

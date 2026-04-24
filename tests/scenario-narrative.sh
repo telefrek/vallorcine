@@ -226,14 +226,22 @@ else
 fi
 
 # ── Test: generate.py graceful failure ───────────────────────────────────────
+#
+# Per commit 48d073c (2026-04-12), generate.{py,js} exit 1 on failure so the
+# wrapper can detect it, retry, and fall back. The contract is diagnostic on
+# stderr + exit 1 (not crash/exit 0). Capture via if/else to keep `set -e`
+# from killing the test on the expected nonzero exit.
 
 if [[ "$HAS_PYTHON" -eq 1 ]]; then
-    stderr=$(python3 "$NARRATIVE_DIR/generate.py" "nonexistent" "/tmp/vallorcine/no-such-dir" 2>&1)
-    exit_code=$?
-    if [[ "$exit_code" -eq 0 ]]; then
-        pass "generate.py exits 0 on missing dir"
+    if stderr=$(python3 "$NARRATIVE_DIR/generate.py" "nonexistent" "/tmp/vallorcine/no-such-dir" 2>&1); then
+        exit_code=0
     else
-        fail "generate.py exits 0 on missing dir" "exit code: $exit_code"
+        exit_code=$?
+    fi
+    if [[ "$exit_code" -eq 1 ]]; then
+        pass "generate.py exits 1 on missing dir"
+    else
+        fail "generate.py exits 1 on missing dir" "exit code: $exit_code"
     fi
     if [[ "$stderr" == *"not found"* ]]; then
         pass "generate.py logs diagnostic on missing dir"
@@ -247,12 +255,15 @@ fi
 # ── Test: generate.js graceful failure ───────────────────────────────────────
 
 if [[ "$HAS_NODE" -eq 1 ]]; then
-    stderr=$(node "$NARRATIVE_DIR/generate.js" "nonexistent" "/tmp/vallorcine/no-such-dir" 2>&1)
-    exit_code=$?
-    if [[ "$exit_code" -eq 0 ]]; then
-        pass "generate.js exits 0 on missing dir"
+    if stderr=$(node "$NARRATIVE_DIR/generate.js" "nonexistent" "/tmp/vallorcine/no-such-dir" 2>&1); then
+        exit_code=0
     else
-        fail "generate.js exits 0 on missing dir" "exit code: $exit_code"
+        exit_code=$?
+    fi
+    if [[ "$exit_code" -eq 1 ]]; then
+        pass "generate.js exits 1 on missing dir"
+    else
+        fail "generate.js exits 1 on missing dir" "exit code: $exit_code"
     fi
     if [[ "$stderr" == *"not found"* ]]; then
         pass "generate.js logs diagnostic on missing dir"
@@ -263,14 +274,20 @@ else
     skip "generate.js graceful failure (node not available)"
 fi
 
-# ── Test: wrapper exits 0 with no args ───────────────────────────────────────
+# ── Test: wrapper exits 3 with no args ───────────────────────────────────────
+#
+# narrative-wrapper.sh documents exit code 3 = missing arguments. See the
+# script's header comment for the full exit-code contract.
 
-bash "$REPO_ROOT/scripts/narrative-wrapper.sh" 2>/dev/null
-exit_code=$?
-if [[ "$exit_code" -eq 0 ]]; then
-    pass "narrative-wrapper.sh exits 0 with no args"
+if bash "$REPO_ROOT/scripts/narrative-wrapper.sh" 2>/dev/null; then
+    exit_code=0
 else
-    fail "narrative-wrapper.sh exits 0 with no args" "exit code: $exit_code"
+    exit_code=$?
+fi
+if [[ "$exit_code" -eq 3 ]]; then
+    pass "narrative-wrapper.sh exits 3 with no args (missing arguments)"
+else
+    fail "narrative-wrapper.sh exits 3 with no args" "exit code: $exit_code"
 fi
 
 # ── Test: Format guard on bad JSONL ──────────────────────────────────────────

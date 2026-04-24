@@ -70,6 +70,7 @@ git -C "$PROJECT" config user.name "Test"
 # Install the scan script
 mkdir -p "$PROJECT/.claude/scripts"
 cp "$REPO_ROOT/scripts/curate-scan.sh" "$PROJECT/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$PROJECT/.claude/scripts/"
 
 # Create initial files
 mkdir -p "$PROJECT/src/auth" "$PROJECT/src/billing" "$PROJECT/src/utils" "$PROJECT/lib"
@@ -364,6 +365,7 @@ echo "── Test 12: Non-git directory"
 NO_GIT="$TEST_BASE/no-git"
 mkdir -p "$NO_GIT/.claude/scripts"
 cp "$REPO_ROOT/scripts/curate-scan.sh" "$NO_GIT/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$NO_GIT/.claude/scripts/"
 
 output="$(cd "$NO_GIT" && bash .claude/scripts/curate-scan.sh --init 2>&1)" || true
 if echo "$output" | grep -q "not a git repository"; then
@@ -595,6 +597,7 @@ git -C "$FRESH" commit -m "init" >/dev/null 2>&1
 
 mkdir -p "$FRESH/.claude/scripts"
 cp "$REPO_ROOT/scripts/curate-scan.sh" "$FRESH/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$FRESH/.claude/scripts/"
 
 cd "$FRESH" && bash .claude/scripts/curate-scan.sh --init >/dev/null 2>&1
 
@@ -799,6 +802,7 @@ git -C "$ORPHAN_PROJECT" config user.name "Test"
 
 mkdir -p "$ORPHAN_PROJECT/.claude/scripts"
 cp "$REPO_ROOT/scripts/curate-scan.sh" "$ORPHAN_PROJECT/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$ORPHAN_PROJECT/.claude/scripts/"
 
 # Create source files first
 mkdir -p "$ORPHAN_PROJECT/src/auth"
@@ -979,6 +983,7 @@ mkdir -p "$OB_TEST_DIR/.spec/domains/engine"
 mkdir -p "$OB_TEST_DIR/.claude/scripts"
 
 cp "$REPO_ROOT/scripts/curate-scan.sh" "$OB_TEST_DIR/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$OB_TEST_DIR/.claude/scripts/"
 
 cd "$OB_TEST_DIR"
 git init -q .

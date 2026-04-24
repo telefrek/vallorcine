@@ -57,6 +57,7 @@ mkdir -p "$TEST_BASE/project/.claude/scripts"
 # Copy scripts
 cp "$REPO_ROOT/scripts/work-context.sh" "$TEST_BASE/project/.claude/scripts/"
 cp "$REPO_ROOT/scripts/work-lib.sh" "$TEST_BASE/project/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$TEST_BASE/project/.claude/scripts/"
 
 # ── Test 1: No .work/ directory → empty output ──────────────────────────────
 

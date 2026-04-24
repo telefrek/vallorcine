@@ -937,9 +937,20 @@ research over session summaries.
 
 **Multi-model support** — we're a Claude Code plugin. This is our platform.
 
-**Security-specific scanning** — Claude Code Security and Codex Security own
-this space with platform-level resources. Compete on general bug-finding quality
-and knowledge compounding, not on security vulnerability databases.
+**Security-specific scanning as a standalone product** — Claude Code Security
+and Codex Security own this space with platform-level resources (CVE databases,
+SAST rule libraries, vulnerability triage dashboards). We compete on general
+bug-finding quality and knowledge compounding, not on security vulnerability
+databases.
+
+*Clarification (v0.14.2):* shipping the `/audit` security lens
+(`prompts/audit/lens-security.md`) does NOT put us in this category — the
+lens is adversary-model reasoning (timing channels, IV/nonce reuse,
+key-lifecycle bugs, ciphertext integrity) within the existing audit
+pipeline, not a CVE scanner or a standalone security product. The lens
+triggers only when code handles sensitive data (credential stores, PII,
+auth middleware, deserialization). We remain out of the standalone-security
+category; the lens is audit depth, not a new product line.
 
 ---
 
@@ -963,6 +974,32 @@ Interop, not replacement.
 
 ## Closed gaps (previously listed)
 
+**v0.14.2 — GSD capability closures (from 2026-04-21 audit):**
+- ~~Wave-based multi-feature parallelism~~ — shipped as
+  `/work-start --parallel [N]`. Our primitive is stronger than GSD's:
+  declared `artifact_deps` + `produces` with computed readiness
+  (`work-resolve.sh`), vs GSD's dependency inference from file
+  reads/writes. Different correctness guarantees — ours catches missing
+  dependencies at WD-validate time, theirs catches them at runtime.
+- ~~Quantitative spec ambiguity scoring~~ — shipped as
+  `scripts/spec-ambiguity-score.sh`. Computes
+  `([UNVERIFIED]+[UNRESOLVED]+[CONFLICT]) / total_requirements` and
+  surfaces the score at DRAFT → APPROVED promotion. Different technique
+  from GSD's Socratic 6-round scoring but adjacent effect: quantitative
+  gate on ambiguity before spec promotion. Combines with our
+  two-pass adversarial authoring rather than replacing it.
+- ~~Adversary-model bug classes in audit (security lens)~~ — shipped as
+  `prompts/audit/lens-security.md` with TESTABLE vs ADVISORY finding
+  taxonomy. Addresses the encryption-audit gap (10 bugs found via
+  generic lens, 3 classes missed: timing channels, IV reuse, ciphertext
+  integrity). Does NOT make us a standalone security product — see
+  "Not worth building" for that boundary.
+- ~~Audit → obligation graveyard path~~ — shipped via FIX_IMPOSSIBLE
+  escalation flow (PR #51) + wontfix findings routing to
+  `open_obligations` (PR #56) that resurface via `/curate` aging logic.
+  Closes the last path where audit findings could silently vanish.
+
+**Earlier closures:**
 - ~~/decisions list/filter~~ — shipped v0.2.4
 - ~~Hooks integration~~ — dropped, violates principle 1
 - ~~Coverage gating~~ — dropped, violates principle 1

@@ -85,6 +85,11 @@ All tests were passing as of: <date from status.md>
 
 ```
 
+**In parallel mode (`execution_strategy: balanced | speed`):** do NOT call
+AskUserQuestion — chain to `/feature-refactor "<slug>" --unit WU-<n>`
+immediately.
+
+**Sequential/cost mode:**
 Use AskUserQuestion with two options:
 - "Proceed to refactor"
 - "Stop"

@@ -117,6 +117,73 @@ sub-agents.
 
 ---
 
+## Step 1a — Subagent dispatch contract
+
+Every Agent call the coordinator issues to run a work unit MUST include the
+following termination contract in the prompt. The pipeline skills
+(`/feature-test`, `/feature-implement`, `/feature-refactor`) already
+mode-gate their AskUserQuestion sites against
+`execution_strategy: balanced | speed`, so subagents will chain autonomously
+between stages. The contract below closes the remaining hang vector:
+subagents that finish their work but keep taking actions instead of
+returning.
+
+Hang root-cause (2026-04-23): WU-3 wrote status.md = COMPLETE and all tests
+green, then the subagent continued running ~2 min with no further
+meaningful work before the user had to Ctrl+C to unblock the coordinator.
+The Agent tool blocks the parent until the child emits its final assistant
+message; there is no timeout, no polling, no "you're clearly done" signal.
+
+### Required prompt fragments
+
+Include these verbatim (or paraphrased keeping the semantics) in every
+subagent prompt:
+
+```
+## Termination contract (MANDATORY)
+
+The Agent tool call that launched you returns to the coordinator only when
+you emit your final assistant message. The coordinator has no timeout and
+cannot poll you.
+
+You MUST return to the coordinator IMMEDIATELY after:
+- writing units/WU-<n>/status.md with Substage = `complete`, OR
+- writing an escalation entry to cycle-log.md and setting substage to
+  `escalated-<reason>`.
+
+Your final message MUST be the single-line summary below — nothing else.
+Do NOT run any more tools, re-verify, re-read cycle-log.md, or polish.
+If you catch yourself about to call another tool after marking complete,
+STOP and emit the summary instead.
+
+## Return format (exactly one line)
+
+WU-<n>: <COMPLETE | ESCALATED | STOPPED_AT_<stage> | ERROR> — <n tests>, <n constructs>, <brief detail>
+```
+
+### Automation mode
+
+Every dispatched subagent prompt must explicitly set the expectation:
+
+```
+Treat automation_mode as autonomous. Do NOT pause between pipeline stages.
+All AskUserQuestion sites in /feature-test, /feature-implement,
+/feature-refactor are mode-gated against execution_strategy = balanced/speed
+— you will not encounter an interactive prompt. If a pipeline skill would
+still try to open AskUserQuestion (new site added without gating), treat
+that as a bug: record it to cycle-log.md and return ESCALATED.
+```
+
+### Coordinator-side verification
+
+After each subagent returns, in addition to checking status.md for
+`complete` vs escalation substage, the coordinator should sanity-check:
+- Status.md Stage/Substage matches the summary line verb (COMPLETE →
+  `complete`; ESCALATED → `escalated-<reason>`).
+- If they disagree, trust status.md — the canonical state is on disk.
+
+---
+
 ## Step 2 — Launch and monitor (speed mode)
 
 The coordinator runs a **completion-driven loop** instead of batch-wait:
