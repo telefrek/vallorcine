@@ -631,7 +631,7 @@ Test.
 EOF
 
 output="$(bash .claude/scripts/work-validate.sh .work/resolve-group/WD-04.md 2>&1 || true)"
-if echo "$output" | grep -q "FAIL" && echo "$output" | grep -q "wd 'WD-99' not found in .work/"; then
+if echo "$output" | grep -q "FAIL" && echo "$output" | grep -q "wd 'WD-99' not found in group"; then
     pass "wd artifact_dep with nonexistent WD fails"
 else
     fail "nonexistent wd reference should fail" "got: $output"

@@ -220,6 +220,10 @@ Draft:
 - **Existing artifacts that apply** — group-level ADRs/specs already in
   `.decisions/` or `.spec/` that constrain this work (don't re-author
   them).
+- **Cross-group blockers** — if this group can't start until another
+  work group finishes, that's an `external_deps:` on `work.md`, not a
+  coordination surface to settle here. Record it; Phase C will add the
+  frontmatter. See the work.md template in `/work` for shape.
 
 ---
 

@@ -135,6 +135,12 @@ group: <group-slug>
 goal: <one sentence goal>
 status: active
 created: <YYYY-MM-DD>
+# Optional — declare cross-group blockers. Every WD in this group is
+# reported BLOCKED by scripts/work-resolve.sh until every listed group
+# reaches required_state=COMPLETE. Add only if seam analysis surfaces
+# a cross-group dependency; leave out otherwise.
+# external_deps:
+#   - { type: group, ref: "<other-group-slug>", required_state: COMPLETE }
 ---
 
 ## Goal

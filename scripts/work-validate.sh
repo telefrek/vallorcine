@@ -141,9 +141,16 @@ validate_wd_file() {
             # check deferred until ADR schema is revisited.
             ;;
           wd)
+            # wd: deps are scoped to the WD's own group. Cross-group
+            # coordination belongs in work.md's external_deps:. A wd: ref
+            # to another group validates OK today but is unreachable at
+            # runtime (scripts/work-resolve.sh populates its WD table from
+            # the current group only), so catch the mismatch here.
             if [[ ! -d "$project_root/.work" ]]; then
               echo "  WARN: cannot verify wd '$dep_ref' — no .work/ directory" >&2
             else
+              local current_group_dir
+              current_group_dir="$(dirname "$file")"
               local wd_found=0
               local wd_f
               while IFS= read -r wd_f; do
@@ -161,9 +168,24 @@ validate_wd_file() {
                   fi
                   break
                 fi
-              done < <(find "$project_root/.work" -name "WD-*.md" 2>/dev/null)
+              done < <(find "$current_group_dir" -maxdepth 1 -name "WD-*.md" 2>/dev/null)
               if [[ $wd_found -eq 0 ]]; then
-                errors+=("artifact_deps: wd '$dep_ref' not found in .work/")
+                local cross_group=0
+                local other_f
+                while IFS= read -r other_f; do
+                  [[ -z "$other_f" ]] && continue
+                  local other_id
+                  other_id="$(work_fm "$other_f" "id" 2>/dev/null)"
+                  if [[ "$other_id" == "$dep_ref" ]]; then
+                    cross_group=1
+                    break
+                  fi
+                done < <(find "$project_root/.work" -name "WD-*.md" 2>/dev/null)
+                if (( cross_group == 1 )); then
+                  errors+=("artifact_deps: wd '$dep_ref' is in a different group — use external_deps: on work.md for cross-group coordination")
+                else
+                  errors+=("artifact_deps: wd '$dep_ref' not found in group")
+                fi
               fi
             fi
             ;;
@@ -302,6 +324,78 @@ check_circular_deps() {
   done
 
   return $cycles_found
+}
+
+# ── External deps: group-level cross-group coordination gate ────────────────
+#
+# work.md may declare external_deps: — a list of references to sibling work
+# groups that must reach a required_state before this group's WDs are ready.
+# Validates shape and that referenced groups exist. Only type=group with
+# required_state=COMPLETE is currently supported; scripts/work-lib.sh's
+# work_check_group_dep enforces the same restriction at runtime.
+
+validate_external_deps() {
+  local group_dir="$1"
+  local work_md="$group_dir/work.md"
+
+  # work.md is optional — some groups predate it. Nothing to validate.
+  [[ ! -f "$work_md" ]] && return 0
+
+  local work_dir
+  work_dir="$(dirname "$group_dir")"
+
+  local errors=()
+  local ent_count=0
+  local ext_type ext_ref ext_req_state
+  while IFS='|' read -r ext_type ext_ref ext_req_state; do
+    [[ -z "$ext_type" ]] && continue
+    ((ent_count++)) || true
+
+    if [[ "$ext_type" != "group" ]]; then
+      errors+=("external_deps: invalid type '$ext_type' (only 'group' supported)")
+      continue
+    fi
+
+    if [[ -z "$ext_ref" ]]; then
+      errors+=("external_deps: missing ref for group entry")
+      continue
+    fi
+
+    if [[ -z "$ext_req_state" ]]; then
+      errors+=("external_deps: group:$ext_ref missing required_state")
+      continue
+    fi
+
+    if [[ "$ext_req_state" != "COMPLETE" ]]; then
+      errors+=("external_deps: group:$ext_ref required_state '$ext_req_state' unsupported (only COMPLETE)")
+      continue
+    fi
+
+    if [[ ! -d "$work_dir/$ext_ref" ]]; then
+      errors+=("external_deps: referenced group '$ext_ref' does not exist")
+    fi
+
+    local self_slug
+    self_slug="$(basename "$group_dir")"
+    if [[ "$ext_ref" == "$self_slug" ]]; then
+      errors+=("external_deps: group '$ext_ref' references itself")
+    fi
+  done < <(work_fm_external_deps "$work_md")
+
+  if (( ${#errors[@]} > 0 )); then
+    echo "  FAIL  external_deps in $work_md"
+    for err in "${errors[@]}"; do
+      echo "    $err"
+    done
+    return 1
+  fi
+
+  if (( ent_count > 0 )); then
+    echo "  PASS  $ent_count external_deps entry(ies) valid"
+  else
+    echo "  PASS  no external_deps declared"
+  fi
+  return 0
 }
 
 # ── Decompose invariant: every cross-WD reference has a group-level artifact ─
@@ -443,6 +537,13 @@ if [[ "$GROUP_MODE" == "true" ]]; then
     echo "  PASS  No circular dependencies"
   else
     echo "  FAIL  Circular dependencies detected"
+    ((total_errors++)) || true
+  fi
+
+  # Check external_deps shape + referenced group existence
+  echo ""
+  echo "── External deps check"
+  if ! validate_external_deps "$GROUP_DIR"; then
     ((total_errors++)) || true
   fi
 

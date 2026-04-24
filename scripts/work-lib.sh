@@ -207,6 +207,50 @@ work_fm_produces() {
   ' "$file"
 }
 
+# ── Extract external_deps as structured records ─────────────────────────────
+# Group-level frontmatter on work.md that applies to every WD in the group.
+# Shape: external_deps: [ { type: group, ref: "<slug>", required_state: COMPLETE } ]
+# Output: one line per dep in format: type|ref|required_state
+# Usage: work_fm_external_deps <work-md-file>
+work_fm_external_deps() {
+  local file="$1"
+  awk '
+    /^---$/ { n++; next }
+    n >= 2 { exit }
+    n == 1 {
+      if ($0 ~ /^external_deps:/) { in_deps = 1; next }
+      if (in_deps) {
+        if ($0 ~ /^  - \{/) {
+          line = $0
+          sub(/^  - \{[ ]*/, "", line)
+          sub(/\}[ ]*$/, "", line)
+          dep_type = ""; dep_ref = ""; req_state = ""
+          n_fields = split(line, fields, ",")
+          for (i = 1; i <= n_fields; i++) {
+            gsub(/^[ ]+|[ ]+$/, "", fields[i])
+            split(fields[i], kv, ":")
+            gsub(/^[ ]+|[ ]+$/, "", kv[1])
+            val = ""
+            for (j = 2; j <= length(kv); j++) {
+              if (j > 2) val = val ":"
+              val = val kv[j]
+            }
+            gsub(/^[ ]+|[ ]+$/, "", val)
+            gsub(/^["'"'"']|["'"'"']$/, "", val)
+            if (kv[1] == "type") dep_type = val
+            else if (kv[1] == "ref") dep_ref = val
+            else if (kv[1] == "required_state") req_state = val
+            else if (kv[1] == "required_status") req_state = val
+          }
+          print dep_type "|" dep_ref "|" req_state
+        } else if ($0 !~ /^  /) {
+          in_deps = 0
+        }
+      }
+    }
+  ' "$file"
+}
+
 # ── List all work definition files in a group ────────────────────────────────
 # Returns absolute paths, one per line.
 work_list_wds() {
@@ -317,6 +361,51 @@ work_check_adr_dep() {
       echo "ADR $slug is $actual_status (need $required_status)"
       return 1
     fi
+  fi
+
+  return 0
+}
+
+# ── Check if a work group meets an external_deps required_state ──────────────
+# Group is COMPLETE iff every WD in the group has status COMPLETE.
+# Returns 0 + empty output if met. Returns 1 + reason string on failure.
+# Usage: work_check_group_dep <work_dir> <group_slug> <required_state>
+work_check_group_dep() {
+  local work_dir="$1"
+  local group_slug="$2"
+  local required_state="$3"
+  local group_dir="$work_dir/$group_slug"
+
+  if [[ ! -d "$group_dir" ]]; then
+    echo "group '$group_slug' not found"
+    return 1
+  fi
+
+  # Only COMPLETE is supported currently — see scripts/work-validate.sh.
+  if [[ "$required_state" != "COMPLETE" ]]; then
+    echo "unsupported required_state '$required_state' (only COMPLETE)"
+    return 1
+  fi
+
+  local total=0
+  local complete=0
+  local wd_file
+  local wd_status
+  while IFS= read -r wd_file; do
+    [[ -z "$wd_file" ]] && continue
+    ((total++)) || true
+    wd_status=$(work_fm "$wd_file" "status")
+    [[ "$wd_status" == "COMPLETE" ]] && { ((complete++)) || true; }
+  done < <(work_list_wds "$group_dir")
+
+  if (( total == 0 )); then
+    echo "group '$group_slug' has no WDs"
+    return 1
+  fi
+
+  if (( complete < total )); then
+    echo "group '$group_slug' is $complete/$total COMPLETE (need all)"
+    return 1
   fi
 
   return 0
