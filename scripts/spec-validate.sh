@@ -163,12 +163,15 @@ if [[ ${#ERRORS[@]} -eq 0 ]]; then
   done < <(fm "$FILE" '.kb_refs // [] | .[]')
 
   # ── Check 9b: APPROVED specs must not have unresolved conflict markers
+  # Use here-strings (not `echo "$var" | grep`) so SIGPIPE under pipefail
+  # cannot flip the result on very large machine sections — observed at
+  # 134 KB on encryption.primitives-lifecycle in jlsm.
   if [[ "$STATE" == "APPROVED" ]]; then
     spec_body=$(machine_section "$FILE")
-    if echo "$spec_body" | grep -qE '\[UNRESOLVED\]' 2>/dev/null; then
+    if grep -qE '\[UNRESOLVED\]' <<< "$spec_body" 2>/dev/null; then
       ERRORS+=("APPROVED spec has [UNRESOLVED] markers — should be DRAFT")
     fi
-    if echo "$spec_body" | grep -qE '\[CONFLICT\]' 2>/dev/null; then
+    if grep -qE '\[CONFLICT\]' <<< "$spec_body" 2>/dev/null; then
       ERRORS+=("APPROVED spec has [CONFLICT] markers — should be DRAFT")
     fi
   fi
@@ -183,8 +186,9 @@ if (( delim_count < 3 )); then
 fi
 
 # ── Check 11: numbered requirements exist in machine section
+# Here-string instead of pipe — see 9b above for SIGPIPE rationale.
 machine=$(machine_section "$FILE")
-if ! echo "$machine" | grep -qE '^R[0-9]+\.'; then
+if ! grep -qE '^R[0-9]+\.' <<< "$machine"; then
   ERRORS+=("No numbered requirements found in machine section (expected R1. R2. format)")
 fi
 

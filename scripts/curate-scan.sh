@@ -1221,15 +1221,17 @@ if [[ -f ".spec/registry/manifest.json" ]] && command -v jq >/dev/null 2>&1; the
 
             # Case: no annotations at all — spec is entirely unannotated.
             # spec-trace emits "**No annotations found.**" in the markdown body.
-            if echo "$trace_out" | grep -q '\*\*No annotations found\.\*\*'; then
+            # Use here-strings so SIGPIPE under pipefail cannot flip results
+            # on long /spec-trace output (grep -q / -m1 close stdin early).
+            if grep -q '\*\*No annotations found\.\*\*' <<< "$trace_out"; then
                 echo "UNANNOTATED|$sid" >> "$TMPDIR_SCAN/spec-unannotated.txt"
                 continue
             fi
 
             # Extract "No implementation annotations:" and "No test annotations:" lines.
-            no_impl="$(echo "$trace_out" | grep -m1 '^\*\*No implementation annotations:\*\*' \
+            no_impl="$(grep -m1 '^\*\*No implementation annotations:\*\*' <<< "$trace_out" \
                 | sed 's/^\*\*No implementation annotations:\*\*[[:space:]]*//' || true)"
-            no_test="$(echo "$trace_out" | grep -m1 '^\*\*No test annotations:\*\*' \
+            no_test="$(grep -m1 '^\*\*No test annotations:\*\*' <<< "$trace_out" \
                 | sed 's/^\*\*No test annotations:\*\*[[:space:]]*//' || true)"
 
             if [[ -n "$no_impl" ]]; then
