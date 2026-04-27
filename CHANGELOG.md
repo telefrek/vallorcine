@@ -5,6 +5,116 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.16.0] — 2026-04-27
+
+Spec-layering initiative — a mature spec can now subdivide into a parent +
+concern-specific children, each a full spec, with the parent retaining
+R-numbered cross-cutting requirements. Subdivision is a natural progression
+triggered by either `/curate` housekeeping or `/spec-author` Pass 2 just-in-
+time signals; never a remediation step. PR #61 plus two soak-followup fixes
+surfaced from a 4-day jlsm session sweep (2026-04-23 → 2026-04-27).
+
+### Added
+
+- **Spec layering — natural progression of growing domains.** A mature spec
+  can subdivide into a parent + concern-specific children, each a full spec.
+  The parent retains R-numbered cross-cutting requirements; children own
+  concern-specific requirements. Subdivision is a normal flow, not a
+  remediation step. Triggered by either `/curate` housekeeping (passive
+  detection) or `/spec-author` Pass 2 (just-in-time during amendments).
+  Backwards-compatible — flat specs continue to work unchanged.
+
+  - **`/spec-split <spec-id>` skill** orchestrates the subdivision: identifies
+    natural concern boundaries from the spec's existing section structure,
+    confirms with the user via `AskUserQuestion` (with edit option), builds a
+    JSON plan, and invokes `scripts/spec-split.sh` — a transactional executor
+    that snapshots prior state into a rollback log under `.spec/.split-log/`,
+    carves child files preserving R-number identity (R45 stays R45 in the
+    child), rewrites the parent to retain only cross-cutting requirements,
+    updates the manifest with `parent_spec` references, sweeps `@spec`
+    annotations in production source dirs (skipping `test/`, `tests/`,
+    `node_modules/`, `vendor/`, `target/`, `build/`, `dist/`), and runs
+    `spec-validate` on parent + every child. **On any post-write validation
+    failure, the executor automatically replays the rollback log** — parent
+    restored, children deleted, manifest reverted, annotation rewrites
+    reversed. The rollback log is preserved for one release in case manual
+    inspection is needed.
+
+  - **`/curate` subdivision-candidate detector** (Analysis 20) flags specs
+    that have grown past one file's worth of behavior (≥50 R-requirements OR
+    ≥15K tokens) AND show multiple distinct concerns (≥2 section headers, no
+    single section holding ≥90% of requirements). Specs already in a layered
+    family (`parent_spec` set) are excluded. Surfaces as a "Subdivision
+    Candidates" section in the scan summary with a suggested
+    `/spec-split <id>` per candidate. New `AskUserQuestion` path lets the
+    user subdivide / decline (with documented reason) / defer per candidate.
+    Decline is a first-class outcome — subdivision should never be forced on
+    indivisible concerns.
+
+  - **`/spec-author` Pass 2/3 layered awareness.** Pre-flight Step 6 detects
+    when the target is a child spec (`parent_spec` set) and re-runs the
+    resolver with `INCLUDE_SIBLINGS=true` so falsification subagents see the
+    parent body + every sibling body — enabling cross-sibling contradiction
+    detection. After Pass 2 arbitration, a non-blocking just-in-time
+    subdivision signal surfaces a `/spec-split <id>` suggestion when the
+    in-progress spec has tipped into subdivision territory by the same
+    thresholds `/curate` uses. Pass 3 still runs unconditionally; the signal
+    is silent when thresholds don't match.
+
+  - **Schema and read-path foundation.** New optional `parent_spec`
+    frontmatter field. Multi-dot ID grammar (`a.b.c.d`) accepted by
+    `spec-validate.sh` and `spec-trace.sh`. `spec_file_for_id()` falls
+    through to ID-computed path on manifest miss
+    (`a.b.c.d` → `domains/a/b/c/d.md`). New `spec_walk_parent_chain()` and
+    `spec_children_for()` helpers in `spec-lib.sh`. `spec-resolve.sh`
+    auto-includes parent chain when a child lands in candidates;
+    `INCLUDE_SIBLINGS=true` opts into siblings. `spec-validate.sh` enforces
+    parent existence, ID-prefix consistency, and acyclic chains.
+    `.spec/CLAUDE.md` documents the model — file layout, ID grammar,
+    validation rules, when to subdivide, when not to.
+
+### Fixed
+
+- **`/work-start` and `/work-plan` WD status updates use `sed -i`, not
+  `Edit`.** The Edit tool requires the target file to be Read in the same
+  session first; three status-update instructions in
+  `skills/work-start/SKILL.md` (4d) and `skills/work-plan/SKILL.md` (4c, 6)
+  had the assistant Edit `.work/<group>/WD-<nn>.md` without otherwise needing
+  its content, which produced predictable "File has not been read yet"
+  errors during real runs. The kit already used
+  `sed -i "s/^status:.*$/status: COMPLETE/"` in `scripts/work-finalize.sh:80`
+  for the equivalent operation; the skill prompts now mirror that pattern.
+  Surfaced from the 2026-04-23 → 2026-04-27 jlsm session sweep. Regression
+  test: `tests/scenario-wd-status-update-no-edit.sh` (6 invariants).
+
+- **Pipefail SIGPIPE on large `$var | grep` pipelines.** Three scripts piped
+  potentially-large stdin into early-stdin-closing tools (`grep -q`,
+  `grep -m1`), which exit-141'd under `set -o pipefail` once the input
+  crossed the 64 KB pipe buffer. With negation in front of the pipe
+  (`if ! echo "$x" | grep -q ...`), exit 141 was treated as success — the
+  check silently flipped on large inputs. Triggered on jlsm by
+  `spec-validate.sh` Check 9b on a 134 KB `encryption.primitives-lifecycle`
+  machine section. Switched seven sites across `scripts/spec-validate.sh`,
+  `scripts/kb-search.sh`, and `scripts/curate-scan.sh` from
+  `echo "$var" | grep` to here-string form `grep ... <<< "$var"`. The
+  here-string buffers the whole content before grep reads, so SIGPIPE cannot
+  back-propagate. Regression test: `tests/scenario-pipefail-sigpipe.sh` (10
+  invariants — structural drift detection on the patched sites + runtime
+  check on a synthetic 881 KB spec).
+
+### Tests
+
+- 5 new scenario test files, 91 new invariants total.
+- 42/42 scenario tests passing, 59/59 install tests passing.
+
+### Migration
+
+No migration needed. `parent_spec` is opt-in. Specs without it continue to
+work; multi-dot IDs are accepted but no ID changes are forced. `/spec-split`
+is run per-spec when the user agrees a subdivision is warranted.
+
+---
+
 ## [0.15.0] — 2026-04-24
 
 Work-layer redesign. Two PRs: #59 ships `/work-decompose` Phase A/B/C
