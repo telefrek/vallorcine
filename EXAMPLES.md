@@ -447,6 +447,63 @@ with no spec coverage), and traces change impact ("if I change R5, what
 else breaks?"). Useful during feature scoping to see what's already
 promised.
 
+**6. Subdivide a mature spec** when it has grown past one file's worth
+of behavior with multiple distinct concerns:
+
+```
+/spec-split "encryption.primitives-lifecycle"
+```
+
+A mature spec — typically 50+ requirements with 2+ section headers —
+is a candidate for subdivision into a parent + concern-specific
+children. Each child is a full spec in its own right; the parent
+retains R-numbered cross-cutting requirements that span all children
+(e.g. "all DEKs must be wrappable under their tenant root key").
+Children own concern-specific requirements (key-rotation, DEK lifecycle,
+revocation, etc.).
+
+`/spec-split` identifies natural concern boundaries from the existing
+section structure, proposes them via `AskUserQuestion` (with edit
+option), then transactionally executes:
+
+- Carves child files from the parent's body, **preserving R-number
+  identity** (R45 stays R45 in the child)
+- Rewrites the parent to retain only cross-cutting requirements
+- Updates the manifest with `parent_spec` references
+- Sweeps `@spec parent.Rxx` annotations in production source dirs,
+  rewriting to `@spec parent.child.Rxx` for moved requirements
+- Runs `spec-validate` on parent + every child
+- **Auto-rollbacks** on any post-write validation failure (rollback
+  log preserved at `.spec/.split-log/<id>-<timestamp>.json` for
+  one release in case manual inspection is needed)
+
+After a split, `/spec-author` Pass 2/3 falsification on a child loads
+the parent + all siblings as full files (cross-family contradiction
+detection). `/spec-resolve` auto-includes the parent chain when a
+child is selected. The hierarchy is recursive — a child can itself
+subdivide later.
+
+`/spec-split` is not usually run cold. Two natural triggers surface
+candidates first:
+
+- `/curate` housekeeping flags subdivision candidates in its
+  "Subdivision Candidates" report section, with a suggested
+  `/spec-split <id>` per candidate.
+- `/spec-author` Pass 2 surfaces a just-in-time signal alongside
+  Pass 2 findings when an amendment tips the in-progress spec into
+  subdivision territory: "consider `/spec-split <id>` after this
+  amendment lands."
+
+Decline is a first-class outcome — subdivision should never be forced
+on indivisible concerns. If a spec is mature but its requirements
+form a single tightly-coupled concern, leave it whole. The user can
+note the decline reason in the spec's design narrative; future
+`/curate` passes will not surface it again immediately.
+
+See `.spec/CLAUDE.md` (the "Layered specs" section) for the file
+system layout, ID grammar (`a.b.c.d` → `domains/a/b/c/d.md`), and
+validation rules.
+
 ---
 
 ## Running the audit pipeline standalone

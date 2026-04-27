@@ -182,10 +182,11 @@ or work groups stall. The result: your 5th feature is faster than your 1st.
 | Command | What it does |
 |---------|-------------|
 | `/spec "<question>"` | Query specs, discover gaps, and trace change impact |
-| `/spec-author "<feature-id>" "<title>"` | Two-pass adversarial spec authoring (structured draft + falsification). Detects INVALIDATED specs for revival as reference input. |
+| `/spec-author "<feature-id>" "<title>"` | Two-pass adversarial spec authoring (structured draft + falsification). Detects INVALIDATED specs for revival as reference input. Loads parent + siblings when amending a child of a layered spec; surfaces a just-in-time `/spec-split` signal when an amendment tips the spec into subdivision territory. |
 | `/spec-write "<id>" "<title>"` | Register a spec in `.spec/` storage with conflict and displacement check |
 | `/spec-verify "<id>"` | Verify a spec against the current implementation |
-| `/spec-resolve "<description>"` | Build a resolved context bundle. Detects displacement — when new specs contradict existing APPROVED specs — and presents resolution choices (accept, narrow, defer). |
+| `/spec-split "<spec-id>"` | Subdivide a mature spec into a parent + concern-specific children. Parent retains cross-cutting requirements; children own concern-specific reqs. Transactional with auto-rollback on validation failure. Triggered by `/curate` housekeeping or `/spec-author` Pass 2 just-in-time signal. |
+| `/spec-resolve "<description>"` | Build a resolved context bundle. Detects displacement — when new specs contradict existing APPROVED specs — and presents resolution choices (accept, narrow, defer). Hierarchy-aware: when a child spec lands in candidates, the parent chain auto-includes; `INCLUDE_SIBLINGS=1` opt-in for adversarial paths. |
 | `/spec-init` | Initialize the `.spec/` directory structure |
 
 ### Features — TDD pipeline
@@ -240,7 +241,7 @@ or work groups stall. The result: your 5th feature is faster than your 1st.
 
 | Command | What it does |
 |---------|-------------|
-| `/curate` | Review quality signals — stale decisions, knowledge gaps, spec coverage gaps, implicit dependencies, out-of-scope ADR items |
+| `/curate` | Review quality signals — stale decisions, knowledge gaps, spec coverage gaps, implicit dependencies, out-of-scope ADR items, **subdivision candidates** (mature specs that have grown past one file's worth of behavior with multiple distinct concerns) |
 | `/curate --init` | First-time scan on an existing codebase |
 | `/curate --deeper` | Scan 6 months of history instead of default 3 |
 

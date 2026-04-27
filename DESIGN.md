@@ -788,7 +788,8 @@ vallorcine/
 │   ├── spec-author/SKILL.md         ← /spec-author — two-pass adversarial spec authoring
 │   ├── spec-write/SKILL.md          ← /spec-write — register a spec in .spec/ storage
 │   ├── spec-verify/SKILL.md         ← /spec-verify — verify spec against implementation, repair violations inline
-│   ├── spec-resolve/SKILL.md        ← /spec-resolve — resolved context bundle with displacement detection
+│   ├── spec-resolve/SKILL.md        ← /spec-resolve — resolved context bundle with displacement detection (hierarchy-aware: auto-includes parent chain when child is selected; INCLUDE_SIBLINGS opt-in)
+│   ├── spec-split/SKILL.md          ← /spec-split — subdivide a mature spec into parent + concern-specific children, transactional with auto-rollback
 │   ├── spec-init/SKILL.md           ← /spec-init — initialise .spec/ directory structure
 │   │
 │   │  Features
@@ -859,7 +860,8 @@ vallorcine/
 │   ├── spec-lib.sh                 ← shared functions sourced by all spec scripts (manifest I/O, YAML helpers)
 │   ├── spec-resolve.sh             ← spec resolution with conflict detection
 │   ├── spec-validate.sh            ← spec structural validation (displacement fields, lifecycle)
-│   ├── spec-trace.sh               ← @spec annotation discovery across codebases
+│   ├── spec-trace.sh               ← @spec annotation discovery across codebases (multi-dot ID grammar for layered specs)
+│   ├── spec-split.sh               ← transactional spec subdivision executor (carves children, rewrites parent, sweeps @spec annotations, auto-rollbacks on validation failure)
 │   ├── spec-stats.sh               ← corpus health summary (~200 tokens, safe for preflight)
 │   ├── spec-obligations-gc.sh      ← resolve obligations when their target spec reaches APPROVED
 │   ├── spec-ambiguity-score.sh     ← quantitative ambiguity gate for /spec-write (token/heuristic scoring)

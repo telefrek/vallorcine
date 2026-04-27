@@ -20,17 +20,23 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-04-24*
+*Last updated: 2026-04-27*
 
-**PR #59 merged (v0.14.4 + Phase A/B/C + /work-status routing).
-Follow-up PR open on `fix/work-layer-followups` — bundles Gap 4
-(cross-group deps via `external_deps:`) + Gap 3 (/work-plan and
-/feature-domains honour the group envelope) plus three pre-existing
-bugs and four SKILL.md guidance refinements surfaced empirically by
-exercising the kit end-to-end against a fresh work group on a local
-jlsm clone. Six commits, 36/36 scenario tests + 59/59 install tests
-green. jlsm migration of `implement-membership` to `external_deps:`
-deferred to post-release — jlsm needs the upgraded kit first.**
+**PR #61 merged (v0.16.0 cut after release). Spec-layering initiative
+ships end-to-end: parent + child spec model with natural-progression
+triggers from /curate (housekeeping) and /spec-author (just-in-time).
+Manually-authored layered specs work after the schema-and-resolver
+piece; `/spec-split` provides transactional subdivision with
+auto-rollback; `/curate` flags subdivision candidates; `/spec-author`
+Pass 2 surfaces a `/spec-split` suggestion the moment an amendment
+tips a spec into subdivision territory and loads parent + siblings
+when amending a child. Bundle also lands two soak-followup fixes
+surfaced from the 4-day jlsm sweep (sed swap for WD status
+`Edit`-without-Read, SIGPIPE on `echo $var | grep` pipelines for
+large stdin under pipefail). Six commits, 42/42 scenarios + 59/59
+install green. Pilot reserved for user discretion: run `/spec-split
+encryption.primitives-lifecycle` against jlsm's 163-req / 33K-token
+canary spec.**
 
 ### What's shipped since 2026-04-21
 
