@@ -5,6 +5,65 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.16.1] — 2026-04-27
+
+Triage from a `/spec-split` + `/curate` run on jlsm surfaced 8 issues across
+`spec-split`, `curate-scan`, `index-verify`, and the installer template. All
+addressed with regression tests (PR #62).
+
+### Fixed
+
+- **spec-split:** Compound `@spec parent.R1,R2[,R3]` annotations now route
+  each R to its correct child during a split. The literal-substring rewrite
+  previously matched the parent prefix and left subsequent Rs in the comma
+  list dangling under the wrong child (blocked the
+  `query.sql-query-support` split where 54 of 195 R-level annotations were
+  compound). The sweep now pre-explodes compounds into one annotation per R
+  on consecutive lines before per-R rewrite.
+- **spec-split / spec-validate / spec-trace / spec-lib / spec-resolve /
+  spec-ambiguity-score / curate-scan:** Recognize hyphenated sub-numbered Rs
+  like `R37b-1`, `R83-1`, `R76a-1`, `R71b-2`, `R78g-3` as first-class
+  R-claims. Previously these were silently swallowed when first under a
+  section header.
+- **spec-split:** Parent's manifest entry version is now bumped in lockstep
+  with the file's frontmatter version. Previously the manifest stayed stale
+  (file v14 vs manifest v13) after a split, leaving downstream tooling
+  inconsistent.
+- **spec-split:** Source-file rollback now uses pre-sweep snapshots, so the
+  rollback log can faithfully restore files even after the compound-annotation
+  explosion pass (which can rewrite multiple lines on a single source line).
+- **curate-scan:** "Specs with open obligations" no longer false-positives on
+  empty `open_obligations: []` arrays in JSON frontmatter. The frontmatter
+  check now uses `jq` instead of a shell stripper that left punctuation
+  behind and registered as content (was reporting ~79 false-positive specs
+  on real-world scans).
+- **curate-scan:** "Unspecified shared types" now blocklists JDK / standard
+  library types (`IllegalArgumentException`, `NullPointerException`,
+  `IllegalStateException`, common collections, IO, time, concurrency
+  primitives) so genuine project value-types surface above the noise.
+- **curate-scan:** Specs with bare `@spec engine.foo` annotations (no
+  `.R<n>` suffix) are now classified as a separate `BARE_ONLY` gap class
+  instead of being lumped into "no annotations at all". The remediation
+  differs (refine vs. add from scratch).
+- **index-verify:** Decisions index now actually overflows oldest "Recently
+  Accepted" rows to `history.md` when the 80-line cap is exceeded.
+  Previously the script logged a warning and proceeded, letting the index
+  grow unbounded after auto-repair (e.g. 46 reconstructed ADRs → 151 lines).
+  Tunable via `VALLORCINE_DECISIONS_KEEP` (default 5 most-recent rows).
+- **install:** Installer's `.gitignore` template now ships with
+  `.spec/.split-log/` and `.spec/.split-plan.json`. Existing installs (with
+  the runtime block already present) pick these up on re-install via a new
+  per-entry append path. Idempotent — re-running install does not duplicate
+  entries.
+
+### Changed
+
+- **curate-scan summary heading:** "APPROVED specs with no annotations at
+  all" → "APPROVED specs with no @spec annotations of any kind", to
+  distinguish from the new `BARE_ONLY` class.
+
+---
+
 ## [0.16.0] — 2026-04-27
 
 Spec-layering initiative — a mature spec can now subdivide into a parent +
