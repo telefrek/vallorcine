@@ -1,0 +1,23 @@
+# vallorcine falsification lens registry
+#
+# Used by curate-scan.sh Analysis 22 (falsification-lens staleness) to
+# detect APPROVED specs whose original Pass 2 falsification predates a
+# given lens shipping. Specs authored before a lens's introduction date
+# AND containing keywords associated with that lens are surfaced as
+# re-falsification candidates.
+#
+# Format (one lens per line, pipe-separated):
+#   <lens_name>|<introduction_date>|<keyword_1>|<keyword_2>|...
+#
+# Rules:
+#   - introduction_date is YYYY-MM-DD (the date the lens shipped to users
+#     via a release tag, NOT the commit date of the lens-registry.txt
+#     update). Lookups compare via lexicographic string comparison.
+#   - Keywords are matched as case-insensitive whole words (\bword\b).
+#     Keep keywords specific enough to avoid common-word false positives.
+#   - Lines starting with `#` and blank lines are ignored.
+#
+# When you ship a new falsification lens, add a line here. The single
+# source of truth for "which lenses exist and when did they ship."
+
+security|2026-04-21|credential|password|token|encrypt|decrypt|crypto|cipher|nonce|PII|secret
