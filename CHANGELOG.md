@@ -5,6 +5,61 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.16.3] — 2026-04-28
+
+Closes the artifact↔world drift-detection gap in `/curate` with two new
+mechanical analyses, plus a focused verify mode that routes those
+candidates to existing repair commands. Adds a depth-pass-only entry
+to `/spec-author` for re-falsifying mature specs without re-authoring
+(PR #64).
+
+### Added
+
+- **/curate Analysis 21 — link rot in KB entries.** Extracts URLs from
+  KB body text (markdown links + bare URLs, code-fence excluded), curls
+  each via HEAD with a 7-day cache to bound wall-clock cost, flags 4xx
+  + connection failures (000). 5xx are treated as transient and skipped.
+- **/curate Analysis 22 — falsification-lens staleness.** APPROVED specs
+  whose git first-commit-touched date predates a falsification lens AND
+  whose body matches the lens's keyword pattern. Lens registry at
+  `scripts/lens-registry.txt` is the single source of truth for lens
+  names + introduction dates + keywords.
+- **/spec-author `<spec-id> --depth-pass-only [--lens <name>]`** — new
+  entry path that skips Pass 1 + Pass 2 and runs Pass 3 against an
+  existing APPROVED spec. Optional `--lens` biases the depth pass
+  toward a specific falsification lens reference (e.g.,
+  `prompts/audit/lens-security.md`). Independently useful: invoke
+  directly to depth-pass any APPROVED spec, not only when /curate
+  routes it.
+- **/curate `--verify [--analysis <name>]`** — focused pass over
+  verification-shaped candidates only (Analyses 21 + 22). Skips the
+  broader correlation flow. Dismissals persist to
+  `.curate/verify-dismissed.txt` so future verify runs don't re-prompt
+  the same items. `--analysis link-rot|falsification-stale|all`
+  narrows further.
+
+### Fixed
+
+- **curate-scan.sh:** bare-URL extraction regex `[^[:space:]<>")\]]+`
+  worked in `ugrep` (Claude Code's wrapper) but failed in GNU grep —
+  `\]` is not honored as escaped `]` inside a bracket expression in
+  GNU grep. Corrected to put `]` first in the negated class
+  (POSIX-portable across grep implementations).
+
+### Tests
+
+Four new scenario tests, 55 invariants total, all green:
+
+- `scenario-curate-link-rot.sh` (17/17)
+- `scenario-curate-falsification-stale.sh` (13/13)
+- `scenario-spec-author-depth-pass-only.sh` (11/11)
+- `scenario-curate-verify-routing.sh` (14/14)
+
+`tests/test-install.sh` 64/64 (verifies `lens-registry.txt` installs
+to `.claude/scripts/lens-registry.txt` via MANIFEST + install.sh).
+
+---
+
 ## [0.16.2] — 2026-04-28
 
 Fixes the repeated "fix retro artifacts" follow-up PRs caused by `/feature-pr`
