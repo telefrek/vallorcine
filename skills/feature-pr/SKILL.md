@@ -284,6 +284,52 @@ Append `pr-drafted` entry to cycle-log.md:
 
 ---
 
+## Step 4.5 — Run retrospective (if not already run)
+
+The retrospective writes feature footprints, adversarial findings, capability
+index updates, and work-definition status changes back to `.kb/`,
+`.capabilities/`, and `.work/`. These artifacts MUST land in this PR — if they
+land after the PR is created, they end up outside the merge and force a
+follow-up "fix retro artifacts" PR. The next step (Step 5) commits whatever
+the retro produces, so retro must run *before* Step 5.
+
+### Skip if already run
+
+Check `cycle-log.md` for an existing `retro-complete` entry. If present, the
+retrospective has already run for this feature — skip to Step 5 silently.
+
+### If not run
+
+Display:
+```
+── Retrospective ──────────────────────────────────
+The retro captures what worked / what didn't while the feature is fresh, and
+writes feature-footprint + adversarial-finding entries back to `.kb/` so the
+next feature benefits. Its outputs (KB entries, capability index updates,
+work-definition status) MUST be in this PR — running retro after the PR is
+created strands the artifacts outside the merge.
+```
+
+Use AskUserQuestion with options:
+  - "Run retro now (recommended)"
+  - "Skip — accept follow-up retro PR"
+
+**If "Run retro now":** invoke `/feature-retro "<slug>"` as a sub-agent. Wait
+for it to complete. Step 5 will pick up its outputs.
+
+**If "Skip":** proceed but note in the PR description that retro was skipped
+and a follow-up artifacts PR will be needed:
+
+```markdown
+## Retrospective
+Retro deferred. Run `/feature-retro "<slug>"` after merge — outputs will need
+their own follow-up PR (kb/capabilities/work-tracking only).
+```
+
+This is the explicit-acknowledgement path. The default is to run retro inline.
+
+---
+
 ## Step 5 — Finalize feature records
 
 Before creating the PR, finalize the feature's knowledge and index records so
@@ -334,22 +380,29 @@ Move the feature row from Active Features to Completed / Archived:
 
 ### 5c — Commit feature records
 
-Stage and commit all feature-produced files that aren't yet committed:
+Stage and commit all feature-produced files that aren't yet committed. This
+deliberately covers four trees because the feature pipeline writes to all of
+them: `.kb/` (knowledge), `.decisions/` (ADRs), `.capabilities/` (capability
+index updates from retro), and `.work/` (work-definition status from retro
++ work-resolve.sh). Missing any of these is the bug that produced repeated
+"fix retro artifacts" follow-up PRs.
 
 ```bash
 git add .feature/CLAUDE.md
-```
 
-Also check for and include any uncommitted `.decisions/` and `.kb/` files
-(indexes, history, ADRs, KB entries created during this feature's pipeline):
-
-```bash
-# Only add files that are actually modified or untracked
-git add .decisions/CLAUDE.md .decisions/history.md .kb/CLAUDE.md 2>/dev/null
-# Add any ADR directories created for this feature
+# Decisions tree (ADRs + indexes)
+git add .decisions/CLAUDE.md .decisions/history.md 2>/dev/null
 git add .decisions/*/adr.md .decisions/*/constraints.md .decisions/*/evaluation.md .decisions/*/log.md 2>/dev/null
-# Add any KB entries created for this feature
+
+# Knowledge base (entries + indexes at every level)
 git add .kb/ 2>/dev/null
+
+# Capability index (retro promotes feature into the capability map)
+git add .capabilities/ 2>/dev/null
+
+# Work tracking (retro flips WD status to COMPLETE; manifest re-syncs)
+git add .work/ 2>/dev/null
+
 git commit -m "chore: finalize <slug> — archive manifest, index updates, knowledge files"
 ```
 
@@ -376,20 +429,11 @@ gh CLI not found or not authenticated. To create the PR manually:
 
 When the PR merges, run:
   /feature-complete "<slug>"
-
-── Retrospective ──────────────────────────────
-A retrospective captures what worked and what didn't while the feature is fresh.
-It writes back to the KB and decisions store — making the next feature better.
-
 ───────────────────────────────────────────────
 ```
 
-Use AskUserQuestion with options:
-  - "Run retro now"
-  - "Skip"
-
-If "Run retro now": invoke `/feature-retro "<slug>"` as a sub-agent immediately.
-If "Skip": stop.
+Stop. (Retro already ran in Step 4.5 — its outputs are in the commit prepared
+by Step 5 and will be part of the PR you create.)
 
 **If `gh` is available:**
 
@@ -439,20 +483,12 @@ Display:
 ───────────────────────────────────────────────
 When the PR merges:
   /feature-complete "<slug>"
-
-── Retrospective ──────────────────────────────
-A retrospective captures what worked and what didn't while the feature is fresh.
-It writes back to the KB and decisions store — making the next feature better.
-
 ───────────────────────────────────────────────
 ```
 
-Use AskUserQuestion with options:
-  - "Run retro now"
-  - "Skip"
-
-If "Run retro now": invoke `/feature-retro "<slug>"` as a sub-agent immediately.
-If "Skip": stop.
+Stop. (Retro already ran in Step 4.5 — its outputs were committed in Step 5
+and are part of this PR. Do NOT offer a post-PR retro here — that was the
+bug that produced repeated "fix retro artifacts" follow-up PRs.)
 
 If `gh pr create` fails (e.g. branch not pushed, no remote): display the error
 and fall back to the manual instructions above. Do not retry automatically.

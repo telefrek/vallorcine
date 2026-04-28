@@ -7,11 +7,20 @@ argument-hint: "<feature-slug>"
 
 Post-feature retrospective. Reviews what actually happened against what was
 planned: scope divergence, invalidated assumptions, missed domain gaps, and
-lessons learned. Writes findings back to `.decisions/` and `.kb/` so future
-features benefit.
+lessons learned. Writes findings back to `.decisions/`, `.kb/`,
+`.capabilities/`, and `.work/` so future features benefit.
 
-Run after `/feature-pr` or after the PR merges — whenever the feature is fresh
-in memory.
+**When to run.** Invoked automatically by `/feature-pr` Step 4.5 *before* the
+PR is created — its outputs (feature footprints, adversarial findings,
+capability-index updates, work-definition status) need to land in the same
+commit that opens the PR. Running retro after a PR is opened (or merged)
+strands those artifacts on `main` and forces a follow-up "fix retro
+artifacts" PR. Don't do that.
+
+Direct invocation is supported for two cases: (a) re-running on an archived
+feature for late-discovered learnings, and (b) explicit recovery when retro
+was skipped during the PR flow. In case (b), expect to open a follow-up PR
+for the artifacts.
 
 ---
 
@@ -27,6 +36,25 @@ working files are still available locally.
 Check that cycle-log.md has at least one `implemented` or `refactor-complete`
 entry. If not: "Feature '<slug>' has not completed implementation. Run the
 retrospective after the TDD cycle finishes."
+
+### Idempotency — skip if already complete
+
+Check `cycle-log.md` for an existing `retro-complete` entry. If present, the
+retrospective has already run. Display:
+
+```
+── Retrospective already complete ─────────────
+Found existing retro-complete entry in cycle-log.md (dated <date>).
+Re-running would duplicate footprint / adversarial-finding KB entries.
+```
+
+Use AskUserQuestion with options:
+  - "Skip — retro already done"
+  - "Re-run anyway (late-discovered learnings)"
+
+**If "Skip":** stop with the message "Retro already complete — nothing to do."
+**If "Re-run anyway":** proceed; warn that any /research sub-agents will need
+to recognize and update existing entries rather than create duplicates.
 
 Display opening header:
 ```
