@@ -100,9 +100,9 @@ fi
 
 # ── Counters ─────────────────────────────────────────────────────────────────
 
-# Requirement count: lines starting with R<digits>. (allowing optional letter
-# suffix like R3a)
-TOTAL_REQS=$(echo "$SECTION_CONTENT" | grep -cE '^R[0-9]+[a-z]?\.' || true)
+# Requirement count: lines starting with R<digits>. (allowing letter suffix
+# like R3a, plus hyphenated sub-numbers like R3a-1 / R83-1)
+TOTAL_REQS=$(echo "$SECTION_CONTENT" | grep -cE '^R[0-9]+[a-z]*(-[0-9]+[a-z]*)?\.' || true)
 
 # Red-flag markers (case-sensitive by convention).
 UNVERIFIED=$(echo "$SECTION_CONTENT" | grep -cE '\[UNVERIFIED' || true)

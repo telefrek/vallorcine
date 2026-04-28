@@ -341,7 +341,7 @@ for f in "${ALL_FILES[@]+"${ALL_FILES[@]}"}"; do
     [[ -z "$inv_ref" ]] && continue
     # Strip trailing .RN to get the target spec ID. Works for both
     # FXX.RN (→ FXX) and domain.slug.RN (→ domain.slug).
-    target_id=$(echo "$inv_ref" | sed -E 's/\.R[0-9]+[a-z]?$//')
+    target_id=$(echo "$inv_ref" | sed -E 's/\.R[0-9]+[a-z]*(-[0-9]+[a-z]*)?$//')
     [[ -z "$target_id" ]] && continue
     if [[ -n "${INCLUDED_IDS[$target_id]+x}" ]]; then
       CONFLICTS+="INVALIDATES: $src_id invalidates $inv_ref, but $target_id is also in this bundle"$'\n'

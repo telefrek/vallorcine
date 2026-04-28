@@ -152,7 +152,7 @@ while IFS= read -r line; do
 
   # Extract refs for our spec: <SPEC_ID>.RN[,RN,RN]
   # SPEC_ID_RE has dots regex-escaped so domain.slug ids match literally.
-  our_refs=$(echo "$spec_portion" | grep -oE "${SPEC_ID_RE}\\.R[0-9]+[a-z]?(,R[0-9]+[a-z]?)*" || true)
+  our_refs=$(echo "$spec_portion" | grep -oE "${SPEC_ID_RE}\\.R[0-9]+[a-z]*(-[0-9]+[a-z]*)?(,R[0-9]+[a-z]*(-[0-9]+[a-z]*)?)*" || true)
 
   for ref_group in $our_refs; do
     # ref_group is like "<spec>.R1,R3,R7" or "<spec>.R1"
@@ -161,7 +161,7 @@ while IFS= read -r line; do
     IFS=',' read -ra req_ids <<< "$req_part"
     for rid in "${req_ids[@]}"; do
       # Normalize: ensure it looks like Rn or Rn<letter>
-      if echo "$rid" | grep -qE '^R[0-9]+[a-z]?$'; then
+      if echo "$rid" | grep -qE '^R[0-9]+[a-z]*(-[0-9]+[a-z]*)?$'; then
         full_ref="${SPEC_ID}.${rid}"
 
         # Track unique requirements

@@ -295,9 +295,9 @@ spec_invalidates_check() {
   local manifest="$1" ref="$2"
   local sid req_num
   # Strip the trailing .RN[a] to get the spec ID (works for both forms).
-  sid=$(echo "$ref" | sed -E 's/\.R[0-9]+[a-z]?$//')
-  # Capture the trailing R-number (with optional letter suffix).
-  req_num=$(echo "$ref" | grep -oE 'R[0-9]+[a-z]?$' || true)
+  sid=$(echo "$ref" | sed -E 's/\.R[0-9]+[a-z]*(-[0-9]+[a-z]*)?$//')
+  # Capture the trailing R-number (optional letter suffix, optional -<digits>[letters]).
+  req_num=$(echo "$ref" | grep -oE 'R[0-9]+[a-z]*(-[0-9]+[a-z]*)?$' || true)
   if [[ -z "$sid" || -z "$req_num" || "$sid" == "$ref" ]]; then
     echo "  FAIL invalidates '$ref': cannot parse as <spec-id>.RN (e.g. F01.R3 or schema.field-access.R3)" >&2
     return 1

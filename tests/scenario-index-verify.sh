@@ -314,6 +314,173 @@ else
     fail "cache-strategy should be in Deferred section, not elsewhere"
 fi
 
+# ── Test 9: Recently Accepted overflows to history.md when over cap ─────────
+# Regression: prior to v0.16.x, when auto-repair stacked many "confirmed"
+# ADRs into Recently Accepted, the file blew the 80-line cap and the script
+# only warned. The cap exists because CLAUDE.md is loaded into context;
+# silent growth burns tokens. Overflow keeps the newest rows in the index
+# and archives the rest to history.md.
+
+echo ""
+echo "── Test 9: Recently Accepted overflows to history.md when over 80-line cap"
+
+OVERFLOW_DIR="/tmp/vallorcine/scenario-overflow"
+rm -rf "$OVERFLOW_DIR" 2>/dev/null || true
+mkdir -p "$OVERFLOW_DIR/.claude/scripts" "$OVERFLOW_DIR/.decisions"
+cp "$REPO_ROOT/scripts/index-verify.sh" "$OVERFLOW_DIR/.claude/scripts/"
+
+# Build a CLAUDE.md with many Recently Accepted rows — enough to blow 80
+# lines. 30 rows + headers + other sections ≈ 95 lines.
+{
+    cat << 'HEAD'
+# Architecture Decisions — Master Index
+
+## Active Decisions
+| Problem | Slug | Date | Status | Recommendation |
+|---------|------|------|--------|----------------|
+
+## Recently Accepted (last 5)
+| Problem | Slug | Accepted | Recommendation |
+|---------|------|----------|----------------|
+HEAD
+    for n in $(seq 1 90); do
+        d=$(printf "2026-01-%02d" $((n % 28 + 1)))
+        echo "| Problem $n | adr-$n | $d | Choose option $n |"
+    done
+    cat << 'TAIL'
+
+## Deferred
+| Problem | Slug | Deferred | Resume When |
+|---------|------|----------|-------------|
+
+## Closed
+| Problem | Slug | Closed | Reason |
+|---------|------|--------|--------|
+TAIL
+} > "$OVERFLOW_DIR/.decisions/CLAUDE.md"
+
+before_lines="$(wc -l < "$OVERFLOW_DIR/.decisions/CLAUDE.md")"
+if (( before_lines <= 80 )); then
+    fail "test setup wrong: file is only $before_lines lines, won't trigger cap"
+fi
+
+(cd "$OVERFLOW_DIR" && bash .claude/scripts/index-verify.sh --decisions 2>&1) >/tmp/index-verify-overflow.out
+
+after_lines="$(wc -l < "$OVERFLOW_DIR/.decisions/CLAUDE.md")"
+if (( after_lines <= 80 )); then
+    pass "CLAUDE.md trimmed to $after_lines lines (under 80-line cap)"
+else
+    fail "CLAUDE.md still over cap after overflow ($after_lines lines)"
+fi
+
+if [[ -f "$OVERFLOW_DIR/.decisions/history.md" ]]; then
+    pass "history.md created on first overflow"
+else
+    fail "history.md should have been created"
+fi
+
+# 90 rows started, default keep=5 → 85 rows should land in history.md.
+# Match `Problem <digit>` to avoid catching the Active Decisions table
+# header `| Problem | Slug | …`.
+hist_rows="$(grep -cE '^\| Problem [0-9]' "$OVERFLOW_DIR/.decisions/history.md" 2>/dev/null || echo 0)"
+if (( hist_rows == 85 )); then
+    pass "history.md received 85 archived rows (kept 5, archived 85)"
+else
+    fail "expected 85 archived rows in history.md, got $hist_rows"
+fi
+
+# Newest 5 rows should remain in the index.
+remaining_rows="$(grep -cE '^\| Problem [0-9]' "$OVERFLOW_DIR/.decisions/CLAUDE.md" 2>/dev/null || echo 0)"
+if (( remaining_rows == 5 )); then
+    pass "5 most recent rows remain in CLAUDE.md"
+else
+    fail "expected 5 remaining rows in CLAUDE.md, got $remaining_rows"
+fi
+
+# VALLORCINE_DECISIONS_KEEP env var should change the cap.
+rm -rf "$OVERFLOW_DIR/.decisions/history.md"
+{
+    cat << 'HEAD'
+# Architecture Decisions — Master Index
+
+## Active Decisions
+| Problem | Slug | Date | Status | Recommendation |
+|---------|------|------|--------|----------------|
+
+## Recently Accepted (last 5)
+| Problem | Slug | Accepted | Recommendation |
+|---------|------|----------|----------------|
+HEAD
+    for n in $(seq 1 90); do
+        echo "| P$n | adr-$n | 2026-01-01 | reco$n |"
+    done
+    echo ""
+    echo "## Deferred"
+    echo "| Problem | Slug | Deferred | Resume When |"
+    echo "|---------|------|----------|-------------|"
+} > "$OVERFLOW_DIR/.decisions/CLAUDE.md"
+
+(cd "$OVERFLOW_DIR" && VALLORCINE_DECISIONS_KEEP=10 bash .claude/scripts/index-verify.sh --decisions 2>&1) >/dev/null
+
+remaining="$(grep -cE '^\| P[0-9]+ ' "$OVERFLOW_DIR/.decisions/CLAUDE.md" 2>/dev/null || echo 0)"
+if (( remaining == 10 )); then
+    pass "VALLORCINE_DECISIONS_KEEP=10 retains 10 rows"
+else
+    fail "VALLORCINE_DECISIONS_KEEP override failed (kept $remaining instead of 10)"
+fi
+
+rm -rf "$OVERFLOW_DIR" 2>/dev/null || true
+
+# ── Test 10: under-cap files unchanged ──────────────────────────────────────
+
+echo ""
+echo "── Test 10: under-cap CLAUDE.md left untouched"
+
+UNDERCAP_DIR="/tmp/vallorcine/scenario-undercap"
+rm -rf "$UNDERCAP_DIR" 2>/dev/null || true
+mkdir -p "$UNDERCAP_DIR/.claude/scripts" "$UNDERCAP_DIR/.decisions"
+cp "$REPO_ROOT/scripts/index-verify.sh" "$UNDERCAP_DIR/.claude/scripts/"
+
+cat > "$UNDERCAP_DIR/.decisions/CLAUDE.md" << 'EOF'
+# Architecture Decisions — Master Index
+
+## Active Decisions
+| Problem | Slug | Date | Status | Recommendation |
+|---------|------|------|--------|----------------|
+
+## Recently Accepted (last 5)
+| Problem | Slug | Accepted | Recommendation |
+|---------|------|----------|----------------|
+| One thing | adr-1 | 2026-01-01 | reco-1 |
+| Two thing | adr-2 | 2026-01-02 | reco-2 |
+
+## Deferred
+| Problem | Slug | Deferred | Resume When |
+|---------|------|----------|-------------|
+
+## Closed
+| Problem | Slug | Closed | Reason |
+|---------|------|--------|--------|
+EOF
+
+before_md5="$(md5sum "$UNDERCAP_DIR/.decisions/CLAUDE.md" | cut -d' ' -f1)"
+(cd "$UNDERCAP_DIR" && bash .claude/scripts/index-verify.sh --decisions 2>&1) >/dev/null
+after_md5="$(md5sum "$UNDERCAP_DIR/.decisions/CLAUDE.md" | cut -d' ' -f1)"
+
+if [[ "$before_md5" == "$after_md5" ]]; then
+    pass "under-cap CLAUDE.md left untouched"
+else
+    fail "under-cap file was modified unnecessarily"
+fi
+
+if [[ ! -f "$UNDERCAP_DIR/.decisions/history.md" ]]; then
+    pass "history.md not created when under cap"
+else
+    fail "history.md should not be created when under cap"
+fi
+
+rm -rf "$UNDERCAP_DIR" 2>/dev/null || true
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""
