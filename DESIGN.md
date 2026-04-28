@@ -871,7 +871,8 @@ vallorcine/
 │   ├── work-validate.sh            ← work definition structural validation + circular dep detection
 │   ├── work-context.sh             ← work group context injection for existing commands
 │   ├── work-finalize.sh            ← finalize work group state after feature refactor (feature-refactor Step 6b)
-│   ├── curate-scan.sh              ← curation scanner (17 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill, work group health)
+│   ├── curate-scan.sh              ← curation scanner (22 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill, work group health, link rot, falsification-lens staleness)
+│   ├── lens-registry.txt           ← falsification lens introduction-date registry (consumed by curate-scan Analysis 22)
 │   ├── decisions-scan.sh           ← decisions roadmap clustering and classification
 │   ├── extract-findings.sh         ← audit finding extraction for orchestrator context optimization
 │   ├── audit-budget.sh             ← budget tracking and proportional allocation for audit prove-fix loop
