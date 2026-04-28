@@ -5,6 +5,34 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.16.2] — 2026-04-28
+
+Fixes the repeated "fix retro artifacts" follow-up PRs caused by `/feature-pr`
+running retro after the feature PR was created. Retro now runs inline before
+PR creation and its outputs ride the feature PR to merge (PR #63).
+
+### Fixed
+
+- **feature-pr:** Move `/feature-retro` invocation inline as a new Step 4.5,
+  *before* the feature records are committed. Retro outputs (KB feature
+  footprints, adversarial findings, capability index updates, work-definition
+  status changes) now flow into the same commit that opens the PR. The
+  pre-existing post-PR "Run retro now" offers — the structural cause of
+  stranded artifacts — have been removed. Idempotent via a `retro-complete`
+  check in `cycle-log.md`; skip path requires explicit confirmation and
+  annotates the PR body.
+- **feature-pr Step 5:** Now stages `.capabilities/` and `.work/` in addition
+  to `.kb/` and `.decisions/`. Even pre-PR retro would have stranded the
+  capability index and work-tracking updates without this.
+- **feature-retro:** Reframed to be invoked from `/feature-pr` Step 4.5.
+  Direct invocation supported for archived features (late-discovered
+  learnings) or post-skip recovery (with warning that recovery needs its own
+  follow-up PR). New idempotency check prompts skip-vs-rerun when
+  `retro-complete` already exists in `cycle-log.md`, preventing duplicate
+  KB entries from accidental re-runs.
+
+---
+
 ## [0.16.1] — 2026-04-27
 
 Triage from a `/spec-split` + `/curate` run on jlsm surfaced 8 issues across
