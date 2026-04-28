@@ -1067,6 +1067,282 @@ fi
 rm -rf "$OB_TEST_DIR" 2>/dev/null || true
 cd "$REPO_ROOT"
 
+# ── Test 29: Empty open_obligations frontmatter is NOT flagged ───────────────
+# Regression: prior shell-based stripper false-positived on every spec whose
+# frontmatter contained `open_obligations: []` (the array's punctuation
+# survived `tr -d '[]"'` and registered as content). Real-world impact:
+# "specs with open obligations" reported ~all specs, drowning the real signal.
+
+echo ""
+echo "── Test 29: Empty open_obligations frontmatter must not be flagged"
+
+EMPTY_OB_DIR="/tmp/vallorcine/scenario-empty-ob"
+rm -rf "$EMPTY_OB_DIR" 2>/dev/null || true
+mkdir -p "$EMPTY_OB_DIR/.spec/domains/engine" "$EMPTY_OB_DIR/.spec/registry" \
+         "$EMPTY_OB_DIR/.curate" "$EMPTY_OB_DIR/.claude/scripts"
+cp "$REPO_ROOT/scripts/curate-scan.sh" "$EMPTY_OB_DIR/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$EMPTY_OB_DIR/.claude/scripts/"
+
+cd "$EMPTY_OB_DIR"
+git init -q .
+git config user.email t@t.com && git config user.name t
+
+# Spec with explicit `open_obligations: []` in frontmatter — must NOT be
+# flagged. This is the exact convention that caused the false-positive.
+cat > .spec/domains/engine/empty-ob.md << 'SPECEOF'
+---
+{
+  "id": "engine.empty-ob",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["engine"],
+  "requires": [],
+  "invalidates": [],
+  "decision_refs": [],
+  "kb_refs": [],
+  "open_obligations": []
+}
+---
+
+# engine.empty-ob
+
+R1. A normal requirement.
+SPECEOF
+
+# Spec with a populated open_obligations array — MUST be flagged.
+cat > .spec/domains/engine/real-ob.md << 'SPECEOF'
+---
+{
+  "id": "engine.real-ob",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["engine"],
+  "requires": [],
+  "invalidates": [],
+  "decision_refs": [],
+  "kb_refs": [],
+  "open_obligations": ["needs ADR on retry budget"]
+}
+---
+
+# engine.real-ob
+
+R1. Requires retry budget decision.
+SPECEOF
+
+cat > .spec/registry/manifest.json << 'MFEOF'
+{"schema_version": 2, "spec_count": 2,
+ "specs": [
+   {"id":"engine.empty-ob","path":".spec/domains/engine/empty-ob.md","state":"APPROVED","version":1,"domains":["engine"],"requires":[],"invalidates":[],"decision_refs":[],"kb_refs":[]},
+   {"id":"engine.real-ob","path":".spec/domains/engine/real-ob.md","state":"APPROVED","version":1,"domains":["engine"],"requires":[],"invalidates":[],"decision_refs":[],"kb_refs":[]}
+ ]}
+MFEOF
+
+git add -A && git commit -q -m "init"
+
+if command -v jq >/dev/null 2>&1; then
+    bash .claude/scripts/curate-scan.sh --init >/tmp/curate-empty-ob.out 2>&1 || true
+
+    # Note: the obligations report uses the spec file basename (not the
+    # full id), so empty-ob / real-ob are the table keys.
+    if grep -qE '^\| empty-ob \|' .curate/scan-summary.md 2>/dev/null; then
+        fail "empty open_obligations:[] flagged as having obligations" \
+             "$(grep 'open obligation' -A 5 .curate/scan-summary.md | head -10)"
+    else
+        pass "empty open_obligations:[] not flagged"
+    fi
+
+    if grep -qE '^\| real-ob \|' .curate/scan-summary.md 2>/dev/null; then
+        pass "populated open_obligations correctly flagged"
+    else
+        fail "real obligation should be flagged" \
+             "$(grep 'open obligation' -A 5 .curate/scan-summary.md | head -10)"
+    fi
+else
+    echo "  SKIP  jq not available"
+fi
+
+rm -rf "$EMPTY_OB_DIR" 2>/dev/null || true
+cd "$REPO_ROOT"
+
+# ── Test 30: JDK types blocklisted from unspecified-shared-types ─────────────
+# Regression: IllegalArgumentException, NullPointerException, etc. dominated
+# the "unspecified shared types" report on real codebases (JDK exceptions are
+# referenced in nearly every spec). The blocklist drops them so genuine
+# project value-types surface above the noise.
+
+echo ""
+echo "── Test 30: JDK types blocklisted from unspecified shared types"
+
+JDK_DIR="/tmp/vallorcine/scenario-jdk-blocklist"
+rm -rf "$JDK_DIR" 2>/dev/null || true
+mkdir -p "$JDK_DIR/.spec/domains/engine" "$JDK_DIR/.curate" "$JDK_DIR/.claude/scripts"
+cp "$REPO_ROOT/scripts/curate-scan.sh" "$JDK_DIR/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$JDK_DIR/.claude/scripts/"
+
+cd "$JDK_DIR"
+git init -q .
+git config user.email t@t.com && git config user.name t
+
+# Three specs each referencing the same JDK exception types AND a real
+# project value type. The JDK types should be filtered out; VectorType
+# should surface as an unspecified shared type.
+for n in 1 2 3 4; do
+  cat > ".spec/domains/engine/spec$n.md" <<SPECEOF
+---
+{
+  "id": "engine.spec$n",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["engine"],
+  "requires": [], "invalidates": [], "decision_refs": [], "kb_refs": []
+}
+---
+
+# engine.spec$n
+
+R1. Throws IllegalArgumentException on bad input.
+R2. Returns NullPointerException for missing data.
+R3. Validates IllegalStateException on guard.
+R4. Operates on VectorType payload.
+R5. Manages BoundedString reference.
+SPECEOF
+done
+
+git add -A && git commit -q -m "init"
+
+bash .claude/scripts/curate-scan.sh --init >/tmp/curate-jdk.out 2>&1 || true
+
+# JDK types should NOT appear under "Unspecified shared types"
+if grep -A 50 "### Unspecified shared types" .curate/scan-summary.md 2>/dev/null \
+   | grep -E '^\| (IllegalArgumentException|NullPointerException|IllegalStateException) '; then
+    fail "JDK exceptions leaked into unspecified shared types" \
+         "$(grep -A 30 'Unspecified shared types' .curate/scan-summary.md | head -20)"
+else
+    pass "JDK exception types blocklisted from unspecified shared types"
+fi
+
+# Real project type SHOULD appear (referenced by all 4 specs ≥ 3 threshold)
+if grep -A 50 "### Unspecified shared types" .curate/scan-summary.md 2>/dev/null \
+   | grep -qE '^\| VectorType '; then
+    pass "real shared type (VectorType) still surfaces above blocklist filter"
+else
+    fail "VectorType should appear in unspecified shared types" \
+         "$(grep -A 30 'Unspecified shared types' .curate/scan-summary.md | head -20)"
+fi
+
+rm -rf "$JDK_DIR" 2>/dev/null || true
+cd "$REPO_ROOT"
+
+# ── Test 31: Bare-only @spec annotations classified separately ───────────────
+# Regression: previously, specs with only bare `@spec engine.foo` annotations
+# (no R-suffix) were lumped into "no @spec annotations at all". The
+# remediation differs (refine vs. add) so they need their own gap class.
+
+echo ""
+echo "── Test 31: Bare-only annotations distinct from no-annotations"
+
+BARE_DIR="/tmp/vallorcine/scenario-bare-only"
+rm -rf "$BARE_DIR" 2>/dev/null || true
+mkdir -p "$BARE_DIR/.spec/domains/engine" "$BARE_DIR/.spec/registry" \
+         "$BARE_DIR/.curate" "$BARE_DIR/.claude/scripts" "$BARE_DIR/src"
+cp "$REPO_ROOT/scripts/curate-scan.sh" "$BARE_DIR/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$BARE_DIR/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-trace.sh" "$BARE_DIR/.claude/scripts/"
+
+cd "$BARE_DIR"
+git init -q .
+git config user.email t@t.com && git config user.name t
+
+# Spec A: source has bare @spec engine.bare-anno (no R-suffix)
+cat > .spec/domains/engine/bare-anno.md << 'SPECEOF'
+---
+{
+  "id": "engine.bare-anno",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["engine"],
+  "requires": [], "invalidates": [], "decision_refs": [], "kb_refs": []
+}
+---
+
+# engine.bare-anno
+
+R1. Some requirement.
+SPECEOF
+
+# Spec B: source has nothing referencing it at all.
+cat > .spec/domains/engine/nothing.md << 'SPECEOF'
+---
+{
+  "id": "engine.nothing",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["engine"],
+  "requires": [], "invalidates": [], "decision_refs": [], "kb_refs": []
+}
+---
+
+# engine.nothing
+
+R1. Some requirement.
+SPECEOF
+
+cat > src/Bare.java << 'JEOF'
+// @spec engine.bare-anno — bare reference, no R suffix
+public class Bare {}
+JEOF
+
+cat > .spec/registry/manifest.json << 'MFEOF'
+{"schema_version": 2, "spec_count": 2,
+ "specs": [
+   {"id":"engine.bare-anno","path":".spec/domains/engine/bare-anno.md","state":"APPROVED","version":1,"domains":["engine"],"requires":[],"invalidates":[],"decision_refs":[],"kb_refs":[]},
+   {"id":"engine.nothing","path":".spec/domains/engine/nothing.md","state":"APPROVED","version":1,"domains":["engine"],"requires":[],"invalidates":[],"decision_refs":[],"kb_refs":[]}
+ ]}
+MFEOF
+
+git add -A && git commit -q -m "init"
+
+if command -v jq >/dev/null 2>&1; then
+    bash .claude/scripts/curate-scan.sh --init >/tmp/curate-bare.out 2>&1 || true
+
+    # bare-anno should appear in BARE_ONLY section
+    if grep -A 10 "specs with bare-only @spec annotations" .curate/scan-summary.md 2>/dev/null \
+       | grep -q "engine.bare-anno"; then
+        pass "spec with bare @spec anno classified as BARE_ONLY"
+    else
+        fail "bare-anno should appear in bare-only section" \
+             "$(grep -A 5 -E 'bare|annotations' .curate/scan-summary.md | head -30)"
+    fi
+
+    # nothing should appear in UNANNOTATED section
+    if grep -A 10 "no @spec annotations of any kind" .curate/scan-summary.md 2>/dev/null \
+       | grep -q "engine.nothing"; then
+        pass "spec with no annotations classified as UNANNOTATED"
+    else
+        fail "engine.nothing should appear in no-annotations section" \
+             "$(grep -A 5 -E 'no.*annotations|of any kind' .curate/scan-summary.md | head -30)"
+    fi
+
+    # nothing should NOT appear in BARE_ONLY
+    if grep -A 10 "specs with bare-only @spec annotations" .curate/scan-summary.md 2>/dev/null \
+       | grep -q "engine.nothing"; then
+        fail "engine.nothing leaked into BARE_ONLY (false positive)"
+    else
+        pass "no-annotations spec stays out of BARE_ONLY"
+    fi
+else
+    echo "  SKIP  jq not available"
+fi
+
+rm -rf "$BARE_DIR" 2>/dev/null || true
+cd "$REPO_ROOT"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

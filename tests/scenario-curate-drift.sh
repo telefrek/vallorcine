@@ -224,7 +224,9 @@ else
 fi
 
 # ── Test: Unannotated-spec section appears ──────────────────────────────────
-if echo "$gap_section" | grep -q "APPROVED specs with no annotations at all"; then
+# Heading was renamed in v0.16.x to distinguish from the new "bare-only"
+# class introduced alongside it.
+if echo "$gap_section" | grep -q "APPROVED specs with no @spec annotations of any kind"; then
     pass "unannotated-spec subsection present"
 else
     fail "should list schema.unannotated as fully unannotated" "section: $gap_section"

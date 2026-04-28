@@ -548,6 +548,14 @@ echo "── Gitignore (runtime files) ─────────────�
 GITIGNORE="$TARGET/.gitignore"
 IGNORE_MARKER="# vallorcine runtime files"
 
+# Entries added in newer releases that an existing install (with the runtime
+# block already in place) would otherwise miss. Listed here so the upgrade
+# path can append any that are not already present.
+NEW_GITIGNORE_ENTRIES=(
+    ".spec/.split-log/"
+    ".spec/.split-plan.json"
+)
+
 if [[ "$DIFF_MODE" != "1" ]]; then
     if ! grep -qF "$IGNORE_MARKER" "$GITIGNORE" 2>/dev/null; then
         cat >> "$GITIGNORE" << 'GITIGNOREBLOCK'
@@ -559,18 +567,45 @@ if [[ "$DIFF_MODE" != "1" ]]; then
 .claude/.subagent-state
 .feature/
 .curate/
+.spec/.split-log/
+.spec/.split-plan.json
 __pycache__/
 GITIGNOREBLOCK
         echo -e "  ${GREEN}write${NC} .gitignore  (runtime file entries)"
     else
-        echo -e "  ${YELLOW}skip${NC}  .gitignore already has runtime file entries"
+        # Existing install: append any newly-introduced entries that aren't
+        # already listed. Without this, users who installed before v0.16.x
+        # would never pick up the spec-split runtime artifacts and would
+        # commit per-machine logs/plans.
+        added=()
+        for entry in "${NEW_GITIGNORE_ENTRIES[@]}"; do
+            if ! grep -qxF "$entry" "$GITIGNORE" 2>/dev/null; then
+                echo "$entry" >> "$GITIGNORE"
+                added+=("$entry")
+            fi
+        done
+        if (( ${#added[@]} > 0 )); then
+            echo -e "  ${GREEN}update${NC} .gitignore  (added ${#added[@]} new entries: ${added[*]})"
+        else
+            echo -e "  ${YELLOW}skip${NC}  .gitignore already has runtime file entries"
+        fi
     fi
 else
     if ! grep -qF "$IGNORE_MARKER" "$GITIGNORE" 2>/dev/null; then
         echo -e "  ${GREEN}new${NC}    .gitignore runtime file entries"
         ((changed++)) || true
     else
-        ((unchanged++)) || true
+        # Diff mode: count missing entries as a "would-add" signal.
+        missing_count=0
+        for entry in "${NEW_GITIGNORE_ENTRIES[@]}"; do
+            grep -qxF "$entry" "$GITIGNORE" 2>/dev/null || ((missing_count++)) || true
+        done
+        if (( missing_count > 0 )); then
+            echo -e "  ${GREEN}update${NC} .gitignore  ($missing_count new entries to add)"
+            ((changed++)) || true
+        else
+            ((unchanged++)) || true
+        fi
     fi
 fi
 

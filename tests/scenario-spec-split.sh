@@ -462,6 +462,197 @@ else
   fail "no args did not surface usage" "got: $out"
 fi
 
+# ── Layer 9: parent manifest version synced to bumped file version ───────────
+
+echo ""
+echo "── Layer 9: manifest sync (parent version bumped)"
+
+# After the previous successful split (then rollback), do a fresh split and
+# verify the parent's manifest entry version matches the parent file's
+# frontmatter version. The bug this guards: file frontmatter bumped to vN+1
+# while manifest entry stayed at vN, leaving downstream tooling stale.
+
+run_split --plan "$PLAN_VALID" >/tmp/spec-split-l9.out 2>&1 || true
+
+parent_file_version="$(jq -r '.version' < <(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$PARENT_FILE"))"
+parent_manifest_version="$(jq -r --arg pid "$PARENT_ID" '.specs[] | select(.id==$pid) | .version' "$MANIFEST")"
+if [[ -n "$parent_file_version" && "$parent_file_version" == "$parent_manifest_version" ]]; then
+  pass "parent manifest version ($parent_manifest_version) matches file version ($parent_file_version)"
+else
+  fail "manifest/file version mismatch after split" \
+       "file=$parent_file_version manifest=$parent_manifest_version"
+fi
+
+# Rollback to clean slate for layer 10.
+LAYER9_LOG=$(ls -1t "$SPEC_DIR/.split-log/"*.json 2>/dev/null | head -1)
+[[ -n "$LAYER9_LOG" ]] && bash "$REPO_ROOT/scripts/spec-split.sh" --rollback "$LAYER9_LOG" >/dev/null 2>&1 || true
+
+# ── Layer 10: compound annotations spanning multiple children ───────────────
+
+echo ""
+echo "── Layer 10: compound @spec parent.R1,R2 annotations route Rs to right children"
+
+# Add a synthetic source file with a TRULY cross-child compound annotation:
+# R10 must end up at key-rotation, R20 must end up at dek-management.
+# This is the exact bug that blocked query.sql-query-support split: literal-
+# substring rewrite corrupted the second R in the compound list.
+
+CROSS="$PROJ/modules/jlsm-engine/src/CrossChild.java"
+cat > "$CROSS" <<'EOF'
+// @spec encryption.primitives-lifecycle.R10,R20 — straddles two children
+// @spec encryption.primitives-lifecycle.R11,R12,R21 — three across two children
+public class CrossChild {}
+EOF
+
+# Run the split.
+run_split --plan "$PLAN_VALID" >/tmp/spec-split-l10.out 2>&1
+rc=$?
+if [[ $rc -ne 0 ]]; then
+  fail "split failed with cross-child compound annotations present" \
+       "$(tail -10 /tmp/spec-split-l10.out)"
+else
+  pass "split exits 0 with cross-child compound annotations"
+fi
+
+# After explosion + per-R rewrite, the file should have:
+#   - R10 under key-rotation
+#   - R20 under dek-management
+#   - R11, R12 under key-rotation
+#   - R21 under dek-management
+# The exact bug: prior behavior would emit "lexer.R10,R20" (single line),
+# leaving R20 dangling under the wrong child.
+if grep -q '@spec encryption\.primitives-lifecycle\.key-rotation\.R10\b' "$CROSS" && \
+   grep -q '@spec encryption\.primitives-lifecycle\.dek-management\.R20\b' "$CROSS"; then
+  pass "compound R10,R20 → R10@key-rotation + R20@dek-management on separate lines"
+else
+  fail "compound R10,R20 not split correctly" \
+       "$(grep '@spec' "$CROSS")"
+fi
+
+# Verify three-element compound also exploded correctly.
+if grep -q '@spec encryption\.primitives-lifecycle\.key-rotation\.R11\b' "$CROSS" && \
+   grep -q '@spec encryption\.primitives-lifecycle\.key-rotation\.R12\b' "$CROSS" && \
+   grep -q '@spec encryption\.primitives-lifecycle\.dek-management\.R21\b' "$CROSS"; then
+  pass "compound R11,R12,R21 split into three correctly-prefixed lines"
+else
+  fail "three-element compound not split correctly" \
+       "$(grep '@spec' "$CROSS")"
+fi
+
+# Negative: ensure no line has a dangling R that's still under the parent
+# prefix without a child segment (the original bug shape).
+if grep -E '@spec encryption\.primitives-lifecycle\.R[0-9]+(,R[0-9]+)+' "$CROSS" >/dev/null; then
+  fail "compound annotation left intact (bug regressed)" \
+       "$(grep '@spec' "$CROSS")"
+else
+  pass "no compound annotation lines remain (all exploded)"
+fi
+
+# Rollback should restore the original compound (snapshot-based).
+LAYER10_LOG=$(ls -1t "$SPEC_DIR/.split-log/"*.json 2>/dev/null | head -1)
+if [[ -n "$LAYER10_LOG" ]]; then
+  bash "$REPO_ROOT/scripts/spec-split.sh" --rollback "$LAYER10_LOG" >/dev/null 2>&1 || true
+  if grep -q '@spec encryption\.primitives-lifecycle\.R10,R20' "$CROSS" && \
+     grep -q '@spec encryption\.primitives-lifecycle\.R11,R12,R21' "$CROSS"; then
+    pass "rollback restores exploded compound annotations to original form"
+  else
+    fail "rollback did not restore compound form" \
+         "$(grep '@spec' "$CROSS")"
+  fi
+fi
+
+# ── Layer 11: hyphenated/sub-numbered R-names recognized ────────────────────
+
+echo ""
+echo "── Layer 11: R37b-1 / R83-1 style sub-numbered claims"
+
+# Construct a synthetic parent with sub-numbered Rs, plan a split that moves
+# them, and verify they're carved correctly (not silently swallowed as prose
+# under a parent R).
+
+SUB_PROJ="$TMPDIR_TEST/proj-subr"
+mkdir -p "$SUB_PROJ/.spec/registry" "$SUB_PROJ/.spec/domains/primitives" "$SUB_PROJ/modules/x/src"
+SUB_PARENT="$SUB_PROJ/.spec/domains/primitives/lifecycle.md"
+SUB_MANIFEST="$SUB_PROJ/.spec/registry/manifest.json"
+SUB_PARENT_ID="primitives.lifecycle"
+
+cat > "$SUB_PARENT" <<'EOF'
+---
+{
+  "id": "primitives.lifecycle",
+  "version": 3,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["primitives"],
+  "requires": [],
+  "invalidates": [],
+  "decision_refs": [],
+  "kb_refs": []
+}
+---
+
+# primitives.lifecycle
+
+R1. Cross-cutting invariant.
+
+R37b-1. Sub-numbered key derivation requirement.
+R37b-2. Companion sub-numbered requirement.
+R83-1. Independent hyphenated requirement.
+EOF
+
+cat > "$SUB_MANIFEST" <<EOF
+{
+  "schema_version": 2,
+  "spec_count": 1,
+  "specs": [{
+    "id": "primitives.lifecycle",
+    "path": ".spec/domains/primitives/lifecycle.md",
+    "state": "APPROVED",
+    "version": 3,
+    "domains": ["primitives"],
+    "requires": [], "invalidates": [], "decision_refs": [], "kb_refs": []
+  }]
+}
+EOF
+
+SUB_PLAN="$TMPDIR_TEST/sub-plan.json"
+cat > "$SUB_PLAN" <<EOF
+{
+  "parent_id": "$SUB_PARENT_ID",
+  "children": [
+    {"id":"$SUB_PARENT_ID.derivation","title":"Derivation",
+     "domains":["primitives"],"requirements":["R37b-1","R37b-2","R83-1"]}
+  ]
+}
+EOF
+
+(cd "$SUB_PROJ" && bash "$REPO_ROOT/scripts/spec-split.sh" --plan "$SUB_PLAN" >/tmp/spec-split-l11.out 2>&1)
+rc=$?
+
+SUB_CHILD="$SUB_PROJ/.spec/domains/primitives/lifecycle/derivation.md"
+if [[ $rc -eq 0 && -f "$SUB_CHILD" ]]; then
+  pass "split with hyphenated R-numbers exits 0 and creates child"
+else
+  fail "split failed for hyphenated R-numbers" "$(tail -10 /tmp/spec-split-l11.out)"
+fi
+
+if grep -q '^R37b-1\.' "$SUB_CHILD" && \
+   grep -q '^R37b-2\.' "$SUB_CHILD" && \
+   grep -q '^R83-1\.' "$SUB_CHILD"; then
+  pass "child contains R37b-1, R37b-2, R83-1 (sub-numbered Rs preserved)"
+else
+  fail "child missing hyphenated R-numbers" \
+       "$(grep -E '^R[0-9]' "$SUB_CHILD" || echo "(none)")"
+fi
+
+# Parent should retain only cross-cutting R1.
+if grep -q '^R1\.' "$SUB_PARENT" && ! grep -qE '^R37b-1|^R83-1' "$SUB_PARENT"; then
+  pass "parent retains R1, no longer contains moved hyphenated Rs"
+else
+  fail "parent state wrong after hyphenated-R split" \
+       "$(grep -E '^R[0-9]' "$SUB_PARENT")"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

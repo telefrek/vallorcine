@@ -85,7 +85,7 @@ if [[ ${#ERRORS[@]} -eq 0 ]]; then
   #                          (letter-suffix RNs like R51a are supported;
   #                           multi-dot IDs are nested specs.)
   spec_id_re='^(F[0-9]+|[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+)$'
-  spec_ref_re='^(F[0-9]+|[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+)\.R[0-9]+[a-z]?$'
+  spec_ref_re='^(F[0-9]+|[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+)\.R[0-9]+[a-z]*(-[0-9]+[a-z]*)?$'
 
   # ── Check 7: invalidates[] format AND target existence
   while IFS= read -r inv; do
@@ -240,7 +240,7 @@ fi
 # ── Check 11: numbered requirements exist in machine section
 # Here-string instead of pipe — see 9b above for SIGPIPE rationale.
 machine=$(machine_section "$FILE")
-if ! grep -qE '^R[0-9]+\.' <<< "$machine"; then
+if ! grep -qE '^R[0-9]+[a-z]*(-[0-9]+[a-z]*)?\.' <<< "$machine"; then
   ERRORS+=("No numbered requirements found in machine section (expected R1. R2. format)")
 fi
 

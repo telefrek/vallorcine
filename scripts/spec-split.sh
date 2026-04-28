@@ -136,19 +136,34 @@ replay_rollback() {
     fi
   done < <(jq -r '.children_created[]' "$log")
 
-  # Reverse @spec annotation rewrites.
-  while IFS= read -r rewrite; do
-    [[ -z "$rewrite" ]] && continue
-    local file from_text to_text
-    file="$(jq -r '.file' <<< "$rewrite")"
-    from_text="$(jq -r '.to' <<< "$rewrite")"   # "to" was applied; reverse to "from"
-    to_text="$(jq -r '.from' <<< "$rewrite")"
-    if [[ -f "$file" ]]; then
-      # Use a delimiter unlikely to appear in identifiers: |
-      sed -i "s|${from_text}|${to_text}|g" "$file"
-      echo "  unrewrote: $file (${from_text} → ${to_text})" >&2
-    fi
-  done < <(jq -c '.annotation_rewrites[]?' "$log")
+  # Restore source files. Prefer file snapshots (added in v0.16.x) since they
+  # round-trip the compound-annotation explosion pass; fall back to per-rewrite
+  # sed reversal for legacy logs that predate snapshots.
+  local snap_count
+  snap_count="$(jq '.annotation_file_snapshots // [] | length' "$log")"
+  if [[ "$snap_count" -gt 0 ]]; then
+    local i
+    for ((i=0; i<snap_count; i++)); do
+      local sf
+      sf="$(jq -r ".annotation_file_snapshots[$i].file" "$log")"
+      [[ -z "$sf" || "$sf" == "null" ]] && continue
+      jq -r ".annotation_file_snapshots[$i].content" "$log" > "$sf"
+      echo "  restored: $sf (snapshot)" >&2
+    done
+  else
+    while IFS= read -r rewrite; do
+      [[ -z "$rewrite" ]] && continue
+      local file from_text to_text
+      file="$(jq -r '.file' <<< "$rewrite")"
+      from_text="$(jq -r '.to' <<< "$rewrite")"   # "to" was applied; reverse to "from"
+      to_text="$(jq -r '.from' <<< "$rewrite")"
+      if [[ -f "$file" ]]; then
+        # Use a delimiter unlikely to appear in identifiers: |
+        sed -i "s|${from_text}|${to_text}|g" "$file"
+        echo "  unrewrote: $file (${from_text} → ${to_text})" >&2
+      fi
+    done < <(jq -c '.annotation_rewrites[]?' "$log")
+  fi
 
   echo "[split] Rollback complete." >&2
   return 0
@@ -176,8 +191,12 @@ PARENT_FILE="$(spec_file_for_id "$MANIFEST" "$PARENT_ID")"
 
 # ── Parse parent's R-numbers from machine section ────────────────────────────
 
+# R-number forms recognized:
+#   R10, R37b, R37b-1, R83-1, R71b-2 — base + optional letter(s) + optional -digit[letters]
+# Hyphenated/sub-numbered Rs are first-class claims, not continuation prose;
+# they get their own block during the carve.
 mapfile -t PARENT_R_NUMBERS < <(machine_section "$PARENT_FILE" \
-  | grep -oE '^R[0-9]+[a-z]?\.' \
+  | grep -oE '^R[0-9]+[a-z]*(-[0-9]+[a-z]*)?\.' \
   | sed 's/\.$//' \
   | sort -u)
 
@@ -295,6 +314,20 @@ declare -A ANNOTATION_REWRITES_TO=()
 declare -A ANNOTATION_REWRITES_FILE=()
 REWRITE_INDEX=0
 
+# Per-file content snapshots taken just before any source-file modification.
+# This is the primary rollback mechanism for the @spec sweep: it survives the
+# compound-annotation explosion pass (which can rewrite multiple lines on a
+# single source line) where line-level rewrite reversal would not. The
+# annotation_rewrites array is preserved alongside it for inspection only.
+declare -A FILE_SNAPSHOTS=()  # key=path, val=original content (before any sweep edit)
+
+snapshot_source_file() {
+  local file="$1"
+  if [[ -z "${FILE_SNAPSHOTS[$file]+x}" ]]; then
+    FILE_SNAPSHOTS["$file"]="$(cat "$file")"
+  fi
+}
+
 # Write initial rollback log (we'll rewrite at the end with full state).
 emit_rollback_log() {
   jq -n \
@@ -318,6 +351,16 @@ emit_rollback_log() {
         echo '[]'
       fi
     )" \
+    --argjson file_snapshots "$(
+      if (( ${#FILE_SNAPSHOTS[@]} > 0 )); then
+        for k in "${!FILE_SNAPSHOTS[@]}"; do
+          jq -n --arg file "$k" --arg content "${FILE_SNAPSHOTS[$k]}" \
+            '{file: $file, content: $content}'
+        done | jq -s .
+      else
+        echo '[]'
+      fi
+    )" \
     '{
       parent_id: $parent_id,
       parent_path: $parent_path,
@@ -326,7 +369,8 @@ emit_rollback_log() {
       manifest_snapshot: $manifest_snapshot,
       timestamp: $timestamp,
       children_created: $children_created,
-      annotation_rewrites: $rewrites
+      annotation_rewrites: $rewrites,
+      annotation_file_snapshots: $file_snapshots
     }' > "$ROLLBACK_LOG"
 }
 
@@ -341,7 +385,7 @@ extract_requirement_block() {
   local body="$1" rn="$2"
   awk -v target="$rn" '
     BEGIN { in_target = 0 }
-    /^R[0-9]+[a-z]?\./ {
+    /^R[0-9]+[a-z]*(-[0-9]+[a-z]*)?\./ {
       if (in_target) exit
       # Match "Rxx." prefix exactly (Rxx followed by .)
       if (substr($0, 1, length(target) + 1) == target".") {
@@ -387,7 +431,7 @@ PARENT_PRENARRATIVE="$(awk '
 
 # Recompute pre/R/post split from machine_section content.
 PARENT_PRENARRATIVE="$(awk '
-  /^R[0-9]+[a-z]?\./ { exit }
+  /^R[0-9]+[a-z]*(-[0-9]+[a-z]*)?\./ { exit }
   { print }
 ' <<< "$PARENT_BODY")"
 
@@ -570,8 +614,20 @@ $post_narrative"
         | .generated_at = (now | todate)
        ' "$manifest_tmp" > "$next_tmp" && mv "$next_tmp" "$manifest_tmp"
   done
+
+  # Sync parent's manifest entry version to match its on-disk version (which
+  # we just bumped). The manifest entry is the canonical source of truth for
+  # downstream tooling (curate, spec-trace) and silently lagging from the
+  # file's own frontmatter is a correctness bug, not a stylistic one.
+  local sync_tmp
+  sync_tmp="$(mktemp)"
+  jq --arg pid "$PARENT_ID" \
+     --argjson pv "$((PARENT_VERSION + 1))" \
+     '.specs = (.specs | map(if .id == $pid then .version = $pv else . end))' \
+     "$manifest_tmp" > "$sync_tmp" && mv "$sync_tmp" "$manifest_tmp"
+
   mv "$manifest_tmp" "$MANIFEST"
-  echo "  manifest: added $CHILD_COUNT child entries" >&2
+  echo "  manifest: added $CHILD_COUNT child entries; parent bumped to v$((PARENT_VERSION + 1))" >&2
 
   # Step 6: sweep @spec annotations for moved requirements.
   rewrite_annotations
@@ -597,6 +653,17 @@ rewrite_annotations() {
     return 0
   fi
   echo "[split] @spec rewrite scan: ${scan_dirs[*]}" >&2
+
+  # Pre-pass: explode compound `@spec PARENT.R1,R2[,R3]` annotations into one
+  # annotation per R on consecutive lines. Without this, the per-R sed below
+  # rewrites only the first R's prefix and leaves the rest dangling under
+  # the wrong child. Example:
+  #   Before: // @spec query.foo.R10,R42
+  #   Pass for R10 (lexer child) finds the literal "query.foo.R10" via [^A-Z0-9]
+  #   match (the ',' qualifies), rewrites to "// @spec query.foo.lexer.R10,R42"
+  #   leaving R42 incorrectly prefixed with "lexer".
+  # The explosion guarantees each per-R sed sees a single isolated R.
+  explode_compound_annotations "${scan_dirs[@]}"
 
   # For each child, for each moved requirement, rewrite annotations.
   for ((i=0; i<CHILD_COUNT; i++)); do
@@ -630,10 +697,13 @@ rewrite_annotations() {
 
       for hit in "${hits[@]}"; do
         [[ -z "$hit" ]] && continue
+        snapshot_source_file "$hit"
         # Use sed with | delimiter (file paths may contain /).
         # Anchor: from_anno followed by a non-identifier character or EOL,
         # so we don't accidentally match `parent.R1` when intending `parent.R12`.
-        sed -i -E "s|${from_anno}([^A-Za-z0-9])|${to_anno}\1|g; s|${from_anno}\$|${to_anno}|g" "$hit"
+        # The character class includes `-` as a literal (last position) so
+        # sub-numbered Rs like R37b-1 aren't accidentally split mid-token.
+        sed -i -E "s|${from_anno}([^A-Za-z0-9-])|${to_anno}\1|g; s|${from_anno}\$|${to_anno}|g" "$hit"
         ANNOTATION_REWRITES_FILE[$REWRITE_INDEX]="$hit"
         ANNOTATION_REWRITES_FROM[$REWRITE_INDEX]="$from_anno"
         ANNOTATION_REWRITES_TO[$REWRITE_INDEX]="$to_anno"
@@ -645,6 +715,74 @@ rewrite_annotations() {
 
   # Update rollback log with the rewrite list.
   emit_rollback_log
+}
+
+# ── Compound annotation explosion ────────────────────────────────────────────
+# Walks each candidate file, finds `@spec PARENT_ID.<R-list>` lines where
+# <R-list> contains a comma, and rewrites them to one annotation per R on
+# consecutive lines. Indentation, comment prefix, and trailing text are
+# preserved on every emitted line. Files are snapshotted before modification
+# so the rollback log can restore them to their pre-sweep state.
+explode_compound_annotations() {
+  local scan_dirs=("$@")
+
+  # Find candidate files: anything with `@spec PARENT.R...,R...` (a comma in
+  # the R-list immediately after the parent prefix).
+  mapfile -t candidates < <(
+    grep -rlE --binary-files=without-match \
+      "@spec ${PARENT_ID//./\\.}\.R[0-9]+[a-z]*(-[0-9]+[a-z]*)?,R" "${scan_dirs[@]}" \
+      --include='*.java' --include='*.py' --include='*.js' \
+      --include='*.ts' --include='*.go' --include='*.rs' \
+      --include='*.kt' --include='*.scala' --include='*.c' \
+      --include='*.cpp' --include='*.h' --include='*.hpp' \
+      --include='*.cs' --include='*.rb' --include='*.swift' \
+      --include='*.m' --include='*.sh' \
+      --exclude-dir='test' --exclude-dir='tests' \
+      --exclude-dir='__tests__' --exclude-dir='spec' \
+      --exclude-dir='node_modules' --exclude-dir='vendor' \
+      --exclude-dir='target' --exclude-dir='build' --exclude-dir='dist' \
+      2>/dev/null || true
+  )
+
+  if (( ${#candidates[@]} == 0 )); then
+    return 0
+  fi
+
+  for file in "${candidates[@]}"; do
+    [[ -z "$file" ]] && continue
+    snapshot_source_file "$file"
+    local tmp="${file}.split-explode.tmp"
+    awk -v parent="$PARENT_ID" '
+      BEGIN { tag = "@spec " parent "." }
+      {
+        i = index($0, tag)
+        if (i == 0) { print; next }
+        before = substr($0, 1, i - 1)
+        rest = substr($0, i + length(tag))
+        # Walk the R-list; legal chars in an R-name + comma separator.
+        rlist_end = 0
+        for (j = 1; j <= length(rest); j++) {
+          c = substr(rest, j, 1)
+          if (c ~ /[A-Za-z0-9,-]/) {
+            rlist_end = j
+          } else {
+            break
+          }
+        }
+        if (rlist_end == 0) { print; next }
+        rlist = substr(rest, 1, rlist_end)
+        trailing = substr(rest, rlist_end + 1)
+        if (index(rlist, ",") == 0) { print; next }
+        n = split(rlist, rs, ",")
+        for (k = 1; k <= n; k++) {
+          if (rs[k] == "") continue
+          print before tag rs[k] trailing
+        }
+      }
+    ' "$file" > "$tmp"
+    mv "$tmp" "$file"
+    echo "  @spec exploded: $file (compound → per-R lines)" >&2
+  done
 }
 
 # ── Validation gate ──────────────────────────────────────────────────────────

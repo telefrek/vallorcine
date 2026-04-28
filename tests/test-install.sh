@@ -925,6 +925,55 @@ else
     fail "__pycache__/ should be in .gitignore"
 fi
 
+# spec-split runtime artifacts must be in the installer's gitignore template.
+# Otherwise users commit per-machine rollback logs and transient plan JSON.
+if assert_file_contains "$ENHANCED_TARGET/.gitignore" ".spec/.split-log/"; then
+    pass ".spec/.split-log/ in .gitignore"
+else
+    fail ".spec/.split-log/ should be in .gitignore"
+fi
+if assert_file_contains "$ENHANCED_TARGET/.gitignore" ".spec/.split-plan.json"; then
+    pass ".spec/.split-plan.json in .gitignore"
+else
+    fail ".spec/.split-plan.json should be in .gitignore"
+fi
+
+# Upgrade path: an existing install that already has the runtime block but
+# was made before v0.16.x should pick up the new entries on re-install.
+UPGRADE_GI_TARGET="$(make_temp)"
+mkdir -p "$UPGRADE_GI_TARGET"
+cat > "$UPGRADE_GI_TARGET/.gitignore" << 'PRELEGACY'
+# vallorcine runtime files — generated at runtime, not committed
+.claude/.statusline-baseline
+.claude/.token-state
+.claude/.token-checkpoint
+.claude/.subagent-state
+.feature/
+.curate/
+__pycache__/
+PRELEGACY
+
+bash "$REPO_ROOT/install.sh" "$UPGRADE_GI_TARGET" >/dev/null 2>&1 || true
+
+if grep -qxF ".spec/.split-log/" "$UPGRADE_GI_TARGET/.gitignore"; then
+    pass "upgrade path adds .spec/.split-log/ to existing .gitignore"
+else
+    fail "upgrade should add .spec/.split-log/ to existing .gitignore"
+fi
+if grep -qxF ".spec/.split-plan.json" "$UPGRADE_GI_TARGET/.gitignore"; then
+    pass "upgrade path adds .spec/.split-plan.json to existing .gitignore"
+else
+    fail "upgrade should add .spec/.split-plan.json to existing .gitignore"
+fi
+# Idempotent: running install twice must not duplicate entries.
+bash "$REPO_ROOT/install.sh" "$UPGRADE_GI_TARGET" >/dev/null 2>&1 || true
+splitlog_count="$(grep -cxF '.spec/.split-log/' "$UPGRADE_GI_TARGET/.gitignore")"
+if (( splitlog_count == 1 )); then
+    pass "re-running install does not duplicate .spec/.split-log/ entry"
+else
+    fail "expected 1 .spec/.split-log/ entry after second install, got $splitlog_count"
+fi
+
 # ── Test 14b: Migration from old direct references to wrappers ────────────────
 
 echo ""

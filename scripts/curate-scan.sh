@@ -568,6 +568,41 @@ if [[ -d ".spec" && -d ".spec/domains" ]]; then
     # Find CamelCase type names referenced in 3+ spec files that have no
     # spec of their own.
 
+    # JDK / standard library types — referencing them in 3+ specs is normal,
+    # specifying them is meaningless, and they otherwise drown out genuine
+    # shared-type signals (project value types, services, repositories).
+    # This list covers java.lang, java.io, java.util, java.nio, java.time —
+    # the surfaces that account for ~all noise in real-project scans.
+    JDK_BLOCKLIST=(
+        # java.lang exceptions
+        IllegalArgumentException IllegalStateException NullPointerException
+        UnsupportedOperationException IndexOutOfBoundsException
+        ArrayIndexOutOfBoundsException ClassCastException ClassNotFoundException
+        NoSuchMethodException NoSuchFieldException SecurityException
+        NumberFormatException ArithmeticException ConcurrentModificationException
+        OutOfMemoryError StackOverflowError AssertionError InterruptedException
+        RuntimeException
+        # java.lang core
+        StringBuilder StringBuffer CharSequence Throwable Iterable
+        Comparable Cloneable AutoCloseable Runnable
+        # java.io
+        IOException FileNotFoundException InputStream OutputStream
+        BufferedReader BufferedWriter PrintWriter PrintStream
+        # java.util collections / utilities
+        ArrayList HashMap HashSet LinkedList LinkedHashMap LinkedHashSet
+        TreeMap TreeSet ConcurrentHashMap CopyOnWriteArrayList Collections
+        Optional Iterator NoSuchElementException Comparator
+        # java.nio
+        ByteBuffer CharBuffer ByteBuffer
+        # java.time
+        LocalDate LocalTime LocalDateTime ZonedDateTime Instant
+        # concurrency
+        AtomicInteger AtomicLong AtomicReference CompletableFuture
+        ExecutorService ThreadPoolExecutor ScheduledExecutorService
+    )
+    declare -A JDK_BLOCKLIST_SET=()
+    for jt in "${JDK_BLOCKLIST[@]}"; do JDK_BLOCKLIST_SET["$jt"]=1; done
+
     > "$TMPDIR_SCAN/spec-type-refs.txt"
 
     # Extract CamelCase words from all spec files, record which spec references them
@@ -596,6 +631,9 @@ if [[ -d ".spec" && -d ".spec/domains" ]]; then
         while IFS= read -r line; do
             ref_count="$(echo "$line" | awk '{print $1}')"
             type_name="$(echo "$line" | awk '{$1=""; print $0}' | sed 's/^ //')"
+            # Drop JDK / standard library types — referencing them is universal,
+            # specifying them is meaningless, and they swamp the report.
+            [[ -n "${JDK_BLOCKLIST_SET[$type_name]+x}" ]] && continue
             # Check if any spec file name contains this type name (case-insensitive)
             type_lower="$(echo "$type_name" | tr '[:upper:]' '[:lower:]')"
             has_spec=0
@@ -619,39 +657,49 @@ if [[ -d ".spec" && -d ".spec/domains" ]]; then
     fi
 
     # ── 10b: Specs with open obligations ──────────────────────────────────
-    # Scan specs for open_obligations in frontmatter or [UNRESOLVED]/[CONFLICT] markers
+    # Surface specs with [UNRESOLVED]/[CONFLICT] markers in the body OR a
+    # non-empty `open_obligations` array in the JSON frontmatter. The
+    # frontmatter check uses jq so an empty array (`open_obligations: []`)
+    # or stripped punctuation never registers as an open obligation —
+    # the prior shell-based stripper false-positived on every spec that
+    # carried the empty-array convention in its frontmatter.
 
     find .spec/domains -name '*.md' 2>/dev/null | while IFS= read -r spec_file; do
         spec_base="$(basename "$spec_file" .md)"
-        obligation_count=0
-        obligations=""
 
-        # Check frontmatter for open_obligations
-        fm_obligations="$(sed -n '/^---$/,/^---$/p' "$spec_file" 2>/dev/null \
-            | grep 'open_obligations' | head -1 || true)"
-
-        # Count [UNRESOLVED] and [CONFLICT] markers in body
+        # Body markers
         unresolved_count="$( (grep -c '\[UNRESOLVED\]' "$spec_file" || true) 2>/dev/null)"
         conflict_count="$( (grep -c '\[CONFLICT\]' "$spec_file" || true) 2>/dev/null)"
         [[ -z "$unresolved_count" ]] && unresolved_count=0
         [[ -z "$conflict_count" ]] && conflict_count=0
-        obligation_count=$((unresolved_count + conflict_count))
+        body_count=$((unresolved_count + conflict_count))
 
-        # Extract obligation text for display
-        if [[ "$obligation_count" -gt 0 ]]; then
-            obligations="$(grep -oE '\[UNRESOLVED\][^.]*\.|\[CONFLICT\][^.]*\.' "$spec_file" 2>/dev/null \
-                | head -5 | tr '\n' ';' | sed 's/;$//' || true)"
-            echo "OBLIGATION|$spec_base|$obligation_count|$obligations" >> "$TMPDIR_SCAN/spec-obligations.txt"
-        fi
-
-        # Also check for DRAFT status with open_obligations in frontmatter
-        if [[ -n "$fm_obligations" && "$obligation_count" -eq 0 ]]; then
-            ob_text="$(echo "$fm_obligations" | sed 's/.*open_obligations:[[:space:]]*//' | tr -d '[]"' || true)"
-            if [[ -n "$ob_text" ]]; then
-                ob_count="$(echo "$ob_text" | tr ',' '\n' | grep -c '[a-z]' 2>/dev/null)" || ob_count=1
-                echo "OBLIGATION|$spec_base|$ob_count|$ob_text" >> "$TMPDIR_SCAN/spec-obligations.txt"
+        # Frontmatter open_obligations (parsed as JSON array; empty → 0)
+        fm_count=0
+        fm_json=""
+        if command -v jq >/dev/null 2>&1; then
+            fm_json="$(awk '/^---$/{n++; next} n==1 && /^[[:space:]]*\{/{inj=1} n==1 && inj{print} n>=2{exit}' "$spec_file" 2>/dev/null || true)"
+            if [[ -n "$fm_json" ]]; then
+                fm_count="$(echo "$fm_json" | jq 'if (.open_obligations | type) == "array" then (.open_obligations | length) else 0 end' 2>/dev/null || echo 0)"
             fi
         fi
+
+        total_count=$((body_count + fm_count))
+        [[ "$total_count" -eq 0 ]] && continue
+
+        if [[ "$body_count" -gt 0 ]]; then
+            obligations="$(grep -oE '\[UNRESOLVED\][^.]*\.|\[CONFLICT\][^.]*\.' "$spec_file" 2>/dev/null \
+                | head -5 | tr '\n' ';' | sed 's/;$//' || true)"
+        else
+            obligations="$(echo "$fm_json" | jq -r '
+                (.open_obligations // [])
+                | .[]
+                | (if type == "string" then .
+                   elif type == "object" then (.text // .description // .summary // tostring)
+                   else tostring end)
+            ' 2>/dev/null | head -5 | tr '\n' ';' | sed 's/;$//' || true)"
+        fi
+        echo "OBLIGATION|$spec_base|$total_count|$obligations" >> "$TMPDIR_SCAN/spec-obligations.txt"
     done
 
     sort -t'|' -k3 -rn "$TMPDIR_SCAN/spec-obligations.txt" -o "$TMPDIR_SCAN/spec-obligations.txt" 2>/dev/null || true
@@ -1186,6 +1234,28 @@ fi
 
 > "$TMPDIR_SCAN/spec-annotation-gaps.txt"
 > "$TMPDIR_SCAN/spec-unannotated.txt"
+> "$TMPDIR_SCAN/spec-bare-only.txt"
+
+# has_bare_annotations <spec-id> — returns 0 if the source tree contains a
+# bare `@spec <sid>` reference (no `.R<n>` suffix). Used to differentiate
+# "spec is associated with code but lacks R-level granularity" from "spec
+# is not referenced anywhere". The classification matters because the user
+# remediation differs: the former needs a refactor of existing annotations,
+# the latter needs new annotations from scratch.
+has_bare_annotations() {
+    local sid="$1"
+    local sid_re="${sid//./\\.}"
+    grep -rqE "@spec ${sid_re}([^.A-Za-z0-9_-]|\$)" \
+        --include='*.java' --include='*.py' --include='*.js' \
+        --include='*.ts' --include='*.go' --include='*.rs' \
+        --include='*.kt' --include='*.scala' --include='*.c' \
+        --include='*.cpp' --include='*.h' --include='*.hpp' \
+        --include='*.cs' --include='*.rb' --include='*.swift' \
+        --include='*.m' --include='*.sh' \
+        --exclude-dir='node_modules' --exclude-dir='vendor' \
+        --exclude-dir='target' --exclude-dir='build' --exclude-dir='dist' \
+        . 2>/dev/null
+}
 
 if [[ -f ".spec/registry/manifest.json" ]] && command -v jq >/dev/null 2>&1; then
     # Locate the spec-trace script — support installed layout and dev-repo layout.
@@ -1224,7 +1294,14 @@ if [[ -f ".spec/registry/manifest.json" ]] && command -v jq >/dev/null 2>&1; the
             # Use here-strings so SIGPIPE under pipefail cannot flip results
             # on long /spec-trace output (grep -q / -m1 close stdin early).
             if grep -q '\*\*No annotations found\.\*\*' <<< "$trace_out"; then
-                echo "UNANNOTATED|$sid" >> "$TMPDIR_SCAN/spec-unannotated.txt"
+                # Bare `@spec <sid>` references count as a separate gap class:
+                # impl is associated, but R-level granularity is missing.
+                # Pure UNANNOTATED means zero `@spec` references of any kind.
+                if has_bare_annotations "$sid"; then
+                    echo "BARE_ONLY|$sid" >> "$TMPDIR_SCAN/spec-bare-only.txt"
+                else
+                    echo "UNANNOTATED|$sid" >> "$TMPDIR_SCAN/spec-unannotated.txt"
+                fi
                 continue
             fi
 
@@ -1239,14 +1316,14 @@ if [[ -f ".spec/registry/manifest.json" ]] && command -v jq >/dev/null 2>&1; the
                 # req list as "<spec-id>.Rn[a] <spec-id>.Rm ..." — count by
                 # matching the .Rn[a] suffixes.
                 no_impl_clean="$(echo "$no_impl" | tr -s '[:space:]' ' ' | sed 's/^ //;s/ $//')"
-                req_count="$(echo "$no_impl_clean" | grep -oE '\.R[0-9]+[a-z]?' | wc -l || true)"
+                req_count="$(echo "$no_impl_clean" | grep -oE '\.R[0-9]+[a-z]*(-[0-9]+[a-z]*)?' | wc -l || true)"
                 [[ -z "$req_count" ]] && req_count=0
                 echo "IMPL_GAP|$sid|$req_count|$no_impl_clean" >> "$TMPDIR_SCAN/spec-annotation-gaps.txt"
             fi
 
             if [[ -n "$no_test" ]]; then
                 no_test_clean="$(echo "$no_test" | tr -s '[:space:]' ' ' | sed 's/^ //;s/ $//')"
-                req_count="$(echo "$no_test_clean" | grep -oE '\.R[0-9]+[a-z]?' | wc -l || true)"
+                req_count="$(echo "$no_test_clean" | grep -oE '\.R[0-9]+[a-z]*(-[0-9]+[a-z]*)?' | wc -l || true)"
                 [[ -z "$req_count" ]] && req_count=0
                 echo "TEST_GAP|$sid|$req_count|$no_test_clean" >> "$TMPDIR_SCAN/spec-annotation-gaps.txt"
             fi
@@ -1256,11 +1333,13 @@ if [[ -f ".spec/registry/manifest.json" ]] && command -v jq >/dev/null 2>&1; the
         sort -t'|' -k1,1 -k3 -rn "$TMPDIR_SCAN/spec-annotation-gaps.txt" \
             -o "$TMPDIR_SCAN/spec-annotation-gaps.txt" 2>/dev/null || true
 
-        # Cap both files at 20 rows each for summary sanity
+        # Cap files at 20 rows each for summary sanity
         head -20 "$TMPDIR_SCAN/spec-annotation-gaps.txt" > "$TMPDIR_SCAN/spec-annotation-gaps.capped.txt" 2>/dev/null || true
         mv "$TMPDIR_SCAN/spec-annotation-gaps.capped.txt" "$TMPDIR_SCAN/spec-annotation-gaps.txt"
         head -20 "$TMPDIR_SCAN/spec-unannotated.txt" > "$TMPDIR_SCAN/spec-unannotated.capped.txt" 2>/dev/null || true
         mv "$TMPDIR_SCAN/spec-unannotated.capped.txt" "$TMPDIR_SCAN/spec-unannotated.txt"
+        head -20 "$TMPDIR_SCAN/spec-bare-only.txt" > "$TMPDIR_SCAN/spec-bare-only.capped.txt" 2>/dev/null || true
+        mv "$TMPDIR_SCAN/spec-bare-only.capped.txt" "$TMPDIR_SCAN/spec-bare-only.txt"
     fi
 fi
 
@@ -1391,8 +1470,8 @@ if [[ -d ".spec" && -f ".spec/registry/manifest.json" ]]; then
         body_chars=${#body}
         body_tokens_k=$(( body_chars / 4 / 1000 ))
 
-        # Count R-numbered requirements (RN, RNa form supported).
-        reqs_count=$(grep -cE '^R[0-9]+[a-z]?\.' <<< "$body" || true)
+        # Count R-numbered requirements (RN, RNa, RNa-1 / RN-1 forms).
+        reqs_count=$(grep -cE '^R[0-9]+[a-z]*(-[0-9]+[a-z]*)?\.' <<< "$body" || true)
 
         # Below either size threshold → not a candidate.
         if (( reqs_count < SUBDIV_MIN_REQS )) && (( body_tokens_k < SUBDIV_MIN_TOKENS_K )); then
@@ -1429,7 +1508,7 @@ if [[ -d ".spec" && -f ".spec/registry/manifest.json" ]]; then
                     current_section="$hdr"
                     section_req_count["$current_section"]=${section_req_count["$current_section"]:-0}
                 fi
-            elif [[ -n "$current_section" ]] && [[ "$line" =~ ^R[0-9]+[a-z]?\. ]]; then
+            elif [[ -n "$current_section" ]] && [[ "$line" =~ ^R[0-9]+[a-z]*(-[0-9]+[a-z]*)?\. ]]; then
                 section_req_count["$current_section"]=$(( ${section_req_count["$current_section"]:-0} + 1 ))
             fi
         done <<< "$body"
@@ -1849,7 +1928,7 @@ fi
 
 # Spec annotation gaps (Analysis 18)
 has_ann_signals=0
-if [[ -s "$TMPDIR_SCAN/spec-annotation-gaps.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-unannotated.txt" ]]; then
+if [[ -s "$TMPDIR_SCAN/spec-annotation-gaps.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-unannotated.txt" ]] || [[ -s "$TMPDIR_SCAN/spec-bare-only.txt" ]]; then
     echo "## Spec Annotation Coverage Gaps" >> "$SUMMARY_FILE"
     echo "APPROVED specs where @spec annotations are missing on implementation or test side." >> "$SUMMARY_FILE"
     echo "Route to \`/spec-verify\` to add missing annotations, write missing tests, or accept gaps with justification." >> "$SUMMARY_FILE"
@@ -1871,12 +1950,22 @@ if [[ -s "$TMPDIR_SCAN/spec-annotation-gaps.txt" ]]; then
 fi
 
 if [[ -s "$TMPDIR_SCAN/spec-unannotated.txt" ]]; then
-    echo "### APPROVED specs with no annotations at all" >> "$SUMMARY_FILE"
-    echo "Specs where \`spec-trace\` found zero \`@spec\` references in source or test files." >> "$SUMMARY_FILE"
+    echo "### APPROVED specs with no @spec annotations of any kind" >> "$SUMMARY_FILE"
+    echo "Specs where source contains zero \`@spec\` references — neither bare nor R-suffixed." >> "$SUMMARY_FILE"
     echo "" >> "$SUMMARY_FILE"
     while IFS='|' read -r _ sid; do
         echo "- $sid — no \`@spec\` annotations found anywhere" >> "$SUMMARY_FILE"
     done < "$TMPDIR_SCAN/spec-unannotated.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+if [[ -s "$TMPDIR_SCAN/spec-bare-only.txt" ]]; then
+    echo "### APPROVED specs with bare-only @spec annotations" >> "$SUMMARY_FILE"
+    echo "Specs annotated only by spec-id (e.g. \`@spec engine.handle-lifecycle\`) without per-requirement (\`.R<n>\`) granularity. Implementation is associated with the spec, but R-level coverage cannot be traced. Remediation: refine existing annotations rather than add from scratch." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ sid; do
+        echo "- $sid — bare annotations exist; add \`.R<n>\` for per-requirement traceability" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/spec-bare-only.txt"
     echo "" >> "$SUMMARY_FILE"
 fi
 
@@ -1942,6 +2031,7 @@ echo "  Stalled work groups: $(wc -l < "$TMPDIR_SCAN/work-stalled.txt" 2>/dev/nu
 echo "  Work artifact drift: $(wc -l < "$TMPDIR_SCAN/work-drift.txt" 2>/dev/null || echo 0)"
 echo "  Spec annotation gaps: $(wc -l < "$TMPDIR_SCAN/spec-annotation-gaps.txt" 2>/dev/null || echo 0)"
 echo "  Unannotated APPROVED specs: $(wc -l < "$TMPDIR_SCAN/spec-unannotated.txt" 2>/dev/null || echo 0)"
+echo "  Bare-only annotated specs: $(wc -l < "$TMPDIR_SCAN/spec-bare-only.txt" 2>/dev/null || echo 0)"
 echo "  Aging obligations: $(wc -l < "$TMPDIR_SCAN/aging-obligations.txt" 2>/dev/null || echo 0)"
 echo "  Subdivision candidates: $(wc -l < "$TMPDIR_SCAN/spec-subdivision-candidates.txt" 2>/dev/null || echo 0)"
 

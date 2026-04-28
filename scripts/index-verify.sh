@@ -191,10 +191,79 @@ if [[ "$CHECK_DECISIONS" == "1" && -d ".decisions" && -f ".decisions/CLAUDE.md" 
         fi
     done < <(find .decisions -name 'adr.md' 2>/dev/null)
 
-    # Enforce 80-line cap and overflow to history.md
+    # Enforce 80-line cap by overflowing oldest "Recently Accepted" rows to
+    # history.md. Until v0.16.x this was a warn-and-proceed: the index grew
+    # unbounded after auto-repair (e.g. 46 reconstructed ADRs → 151 lines).
+    # The cap exists because this file is loaded into context on demand —
+    # silent growth burns tokens. The seed CLAUDE.md documents "Once this
+    # section exceeds 5 rows, oldest row moves to history.md"; this code
+    # enforces it.
+    #
+    # Tunable: VALLORCINE_DECISIONS_KEEP (default 5) controls how many
+    # most-recent rows stay in the index before overflow kicks in.
     line_count="$(wc -l < ".decisions/CLAUDE.md")"
     if [[ "$line_count" -gt 80 ]]; then
-        [[ "$QUIET" != "1" ]] && echo "  ⚠ Decisions index: over 80-line cap ($line_count lines) — overflow to history.md needed"
+        keep="${VALLORCINE_DECISIONS_KEEP:-5}"
+        ra_start="$(grep -n '^## Recently Accepted' '.decisions/CLAUDE.md' 2>/dev/null | head -1 | cut -d: -f1)"
+        if [[ -n "$ra_start" ]]; then
+            # Section bounds: ra_start through the line before the next "^## "
+            # heading, or EOF. The found flag ensures END only fires when
+            # the loop exits without hitting another heading (EOF case);
+            # otherwise the inline-print + END would double-emit.
+            ra_end="$(awk -v s="$ra_start" '
+                NR>s && /^## /{print NR-1; found=1; exit}
+                END{if (!found) print NR}
+            ' '.decisions/CLAUDE.md')"
+            # Find table separator within section
+            sep_line="$(awk -v s="$ra_start" -v e="$ra_end" 'NR>=s && NR<=e && /^\|----/{print NR; exit}' '.decisions/CLAUDE.md')"
+
+            if [[ -n "$sep_line" && -n "$ra_end" ]]; then
+                # Row line numbers: between sep and end, starting with "| "
+                mapfile -t row_nums < <(awk -v s="$sep_line" -v e="$ra_end" 'NR>s && NR<=e && /^\| / {print NR}' '.decisions/CLAUDE.md')
+                total="${#row_nums[@]}"
+                if (( total > keep )); then
+                    overflow_count=$(( total - keep ))
+                    # Rows are stored newest-first (auto-repair inserts right
+                    # after the separator). Overflow the LAST `overflow_count`
+                    # rows = oldest by insertion order.
+                    first_overflow_idx=$(( total - overflow_count ))
+                    first_line="${row_nums[$first_overflow_idx]}"
+                    last_line="${row_nums[$((total - 1))]}"
+
+                    overflow_rows="$(sed -n "${first_line},${last_line}p" '.decisions/CLAUDE.md')"
+
+                    # Append to history.md (create with header on first overflow).
+                    if [[ ! -f '.decisions/history.md' ]]; then
+                        cat > '.decisions/history.md' << 'HISTEOF'
+# Decision History
+
+Archived ADRs that overflowed from `CLAUDE.md` once the index exceeded its
+80-line cap. Newest archived first within each batch; batches accumulate
+oldest-first overall.
+
+## Archived from Recently Accepted
+
+| Problem | Slug | Accepted | Recommendation |
+|---------|------|----------|----------------|
+HISTEOF
+                    fi
+                    printf '%s\n' "$overflow_rows" >> '.decisions/history.md'
+
+                    # Delete the overflowed range from CLAUDE.md.
+                    sed -i "${first_line},${last_line}d" '.decisions/CLAUDE.md'
+
+                    ((REPAIRED++)) || true
+                    [[ "$QUIET" != "1" ]] && \
+                        echo "  ⚠ Decisions index: archived $overflow_count Recently Accepted rows to history.md (kept $keep newest)"
+                fi
+            fi
+        fi
+
+        # Recheck after overflow attempt.
+        line_count="$(wc -l < ".decisions/CLAUDE.md")"
+        if [[ "$line_count" -gt 80 && "$QUIET" != "1" ]]; then
+            echo "  ⚠ Decisions index: still $line_count lines after Recently Accepted overflow — review Active/Deferred/Closed sections manually"
+        fi
     fi
 fi
 
