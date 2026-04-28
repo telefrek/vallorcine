@@ -123,6 +123,7 @@
 .claude/scripts/spec-obligations-gc.sh
 .claude/scripts/spec-trace.sh
 .claude/scripts/spec-split.sh
+.claude/scripts/lens-registry.txt
 .claude/scripts/work-lib.sh
 .claude/scripts/work-resolve.sh
 .claude/scripts/work-validate.sh

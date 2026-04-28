@@ -1,6 +1,6 @@
 ---
 description: "Author a hardened spec through multi-pass adversarial review"
-argument-hint: "<feature-id> <title>"
+argument-hint: "<feature-id> <title> | <spec-id> --depth-pass-only [--lens <name>]"
 effort: high
 ---
 
@@ -16,6 +16,15 @@ read during authoring is pre-existing components (for prerequisite stubs).
 Checking the spec against the feature's implementation is `/spec-verify`'s
 job, not this skill's.
 
+**Two entry paths:**
+
+- **Default (fresh authoring):** `/spec-author <feature-id> <title>` — runs
+  Pass 1 (draft) → Pass 2 (falsification) → Pass 3 (depth pass) → register.
+- **Depth-pass-only:** `/spec-author <spec-id> --depth-pass-only [--lens <name>]`
+  — re-falsify an existing APPROVED spec under the current lens corpus
+  (or a specific lens). Skips Pass 1 and Pass 2. See the **Depth-pass-only
+  mode** section below.
+
 ---
 
 ## Inputs expected in context
@@ -25,6 +34,82 @@ job, not this skill's.
 - The domain analysis (from `.feature/<slug>/domains.md` if available)
 - The work plan (from `.feature/<slug>/work-plan.md` if available)
 - Optionally, a resolved spec context bundle from `/spec-resolve`
+
+---
+
+## Depth-pass-only mode
+
+When invoked with `--depth-pass-only`, this skill skips Pass 1 (drafting)
+and Pass 2 (initial falsification) and runs only the Pass 3 depth pass
+against an existing APPROVED spec. Use this to re-falsify a mature spec
+under the current lens corpus — typically because `/curate` flagged the
+spec as authored before a falsification lens shipped (e.g., specs from
+before the security lens added in v0.14.2).
+
+**Invocation:**
+
+```
+/spec-author <spec-id> --depth-pass-only [--lens <lens_name>]
+```
+
+- `<spec-id>` — must resolve to an APPROVED spec via the manifest. DRAFT
+  specs go through normal Pass 1/2/3; depth-pass-only refuses them.
+- `--lens <name>` — optional. Bias the depth pass toward a specific lens
+  reference. Without it, the full lens corpus applies. Lens references
+  live at `prompts/audit/lens-<name>.md` (e.g., `lens-security.md`).
+  See `scripts/lens-registry.txt` for the current set of lens names and
+  their introduction dates.
+
+**Behavior:**
+
+1. **Resolve the target spec.** Look up `<spec-id>` via
+   `spec_file_for_id` in the manifest. If state is not APPROVED, refuse
+   and tell the user to use the default `/spec-author` flow instead.
+2. **Validate the lens (if `--lens` given).** Check that
+   `.claude/prompts/audit/lens-<name>.md` exists (installed layout) or
+   `prompts/audit/lens-<name>.md` (dev-repo). If neither exists, list
+   the available lenses (from `scripts/lens-registry.txt`) and stop.
+3. **Skip the fresh-authoring pre-flight steps** (revival detection,
+   work-group context, layered-spec family load) — they are scoped to
+   new authoring. The only pre-flight needed for depth-pass-only is:
+   - Read the spec body via the resolved file path.
+   - If the spec has `parent_spec` set, run the layered-spec family
+     load (Pre-flight Step 6) so siblings are visible to the depth pass.
+   - Read any KB adversarial findings for the spec's domains (Pass 2
+     "KB adversarial findings" loader).
+4. **Skip Pass 1 and Pass 2.**
+5. **Run Pass 3 with adapted inputs.** Dispatch the depth-pass subagent
+   with:
+   - The full spec body as input (not "Pass 1 draft").
+   - Empty prior-findings set (the original Pass 2 findings are not
+     retrieved — too lossy across kit versions; the depth pass starts
+     fresh against the spec as it stands).
+   - If `--lens <name>` was given: include the named lens reference
+     prompt as additional context, with framing: "Focus your
+     falsification on attack categories surfaced by this lens. Other
+     lenses may apply but are secondary."
+   - If `--lens` was not given: the full standard lens corpus.
+6. **Standard arbitration UI.** Findings flow through the Pass 2/3
+   arbitration grouping (confirmed gaps, implementation constraints,
+   observability, uncertain). User accepts/declines per finding.
+7. **Apply accepted findings** to the spec via the standard amendment
+   flow (in-place edits + spec-write re-registration; the manifest's
+   `version:` field bumps).
+
+**Signal-to-noise expectation.** Lower than a fresh Pass 2 — specs in
+production have already encountered real-world inputs and survived
+many edge cases. A strong-model depth pass under a newer lens commonly
+surfaces 5-15 findings on mature specs that predate the lens; some
+will be already-mitigated in code (the spec just doesn't say so) and
+others will be genuine gaps. The arbitration UI lets the user judge.
+
+**Decline routing back to /curate.** If the user's arbitration declines
+all findings as not-applicable, that's a signal the lens really doesn't
+apply to this spec. Append a `falsification-decline` row to
+`.curate/curation-state.md` keyed by `<spec-id>:<lens>` so future
+`/curate` scans show the prior decline. This step only runs when
+invoked via `/curate --verify` routing — manual invocations don't
+record declines (the user can still surface them via /curate).
 
 ---
 
@@ -612,6 +697,11 @@ just informs the user that natural subdivision has become an option.
 
 After applying the user's arbitration decisions from Pass 2, automatically
 run a depth pass. Do not prompt — this is mandatory.
+
+(Pass 3 is also the entry point for **depth-pass-only mode** — see the
+top-of-file section. When entered via `--depth-pass-only`, the depth
+pass runs against the existing spec body with empty prior-findings,
+optionally biased toward a single lens reference.)
 
 Round 2 fixes create new attack surface that round 1 could not see.
 Empirical data across multiple specs shows round 2 consistently finds

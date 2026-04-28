@@ -1553,6 +1553,232 @@ if [[ -d ".spec" && -f ".spec/registry/manifest.json" ]]; then
     fi
 fi
 
+# ── Analysis 21: Link rot in KB entries ─────────────────────────────────────
+# Scan KB body text for URLs and verify they still resolve. Cached results in
+# .curate/link-rot-cache.txt with 7-day TTL prevent thrashing on every scan.
+# A bounded number of URLs per run keeps wall-clock predictable on large KBs.
+#
+# Detection: URLs are extracted via two patterns (markdown links + bare URLs)
+# with code-fence exclusion (URLs inside fenced code blocks are example text,
+# not citations). Each URL gets a HEAD request via curl; status codes 4xx and
+# connection failures (000) are flagged as rot. 5xx are considered transient
+# and skipped to avoid surfacing flaky-server noise.
+#
+# Tunables (env-var overrides; safe defaults for typical KBs):
+#   MAX_LINK_ROT_URLS    — fresh-curl budget per run (default 100)
+#   LINK_ROT_CACHE_TTL   — cache TTL in seconds (default 7 days)
+
+> "$TMPDIR_SCAN/link-rot.txt"
+
+if [[ -d ".kb" ]] && command -v curl >/dev/null 2>&1; then
+    : "${MAX_LINK_ROT_URLS:=100}"
+    : "${LINK_ROT_CACHE_TTL:=$((7 * 24 * 3600))}"
+
+    LINK_ROT_CACHE="$CURATE_DIR/link-rot-cache.txt"
+    [[ -f "$LINK_ROT_CACHE" ]] || : > "$LINK_ROT_CACHE"
+    LINK_ROT_NOW=$(date +%s)
+    LINK_ROT_URL_COUNT=0
+
+    # Build a transient cache lookup: URL -> "status|timestamp"
+    declare -A LINK_ROT_CACHE_MAP=()
+    while IFS='|' read -r cached_url cached_status cached_time; do
+        [[ -z "$cached_url" ]] && continue
+        LINK_ROT_CACHE_MAP["$cached_url"]="$cached_status|$cached_time"
+    done < "$LINK_ROT_CACHE"
+
+    # Track URLs we've already processed this run (dedupe across files)
+    declare -A LINK_ROT_SEEN=()
+
+    # Accumulate cache updates for a single atomic write at the end.
+    LINK_ROT_CACHE_UPDATES="$TMPDIR_SCAN/link-rot-cache-updates.txt"
+    : > "$LINK_ROT_CACHE_UPDATES"
+
+    while IFS= read -r kb_file; do
+        [[ -z "$kb_file" ]] && continue
+
+        # Strip fenced code blocks so URLs inside ``` ... ``` are ignored.
+        no_fence=$(awk '
+            /^[[:space:]]*```/ { in_fence = !in_fence; next }
+            in_fence { next }
+            { print }
+        ' "$kb_file" 2>/dev/null || true)
+        [[ -z "$no_fence" ]] && continue
+
+        # Markdown links: [text](http://...) — extract the URL part only.
+        mdlink_urls=$(grep -oE '\[[^]]+\]\(https?://[^)]+\)' <<< "$no_fence" 2>/dev/null \
+                      | sed -E 's/^\[[^]]+\]\(([^)]+)\)$/\1/' || true)
+
+        # Strip markdown-link expressions before extracting bare URLs to avoid
+        # double-counting and to prevent the bare-URL pattern from grabbing
+        # the parenthesised tail of a markdown link.
+        no_links=$(sed -E 's/\[[^]]+\]\([^)]+\)//g' <<< "$no_fence" 2>/dev/null || true)
+        # `]` placed first in the negated bracket expression is literal
+        # (POSIX-portable). GNU grep does not honor `\]` inside character
+        # classes — it treats `\` as literal and `]` as the class terminator,
+        # which silently breaks URL extraction. Place `]` first to avoid that.
+        bare_urls=$(grep -oE 'https?://[^][:space:]<>")]+' <<< "$no_links" 2>/dev/null || true)
+
+        all_urls=$(printf "%s\n%s\n" "$mdlink_urls" "$bare_urls" \
+                   | grep -v '^$' | sort -u 2>/dev/null || true)
+        [[ -z "$all_urls" ]] && continue
+
+        while IFS= read -r url; do
+            [[ -z "$url" ]] && continue
+            # Strip trailing punctuation often glued to bare URLs in prose.
+            url="${url%[.,;:!?]}"
+            [[ -z "$url" ]] && continue
+            [[ -n "${LINK_ROT_SEEN[$url]:-}" ]] && continue
+            LINK_ROT_SEEN["$url"]=1
+
+            # Cache hit?
+            cached="${LINK_ROT_CACHE_MAP[$url]:-}"
+            cache_status=""
+            cache_time=""
+            if [[ -n "$cached" ]]; then
+                cache_status="${cached%|*}"
+                cache_time="${cached#*|}"
+                age=$(( LINK_ROT_NOW - cache_time ))
+                if (( age < LINK_ROT_CACHE_TTL )); then
+                    # Use cached value. Emit only if rot-shaped.
+                    if [[ "$cache_status" =~ ^4 ]] || [[ "$cache_status" == "000" ]]; then
+                        echo "LINK_ROT|$kb_file|$url|$cache_status|$cache_time" \
+                            >> "$TMPDIR_SCAN/link-rot.txt"
+                    fi
+                    continue
+                fi
+            fi
+
+            # Fresh check is gated by per-run budget. Over-budget URLs are
+            # left for next run; cached confirmed-dead URLs still surface.
+            if (( LINK_ROT_URL_COUNT >= MAX_LINK_ROT_URLS )); then
+                continue
+            fi
+            LINK_ROT_URL_COUNT=$(( LINK_ROT_URL_COUNT + 1 ))
+
+            status=$(curl -sI -m 5 -L -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || true)
+            [[ -z "$status" ]] && status="000"
+
+            echo "$url|$status|$LINK_ROT_NOW" >> "$LINK_ROT_CACHE_UPDATES"
+            LINK_ROT_CACHE_MAP["$url"]="$status|$LINK_ROT_NOW"
+
+            if [[ "$status" =~ ^4 ]] || [[ "$status" == "000" ]]; then
+                echo "LINK_ROT|$kb_file|$url|$status|$LINK_ROT_NOW" \
+                    >> "$TMPDIR_SCAN/link-rot.txt"
+            fi
+        done <<< "$all_urls"
+    done < <(find .kb -name '*.md' \
+                     -not -name 'CLAUDE.md' \
+                     -not -path '*/_refs/*' \
+                     -not -path '*/_archive*' \
+                     2>/dev/null || true)
+
+    # Atomic cache write: merge old + updates, dedupe by URL keeping latest.
+    if [[ -s "$LINK_ROT_CACHE_UPDATES" ]]; then
+        cat "$LINK_ROT_CACHE" "$LINK_ROT_CACHE_UPDATES" 2>/dev/null \
+            | awk -F'|' 'NF >= 3 { cache[$1] = $0 } END { for (k in cache) print cache[k] }' \
+            > "$LINK_ROT_CACHE.new"
+        mv "$LINK_ROT_CACHE.new" "$LINK_ROT_CACHE"
+    fi
+
+    # Stable output ordering by KB file, then URL.
+    if [[ -s "$TMPDIR_SCAN/link-rot.txt" ]]; then
+        sort -t'|' -k2,2 -k3,3 "$TMPDIR_SCAN/link-rot.txt" -o "$TMPDIR_SCAN/link-rot.txt" 2>/dev/null || true
+    fi
+fi
+
+# ── Analysis 22: Falsification-lens staleness ───────────────────────────────
+# APPROVED specs authored before a falsification lens shipped may have
+# shallow Pass 2 coverage by current standards (e.g., specs from before
+# the security lens in v0.14.2 lack adversary-model attack pattern checks).
+# Heuristic: if the spec's first-commit date predates a lens's introduction
+# AND the spec body matches a keyword associated with that lens, surface as
+# a re-falsification candidate. Per-candidate confirmation in /curate verify
+# mode (or manual /spec-author --depth-pass-only) decides whether the
+# depth pass is worth running.
+#
+# lens-registry.txt format (pipe-separated, one lens per line):
+#   <lens_name>|<introduction_date>|<keyword>|<keyword>|...
+#
+# Keywords are matched as case-insensitive whole words (\bword\b regex).
+
+> "$TMPDIR_SCAN/falsification-stale.txt"
+
+# Locate lens-registry.txt — install layout vs dev-repo layout.
+LENS_REGISTRY=""
+if [[ -f ".claude/scripts/lens-registry.txt" ]]; then
+    LENS_REGISTRY=".claude/scripts/lens-registry.txt"
+elif [[ -f "scripts/lens-registry.txt" ]]; then
+    LENS_REGISTRY="scripts/lens-registry.txt"
+fi
+
+if [[ -n "$LENS_REGISTRY" ]] && [[ -d ".spec" && -f ".spec/registry/manifest.json" ]]; then
+    FALSIFICATION_STALE_MANIFEST=".spec/registry/manifest.json"
+
+    while IFS= read -r fid; do
+        [[ -z "$fid" ]] && continue
+
+        spec_state=$(spec_manifest_state "$FALSIFICATION_STALE_MANIFEST" "$fid")
+        # Only APPROVED specs — DRAFT/INVALIDATED don't need re-falsification
+        # surfaced (DRAFT is in flight; INVALIDATED is historical).
+        [[ "$spec_state" != "APPROVED" ]] && continue
+
+        spec_file=$(spec_file_for_id "$FALSIFICATION_STALE_MANIFEST" "$fid")
+        [[ -z "$spec_file" || ! -f "$spec_file" ]] && continue
+
+        # Determine spec creation date. Prefer git first-commit-touched date;
+        # fall back to file mtime for uncommitted specs (test fixtures, work
+        # in flight). Both formats normalised to ISO date (YYYY-MM-DD).
+        spec_created=$(git log --diff-filter=A --format=%aI -- "$spec_file" 2>/dev/null \
+                       | tail -1 | cut -dT -f1 || true)
+        if [[ -z "$spec_created" ]]; then
+            mtime_epoch=$(stat -c %Y "$spec_file" 2>/dev/null \
+                          || stat -f %m "$spec_file" 2>/dev/null || true)
+            if [[ -n "$mtime_epoch" ]]; then
+                spec_created=$(date -d "@$mtime_epoch" +%Y-%m-%d 2>/dev/null \
+                               || date -r "$mtime_epoch" +%Y-%m-%d 2>/dev/null || true)
+            fi
+        fi
+        [[ -z "$spec_created" ]] && continue
+
+        # For each lens, decide whether this spec qualifies as stale.
+        while IFS= read -r lens_line; do
+            # Skip empty lines and comments.
+            [[ -z "$lens_line" || "$lens_line" =~ ^[[:space:]]*# ]] && continue
+
+            lens_name=$(cut -d'|' -f1 <<< "$lens_line")
+            lens_date=$(cut -d'|' -f2 <<< "$lens_line")
+            lens_keywords=$(cut -d'|' -f3- <<< "$lens_line")
+
+            [[ -z "$lens_name" || -z "$lens_date" || -z "$lens_keywords" ]] && continue
+
+            # Spec authored on or after lens introduction date is not stale.
+            if [[ ! "$spec_created" < "$lens_date" ]]; then
+                continue
+            fi
+
+            # Build a word-boundary regex from the keyword list. Awk's
+            # printf interprets `\\b` as a single backslash-b, which grep
+            # then reads as the word-boundary anchor.
+            keyword_regex=$(echo "$lens_keywords" | tr '|' '\n' \
+                            | awk 'NF { printf "%s\\b%s\\b", (NR>1?"|":""), $0 }')
+            [[ -z "$keyword_regex" ]] && continue
+
+            # First matching keyword (case-insensitive) is enough to flag.
+            matched=$(grep -ioE "$keyword_regex" "$spec_file" 2>/dev/null | head -1 || true)
+            if [[ -n "$matched" ]]; then
+                echo "FALSIFICATION_STALE|$fid|$spec_created|$lens_name|$matched" \
+                    >> "$TMPDIR_SCAN/falsification-stale.txt"
+            fi
+        done < "$LENS_REGISTRY"
+    done < <(spec_manifest_ids "$FALSIFICATION_STALE_MANIFEST" 2>/dev/null || true)
+
+    # Stable ordering: spec id, lens name.
+    if [[ -s "$TMPDIR_SCAN/falsification-stale.txt" ]]; then
+        sort -t'|' -k2,2 -k4,4 "$TMPDIR_SCAN/falsification-stale.txt" \
+             -o "$TMPDIR_SCAN/falsification-stale.txt" 2>/dev/null || true
+    fi
+fi
+
 # ── Write summary file ──────────────────────────────────────────────────────
 
 SCAN_DATE="$(date +%Y-%m-%d)"
@@ -2000,6 +2226,44 @@ if [[ -s "$TMPDIR_SCAN/spec-subdivision-candidates.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+# Link rot in KB entries (Analysis 21)
+if [[ -s "$TMPDIR_SCAN/link-rot.txt" ]]; then
+    echo "## Link Rot in KB Entries" >> "$SUMMARY_FILE"
+    echo "URLs cited in KB entries that no longer resolve. Status \`000\` means" >> "$SUMMARY_FILE"
+    echo "connection failure (DNS, timeout, refused); \`4xx\` means the host" >> "$SUMMARY_FILE"
+    echo "responded but the resource is gone." >> "$SUMMARY_FILE"
+    echo "Route to \`/research <subject>\` to refresh the citation, or run" >> "$SUMMARY_FILE"
+    echo "\`/curate --verify\` to confirm before refreshing." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Status | KB Entry | URL | Last Checked |" >> "$SUMMARY_FILE"
+    echo "|--------|----------|-----|--------------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ kb_file url status checked_epoch; do
+        # Convert epoch back to ISO date for display.
+        checked_disp=$(date -d "@$checked_epoch" +%Y-%m-%d 2>/dev/null \
+                       || date -r "$checked_epoch" +%Y-%m-%d 2>/dev/null \
+                       || echo "$checked_epoch")
+        echo "| $status | $kb_file | $url | $checked_disp |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/link-rot.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+# Falsification lens staleness (Analysis 22)
+if [[ -s "$TMPDIR_SCAN/falsification-stale.txt" ]]; then
+    echo "## Falsification Lens Staleness" >> "$SUMMARY_FILE"
+    echo "APPROVED specs authored before a falsification lens shipped that" >> "$SUMMARY_FILE"
+    echo "match keywords associated with that lens. The original Pass 2 may" >> "$SUMMARY_FILE"
+    echo "have missed lens-specific attack categories. Surfaced as candidates;" >> "$SUMMARY_FILE"
+    echo "confirmation in \`/curate --verify\` decides whether to dispatch a" >> "$SUMMARY_FILE"
+    echo "depth pass via \`/spec-author <id> --depth-pass-only --lens <name>\`." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Spec | Created | Missing Lens | Matched Keyword |" >> "$SUMMARY_FILE"
+    echo "|------|---------|--------------|-----------------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ sid created lens matched; do
+        echo "| $sid | $created | $lens | $matched |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/falsification-stale.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
 # ── Report ───────────────────────────────────────────────────────────────────
 
 echo "Scan complete: $COMMIT_COUNT commits analyzed"
@@ -2034,6 +2298,8 @@ echo "  Unannotated APPROVED specs: $(wc -l < "$TMPDIR_SCAN/spec-unannotated.txt
 echo "  Bare-only annotated specs: $(wc -l < "$TMPDIR_SCAN/spec-bare-only.txt" 2>/dev/null || echo 0)"
 echo "  Aging obligations: $(wc -l < "$TMPDIR_SCAN/aging-obligations.txt" 2>/dev/null || echo 0)"
 echo "  Subdivision candidates: $(wc -l < "$TMPDIR_SCAN/spec-subdivision-candidates.txt" 2>/dev/null || echo 0)"
+echo "  Link rot in KB: $(wc -l < "$TMPDIR_SCAN/link-rot.txt" 2>/dev/null || echo 0)"
+echo "  Falsification staleness: $(wc -l < "$TMPDIR_SCAN/falsification-stale.txt" 2>/dev/null || echo 0)"
 
 # ── Update curation state ─────────────────────────────────────────────────
 

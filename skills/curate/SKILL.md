@@ -1,9 +1,9 @@
 ---
 description: "Review codebase quality — find stale decisions, knowledge gaps, and implicit dependencies"
-argument-hint: "[--init] [--deeper]"
+argument-hint: "[--init] [--deeper] [--verify [--analysis link-rot|falsification-stale|all]]"
 ---
 
-# /curate [--init] [--deeper]
+# /curate [--init] [--deeper] [--verify]
 
 Correlation engine that combines vallorcine's structured history with git data
 to find things that individual features, decisions, and research sessions
@@ -23,15 +23,59 @@ couldn't see because they each had a narrower scope.
 11. Cross-reference gaps — KB entries and ADRs with missing related/source links
 12. Missing `@spec` annotations — APPROVED specs with reqs that lack impl-side or test-side annotations
 13. Aging open obligations — obligations on specs that haven't been committed in 30+ days
+14. Link rot — KB-cited URLs that no longer resolve (4xx or connection failures)
+15. Falsification-lens staleness — APPROVED specs authored before a falsification lens shipped that match the lens's keywords (candidates for re-falsification under the newer lens)
 
 **Flags:**
 - `--init` — first-time scan (ignores last-scanned SHA, good for new installs)
 - `--deeper` — scan 6 months instead of default 3
 - `--obligation-age-days <n>` — override aging threshold for open obligations (default: 30)
 - `--max-specs-traced <n>` — cap @spec annotation traces per run (default: 50)
+- `--verify` — focused pass over verification-shaped candidates only
+  (link-rot, falsification-staleness). Skips the broader correlation
+  flow. Dismissals persist to `.curate/verify-dismissed.txt` so future
+  scans don't re-prompt the same items.
+- `--analysis <name>` — when used with `--verify`, restrict to a single
+  analysis: `link-rot`, `falsification-stale`, or `all` (default: `all`).
 
 This command feels like a colleague who noticed something and is offering to help,
 not a task manager assigning work.
+
+## Verify mode
+
+When invoked with `--verify`, this skill runs the same scan but presents
+ONLY the verification-shaped candidates from Analyses 21 (link rot) and
+22 (falsification staleness). The broader correlation flow (ADR
+pressure, hub files, spec-code drift, cross-ref repair, etc.) is
+skipped — those signals belong to the regular `/curate` cadence.
+
+Verify mode is a separate cadence: run it before major work (release
+prep, audit kickoff) or monthly, when the heavier verification pass
+is justified. Regular `/curate` stays drift-shaped; verify mode is
+verification-shaped.
+
+**Per-candidate flow:**
+- Each link-rot row → AskUserQuestion with options: refresh via
+  `/research`, mark accepted, dismiss, skip.
+- Each falsification-stale row → AskUserQuestion with options: run
+  depth pass via `/spec-author <id> --depth-pass-only --lens <name>`,
+  decline (lens does not apply), dismiss, skip.
+
+**Dismissal persistence.** When the user picks "dismiss" in verify
+mode, append a row to `.curate/verify-dismissed.txt`:
+
+```
+<analysis>|<candidate-key>|<dismiss-date>|<reason>
+```
+
+Where `<candidate-key>` is the URL for link-rot or `<spec-id>:<lens>`
+for falsification-staleness. Future verify-mode runs read this file
+and skip any candidate whose key is dismissed (the underlying
+`scan-summary.md` still surfaces them for non-verify `/curate` runs;
+the dismissal only applies to the verify-mode prompt loop).
+
+When the user picks "skip" instead of "dismiss", nothing is recorded
+— the candidate resurfaces next verify-mode run.
 
 ---
 
@@ -81,9 +125,45 @@ bash .claude/scripts/curate-scan.sh [--init] [--window <months>] \
 - If `--init` flag: pass `--init`
 - If `--deeper` flag: pass `--window 6`
 - If the user passes `--obligation-age-days` or `--max-specs-traced`, forward them
+- The `--verify` flag does NOT change the scan invocation — the script still
+  runs every analysis. Verify mode only narrows which candidates the
+  pick-list presents in Step 3.
 
 Run the script. If it exits with "No new commits since last scan," report that
 and ask if the user wants to force a rescan with `--init`.
+
+---
+
+## Step 1.5 — Verify-mode branch
+
+If the user invoked `/curate --verify`:
+
+1. **Filter Step 2 to subsections 2p (link rot) and 2q (falsification
+   staleness) only.** Skip 2a-2o and 2r entirely. The other signals
+   belong to the regular `/curate` cadence.
+2. **Apply the analysis filter.** If the user passed
+   `--analysis link-rot`, only run 2p. If `--analysis falsification-stale`,
+   only run 2q. Default (or `--analysis all`) runs both.
+3. **Read the dismissed-state file** at `.curate/verify-dismissed.txt`
+   (touch it if missing). The format is one row per dismissal:
+   `<analysis>|<candidate-key>|<date>|<reason>`. Build a transient set
+   of dismissed keys.
+4. **Filter candidates by dismissed-state.** When walking the candidate
+   list from the scan summary, skip any candidate whose key matches a
+   dismissed entry. The user already declined to act on it; don't
+   re-prompt until the dismissed entry is manually removed.
+5. **Step 3 pick list shows ONLY verify-mode items.** No other findings
+   surface. The cold-start framing is also skipped — verify mode
+   assumes structured artifacts already exist.
+6. **Step 4 routing in verify mode.** When the user picks "dismiss" on
+   a candidate, append a new row to `.curate/verify-dismissed.txt`:
+   - For link-rot: `link-rot|<url>|<YYYY-MM-DD>|<one-line reason>`
+   - For falsification-stale: `falsification-stale|<spec-id>:<lens>|<YYYY-MM-DD>|<one-line reason>`
+   When the user picks "skip", do NOT write to the dismissed file —
+   "skip" defers; "dismiss" persists.
+
+If the user did NOT pass `--verify`, skip this entire section and run
+Step 2 normally with all subsections.
 
 ---
 
@@ -386,6 +466,75 @@ For each aging obligation, use AskUserQuestion with options:
   design narrative explaining the closure
 - **"Skip for now"** — defer to next /curate pass
 
+### 2p — Link rot in KB entries
+
+**Guard:** Only run this step if "Link Rot in KB Entries" section exists in
+the scan summary. If absent, skip entirely.
+
+From "Link Rot in KB Entries" in the scan summary:
+
+1. Each row shows a status code, the KB entry path, the URL, and when it
+   was last checked. Status `000` indicates a connection failure (DNS,
+   timeout, refused). Status `4xx` indicates the server responded but the
+   resource is gone.
+2. Dead URLs in KB entries silently rot the knowledge: the stored fact
+   looks authoritative but the source it claims to ground no longer
+   exists. Higher-impact when the KB entry is heavily cross-referenced.
+3. The script caches per-URL results (7-day TTL) so the same dead URLs
+   don't trigger fresh `curl` requests on every scan.
+
+For each candidate, use AskUserQuestion with options:
+- **"Refresh via /research"** (description: "Run /research <subject> to
+  re-investigate the topic and replace the dead citation with a current
+  source")
+- **"Verify via /curate --verify"** (description: "Confirm via WebFetch
+  that the URL is genuinely gone before refreshing — useful when transient
+  connection failures may have produced false positives")
+- **"Mark as accepted"** (description: "The URL is gone but the cited
+  fact is still valid in the KB; record acceptance in the curation
+  review log so the same URL doesn't resurface")
+- **"Skip"** — defer to next /curate pass
+
+If "Refresh": invoke `/research "<subject inferred from KB entry>" context: "curate: dead citation at <kb-path>, URL <url> returned <status>"`.
+If "Mark as accepted": append the URL to a `link-rot-accepted` block in
+`.curate/curation-state.md`. The cache continues to track it; future scans
+surface it but the review log shows the user's prior acceptance.
+
+### 2q — Falsification-lens staleness
+
+**Guard:** Only run this step if "Falsification Lens Staleness" section
+exists in the scan summary. If absent, skip entirely.
+
+From "Falsification Lens Staleness" in the scan summary:
+
+1. Each row shows an APPROVED spec, its git first-commit-touched date,
+   the lens whose introduction date post-dates the spec, and the keyword
+   from the spec body that matched the lens's pattern.
+2. The signal: the spec's original Pass 2 falsification predates this
+   lens shipping, so attack categories the lens covers (e.g., adversary-
+   model patterns from the security lens shipped in v0.14.2) may not
+   have been considered.
+3. The match is heuristic. A spec mentioning "auth" doesn't necessarily
+   need a security depth pass; the user judges whether the lens applies.
+
+For each candidate, use AskUserQuestion with options:
+- **"Run depth pass via /spec-author"** (description: "Run
+  `/spec-author <spec-id> --depth-pass-only --lens <lens>` to re-falsify
+  the spec under the named lens; findings flow through the standard
+  arbitration UI")
+- **"Decline — lens does not apply"** (description: "The keyword match
+  is incidental; the spec's scope does not actually need the lens's
+  attack categories. Records a decline so future scans don't resurface
+  this lens for this spec")
+- **"Skip"** — defer to next /curate pass
+
+If "Run depth pass": invoke
+`/spec-author <spec-id> --depth-pass-only --lens <lens>` directly.
+If "Decline": append a `falsification-decline` row to
+`.curate/curation-state.md` keyed by `<spec-id>:<lens>`. The script
+continues to surface this candidate, but the review log shows the
+user's prior decline.
+
 ### 2o — Subdivision candidates (mature specs that may want to subdivide)
 
 **Guard:** Only run this step if "Subdivision Candidates" section exists in
@@ -517,6 +666,12 @@ I scanned <N> commits since last review and found <N> items:
 
  17. Spec <ID> — open obligation aging <N> days (spec file not committed in that time)
      → I'll route to /spec-author or /spec-resolve to close or resolve it
+
+ 18. <KB entry> — <N> dead citation URLs (status <code>)
+     → I'll show each one so you can refresh via /research or accept the rot
+
+ 19. Spec <ID> — authored <date>, predates <lens> lens (matched keyword "<word>")
+     → I'll show the lens scope so you can run a depth pass or decline
 
 Items you don't address are saved automatically — run /curate anytime to pick them up.
 ```
@@ -827,6 +982,73 @@ If "Close as stale": edit the spec file — remove the obligation entry from the
 design narrative (e.g., "Closed aging obligation on `<date>`: `<text>` — no
 longer relevant because …"), and stage the change. Do not commit unless the
 user explicitly requests it.
+
+**Link rot in KB entry:** Read the KB entry and locate the dead URL in
+context (one or two surrounding lines so the user sees what the URL was
+backing). Present: "KB entry `<path>` cites `<url>` — last check returned
+`<status>` on `<date>`."
+
+Use AskUserQuestion. The options depend on whether `--verify` is active:
+
+In normal `/curate` mode:
+  - "Refresh via /research" (description: "Re-investigate the topic and
+    replace the dead citation with a current source")
+  - "Verify via /curate --verify" (description: "Re-check via verify
+    mode for confirmation before action")
+  - "Mark as accepted" (description: "The URL is gone but the cited fact
+    is still valid; record acceptance so it doesn't resurface")
+  - "Skip" (description: "Defer to next /curate pass")
+
+In `--verify` mode:
+  - "Refresh via /research" (description: same as above)
+  - "Mark as accepted" (description: same as above)
+  - "Dismiss" (description: "Persistent skip — record in
+    .curate/verify-dismissed.txt so future verify runs don't re-prompt")
+  - "Skip" (description: "Defer to next verify pass")
+
+If "Refresh": invoke
+`/research "<subject>" context: "curate: dead citation at <kb-path>, URL <url> returned <status>"`.
+Infer the subject from the KB entry's title or topic context.
+If "Mark as accepted": append the URL to a `link-rot-accepted` block in
+`.curate/curation-state.md` with a one-line justification. The cache
+continues tracking it; future scans surface but the review log shows
+prior acceptance.
+If "Dismiss" (verify mode only): append
+`link-rot|<url>|<YYYY-MM-DD>|<reason>` to `.curate/verify-dismissed.txt`.
+Prompt the user for a one-line reason; default to "user dismissed".
+
+**Falsification-lens staleness candidate:** Read the spec file and the
+named lens reference (e.g., `prompts/audit/lens-security.md` for the
+security lens). Present: "Spec `<id>` was authored `<date>`, before the
+`<lens>` lens shipped on `<lens-date>`. The spec mentions `<keyword>`,
+which suggests the lens may apply. Running a depth pass under this lens
+will look for attack categories the original Pass 2 may have missed."
+
+Use AskUserQuestion. The options depend on whether `--verify` is active:
+
+In normal `/curate` mode:
+  - "Run depth pass via /spec-author" (description: "Re-falsify the spec
+    under the named lens; findings flow through standard arbitration")
+  - "Decline — lens does not apply" (description: "Keyword match is
+    incidental; spec scope does not actually need the lens's coverage")
+  - "Skip" (description: "Defer to next /curate pass")
+
+In `--verify` mode:
+  - "Run depth pass via /spec-author" (description: same as above)
+  - "Decline — lens does not apply" (description: same as above)
+  - "Dismiss" (description: "Persistent skip — record in
+    .curate/verify-dismissed.txt so future verify runs don't re-prompt")
+  - "Skip" (description: "Defer to next verify pass")
+
+If "Run depth pass": invoke
+`/spec-author <spec-id> --depth-pass-only --lens <lens-name>`.
+If "Decline": append a `falsification-decline` row to
+`.curate/curation-state.md` keyed by `<spec-id>:<lens>`. The scan
+continues to surface; the review log shows the prior decline.
+If "Dismiss" (verify mode only): append
+`falsification-stale|<spec-id>:<lens>|<YYYY-MM-DD>|<reason>` to
+`.curate/verify-dismissed.txt`. Prompt for a one-line reason; default
+to "user dismissed".
 
 After completing the action, mark it `resolved` in the review log. Then
 **ALWAYS re-present the remaining items** (renumbered) so the user can
