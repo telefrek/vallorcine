@@ -1064,7 +1064,36 @@ append the requirement to the appropriate category section, and run
 `spec-resolve.sh "<feature slug>"` to check whether the new requirements
 conflict with or invalidate requirements in other specs. If conflicts are
 found, display them and ask the user to resolve before continuing.
-Report what was added. After all applies complete, rename the file:
+
+**Annotation follow-up (mandatory).** Each newly-minted requirement was
+created because audit's prove-fix landed code that satisfies it. That code
+exists right now and must carry an `@spec` annotation to its new R-id —
+otherwise the requirement is born already-uncovered. For each applied
+requirement:
+
+1. Identify the fix code prove-fix landed for the originating finding
+   (the `prove_fix.applied_files` list in the per-finding artifact, or
+   the diff against the audit's starting commit).
+2. Open the smallest enforcing site in that fix and add a comment matching
+   `rules/spec-annotation-protocol.md`:
+   ```
+   <comment-marker> @spec <spec-id>.R<n>
+   ```
+   Use the language's normal comment syntax. Place the annotation above
+   the method, class, or guard clause whose behavior satisfies the new
+   requirement.
+3. Re-run `spec-trace.sh <spec-id>` and confirm the new R-id has at least
+   one annotation reported.
+
+If the fix code does not have an obvious enforcing site (rare — usually
+implies the requirement was added at the wrong granularity), surface
+this to the user and ask whether to (a) revise the requirement to match
+the actual code, (b) waive the annotation expectation with a documented
+reason, or (c) add the annotation to the corresponding test if one was
+written by prove-fix.
+
+Report what was added and where each annotation landed. After all
+applies and annotations complete, rename the file:
 `mv spec-updates.md spec-updates.applied.md`
 
 If **review**: read `.feature/<slug>/spec-updates.md` NOW (this is the one

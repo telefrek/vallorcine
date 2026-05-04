@@ -155,6 +155,54 @@ intent and behaviour, not implementation details.
 
 ---
 
+## Step 1a — Spec coverage gate (mandatory before Step 2)
+
+If `.feature/<slug>/spec-coverage.md` exists, refresh it against the current
+codebase and run the gate. The gate is the structural enforcement that every
+loaded spec requirement has at least one `@spec` annotation in tests or
+implementation:
+
+```bash
+if [[ -f .feature/<slug>/spec-coverage.md ]]; then
+  bash .claude/scripts/spec-coverage.sh update \
+    .feature/<slug>/spec-coverage.md --all
+  bash .claude/scripts/spec-coverage.sh gate \
+    .feature/<slug>/spec-coverage.md
+fi
+```
+
+**If the gate fails (exit nonzero):**
+
+The script prints the list of uncovered requirements. Display the output to
+the user and stop the PR draft. Do not proceed to Step 2.
+
+The user has three resolutions:
+
+1. **Annotate the missing site.** Open the relevant test or implementation
+   file and add `@spec <spec-id>.R<n>` per the format in
+   `rules/spec-annotation-protocol.md`. Re-run `/feature-pr`.
+2. **Waive the row** when an annotation genuinely doesn't fit (e.g., the
+   requirement is satisfied by configuration, not code; or coverage lives
+   in an integration suite outside this repo's scan paths):
+   ```bash
+   bash .claude/scripts/spec-coverage.sh waive \
+     .feature/<slug>/spec-coverage.md \
+     <spec-id>.R<n> "<reason — surfaced in the PR description>"
+   ```
+3. **Override the gate entirely** if the user accepts the coverage gap as a
+   conscious decision. Use AskUserQuestion with two options:
+   - "Annotate now" — stop, let the user annotate or waive specific rows.
+   - "Override gate (record reason in PR)" — proceed with a `--accept-coverage-gap`
+     style note included in the PR description's "Notes for reviewer" section.
+     Record the user-supplied reason verbatim. Do NOT silently override.
+
+The override path is intended for rare cases where the user has a valid
+reason the kit cannot detect (e.g., legacy code being touched in a way that
+predates spec authoring). It is recorded in the PR so reviewers can see
+the gap was explicit.
+
+---
+
 ## Step 2 — Draft the PR
 
 Construct the PR draft in this order:
@@ -188,6 +236,14 @@ files modified. One line each. Sourced from work-plan.md and cycle-log.md.>
 ## Tests
 <How the change is tested. Number of tests written, what they cover at a high
 level. Note any edge cases or security scenarios specifically tested.>
+
+<If `.feature/<slug>/spec-coverage.md` exists and was non-vacuous, include:>
+## Spec coverage
+<Output of `bash .claude/scripts/spec-coverage.sh report .feature/<slug>/spec-coverage.md`,
+e.g. "Spec coverage: 12 loaded · 11 annotated · 1 waived · 0 pending".>
+<If any rows were waived in this feature, list each one with its waiver reason.>
+<If the gate was overridden via "Override gate", state that explicitly with
+the reason the user supplied.>
 
 ## Decisions
 <Only if domains.md exists and ADRs were consulted. Brief note on any

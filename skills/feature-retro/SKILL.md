@@ -220,6 +220,15 @@ DISPLACEMENT
   ADRs flagged for review: <n>
   KB entries flagged: <n>
 
+<If `.feature/<slug>/spec-coverage.md` exists and is non-vacuous:>
+SPEC COVERAGE
+  <Output of `bash .claude/scripts/spec-coverage.sh report .feature/<slug>/spec-coverage.md`,
+  e.g. "Spec coverage: 12 loaded · 11 annotated · 1 waived · 0 pending".>
+  <If any rows are still pending: list them — these are the gaps that
+  /feature-pr will block on, and the retro is the last natural surface
+  to flag them before PR drafting.>
+  <If any rows are waived: list each with its reason.>
+
 ───────────────────────────────────────────────
 ```
 

@@ -87,6 +87,7 @@
 .claude/rules/kb-protocol.md
 .claude/rules/kb-research-agent.md
 .claude/rules/prompt-conventions.md
+.claude/rules/spec-annotation-protocol.md
 .claude/rules/tdd-protocol.md
 .claude/scripts/token-usage.sh
 .claude/scripts/version-check.sh
@@ -123,6 +124,7 @@
 .claude/scripts/spec-obligations-gc.sh
 .claude/scripts/spec-trace.sh
 .claude/scripts/spec-split.sh
+.claude/scripts/spec-coverage.sh
 .claude/scripts/lens-registry.txt
 .claude/scripts/work-lib.sh
 .claude/scripts/work-resolve.sh

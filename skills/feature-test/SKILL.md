@@ -580,10 +580,10 @@ Structural (from interface analysis)
   N. test_<name> — <scenario> — pattern: <round-trip | lifecycle | interaction | ...>
   ...
 Spec requirements (from hardened specs)          ← only when specs loaded
-  N. test_<name> — <scenario> — covers: R<N>
+  N. test_<name> — <scenario> — covers: <spec-id>.R<N>
   ...
 Displacement verification (removal tests)       ← only when removal work exists
-  N. test_<name> — <scenario> — covers: <FXX>.<RN> (displaced)
+  N. test_<name> — <scenario> — covers: <spec-id>.R<N> (displaced)
   ...
 Defensive (from spec analysis)
   N. test_<name> — <scenario> — finding: <CONTRACT-GAP | SPEC-BOUNDARY | SPEC-BLIND-SPOT | IMPL-RISK>: <description>
@@ -630,8 +630,45 @@ Rules:
 - Every construct MUST have at least one boundary value test (empty, zero,
   max, null/nil, single element) — the refactor agent checks for these
   and will escalate if missing
+- **Every test MUST carry an `@spec` annotation pointing at the requirement
+  it satisfies** — see `rules/spec-annotation-protocol.md` for the format.
+  Use the test plan's `covers: <spec-id>.R<n>` line as the write-time
+  source: translate it directly into the test file's comment syntax above
+  the test method. Skip only when no spec was loaded for this feature
+  (the coverage table will be vacuous in that case).
 
 Update status.md substage → `verifying-failures` after writing.
+
+---
+
+## Step 3a — Update spec coverage (mandatory if specs were loaded)
+
+Run the coverage updater so the `Test` column of
+`.feature/<slug>/spec-coverage.md` reflects the annotations you just
+wrote. This is the structural enforcement of the annotation protocol —
+without it, `/feature-pr` cannot tell which requirements are bound.
+
+```bash
+if [[ -f .feature/<slug>/spec-coverage.md ]]; then
+  bash .claude/scripts/spec-coverage.sh update \
+    .feature/<slug>/spec-coverage.md --all
+fi
+```
+
+**Exit precondition.** Read back the coverage file. Every row whose
+`covers:` entry in the test plan named a requirement you just wrote a
+test for MUST now show a non-`pending` value in the `Test` column. If
+any does not:
+
+1. Open the test file and confirm the `@spec` line is present, formatted
+   correctly, and references the right `<spec-id>.R<n>`.
+2. Re-run the updater.
+3. If the cell still says `pending`, the annotation is malformed —
+   `spec-trace.sh` did not match it. Fix the annotation and repeat.
+
+Do not advance to Step 4 until every test row that should be annotated
+is annotated. The pipeline relies on this — partial annotation here
+becomes a silent gate failure at PR time.
 
 ---
 
