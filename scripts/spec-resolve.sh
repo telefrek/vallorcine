@@ -20,7 +20,11 @@ source "$SCRIPT_DIR/spec-lib.sh"
 spec_require_deps
 
 FEATURE_DESC="${1:-}"
-TOKEN_BUDGET="${2:-8000}"
+# Default budget sized for a typical 2-spec mature-domain bundle (~22K tokens).
+# Empirically derived from jlsm membership/encryption domains where individual
+# specs run 9-12K tokens each. The previous default of 8000 produced empty
+# bundles for almost any mature spec.
+TOKEN_BUDGET="${2:-25000}"
 [[ -z "$FEATURE_DESC" ]] && {
   echo "Usage: spec-resolve.sh '<feature description>' [token-budget]" >&2
   exit 1
@@ -278,23 +282,52 @@ for f in "${SORTED_FILES[@]+"${SORTED_FILES[@]}"}"; do
 done
 
 # ── Step 5: Build bundle with token budget ───────────────────────────────────
+# Order in ALL_FILES is direct matches first (Step 4 iterates SORTED_FILES
+# before transitive expansions). When the very first direct match exceeds the
+# budget, force-include it anyway: an empty bundle is the worst possible
+# failure mode — callers downstream silently proceed without spec context. A
+# single over-budget spec is recoverable; an empty bundle is invisible drift.
 BUNDLE_PARTS=()
 OMITTED=()
+FORCED=()
 RUNNING_TOKENS=0
 HEADER_RESERVE=300
+
+# Build a lookup of direct-match files for the at-least-one guarantee.
+declare -A DIRECT_FILES
+for d in "${SORTED_FILES[@]+"${SORTED_FILES[@]}"}"; do
+  DIRECT_FILES["$d"]=1
+done
 
 for f in "${ALL_FILES[@]+"${ALL_FILES[@]}"}"; do
   section=$(machine_section "$f")
   spec_id=$(fm "$f" '.id')
 
   section_tokens=$(count_tokens "$section")
-  if (( RUNNING_TOKENS + section_tokens + HEADER_RESERVE > TOKEN_BUDGET )); then
+  over_budget=false
+  (( RUNNING_TOKENS + section_tokens + HEADER_RESERVE > TOKEN_BUDGET )) && over_budget=true
+
+  # Force-include the first direct-match spec when nothing else has fit yet,
+  # so we never emit a bundle whose Feature Requirements section is empty.
+  must_force=false
+  if [[ "$over_budget" == "true" \
+        && "${DIRECT_FILES[$f]+x}" == "x" \
+        && ${#BUNDLE_PARTS[@]} -eq 0 ]]; then
+    must_force=true
+  fi
+
+  if [[ "$over_budget" == "true" && "$must_force" == "false" ]]; then
     OMITTED+=("$spec_id")
     echo "[resolve] Over budget — omitting $spec_id (~$section_tokens tokens)" >&2
     continue
   fi
+
   BUNDLE_PARTS+=("$section")
   RUNNING_TOKENS=$(( RUNNING_TOKENS + section_tokens ))
+  if [[ "$must_force" == "true" ]]; then
+    FORCED+=("$spec_id")
+    echo "[resolve] WARNING: $spec_id (~$section_tokens tokens) force-included over budget $TOKEN_BUDGET — bump --token-budget to suppress this warning" >&2
+  fi
 done
 
 # ── Step 6: Load open obligations — domain-filtered ──────────────────────────
@@ -349,64 +382,90 @@ for f in "${ALL_FILES[@]+"${ALL_FILES[@]}"}"; do
   done < <(fm "$f" '.invalidates // [] | .[]')
 done
 
-# Check 2: overlapping requirement subjects with contradictory language
-# Extract requirement lines from each spec and look for same-subject contradictions
-declare -A REQ_SUBJECTS  # key=subject_token, value="SPEC_ID.REQ_LINE"
-
-for f in "${ALL_FILES[@]+"${ALL_FILES[@]}"}"; do
-  src_id=$(fm "$f" '.id')
-  while IFS= read -r req_line; do
-    [[ -z "$req_line" ]] && continue
-    # Extract requirement ID (e.g., R1, R56)
-    req_id=$(echo "$req_line" | grep -oE '^R[0-9]+' || true)
-    [[ -z "$req_id" ]] && continue
-    req_lower=$(echo "$req_line" | tr '[:upper:]' '[:lower:]')
-
-    # Extract subject tokens: words that look like type/construct names (CamelCase or snake_case)
-    subject_tokens=$(echo "$req_line" | grep -oE '[A-Z][a-zA-Z0-9]+|[a-z_][a-z_0-9]+' | sort -u)
-    for token in $subject_tokens; do
-      # Skip common English words and short tokens
-      [[ ${#token} -lt 4 ]] && continue
-      case "$token" in
-        must|should|shall|will|when|then|that|this|with|from|into|each|have|does|been|also|only) continue ;;
-      esac
-
-      if [[ -n "${REQ_SUBJECTS[$token]+x}" ]]; then
-        prev="${REQ_SUBJECTS[$token]}"
-        prev_id="${prev%%|*}"
-        prev_line="${prev#*|}"
-        # Only flag if from different specs (compare full spec IDs directly —
-        # works for both FXX and domain.slug forms)
-        [[ "$prev_id" == "$src_id" ]] && continue
-
-        prev_lower=$(echo "$prev_line" | tr '[:upper:]' '[:lower:]')
-        # Check for contradictory language patterns
-        contradiction=false
-        for pair in "must reject:must accept" "must accept:must reject" \
-                    "must be null:must not be null" "must not be null:must be null" \
-                    "must throw:must not throw" "must not throw:must throw" \
-                    "must fail:must succeed" "must succeed:must fail" \
-                    "must ignore:must require" "must require:must ignore" \
-                    "is immutable:is mutable" "is mutable:is immutable" \
-                    "must return null:must not return null" "must not return null:must return null" \
-                    "must be empty:must not be empty" "must not be empty:must be empty"; do
-          pat_a="${pair%%:*}"
-          pat_b="${pair#*:}"
-          if echo "$req_lower" | grep -q "$pat_a" && echo "$prev_lower" | grep -q "$pat_b"; then
-            contradiction=true
-            break
-          fi
-        done
-
-        if [[ "$contradiction" == "true" ]]; then
-          CONFLICTS+="CONFLICT: $prev_id references $token; $src_id.$req_id also references $token with different semantics"$'\n'
-        fi
-      else
-        REQ_SUBJECTS["$token"]="$src_id.$req_id|$req_line"
-      fi
+# Check 2: overlapping requirement subjects with contradictory language.
+# Single awk pass over all requirement lines from every included spec —
+# replaces a per-token, per-antonym-pair bash subprocess fanout that took
+# 30+ seconds on a single ~10K-token spec and hung indefinitely on multi-spec
+# bundles. The output line format is byte-identical to the previous
+# implementation; existing scenario-spec-resolve.sh tests are the contract.
+CHECK2_CONFLICTS=$(
+  {
+    for f in "${ALL_FILES[@]+"${ALL_FILES[@]}"}"; do
+      src_id=$(fm "$f" '.id')
+      [[ -z "$src_id" ]] && continue
+      machine_section "$f" \
+        | awk -v sid="$src_id" '/^R[0-9]+\./ { print sid "\t" $0 }'
     done
-  done < <(machine_section "$f" | grep -E '^R[0-9]+\.')
-done
+  } | awk '
+    BEGIN {
+      # 16 antonym pairs — same set as the predecessor implementation.
+      pairs[1]  = "must reject:must accept"
+      pairs[2]  = "must accept:must reject"
+      pairs[3]  = "must be null:must not be null"
+      pairs[4]  = "must not be null:must be null"
+      pairs[5]  = "must throw:must not throw"
+      pairs[6]  = "must not throw:must throw"
+      pairs[7]  = "must fail:must succeed"
+      pairs[8]  = "must succeed:must fail"
+      pairs[9]  = "must ignore:must require"
+      pairs[10] = "must require:must ignore"
+      pairs[11] = "is immutable:is mutable"
+      pairs[12] = "is mutable:is immutable"
+      pairs[13] = "must return null:must not return null"
+      pairs[14] = "must not return null:must return null"
+      pairs[15] = "must be empty:must not be empty"
+      pairs[16] = "must not be empty:must be empty"
+      npairs    = 16
+
+      split("must should shall will when then that this with from into each have does been also only", swords, " ")
+      for (i in swords) skip[swords[i]] = 1
+    }
+
+    {
+      tab = index($0, "\t")
+      if (tab == 0) next
+      sid = substr($0, 1, tab - 1)
+      line = substr($0, tab + 1)
+
+      if (match(line, /^R[0-9]+/) == 0) next
+      rid = substr(line, RSTART, RLENGTH)
+
+      line_lower = tolower(line)
+      delete seen_in_line
+
+      s = line
+      while (match(s, /[A-Z][a-zA-Z0-9]+|[a-z_][a-z_0-9]+/)) {
+        tok = substr(s, RSTART, RLENGTH)
+        s   = substr(s, RSTART + RLENGTH)
+
+        if (length(tok) < 4) continue
+        if (tok in skip) continue
+        if (tok in seen_in_line) continue
+        seen_in_line[tok] = 1
+
+        if (tok in first_spec) {
+          if (first_spec[tok] == sid) continue
+          prev_lower = first_lower[tok]
+          prev_full  = first_full[tok]
+          for (p = 1; p <= npairs; p++) {
+            ci = index(pairs[p], ":")
+            pat_a = substr(pairs[p], 1, ci - 1)
+            pat_b = substr(pairs[p], ci + 1)
+            if (index(line_lower, pat_a) && index(prev_lower, pat_b)) {
+              print "CONFLICT: " prev_full " references " tok "; " sid "." rid " also references " tok " with different semantics"
+              break
+            }
+          }
+        } else {
+          first_spec[tok]  = sid
+          first_lower[tok] = line_lower
+          first_full[tok]  = sid "." rid
+        }
+      }
+    }
+  '
+)
+[[ -n "$CHECK2_CONFLICTS" ]] && CONFLICTS+="${CHECK2_CONFLICTS}"$'\n'
 
 # ── Step 7c: Displacement detection ─────────────────────────────────────────
 # When NEW_SPEC_FILES is set, check if new specs' requirements contradict
@@ -418,96 +477,209 @@ DISPLACEMENTS=""
 if [[ -n "${NEW_SPEC_FILES:-}" ]]; then
   IFS=':' read -ra NEW_FILES <<< "$NEW_SPEC_FILES"
 
-  # Displacement signal keywords (lowercased, checked in new spec requirements)
-  DISPLACEMENT_KEYWORDS=(
-    "only support" "replace" "remove" "eliminate" "drop support"
-    "no longer" "prohibit" "must not support" "exclusive"
-  )
-
+  # Validate input files exist; collect (id, file) pairs that survive.
+  NEW_PAIRS=()
   for new_file in "${NEW_FILES[@]}"; do
-    [[ ! -f "$new_file" ]] && {
+    if [[ ! -f "$new_file" ]]; then
       echo "[resolve] Warning: NEW_SPEC_FILES entry not found: $new_file" >&2
       continue
-    }
+    fi
     new_id=$(fm "$new_file" '.id')
     [[ -z "$new_id" ]] && continue
-
-    # Extract requirements from the new spec
-    while IFS= read -r new_req_line; do
-      [[ -z "$new_req_line" ]] && continue
-      new_req_id=$(echo "$new_req_line" | grep -oE '^R[0-9]+' || true)
-      [[ -z "$new_req_id" ]] && continue
-      new_lower=$(echo "$new_req_line" | tr '[:upper:]' '[:lower:]')
-
-      # Extract subject tokens from new requirement
-      new_tokens=$(echo "$new_req_line" | grep -oE '[A-Z][a-zA-Z0-9]+|[a-z_][a-z_0-9]+' | sort -u)
-
-      for existing_file in "${ALL_FILES[@]+"${ALL_FILES[@]}"}"; do
-        existing_id=$(fm "$existing_file" '.id')
-        [[ "$existing_id" == "$new_id" ]] && continue  # skip self
-
-        while IFS= read -r existing_req_line; do
-          [[ -z "$existing_req_line" ]] && continue
-          existing_req_id=$(echo "$existing_req_line" | grep -oE '^R[0-9]+' || true)
-          [[ -z "$existing_req_id" ]] && continue
-          existing_lower=$(echo "$existing_req_line" | tr '[:upper:]' '[:lower:]')
-
-          # Check for subject token overlap
-          existing_tokens=$(echo "$existing_req_line" | grep -oE '[A-Z][a-zA-Z0-9]+|[a-z_][a-z_0-9]+' | sort -u)
-          shared_token=""
-          for nt in $new_tokens; do
-            [[ ${#nt} -lt 4 ]] && continue
-            case "$nt" in
-              must|should|shall|will|when|then|that|this|with|from|into|each|have|does|been|also|only) continue ;;
-            esac
-            for et in $existing_tokens; do
-              if [[ "$nt" == "$et" ]]; then
-                shared_token="$nt"
-                break 2
-              fi
-            done
-          done
-          [[ -z "$shared_token" ]] && continue
-
-          # Check 1: antonym-pair contradictions (same 12 pairs as Step 7b)
-          signal=""
-          for pair in "must reject:must accept" "must accept:must reject" \
-                      "must be null:must not be null" "must not be null:must be null" \
-                      "must throw:must not throw" "must not throw:must throw" \
-                      "must fail:must succeed" "must succeed:must fail" \
-                      "must ignore:must require" "must require:must ignore" \
-                      "is immutable:is mutable" "is mutable:is immutable" \
-                      "must return null:must not return null" "must not return null:must return null" \
-                      "must be empty:must not be empty" "must not be empty:must be empty"; do
-            pat_a="${pair%%:*}"
-            pat_b="${pair#*:}"
-            if echo "$new_lower" | grep -q "$pat_a" && echo "$existing_lower" | grep -q "$pat_b"; then
-              signal="antonym: $pat_a vs $pat_b"
-              break
-            fi
-          done
-
-          # Check 2: displacement signal keywords in new spec
-          if [[ -z "$signal" ]]; then
-            for kw in "${DISPLACEMENT_KEYWORDS[@]}"; do
-              if echo "$new_lower" | grep -q "$kw"; then
-                signal="keyword: $kw"
-                break
-              fi
-            done
-          fi
-
-          if [[ -n "$signal" ]]; then
-            DISPLACEMENTS+="DISPLACED: ${new_id}.${new_req_id} → ${existing_id}.${existing_req_id} | subject: ${shared_token} | signal: ${signal}"$'\n'
-          fi
-        done < <(machine_section "$existing_file" | grep -E '^R[0-9]+\.')
-      done
-    done < <(machine_section "$new_file" | grep -E '^R[0-9]+\.')
+    NEW_PAIRS+=("$new_id|$new_file")
   done
 
-  if [[ -n "$DISPLACEMENTS" ]]; then
-    disp_count=$(echo -n "$DISPLACEMENTS" | grep -c '.')
-    echo "[resolve] WARNING: $disp_count displacement(s) detected" >&2
+  # Single awk pass over (NEW reqs ∪ EXISTING reqs). Tag each line with its
+  # provenance and let awk handle token extraction, overlap detection,
+  # antonym matching and keyword matching in-process. Replaces a four-deep
+  # bash loop that spawned tens of thousands of grep subprocesses per
+  # (new-req × existing-req) pair.
+  if (( ${#NEW_PAIRS[@]} > 0 )); then
+    DISPLACEMENTS=$(
+      {
+        # Build the set of new-spec IDs so the existing-stream can skip any
+        # spec that is itself one of the new specs (preserves the original
+        # `[[ "$existing_id" == "$new_id" ]] && continue` guard).
+        for pair in "${NEW_PAIRS[@]}"; do
+          new_id="${pair%%|*}"
+          new_file="${pair#*|}"
+          machine_section "$new_file" \
+            | awk -v sid="$new_id" '/^R[0-9]+\./ { print "NEW\t" sid "\t" $0 }'
+        done
+        for f in "${ALL_FILES[@]+"${ALL_FILES[@]}"}"; do
+          ex_id=$(fm "$f" '.id')
+          [[ -z "$ex_id" ]] && continue
+          # Skip if ex_id is one of the new specs.
+          skip_self=false
+          for pair in "${NEW_PAIRS[@]}"; do
+            [[ "${pair%%|*}" == "$ex_id" ]] && skip_self=true && break
+          done
+          [[ "$skip_self" == "true" ]] && continue
+          machine_section "$f" \
+            | awk -v sid="$ex_id" '/^R[0-9]+\./ { print "EXIST\t" sid "\t" $0 }'
+        done
+      } | awk '
+        BEGIN {
+          pairs[1]  = "must reject:must accept"
+          pairs[2]  = "must accept:must reject"
+          pairs[3]  = "must be null:must not be null"
+          pairs[4]  = "must not be null:must be null"
+          pairs[5]  = "must throw:must not throw"
+          pairs[6]  = "must not throw:must throw"
+          pairs[7]  = "must fail:must succeed"
+          pairs[8]  = "must succeed:must fail"
+          pairs[9]  = "must ignore:must require"
+          pairs[10] = "must require:must ignore"
+          pairs[11] = "is immutable:is mutable"
+          pairs[12] = "is mutable:is immutable"
+          pairs[13] = "must return null:must not return null"
+          pairs[14] = "must not return null:must return null"
+          pairs[15] = "must be empty:must not be empty"
+          pairs[16] = "must not be empty:must be empty"
+          npairs    = 16
+
+          nkw = split("only support|replace|remove|eliminate|drop support|no longer|prohibit|must not support|exclusive", keywords, "|")
+
+          split("must should shall will when then that this with from into each have does been also only", swords, " ")
+          for (i in swords) skip[swords[i]] = 1
+
+          n_new = 0
+          n_exist = 0
+        }
+
+        # Parse "TAG\tSPECID\tLINE"
+        function split_line(   t1, t2, tag, sid, rest) {
+          t1 = index($0, "\t")
+          tag = substr($0, 1, t1 - 1)
+          rest = substr($0, t1 + 1)
+          t2 = index(rest, "\t")
+          sid = substr(rest, 1, t2 - 1)
+          line = substr(rest, t2 + 1)
+          ctx_tag = tag
+          ctx_sid = sid
+          ctx_line = line
+        }
+
+        # Extract requirement ID from a line into ctx_rid; return 1 on success.
+        function extract_rid(   m) {
+          if (match(ctx_line, /^R[0-9]+/) == 0) return 0
+          ctx_rid = substr(ctx_line, RSTART, RLENGTH)
+          return 1
+        }
+
+        # Extract subject tokens from ctx_line into the toks_out array
+        # (1..count). Returns count.
+        function tokens_from_line(toks_out,    s, n, tok) {
+          n = 0
+          delete dedup
+          s = ctx_line
+          while (match(s, /[A-Z][a-zA-Z0-9]+|[a-z_][a-z_0-9]+/)) {
+            tok = substr(s, RSTART, RLENGTH)
+            s   = substr(s, RSTART + RLENGTH)
+            if (length(tok) < 4) continue
+            if (tok in skip) continue
+            if (tok in dedup) continue
+            dedup[tok] = 1
+            toks_out[++n] = tok
+          }
+          return n
+        }
+
+        {
+          split_line()
+          if (extract_rid() == 0) next
+
+          if (ctx_tag == "NEW") {
+            n_new++
+            new_sid[n_new]   = ctx_sid
+            new_rid[n_new]   = ctx_rid
+            new_lower[n_new] = tolower(ctx_line)
+            ntok = tokens_from_line(toks)
+            new_ntoks[n_new] = ntok
+            for (k = 1; k <= ntok; k++) {
+              new_tok[n_new, k] = toks[k]
+            }
+          } else if (ctx_tag == "EXIST") {
+            n_exist++
+            ex_sid[n_exist]   = ctx_sid
+            ex_rid[n_exist]   = ctx_rid
+            ex_lower[n_exist] = tolower(ctx_line)
+            etok = tokens_from_line(toks)
+            ex_ntoks[n_exist] = etok
+            for (k = 1; k <= etok; k++) {
+              ex_tok[n_exist, k] = toks[k]
+              # Index for fast lookup: which existing reqs use this token?
+              key = ctx_sid SUBSEP toks[k]
+              ex_byspec_tok[key] = 1
+            }
+          }
+        }
+
+        END {
+          # For each new requirement, check every existing requirement for
+          # token overlap + antonym/keyword signal. The original bash had no
+          # token index either, so we keep the simple O(n_new × n_exist)
+          # nested walk — but every step is in-process awk, not a subprocess.
+          for (i = 1; i <= n_new; i++) {
+            nlow = new_lower[i]
+            nsid = new_sid[i]
+            nrid = new_rid[i]
+            ntoks = new_ntoks[i]
+
+            for (j = 1; j <= n_exist; j++) {
+              if (ex_sid[j] == nsid) continue   # never compare a spec to itself
+
+              # Find first shared token (mirrors the bash break-2 short-circuit).
+              shared = ""
+              for (k = 1; k <= ntoks; k++) {
+                key = ex_sid[j] SUBSEP new_tok[i, k]
+                if (key in ex_byspec_tok) {
+                  # Confirm the specific existing req (j) actually uses this token
+                  for (m = 1; m <= ex_ntoks[j]; m++) {
+                    if (ex_tok[j, m] == new_tok[i, k]) { shared = new_tok[i, k]; break }
+                  }
+                  if (shared != "") break
+                }
+              }
+              if (shared == "") continue
+
+              elow = ex_lower[j]
+              signal = ""
+
+              # Antonym pair check
+              for (p = 1; p <= npairs; p++) {
+                ci = index(pairs[p], ":")
+                pat_a = substr(pairs[p], 1, ci - 1)
+                pat_b = substr(pairs[p], ci + 1)
+                if (index(nlow, pat_a) && index(elow, pat_b)) {
+                  signal = "antonym: " pat_a " vs " pat_b
+                  break
+                }
+              }
+
+              # Keyword check (only if no antonym signal)
+              if (signal == "") {
+                for (q = 1; q <= nkw; q++) {
+                  if (index(nlow, keywords[q])) {
+                    signal = "keyword: " keywords[q]
+                    break
+                  }
+                }
+              }
+
+              if (signal != "") {
+                print "DISPLACED: " nsid "." nrid " → " ex_sid[j] "." ex_rid[j] " | subject: " shared " | signal: " signal
+              }
+            }
+          }
+        }
+      '
+    )
+    if [[ -n "$DISPLACEMENTS" ]]; then
+      DISPLACEMENTS+=$'\n'
+      disp_count=$(echo -n "$DISPLACEMENTS" | grep -c '.')
+      echo "[resolve] WARNING: $disp_count displacement(s) detected" >&2
+    fi
   fi
 fi
 
@@ -523,6 +695,11 @@ if [[ ${#CONFLICT_OMITTED[@]} -gt 0 ]]; then
 else
     CONFLICT_OMITTED_STR="none"
 fi
+if [[ ${#FORCED[@]} -gt 0 ]]; then
+    FORCED_STR="${FORCED[*]}"
+else
+    FORCED_STR="none"
+fi
 
 cat <<EOF
 # Resolved Context Bundle
@@ -531,6 +708,7 @@ Feature request: $FEATURE_DESC
 Domains matched: ${MATCHED_DOMAINS[*]}
 Token budget: $TOKEN_BUDGET | Tokens used: ~$RUNNING_TOKENS
 Omitted (budget): $OMITTED_STR
+Force-included (over budget, kept to avoid empty bundle): $FORCED_STR
 Omitted (DRAFT with unresolved conflicts): $CONFLICT_OMITTED_STR
 
 ## Open Obligations (must be addressed in this feature)
