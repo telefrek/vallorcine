@@ -83,8 +83,32 @@ When the user picks "skip" instead of "dismiss", nothing is recorded
 
 Check that `.curate/` directory exists. If not, create it.
 
-Read `.curate/curation-state.md` if it exists — extract last-scanned SHA and
-any previously deferred items from the review log.
+Read `.curate/curation-state.md` if it exists — extract the last-scanned SHA
+from the Scan State section. (Older installs may still carry a Review Log
+section in this file. Migrate it to the append-only review log on first run:)
+
+```bash
+if [[ -f .curate/curation-state.md ]]; then
+  bash .claude/scripts/curate-review-log.sh migrate \
+    .curate/curation-state.md .curate/review-log.md
+fi
+```
+
+Migration is idempotent — re-running on a migrated state file is a no-op.
+After this point, the review log lives at `.curate/review-log.md` and is
+append-only. Never edit it by hand.
+
+Read the unresolved items the user previously deferred or noted-for-later.
+These will be re-surfaced in Step 2.5 alongside any new findings:
+
+```bash
+PRIOR_UNRESOLVED=$(bash .claude/scripts/curate-review-log.sh unresolved \
+  .curate/review-log.md 2>/dev/null || true)
+```
+
+`PRIOR_UNRESOLVED` is a list of `<key>|<status>|<description>|<date>`
+records. Empty when this is the first run or every prior finding was
+resolved/dismissed.
 
 Display opening header:
 ```
@@ -570,6 +594,49 @@ For each candidate, use AskUserQuestion with options:
 The "Decline — concerns are interlocked" option is important. Subdivision
 fragments a coherent contract when forced; it should never be automatic.
 Honest declines are a feature, not a failure.
+
+---
+
+## Step 2.5 — Merge in unresolved prior items
+
+The pre-flight (Step 0) read `PRIOR_UNRESOLVED` from the append-only review
+log. These are items the user previously chose to defer or noted-for-later
+without acting on. They are NOT new findings — they are the kit's promise
+to the user that "skipped items will resurface next /curate run" (see the
+closing report's wording).
+
+For each line in `PRIOR_UNRESOLVED` (`<key>|<status>|<description>|<date>`):
+
+1. Check whether the same `<key>` is already represented in the current
+   scan's findings (e.g., `adr-pressure:auth-session-storage` is in both
+   the scan's pressure list and the prior unresolved set). If so, leave
+   it as a current-scan finding — no duplicate; the act of seeing it
+   again is what the user needs.
+2. If the key is not represented in the current scan (the underlying
+   signal aged out, OR thresholds shifted), surface it anyway as a
+   "previously-deferred" item, with its description and the date the
+   user deferred it. The user explicitly didn't resolve it; they should
+   see it again.
+
+Build a deprioritized "Previously deferred" group for the pick list. It
+appears AFTER all current-scan groups in Step 3, so new findings get
+attention first but old commitments aren't lost.
+
+Format for the group:
+
+```
+Previously deferred (from prior /curate runs):
+  N. <description> — deferred <date>, key: <key>
+     → I'll re-present the same options as last time
+```
+
+Routing for prior-deferred picks: re-read the key prefix to determine
+which Step-2 sub-section's resolution flow applies (e.g.,
+`adr-pressure:` → 2a path, `spec-drift:` → 2h path,
+`kb-stale:` → 2b path, `link-rot:` → 2p path, etc.). If a key prefix
+doesn't match any current sub-section (rare — usually means the kit
+was upgraded and a category was renamed), present the description and
+let the user describe what to do next via "Other".
 
 ---
 
@@ -1074,13 +1141,52 @@ Proceed to Step 5.
 
 ### Automatic persistence
 
-All findings are written to the review log regardless of user action:
-- Items the user acts on → `resolved`
-- Items the user explicitly defers → `deferred`
-- Items the user doesn't address (says "done" or session ends) → `suggested`
+Every finding gets a row in the append-only review log via:
+
+```bash
+bash .claude/scripts/curate-review-log.sh append \
+  .curate/review-log.md \
+  <YYYY-MM-DD> \
+  <key> \
+  "<description>" \
+  <status> \
+  ["<notes>"]
+```
+
+Where `<status>` is one of:
+- `resolved` — user acted on it (ran /architect, /research, etc.)
+- `deferred` — user explicitly chose Skip / Defer; resurface next run
+- `suggested` — user said "done" without addressing this item
+- `dismissed` — verify-mode only; persistent skip
+- `explored` — user investigated, no action needed
+
+`<key>` is a structured identifier so the same finding maps consistently
+across runs. Use these conventions:
+
+| Finding type | Key format |
+|--------------|-----------|
+| ADR pressure | `adr-pressure:<slug>` |
+| ADR gravity | `adr-gravity:<slug>` (or `adr-gravity:<slug>:<file>` for per-file) |
+| ADR drift / revisit | `adr-drift:<slug>` |
+| Hub file | `hub-file:<file>` |
+| Stale KB | `kb-stale:<topic>/<category>/<subject>` |
+| Spec-code drift | `spec-drift:<spec-id>` |
+| Test-source drift | `test-drift:<file>` |
+| Backfill candidate | `backfill:<source>:<problem-slug>` |
+| Out-of-scope item | `out-of-scope:<parent-slug>:<idx>` |
+| Spec annotation gap | `annotation-gap:<spec-id>` |
+| Aging obligation | `obligation-aging:<obligation-id>` |
+| Link rot | `link-rot:<url>` |
+| Falsification stale | `falsification-stale:<spec-id>:<lens>` |
+| Cross-ref repair | `crossref:<artifact-id>` |
+| Subdivision candidate | `subdivision:<spec-id>` |
+| Bookkeeping repair | `scan-bookkeeping:<repair-name>` |
+
+The append helper is duplicate-safe — re-appending an identical row is a
+no-op, so resuming a previous /curate session does not duplicate entries.
 
 Nothing gets lost. The next `/curate` run resurfaces `suggested` and `deferred`
-items, deprioritized below new findings.
+items via Step 2.5 deprioritized below new findings.
 
 ---
 
@@ -1088,7 +1194,11 @@ items, deprioritized below new findings.
 
 After the user is done (explored items, deferred, or noted for later):
 
-Update `.curate/curation-state.md`:
+Update `.curate/curation-state.md` with **only the Scan State section**.
+The Review Log lives in `.curate/review-log.md` (append-only) and is
+managed exclusively via `curate-review-log.sh`. Writing the Review Log
+inline in curation-state.md would silently destroy prior rows on every
+run — that is the bug this design replaces.
 
 ```markdown
 # Curation State
@@ -1098,22 +1208,26 @@ Last scanned: <current HEAD SHA>
 Last scanned date: <YYYY-MM-DD>
 Window: <months used>
 Commits scanned: <N>
-
-## Review Log
-| Date | Item | Status | Notes |
-|------|------|--------|-------|
-| <date> | <item> | <explored / deferred / suggested / resolved> | <notes> |
 ```
 
-**Status values:**
-- `explored` — user investigated, no further action needed
-- `deferred` — user chose to defer, resurface next time (deprioritized)
-- `suggested` — flagged but user noted for later
-- `resolved` — was flagged, user took action (ran /architect, /research, etc.)
+(The original Step 5 template emitted both Scan State and Review Log into
+this file, which is what destroyed the persistence guarantee. Do not
+re-introduce the Review Log section here.)
+
+After updating curation-state.md, do not write to review-log.md directly
+— Step 4 already appended every finding via `curate-review-log.sh append`.
 
 ---
 
 ## Step 6 — Closing report
+
+Read the current review-log totals so the closing line reflects the
+append-only log, not just this session's actions:
+
+```bash
+LOG_REPORT=$(bash .claude/scripts/curate-review-log.sh report \
+  .curate/review-log.md 2>/dev/null || echo "")
+```
 
 ```
 ───────────────────────────────────────────────
@@ -1121,10 +1235,10 @@ Commits scanned: <N>
 ───────────────────────────────────────────────
 Scanned: <N> commits (<scan mode>)
 Found: <N> items across <N> categories
-Explored: <N>  Deferred: <N>  Noted: <N>
-
+This session: <N> resolved · <N> deferred · <N> noted
+$LOG_REPORT
 Next scan will pick up from <current SHA short>.
-Run /curate anytime — incremental scans are fast.
+Run /curate anytime — scans run on the full <N>-month window.
 ───────────────────────────────────────────────
 ```
 
@@ -1135,7 +1249,7 @@ Run /curate anytime — incremental scans are fast.
 - [ ] Scan script ran successfully and produced scan-summary.md
 - [ ] Findings presented conversationally, not as a raw dump
 - [ ] Each finding includes why it matters and an offer to help
-- [ ] User responses recorded in curation-state.md review log
-- [ ] Last-scanned SHA updated in curation-state.md
+- [ ] Every finding got an append row via `curate-review-log.sh append`
+- [ ] curation-state.md updated with Scan State only (no Review Log section)
 - [ ] No commands assigned — only offers made
 - [ ] Cold start findings are prioritized bootstrapping suggestions, not a wall of "everything is orphaned"
