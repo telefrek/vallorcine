@@ -5,6 +5,41 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.16.4] — 2026-05-04
+
+### Fixed
+
+- **/curate persistence and threshold cumulation** (#65). `/curate` no longer
+  reports "0 actionable items" when prior runs deferred or skipped findings.
+  Three coupled defects fixed:
+  - Review log was overwritten on each run, wiping every prior `deferred` /
+    `suggested` row. Now lives in append-only `.curate/review-log.md` and is
+    managed via the new `curate-review-log.sh` helper (`migrate` / `append`
+    / `unresolved` / `report`).
+  - Pre-flight read deferred items but no step re-presented them. New
+    Step 2.5 merges previously-deferred items into the pick list as a
+    deprioritized "Previously deferred" group, routed by structured key
+    prefix (`adr-pressure:`, `kb-stale:`, `link-rot:`, etc.).
+  - Pressure / gravity / drift thresholds ran against `LAST_SHA..HEAD`
+    only, diluting signals on frequent-cadence runs. Now always run
+    against the full configured window. `LAST_SHA` is preserved as a tag
+    — findings carry a Status column (`new since last scan` / `ongoing
+    since prior scan` / `ongoing (with N new since last scan)` /
+    `initial scan`).
+
+### Documentation
+
+- DESIGN.md manifest synced for `curate-review-log.sh` and the new test
+  scenario file. `scenario-curate-scan` test count corrected (47 → 61).
+
+### Migrating
+
+Existing `.curate/curation-state.md` files with inline Review Log rows
+auto-migrate to `.curate/review-log.md` on the next `/curate` run
+(idempotent — re-running on a migrated state file is a no-op).
+
+---
+
 ## [0.16.3] — 2026-04-28
 
 Closes the artifact↔world drift-detection gap in `/curate` with two new
