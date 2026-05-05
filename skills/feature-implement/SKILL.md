@@ -285,6 +285,47 @@ If a test fails unexpectedly after implementation: see Escalation Protocol.
 - Follow project-config.md conventions exactly
 - No public methods beyond what contracts define
 - If typed language: use the types from stub signatures
+- **Carry the `@spec` annotation from the test forward.** When implementing
+  a method that satisfies a requirement (the matching test carries
+  `@spec <spec-id>.R<n>`), add the same `@spec` line above the implementation
+  method or class. If the implementation enforces the requirement at a
+  smaller scope (e.g., a guard clause inside the method), put the
+  annotation on the smallest enforcing site. See
+  `rules/spec-annotation-protocol.md` for format and language-comment
+  syntax.
+
+---
+
+## Step 2a — Update spec coverage (mandatory if specs were loaded)
+
+After all constructs in the work unit are implemented and tests pass,
+update the implementation coverage column. The pipeline gate at
+`/feature-pr` reads this file — partial annotation here becomes a silent
+PR-time failure.
+
+```bash
+if [[ -f .feature/<slug>/spec-coverage.md ]]; then
+  bash .claude/scripts/spec-coverage.sh update \
+    .feature/<slug>/spec-coverage.md --all
+fi
+```
+
+**Exit precondition.** Read back the coverage file. Every row whose
+matching test carried `@spec <spec-id>.R<n>` should now have either:
+- a non-`pending` value in the `Impl` column (annotation found in the
+  implementation), or
+- a non-`pending` value in the `Test` column AND an explicit decision
+  not to mirror the annotation in implementation (rare — typically the
+  implementation site is the right place).
+
+If a row that should be annotated still shows `pending` in BOTH columns,
+the annotation is either missing or malformed. Open the implementation
+file, add or fix the `@spec` comment, re-run the updater. Do not
+advance to Step 3 until every loaded requirement has at least one cell
+populated.
+
+If `.feature/<slug>/spec-coverage.md` does not exist (no specs were
+loaded for this feature), skip this step.
 
 ---
 

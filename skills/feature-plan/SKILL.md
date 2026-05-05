@@ -156,10 +156,25 @@ Read in order:
    ```bash
    test -f .spec/CLAUDE.md || test -d .spec/registry
    ```
-   If spec infrastructure exists, run the resolver:
+   If spec infrastructure exists, run the resolver and **persist the bundle**
+   to `.feature/<slug>/spec-bundle.md` so downstream stages (test, implement,
+   refactor 4a) can re-read the same artifact instead of re-resolving:
    ```bash
-   bash .claude/scripts/spec-resolve.sh "<feature description>" 25000
+   bash .claude/scripts/spec-resolve.sh "<feature description>" 25000 \
+     > .feature/<slug>/spec-bundle.md
    ```
+
+   Then **initialize the spec coverage table** so every loaded requirement
+   becomes an explicit obligation that test/implementation must annotate:
+   ```bash
+   bash .claude/scripts/spec-coverage.sh init \
+     .feature/<slug>/spec-coverage.md \
+     .feature/<slug>/spec-bundle.md
+   ```
+
+   `init` is idempotent — re-running on an existing coverage file preserves
+   any annotations or waivers already recorded by earlier substages.
+
    If the resolver returns specs, these are the **primary context** for work
    planning — alongside the brief and domains, specs are the authoritative
    source for behavioral requirements. The three documents serve different
@@ -177,7 +192,13 @@ Read in order:
 
    If spec infrastructure does not exist, or the resolver returns no specs for
    this feature's domains, proceed as before — derive contracts from the brief
-   and ADRs.
+   and ADRs. In this case, also write a vacuous coverage marker so the gate at
+   `/feature-pr` knows there are no spec obligations to enforce:
+   ```bash
+   mkdir -p .feature/<slug>
+   printf '# Spec Coverage\n\nNo specs loaded for this feature. Coverage gate is satisfied vacuously.\n' \
+     > .feature/<slug>/spec-coverage.md
+   ```
 
    **Conflict gate:** After loading the resolved bundle, check if it contains
    a `## Conflicts` section. If it does:

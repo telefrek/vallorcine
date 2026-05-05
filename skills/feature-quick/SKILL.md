@@ -238,7 +238,7 @@ Update `.feature/CLAUDE.md` Active Features table (mode: quick).
 
 ---
 
-## Step 3 — Scan the codebase
+## Step 3 — Scan the codebase and check for governing specs
 
 Read project-config.md for source directory, test directory, and conventions.
 
@@ -247,6 +247,29 @@ Do not do a broad scan. Read only what is needed to:
 - Understand the existing interface the change extends or touches
 - Know what test file to write into (or whether to create a new one)
 - Confirm the change is as small as described (if it's larger, say so)
+
+**Spec resolution (mandatory if `.spec/` exists).** Quick tasks that touch a
+construct governed by an APPROVED spec must annotate the same way the full
+pipeline does — otherwise traceability gets quietly skipped on the smallest
+changes. Run:
+
+```bash
+if [[ -f .spec/CLAUDE.md || -d .spec/registry ]]; then
+  mkdir -p .feature/<quick-slug>
+  bash .claude/scripts/spec-resolve.sh "<task description>" 25000 \
+    > .feature/<quick-slug>/spec-bundle.md
+  bash .claude/scripts/spec-coverage.sh init \
+    .feature/<quick-slug>/spec-coverage.md \
+    .feature/<quick-slug>/spec-bundle.md
+fi
+```
+
+If the bundle is empty (no specs match this scope) or `.spec/` doesn't
+exist, the coverage file is vacuous and the rest of the spec workflow is a
+no-op. If the bundle has rows, this task is now subject to the same
+annotation rules as a full feature — Steps 4 and 5 below must add `@spec`
+annotations and run `spec-coverage.sh update`, and Step 7 must verify the
+gate before closing.
 
 If the codebase scan reveals the change is larger than the description suggests:
 ```
@@ -276,6 +299,14 @@ Write tests for the described behaviour. Same rules as /feature-test:
 - Against the public interface only
 - Test names describe behaviour
 - Must be verified to fail before proceeding
+- **If `.feature/<quick-slug>/spec-coverage.md` has rows:** every test that
+  satisfies a loaded requirement carries `@spec <spec-id>.R<n>` per
+  `rules/spec-annotation-protocol.md`. After writing tests, run:
+  ```bash
+  bash .claude/scripts/spec-coverage.sh update \
+    .feature/<quick-slug>/spec-coverage.md --all
+  ```
+  and verify each Test cell that should be annotated is now non-pending.
 
 Display:
 ```
@@ -316,8 +347,19 @@ Implement the change. Same rules as /feature-implement:
 - Follow project-config.md conventions
 - Never modify tests
 - Escalate genuine contract conflicts (don't work around them)
+- **Carry `@spec` annotations forward from the test** to the implementation
+  method or smallest enforcing site, when the matching test was annotated.
 
 Run tests after each logical unit. When all pass:
+
+If `.feature/<quick-slug>/spec-coverage.md` has rows, refresh impl coverage:
+```bash
+bash .claude/scripts/spec-coverage.sh update \
+  .feature/<quick-slug>/spec-coverage.md --all
+```
+Verify every loaded requirement has at least one annotated cell before
+proceeding to Step 6. Fix annotations if cells are still pending.
+
 Update status.md: Implementation cycle 1 → `complete`.
 Append `implemented` to cycle-log.md.
 
@@ -354,6 +396,22 @@ Append `refactor-complete` to cycle-log.md.
 ---
 
 ## Step 7 — Close
+
+If `.feature/<quick-slug>/spec-coverage.md` has rows, run the coverage gate
+before closing. The gate is the structural enforcement of the annotation
+protocol — quick tasks must clear it the same way full features do:
+
+```bash
+if [[ -f .feature/<quick-slug>/spec-coverage.md ]]; then
+  bash .claude/scripts/spec-coverage.sh gate \
+    .feature/<quick-slug>/spec-coverage.md
+fi
+```
+
+If the gate fails: surface the uncovered list, give the user three
+resolutions (annotate / waive / override with reason in the close note).
+Do not mark the task complete until either the gate passes or the user
+explicitly accepts the gap.
 
 Update `.feature/CLAUDE.md` — move to Completed / Archived if the change is
 committed and no further work is planned. Or leave in Active if it is part of

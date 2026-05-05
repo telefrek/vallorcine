@@ -301,6 +301,7 @@ install_file "$SCRIPT_DIR/scripts/spec-resolve.sh" "$TARGET/.claude/scripts/spec
 install_file "$SCRIPT_DIR/scripts/spec-obligations-gc.sh" "$TARGET/.claude/scripts/spec-obligations-gc.sh"
 install_file "$SCRIPT_DIR/scripts/spec-trace.sh" "$TARGET/.claude/scripts/spec-trace.sh"
 install_file "$SCRIPT_DIR/scripts/spec-split.sh" "$TARGET/.claude/scripts/spec-split.sh"
+install_file "$SCRIPT_DIR/scripts/spec-coverage.sh" "$TARGET/.claude/scripts/spec-coverage.sh"
 install_file "$SCRIPT_DIR/scripts/work-lib.sh" "$TARGET/.claude/scripts/work-lib.sh"
 install_file "$SCRIPT_DIR/scripts/work-resolve.sh" "$TARGET/.claude/scripts/work-resolve.sh"
 install_file "$SCRIPT_DIR/scripts/work-validate.sh" "$TARGET/.claude/scripts/work-validate.sh"
@@ -330,6 +331,7 @@ chmod +x "$TARGET/.claude/scripts/spec-resolve.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-obligations-gc.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-trace.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-split.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/spec-coverage.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-resolve.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-validate.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-context.sh" 2>/dev/null || true
@@ -414,6 +416,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
       "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)",
       "Bash(bash .claude/scripts/spec-trace.sh:*)",
       "Bash(bash .claude/scripts/spec-split.sh:*)",
+      "Bash(bash .claude/scripts/spec-coverage.sh:*)",
       "Bash(bash .claude/scripts/work-resolve.sh:*)",
       "Bash(bash .claude/scripts/work-validate.sh:*)",
       "Bash(bash .claude/scripts/work-context.sh:*)",
@@ -526,6 +529,7 @@ HOOKJSON
       "Bash(bash .claude/scripts/spec-obligations-gc.sh:*)",
       "Bash(bash .claude/scripts/spec-trace.sh:*)",
       "Bash(bash .claude/scripts/spec-split.sh:*)",
+      "Bash(bash .claude/scripts/spec-coverage.sh:*)",
       "Bash(bash .claude/scripts/work-resolve.sh:*)",
       "Bash(bash .claude/scripts/work-validate.sh:*)",
       "Bash(bash .claude/scripts/work-context.sh:*)",

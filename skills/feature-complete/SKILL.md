@@ -117,6 +117,18 @@ update it manually.
 
 ## Step 3 — Report
 
+If `.feature/<slug>/spec-coverage.md` exists and is non-vacuous (or has
+been moved to `.feature/_archive/<slug>/spec-coverage.md` by Step 2),
+include the coverage line in the report so the user sees the final
+annotation state for the feature:
+
+```bash
+COVERAGE_LINE=""
+if [[ -f .feature/_archive/<slug>/spec-coverage.md ]]; then
+  COVERAGE_LINE=$(bash .claude/scripts/spec-coverage.sh report .feature/_archive/<slug>/spec-coverage.md 2>/dev/null || true)
+fi
+```
+
 ```
 ───────────────────────────────────────────────
 📦 FEATURE COMPLETE · <slug>
@@ -125,6 +137,9 @@ Feature '<slug>' archived.
 
 Working files moved to: .feature/_archive/<slug>/
   (gitignored — local reference only)
+
+<If $COVERAGE_LINE non-empty:>
+$COVERAGE_LINE
 
 Permanent records (not moved):
   ADRs:       .decisions/ (all decisions remain)
