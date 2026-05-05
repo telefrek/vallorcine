@@ -39,7 +39,51 @@ const COMMAND_TO_STAGE = {
   "/architect": "architect",
   "/kb": "knowledge",
   "/decisions": "decisions",
+  "/audit": "audit",
+  // Work-layer entry points dispatch /feature-* subagents inline; phases
+  // need stage labels so the WD-slug filter can bind them to the correct
+  // "<group>--wd-NN" feature_slug.
+  "/work-start":     "work-start",
+  "/work-plan":      "work-plan",
+  "/work-decompose": "work-decompose",
+  "/work":           "work",
 };
+
+// Matches a feature_slug shaped "<group>--wd-NN" — used to bind WD-suffixed
+// slugs to /work-start / /work-plan dispatch tokens whose args are
+// "<group> <N>" (no `--wd-` infix).
+const WD_SLUG_RE = /^(.+?)--wd-(\d+)$/;
+
+function wdSlugMatchesArgs(featureSlug, cmdName, cmdArgs) {
+  if (!cmdArgs) return false;
+  if (cmdName !== "/work-start" && cmdName !== "/work-plan"
+      && cmdName !== "/work-decompose" && cmdName !== "/work") {
+    return false;
+  }
+  const m = WD_SLUG_RE.exec(featureSlug);
+  if (!m) return false;
+  const group = m[1];
+  const wdNum = m[2].replace(/^0+/, "") || "0";
+  const argTokens = cmdArgs.split(/\s+/).filter(Boolean);
+  if (argTokens.length === 0) return false;
+  if (argTokens[0].replace(/^["']|["']$/g, "") !== group) return false;
+  for (let i = 1; i < argTokens.length; i++) {
+    const tok = argTokens[i].replace(/^["']|["']$/g, "").replace(/^0+/, "") || "0";
+    if (tok === wdNum) return true;
+  }
+  return false;
+}
+
+function wdTitleMatches(title, featureSlug) {
+  // Title is "<Stage> — <args>" — derive the args portion and reuse the
+  // same group + WD-number match used in buildPhase, so the second-pass
+  // state machine treats work-* phases as feature entry points.
+  const m = WD_SLUG_RE.exec(featureSlug);
+  if (!m) return false;
+  if (!title.includes(" — ")) return false;
+  const argsPart = title.split(" — ")[1] || "";
+  return wdSlugMatchesArgs(featureSlug, "/work-start", argsPart);
+}
 
 function isTddDescription(desc) {
   const lower = desc.toLowerCase();
@@ -387,8 +431,11 @@ function buildPhase(cmdToken, tokens, featureSlug) {
     // Normalize: "engine clustering" should match slug "engine-clustering"
     const slugVariants = [featureSlug, featureSlug.replace(/-/g, " ")];
     const argsMatch = cmdArgs && slugVariants.some((v) => cmdArgs.includes(v));
+    const wdMatch = wdSlugMatchesArgs(featureSlug, cmdName, cmdArgs);
     if (cmdArgs && argsMatch) {
       // explicit match
+    } else if (wdMatch) {
+      // work-layer dispatch for this WD, keep
     } else if (cmdArgs && !argsMatch) {
       return null;
     } else if ((cmdName === "/feature" || cmdName === "/feature-quick") && !cmdArgs) {
@@ -625,14 +672,25 @@ function parseStory(stream, featureSlug, storyType) {
     const CONTINUATION_STAGES = new Set([
       "domains", "planning", "testing", "implementation",
       "refactor", "coordination", "pr", "retro", "complete",
+      // Work-decompose / work phases are continuations (not entry points);
+      // they only land inside an already-open work-driven feature window.
+      "work-decompose", "work",
     ]);
-    const PASSTHROUGH_STAGES = new Set(["research", "architect", "knowledge", "decisions"]);
+    const PASSTHROUGH_STAGES = new Set(["research", "architect", "knowledge", "decisions", "audit"]);
+    const WORK_ENTRY_STAGES = new Set(["work-start", "work-plan"]);
 
     for (const phase of phases) {
       const stage = phase.data.stage || "";
       const title = phase.data.title || "";
 
       if (title.includes(featureSlug)) {
+        inFeature = true;
+      } else if (WORK_ENTRY_STAGES.has(stage) && wdTitleMatches(title, featureSlug)) {
+        // Work-layer dispatch matches the "<group>--wd-NN" feature by
+        // group prefix + WD number (build_phase already gated on the
+        // same shape; here we re-check from the title so the second-pass
+        // state machine treats it as a feature entry point — equivalent
+        // to scoping for non-work flows).
         inFeature = true;
       } else if (stage === "scoping") {
         if (hasSlug(phase.children, featureSlug)) {

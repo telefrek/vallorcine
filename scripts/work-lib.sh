@@ -376,6 +376,13 @@ work_check_adr_dep() {
   if [[ -n "$required_status" ]]; then
     local actual_status
     actual_status=$(awk '/^---$/{n++; next} n==1 && /^status:/{sub(/^status:[ ]*/, ""); print; exit} n>=2{exit}' "$adr_file")
+    # Strip surrounding single or double quotes so YAML statuses like
+    # `status: "accepted"` or `status: 'accepted'` compare cleanly against
+    # `required_status` values, which the WD-side parser
+    # (work_fm_artifact_deps) already strips. Asymmetric quote handling
+    # silently failed every quoted ADR status check before this fix.
+    actual_status="${actual_status%\"}"; actual_status="${actual_status#\"}"
+    actual_status="${actual_status%\'}"; actual_status="${actual_status#\'}"
     if [[ "$actual_status" != "$required_status" ]]; then
       echo "ADR $slug is $actual_status (need $required_status)"
       return 1
