@@ -27,7 +27,7 @@ first, then `/spec-write` to register the output.
 
 If no context bundle is already in your context, run the resolver:
 ```bash
-bash .claude/scripts/spec-resolve.sh "<feature description>" 8000
+bash .claude/scripts/spec-resolve.sh "<feature description>" 25000
 ```
 
 Read the resolved bundle. For each existing spec in the bundle:

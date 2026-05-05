@@ -117,7 +117,7 @@ record declines (the user can still surface them via /curate).
 
 1. Run `/spec-resolve` if no context bundle is in your context:
    ```bash
-   bash .claude/scripts/spec-resolve.sh "<feature description>" 8000
+   bash .claude/scripts/spec-resolve.sh "<feature description>" 25000
    ```
 
 2. Read `.spec/CLAUDE.md` for the domain taxonomy.
@@ -128,7 +128,7 @@ record declines (the user can still surface them via /curate).
 4. **Revival detection:** Check for INVALIDATED specs in matching domains:
    ```bash
    INCLUDE_INVALIDATED=true \
-     bash .claude/scripts/spec-resolve.sh "<feature description>" 8000
+     bash .claude/scripts/spec-resolve.sh "<feature description>" 25000
    ```
    If the bundle contains a `## INVALIDATED Specs (historical reference)`
    section, check whether any INVALIDATED spec's requirements overlap with
@@ -178,7 +178,7 @@ record declines (the user can still surface them via /curate).
 
    ```bash
    EXPLICIT_SPEC_IDS="<target-spec-id>" INCLUDE_SIBLINGS=true \
-     bash .claude/scripts/spec-resolve.sh "<feature description>" 16000
+     bash .claude/scripts/spec-resolve.sh "<feature description>" 40000
    ```
 
    `spec-resolve.sh` auto-includes the parent chain when a child is

@@ -158,7 +158,7 @@ Read in order:
    ```
    If spec infrastructure exists, run the resolver:
    ```bash
-   bash .claude/scripts/spec-resolve.sh "<feature description>" 8000
+   bash .claude/scripts/spec-resolve.sh "<feature description>" 25000
    ```
    If the resolver returns specs, these are the **primary context** for work
    planning — alongside the brief and domains, specs are the authoritative
