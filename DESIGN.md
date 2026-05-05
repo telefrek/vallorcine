@@ -650,7 +650,7 @@ graph TD
 | What loads | When | Approx. tokens |
 |------------|------|----------------|
 | Root `CLAUDE.md` | Every session | ~400 |
-| `.claude/rules/*.md` (4 files) | Every session | ~1,500 |
+| `.claude/rules/*.md` (5 files) | Every session | ~2,000 |
 | `.feature/project-config.md` | Each pipeline command | ~1,000 |
 | `.feature/<slug>/status.md` | Each pipeline command | ~500–1,000 |
 | `.feature/<slug>/brief.md` | Domain Scout, Work Planner, Test Writer | ~2,000 |
@@ -845,7 +845,8 @@ vallorcine/
 │   ├── tdd-protocol.md              ← pipeline order, write authority, idempotency rule
 │   ├── kb-protocol.md               ← pull-model rules for KB and decisions
 │   ├── kb-research-agent.md         ← Research Agent identity
-│   └── kb-architect.md              ← Architect Agent identity
+│   ├── kb-architect.md              ← Architect Agent identity
+│   └── spec-annotation-protocol.md  ← @spec annotation format + the contract that every loaded requirement carries one in tests or implementation; consumed by /feature-test, /feature-implement, /feature-pr coverage gate
 │
 ├── scripts/                         ← shell scripts (installed to .claude/scripts/)
 │   ├── token-usage.sh               ← per-phase token tracking via session JSONL
@@ -862,6 +863,7 @@ vallorcine/
 │   ├── spec-validate.sh            ← spec structural validation (displacement fields, lifecycle)
 │   ├── spec-trace.sh               ← @spec annotation discovery across codebases (multi-dot ID grammar for layered specs)
 │   ├── spec-split.sh               ← transactional spec subdivision executor (carves children, rewrites parent, sweeps @spec annotations, auto-rollbacks on validation failure)
+│   ├── spec-coverage.sh            ← per-feature spec annotation coverage tracker (init / update / gate / waive / report); writes .feature/<slug>/spec-coverage.md and is the source of truth for /feature-pr's annotation gate
 │   ├── spec-stats.sh               ← corpus health summary (~200 tokens, safe for preflight)
 │   ├── spec-obligations-gc.sh      ← resolve obligations when their target spec reaches APPROVED
 │   ├── spec-ambiguity-score.sh     ← quantitative ambiguity gate for /spec-write (token/heuristic scoring)
@@ -941,6 +943,8 @@ vallorcine/
 │   ├── scenario-spec-validate.sh     ← spec validation: displacement fields (8 tests)
 │   ├── scenario-spec-resolve.sh      ← spec resolution: displacement detection (11 tests)
 │   ├── scenario-spec-trace.sh       ← @spec annotation discovery (13 tests)
+│   ├── scenario-spec-coverage.sh    ← spec-coverage.sh init / update / gate / waive / report lifecycle (14 tests)
+│   ├── scenario-spec-resolve-budget-and-perf.sh  ← spec-resolve default budget + Step 7b/7c awk perf (4 tests)
 │   ├── scenario-index-verify.sh
 │   ├── scenario-narrative.sh         ← narrative pipeline parity tests (16 tests)
 │   ├── scenario-work-validate.sh     ← work definition structural validation (50 tests)
