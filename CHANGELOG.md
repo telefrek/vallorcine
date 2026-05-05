@@ -5,6 +5,70 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.16.5] — 2026-05-04
+
+### Added
+
+- **Forward enforcement of `@spec` annotation coverage** (#67). Every spec
+  requirement loaded by `/feature-plan` becomes an obligation that must be
+  bound to test or implementation code via an `@spec <spec-id>.R<n>`
+  annotation before `/feature-pr` will draft a PR. Pieces:
+  - **`rules/spec-annotation-protocol.md`** (new always-loaded rule).
+    Format, comment syntax per language, where to put the annotation,
+    when to add it.
+  - **`scripts/spec-coverage.sh`** (new). Pipeline-wide coverage tracker
+    backed by `.feature/<slug>/spec-coverage.md` with `init / update /
+    gate / waive / report` subcommands. Also produces the
+    `spec-bundle.md` artifact that refactor 4a depended on but no
+    upstream skill ever wrote.
+  - **`/feature-test`, `/feature-implement`**: mandatory exit checks
+    that refuse to advance until every loaded row has at least one
+    `@spec` annotation.
+  - **`/feature-pr`**: hard gate. Refuses to draft a PR if any
+    requirement is unannotated. Resolutions: annotate, waive (recorded
+    reason flows into PR description), or override (also recorded).
+  - **`/feature-quick`**: spec-aware mode — quick tasks inherit the
+    same gate semantics when `.spec/` exists.
+  - **`/audit`**: when reconcile mints a new R-id from prove-fix code,
+    it now writes the `@spec` annotation to the smallest enforcing
+    site so the requirement is born annotated.
+  - **`/feature-retro`, `/feature-complete`**: surface the final
+    coverage state at every milestone.
+
+### Fixed
+
+- **`spec-resolve.sh` default budget + Step 7b/7c perf** (#66). Real
+  specs in mature corpora run 9-12K tokens each, so the prior 8000
+  default produced empty bundles for almost every multi-spec
+  membership/encryption-domain feature. Bumped 8000 → 25000 across the
+  script and all caller skills (and 16000 → 40000 in `/spec-author`
+  Pass 2/3 sibling-loaded path). Step 7b conflict scan and Step 7c
+  displacement scan rewritten as single awk passes (no subprocess
+  fanout); a single 10K-token spec previously took 30+ seconds and
+  multi-spec bundles hung indefinitely. New `Force-included` header
+  line guarantees the bundle is never empty when there are direct
+  candidates.
+
+### Documentation
+
+- DESIGN.md manifest synced for `rules/spec-annotation-protocol.md`,
+  `scripts/spec-coverage.sh`, and the two new test scenario files.
+  Always-loaded rules count updated (4 → 5 files; ~1,500 → ~2,000
+  tokens).
+
+### Migrating
+
+- The `.feature/<slug>/spec-coverage.md` artifact is created the next
+  time `/feature-plan` runs in any project that already had specs.
+  Existing in-flight features without it will hit a soft gate at
+  `/feature-pr` and surface the gap as actionable rather than silent.
+- The 25000-token default for `spec-resolve.sh` may produce larger
+  resolved bundles in projects that pinned the budget by convention.
+  Pass an explicit lower budget to the resolver if you specifically
+  need a smaller bundle.
+
+---
+
 ## [0.16.4] — 2026-05-04
 
 ### Fixed
