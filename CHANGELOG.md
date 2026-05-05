@@ -5,6 +5,43 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.16.6] — 2026-05-05
+
+### Fixed
+
+- **`work_check_adr_dep` asymmetric quote handling** (#68). The WD-side
+  parser stripped surrounding single/double quotes from frontmatter
+  values; the ADR-side `status:` extractor did not. An ADR with
+  `status: "accepted"` compared against an unquoted WD
+  `required_status: accepted` would never match — every ADR-status
+  check on a quoted YAML status silently BLOCKED the dependent WD,
+  affecting both `/work-status` runtime resolution and `work-validate.sh`.
+  Now `actual_status` is symmetric with WD-side parsing.
+
+- **Narrative parser drops phases for `<group>--wd-NN` slugs** (#68).
+  Work-driven feature slugs look like `add-compaction-scheduling--wd-01`,
+  but the parent `/work-start` JSONL token carries args `<group> <N>`
+  with no `--wd-` infix. The slug-substring filter rejected the parent
+  phase, taking every subagent dispatch with it and producing
+  "narrative: no phases parsed for slug" at retro time. Fix:
+  - `/work-start`, `/work-plan`, `/work-decompose`, `/work` added to
+    `COMMAND_TO_STAGE`.
+  - Structured WD-slug match: `^(.+?)--wd-(\d+)$` against args' first
+    token (group) + a later token (WD number, leading-zero tolerant).
+  - `parse_story`'s second-pass `in_feature` state machine treats
+    `/work-start` and `/work-plan` with a matching WD title as feature
+    entry points, equivalent to scoping for non-work flows.
+  - Mirrored to `parse.js` for runtime parity. Also closes a
+    pre-existing parity gap by adding `/audit` to the JS
+    `COMMAND_TO_STAGE` (Python had it, JS didn't).
+
+### Documentation
+
+- DESIGN.md test manifest synced for the new
+  `scenario-work-adr-quote-and-narrative-wd.sh` regression file.
+
+---
+
 ## [0.16.5] — 2026-05-04
 
 ### Added
