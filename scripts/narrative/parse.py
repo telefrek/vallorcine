@@ -60,7 +60,45 @@ COMMAND_TO_STAGE = {
     "/kb": "knowledge",
     "/decisions": "decisions",
     "/audit": "audit",
+    # Work-layer entry points dispatch /feature-* subagents inline. They
+    # need stage labels so phases the slug filter accepts (see
+    # _matches_wd_slug in build_phase) carry sensible titles.
+    "/work-start":     "work-start",
+    "/work-plan":      "work-plan",
+    "/work-decompose": "work-decompose",
+    "/work":           "work",
 }
+
+
+# Pre-compiled matcher for "<group>--wd-NN" feature slugs. Set in module
+# scope so build_phase can reach it without re-parsing the slug per phase.
+_WD_SLUG_RE = re.compile(r"^(?P<group>.+?)--wd-(?P<num>\d+)$")
+
+
+def _wd_title_matches(title: str, feature_slug: str) -> bool:
+    """True iff `title` is a work-* phase title whose args bind to `feature_slug`.
+
+    Phase titles for work-layer commands look like
+    "Work-Start — <group> <N>" (or "<N>" with quotes around <group>).
+    A feature_slug shaped "<group>--wd-NN" matches when the title's args
+    contain the group AND the WD number. Used by the second-pass
+    in_feature state machine in parse_story.
+    """
+    m = _WD_SLUG_RE.match(feature_slug)
+    if not m:
+        return False
+    group = m.group("group")
+    wd_num = m.group("num").lstrip("0") or "0"
+    if " — " not in title:
+        return False
+    args_part = title.split(" — ", 1)[1]
+    arg_tokens = args_part.split()
+    if not arg_tokens or arg_tokens[0].strip("\"'") != group:
+        return False
+    for tok in arg_tokens[1:]:
+        if (tok.strip("\"'").lstrip("0") or "0") == wd_num:
+            return True
+    return False
 
 
 def _is_tdd_description(desc: str) -> bool:
@@ -463,8 +501,33 @@ def build_phase(cmd_token: Token, tokens: list[Token],
         # Normalize: "engine clustering" should match slug "engine-clustering"
         slug_variants = [feature_slug, feature_slug.replace("-", " ")]
         args_match = cmd_args and any(v in cmd_args for v in slug_variants)
+
+        # Work-layer match: a feature_slug shaped "<group>--wd-NN" represents
+        # a single work definition inside a work group. The actual JSONL token
+        # for /work-start / /work-plan carries args "<group> <N>" (no
+        # `--wd-` infix). Match on group prefix AND WD number to bind the
+        # WD-suffixed slug to the correct work-layer dispatch token without
+        # over-matching sibling WDs from the same group.
+        wd_match = False
+        if cmd_args and cmd_name in ("/work-start", "/work-plan", "/work-decompose", "/work"):
+            wd_m = _WD_SLUG_RE.match(feature_slug)
+            if wd_m:
+                group = wd_m.group("group")
+                wd_num = wd_m.group("num").lstrip("0") or "0"
+                # First token of args must be the group; later token must
+                # equal the WD number (as decimal, leading zeros tolerated).
+                arg_tokens = cmd_args.split()
+                if arg_tokens and arg_tokens[0].strip("\"'") == group:
+                    for tok in arg_tokens[1:]:
+                        tok_clean = tok.strip("\"'").lstrip("0") or "0"
+                        if tok_clean == wd_num:
+                            wd_match = True
+                            break
+
         if cmd_args and args_match:
             pass  # explicit match
+        elif wd_match:
+            pass  # work-layer dispatch for this WD, keep
         elif cmd_args and not args_match:
             # Args present but for a different feature — reject
             return None
@@ -766,6 +829,13 @@ def parse_story(stream: TokenStream, feature_slug: Optional[str] = None,
             if feature_slug in title:
                 # Explicit slug match in command args
                 in_feature = True
+            elif stage in ("work-start", "work-plan") and _wd_title_matches(title, feature_slug):
+                # Work-layer dispatch matches the "<group>--wd-NN" feature
+                # by group prefix + WD number (build_phase already gated
+                # on the same shape; here we re-check from the title so the
+                # second-pass state machine treats it as a feature entry
+                # point — equivalent to scoping for non-work flows).
+                in_feature = True
             elif stage == "scoping":
                 # Scoping without explicit slug — check all descendants
                 if _has_slug(phase.children, feature_slug):
@@ -783,8 +853,12 @@ def parse_story(stream: TokenStream, feature_slug: Optional[str] = None,
             elif in_feature and stage in ("domains", "planning", "testing",
                                           "implementation", "refactor",
                                           "coordination", "pr",
-                                          "retro", "complete"):
-                # Pipeline continuation (retro/complete handled below)
+                                          "retro", "complete",
+                                          "work-decompose", "work"):
+                # Pipeline continuation (retro/complete handled below).
+                # Work-decompose/work phases are treated as continuations
+                # rather than entry points — they only land inside an
+                # already-started work-driven feature window.
                 pass
             else:
                 in_feature = False
