@@ -99,6 +99,7 @@
 .claude/scripts/adr-validate.sh
 .claude/scripts/token-stop-hook.sh
 .claude/scripts/curate-scan.sh
+.claude/scripts/curate-review-log.sh
 .claude/scripts/decisions-scan.sh
 .claude/scripts/index-verify.sh
 .claude/scripts/statusline.sh
