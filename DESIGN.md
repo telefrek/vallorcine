@@ -947,6 +947,7 @@ vallorcine/
 │   ├── scenario-spec-resolve-budget-and-perf.sh  ← spec-resolve default budget + Step 7b/7c awk perf (4 tests)
 │   ├── scenario-index-verify.sh
 │   ├── scenario-narrative.sh         ← narrative pipeline parity tests (16 tests)
+│   ├── scenario-work-adr-quote-and-narrative-wd.sh  ← work_check_adr_dep YAML quote symmetry + narrative WD-slug filter (8 tests)
 │   ├── scenario-work-validate.sh     ← work definition structural validation (50 tests)
 │   ├── scenario-work-resolve.sh      ← work readiness computation tests
 │   ├── scenario-work-creation.sh     ← work group + WD creation flow tests
