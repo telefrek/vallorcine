@@ -256,7 +256,7 @@ changes. Run:
 ```bash
 if [[ -f .spec/CLAUDE.md || -d .spec/registry ]]; then
   mkdir -p .feature/<quick-slug>
-  bash .claude/scripts/spec-resolve.sh "<task description>" 8000 \
+  bash .claude/scripts/spec-resolve.sh "<task description>" 25000 \
     > .feature/<quick-slug>/spec-bundle.md
   bash .claude/scripts/spec-coverage.sh init \
     .feature/<quick-slug>/spec-coverage.md \

@@ -75,20 +75,29 @@ fi
 CURRENT_SHA="$(git rev-parse HEAD)"
 SINCE_DATE="$(date -d "-${WINDOW_MONTHS} months" +%Y-%m-%d 2>/dev/null || date -v-${WINDOW_MONTHS}m +%Y-%m-%d 2>/dev/null || echo "")"
 
-if [[ -n "$LAST_SHA" && "$LAST_SHA" != "$CURRENT_SHA" ]]; then
-    # Incremental scan from last position
-    SCAN_RANGE="${LAST_SHA}..HEAD"
-    SCAN_MODE="incremental"
-elif [[ -n "$LAST_SHA" && "$LAST_SHA" == "$CURRENT_SHA" ]]; then
+if [[ -n "$LAST_SHA" && "$LAST_SHA" == "$CURRENT_SHA" ]]; then
     echo "No new commits since last scan." >&2
     exit 0
+fi
+
+# Threshold analyses (pressure, gravity, drift, staleness, hub files) ALWAYS
+# run against the full configured window. The previous behavior — restricting
+# the scan range to LAST_SHA..HEAD on every incremental run — caused signals
+# to dilute below thresholds as scans grew more frequent, reporting false
+# "0 actionable items" results for projects that legitimately had standing
+# pressure or drift findings.
+if [[ -n "$SINCE_DATE" ]]; then
+    SCAN_RANGE="--since=$SINCE_DATE"
 else
-    # Full scan with time window
-    if [[ -n "$SINCE_DATE" ]]; then
-        SCAN_RANGE="--since=$SINCE_DATE"
-    else
-        SCAN_RANGE="-n $MAX_COMMITS"
-    fi
+    SCAN_RANGE="-n $MAX_COMMITS"
+fi
+
+# SCAN_MODE is now a label-only field. "incremental" means a prior LAST_SHA
+# is on file (so findings can be tagged new vs ongoing); "full" means a
+# first-run scan with no LAST_SHA reference.
+if [[ -n "$LAST_SHA" ]]; then
+    SCAN_MODE="incremental"
+else
     SCAN_MODE="full"
 fi
 
@@ -101,17 +110,22 @@ EXCLUDE_PATTERN='(node_modules|vendor|dist|build|\.git|package-lock\.json|yarn\.
 TMPDIR_SCAN="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_SCAN"' EXIT
 
-if [[ "$SCAN_MODE" == "incremental" ]]; then
-    git log --name-only --pretty=format:'%H' "$SCAN_RANGE" -n "$MAX_COMMITS" \
+# Always run analyses across the full window (see comment above on SCAN_RANGE).
+if [[ -n "$SINCE_DATE" ]]; then
+    git log --name-only --pretty=format:'%H' --since="$SINCE_DATE" -n "$MAX_COMMITS" \
         | grep -v '^$' > "$TMPDIR_SCAN/raw-log.txt" 2>/dev/null || true
 else
-    if [[ -n "$SINCE_DATE" ]]; then
-        git log --name-only --pretty=format:'%H' --since="$SINCE_DATE" -n "$MAX_COMMITS" \
-            | grep -v '^$' > "$TMPDIR_SCAN/raw-log.txt" 2>/dev/null || true
-    else
-        git log --name-only --pretty=format:'%H' -n "$MAX_COMMITS" \
-            | grep -v '^$' > "$TMPDIR_SCAN/raw-log.txt" 2>/dev/null || true
-    fi
+    git log --name-only --pretty=format:'%H' -n "$MAX_COMMITS" \
+        | grep -v '^$' > "$TMPDIR_SCAN/raw-log.txt" 2>/dev/null || true
+fi
+
+# Files changed in the incremental window (used to tag findings as "new
+# since last scan" vs "ongoing"). Empty when no LAST_SHA is on file.
+INCREMENTAL_FILES_FILE="$TMPDIR_SCAN/incremental-files.txt"
+> "$INCREMENTAL_FILES_FILE"
+if [[ -n "$LAST_SHA" ]]; then
+    git diff --name-only "${LAST_SHA}..HEAD" 2>/dev/null \
+        | grep -vE "$EXCLUDE_PATTERN" | sort -u > "$INCREMENTAL_FILES_FILE" || true
 fi
 
 # Count commits processed
@@ -271,7 +285,37 @@ if [[ -d ".decisions" ]] && [[ -s "$TMPDIR_SCAN/artifact-hits.txt" ]]; then
         # Floor: total can't be less than changed
         [[ "$total" -ge "$changed" ]] || total="$changed"
         pct=$(( (changed * 100) / total ))
-        echo "PRESSURE|$slug|$changed|$total|$pct" >> "$TMPDIR_SCAN/adr-pressure.txt"
+
+        # Tag finding as new vs ongoing relative to LAST_SHA. The classification
+        # walks each file the slug constrained-and-changed and checks whether
+        # it lies inside the incremental window. Findings whose every file
+        # falls in the incremental window are "new since last scan"; findings
+        # with one or more files that pre-date the window are "ongoing" — the
+        # signal was visible to a prior scan and should resurface until the
+        # user resolves it.
+        tag=""
+        if [[ -s "$INCREMENTAL_FILES_FILE" ]]; then
+            slug_changed_files=$(awk -F'|' -v s="$slug" '$1 == s {print $2}' "$TMPDIR_SCAN/adr-slug-files.txt")
+            new_count=0; total_for_slug=0
+            while IFS= read -r cf; do
+                [[ -z "$cf" ]] && continue
+                total_for_slug=$((total_for_slug + 1))
+                grep -qxF "$cf" "$INCREMENTAL_FILES_FILE" 2>/dev/null && new_count=$((new_count + 1))
+            done <<< "$slug_changed_files"
+            if (( new_count == 0 )); then
+                tag="ongoing since prior scan"
+            elif (( new_count == total_for_slug )); then
+                tag="new since last scan"
+            else
+                tag="ongoing (with $new_count new since last scan)"
+            fi
+        elif [[ -n "$LAST_SHA" ]]; then
+            tag="ongoing since prior scan"
+        else
+            tag="initial scan"
+        fi
+
+        echo "PRESSURE|$slug|$changed|$total|$pct|$tag" >> "$TMPDIR_SCAN/adr-pressure.txt"
     done < "$TMPDIR_SCAN/adr-pressure-counts.txt"
 
     sort -t'|' -k5 -rn "$TMPDIR_SCAN/adr-pressure.txt" -o "$TMPDIR_SCAN/adr-pressure.txt" 2>/dev/null || true
@@ -1844,10 +1888,11 @@ if [[ -s "$TMPDIR_SCAN/adr-pressure.txt" ]]; then
     echo "## ADR Pressure" >> "$SUMMARY_FILE"
     echo "Decisions with concentrated file changes (2+ constrained files changed):" >> "$SUMMARY_FILE"
     echo "" >> "$SUMMARY_FILE"
-    echo "| ADR | Changed | Total | Pressure |" >> "$SUMMARY_FILE"
-    echo "|-----|---------|-------|----------|" >> "$SUMMARY_FILE"
-    while IFS='|' read -r _ slug changed total pct; do
-        echo "| $slug | $changed | $total | ${pct}% |" >> "$SUMMARY_FILE"
+    echo "| ADR | Changed | Total | Pressure | Status |" >> "$SUMMARY_FILE"
+    echo "|-----|---------|-------|----------|--------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ slug changed total pct tag; do
+        [[ -z "$tag" ]] && tag="ongoing"
+        echo "| $slug | $changed | $total | ${pct}% | $tag |" >> "$SUMMARY_FILE"
     done < "$TMPDIR_SCAN/adr-pressure.txt"
     echo "" >> "$SUMMARY_FILE"
 fi

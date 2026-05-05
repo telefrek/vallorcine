@@ -465,4 +465,4 @@ will detect this and block it.
 
 ### Versioning
 
-Version is in `VERSION` (semver). Current: 0.16.3
+Version is in `VERSION` (semver). Current: 0.16.4

@@ -258,9 +258,9 @@ feature brief text.
 ```bash
 if [[ -n "$EXPLICIT_IDS" ]]; then
   EXPLICIT_SPEC_IDS="$EXPLICIT_IDS" \
-    bash .claude/scripts/spec-resolve.sh "<feature brief>" 8000 2>/dev/null
+    bash .claude/scripts/spec-resolve.sh "<feature brief>" 25000 2>/dev/null
 else
-  bash .claude/scripts/spec-resolve.sh "<feature brief title or description>" 8000 2>/dev/null
+  bash .claude/scripts/spec-resolve.sh "<feature brief title or description>" 25000 2>/dev/null
 fi
 ```
 

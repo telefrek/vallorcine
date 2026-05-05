@@ -871,7 +871,8 @@ vallorcine/
 │   ├── work-validate.sh            ← work definition structural validation + circular dep detection
 │   ├── work-context.sh             ← work group context injection for existing commands
 │   ├── work-finalize.sh            ← finalize work group state after feature refactor (feature-refactor Step 6b)
-│   ├── curate-scan.sh              ← curation scanner (22 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill, work group health, link rot, falsification-lens staleness)
+│   ├── curate-scan.sh              ← curation scanner (22 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill, work group health, link rot, falsification-lens staleness; thresholds always run against full configured window with new/ongoing tagging vs LAST_SHA)
+│   ├── curate-review-log.sh        ← append-only review log manager for /curate (migrate / append / unresolved / report); persists deferred and suggested findings across runs in `.curate/review-log.md`
 │   ├── lens-registry.txt           ← falsification lens introduction-date registry (consumed by curate-scan Analysis 22)
 │   ├── decisions-scan.sh           ← decisions roadmap clustering and classification
 │   ├── extract-findings.sh         ← audit finding extraction for orchestrator context optimization
@@ -934,7 +935,8 @@ vallorcine/
 │   ├── scenario-ensure-merge-driver.sh
 │   ├── scenario-stale-kb.sh
 │   ├── scenario-adr-contradiction.sh
-│   ├── scenario-curate-scan.sh       ← curate scan tests (47 tests)
+│   ├── scenario-curate-scan.sh       ← curate scan tests (61 tests)
+│   ├── scenario-curate-defer-and-thresholds.sh  ← curate persistence + full-window thresholds (11 tests)
 │   ├── scenario-decisions-scan.sh    ← decisions scan tests
 │   ├── scenario-spec-validate.sh     ← spec validation: displacement fields (8 tests)
 │   ├── scenario-spec-resolve.sh      ← spec resolution: displacement detection (11 tests)

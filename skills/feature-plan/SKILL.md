@@ -160,7 +160,7 @@ Read in order:
    to `.feature/<slug>/spec-bundle.md` so downstream stages (test, implement,
    refactor 4a) can re-read the same artifact instead of re-resolving:
    ```bash
-   bash .claude/scripts/spec-resolve.sh "<feature description>" 8000 \
+   bash .claude/scripts/spec-resolve.sh "<feature description>" 25000 \
      > .feature/<slug>/spec-bundle.md
    ```
 

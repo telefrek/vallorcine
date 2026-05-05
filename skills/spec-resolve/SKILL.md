@@ -26,7 +26,7 @@ Stop.
 ## Step 1 — Run the resolver script
 
 ```bash
-bash .claude/scripts/spec-resolve.sh "$ARGUMENTS" 8000
+bash .claude/scripts/spec-resolve.sh "$ARGUMENTS" 25000
 ```
 
 Capture the full output as BUNDLE.
@@ -49,7 +49,7 @@ domains not captured by keyword matching? Consider:
 If you identify missing domains, run once more with override:
 ```bash
 OVERRIDE_DOMAINS="storage,query,compaction" \
-  bash .claude/scripts/spec-resolve.sh "$ARGUMENTS" 8000
+  bash .claude/scripts/spec-resolve.sh "$ARGUMENTS" 25000
 ```
 Replace BUNDLE with this output.
 

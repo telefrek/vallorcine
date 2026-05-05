@@ -273,6 +273,7 @@ install_file "$SCRIPT_DIR/scripts/kb-search.js" "$TARGET/.claude/scripts/kb-sear
 install_file "$SCRIPT_DIR/scripts/adr-validate.sh" "$TARGET/.claude/scripts/adr-validate.sh"
 install_file "$SCRIPT_DIR/scripts/token-stop-hook.sh" "$TARGET/.claude/scripts/token-stop-hook.sh"
 install_file "$SCRIPT_DIR/scripts/curate-scan.sh" "$TARGET/.claude/scripts/curate-scan.sh"
+install_file "$SCRIPT_DIR/scripts/curate-review-log.sh" "$TARGET/.claude/scripts/curate-review-log.sh"
 install_file "$SCRIPT_DIR/scripts/lens-registry.txt" "$TARGET/.claude/scripts/lens-registry.txt"
 install_file "$SCRIPT_DIR/scripts/decisions-scan.sh" "$TARGET/.claude/scripts/decisions-scan.sh"
 install_file "$SCRIPT_DIR/scripts/audit-budget.sh" "$TARGET/.claude/scripts/audit-budget.sh"
@@ -400,6 +401,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
   "permissions": {
     "allow": [
       "Bash(bash .claude/scripts/curate-scan.sh:*)",
+      "Bash(bash .claude/scripts/curate-review-log.sh:*)",
       "Bash(bash .claude/scripts/kb-freshness-check.sh:*)",
       "Bash(bash .claude/scripts/version-check.sh:*)",
       "Bash(bash .claude/scripts/ensure-merge-driver.sh:*)",
@@ -512,6 +514,7 @@ HOOKJSON
     elif [[ -f "$SETTINGS_FILE" ]] && command -v jq &>/dev/null; then
         jq '.permissions.allow = ((.permissions.allow // []) + [
             "Bash(bash .claude/scripts/curate-scan.sh:*)",
+      "Bash(bash .claude/scripts/curate-review-log.sh:*)",
             "Bash(bash .claude/scripts/kb-freshness-check.sh:*)",
             "Bash(bash .claude/scripts/version-check.sh:*)",
             "Bash(bash .claude/scripts/ensure-merge-driver.sh:*)",
