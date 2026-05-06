@@ -50,6 +50,7 @@ mkdir -p "$TEST_BASE/project/.spec/registry/" \
 
 cp "$REPO_ROOT/scripts/spec-coverage.sh" "$TEST_BASE/project/.claude/scripts/"
 cp "$REPO_ROOT/scripts/spec-trace.sh"    "$TEST_BASE/project/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh"      "$TEST_BASE/project/.claude/scripts/"
 
 # Synthetic spec-resolve bundle (the input to `init`).
 cat > "$TEST_BASE/project/.feature/sample/spec-bundle.md" <<'BUNDLE'

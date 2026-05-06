@@ -458,13 +458,45 @@ From "Spec Annotation Coverage Gaps" in the scan summary:
    spec's traceability is missing.
 
 For each finding, use AskUserQuestion with options:
-- **"Verify via /spec-verify"** → runs `/spec-verify` on the spec to verify
-  requirements, classify gaps (code bug / stale spec / needs decision /
-  test gap), and repair them inline per the spec-verify protocol
+- **"Backfill via /spec-backfill"** → routes to `/spec-backfill <spec-id>`
+  to walk uncovered requirements and apply annotations to existing code.
+  This is the right tool for the "no annotations at all" case and for
+  single-requirement gaps where the implementation already exists.
+- **"Verify via /spec-verify"** → use when the gap may indicate spec→code
+  drift (the spec describes behavior that may no longer be in the code, or
+  vice versa). `/spec-verify` classifies and repairs spec violations; it is
+  heavier than `/spec-backfill` and not the default for pure annotation
+  backfill.
 - **"Accept gap with justification"** → the gap is intentional (e.g. the
   requirement is pure documentation; no runtime behavior to annotate). Record
   in the curation state review log with a short justification.
 - **"Skip for now"** — defer to next /curate pass
+
+### 2m-drift — Annotation drift (partial coverage below 50%)
+
+**Guard:** Only run this step if the "Annotation drift — APPROVED specs
+below 50% coverage" subsection exists under "Spec Annotation Coverage Gaps"
+in the scan summary. If absent, skip entirely.
+
+This subsection lists APPROVED specs whose annotation coverage has slipped
+below 50% — they have *some* annotations (so they are not in the
+unannotated bucket above) but are drifting. Rows are ordered by uncovered-
+percentage descending, then by spec-file age descending.
+
+If there are 4+ drifted specs, ask the user once whether to handle them
+individually or run a corpus walk. Use AskUserQuestion with options:
+- **"Run /spec-backfill --all"** → the corpus walk catches drift across
+  every spec in one pass; progress persists in `.spec/backfill-log.md`
+  so the user can break out and resume.
+- **"Walk specs one at a time"** → fall through to per-spec routing below.
+
+For each drifted spec (or each one when walking individually), use
+AskUserQuestion with options:
+- **"Backfill via /spec-backfill <spec-id>"** → routes to per-spec walk.
+- **"Skip for now"** — defer to next /curate pass.
+- **"Dismiss as intentional"** — record in the review log so this spec
+  no longer appears in drift findings (e.g. an aspirational spec where
+  partial coverage is by design).
 
 ### 2n — Aging open obligations
 

@@ -271,6 +271,29 @@ work_list_groups() {
     ! -name '_archive' ! -name '_refs' | sort
 }
 
+# ── WD lifecycle state rank ──────────────────────────────────────────────────
+# Maps a WD state to a numeric rank for monotonic comparison. Higher rank =
+# further along the lifecycle:
+#   DRAFT (0) → SPECIFYING (1) → SPECIFIED (2) → IMPLEMENTING (3) → COMPLETE (4)
+# IN_PROGRESS is a legacy alias for IMPLEMENTING. Returns -1 for unknown or
+# derived runtime states (e.g. BLOCKED, READY) so they fail any required-state
+# comparison rather than silently satisfying it.
+#
+# Used by work-resolve.sh to satisfy a wd:dep at required_state X when the
+# predecessor has reached any state at-or-past X (e.g. COMPLETE satisfies a
+# need-SPECIFIED dep). Strict equality silently blocked dependents whose
+# predecessors had advanced past the required state.
+work_wd_state_rank() {
+  case "$1" in
+    DRAFT)                    echo 0 ;;
+    SPECIFYING)               echo 1 ;;
+    SPECIFIED)                echo 2 ;;
+    IMPLEMENTING|IN_PROGRESS) echo 3 ;;
+    COMPLETE)                 echo 4 ;;
+    *)                        echo -1 ;;
+  esac
+}
+
 # ── Check if a spec artifact exists and is in required state ─────────────────
 # Accepts either a spec ID (e.g., "auth.jwt-contract", period form) or a
 # slash-path (e.g., "auth/jwt-contract"). The two forms are equivalent —

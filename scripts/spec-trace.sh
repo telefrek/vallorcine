@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # spec-trace.sh — find @spec annotations for a spec across the codebase
-# Usage: spec-trace.sh <spec-id> [project-root]
+# Usage: spec-trace.sh [--uncovered] <spec-id> [project-root]
 #   spec-id: legacy FXX (e.g., F13) OR domain.slug (e.g., schema.field-access)
+#   --uncovered: emit a parseable list of R-ids defined in the spec but absent
+#                from any @spec annotation in code. Output is one R-id per line
+#                on stdout (e.g., `auth.token-validation.R3`); a one-line
+#                summary goes to stderr. Used by /spec-backfill and /curate's
+#                annotation-drift analysis to drive backfill.
 # Optional env: SPEC_TRACE_DIRS="src,lib,test" — comma-separated dirs to scan (default: auto-detect)
 # Optional env: SPEC_TRACE_FORMAT="summary|detail|json" — output format (default: summary)
 # Output: grouped annotation report on stdout | diagnostics on stderr
@@ -12,17 +17,60 @@
 
 set -euo pipefail
 
-SPEC_ID="${1:-}"
-# Backwards-compatible alias used internally by older code paths
-PROJECT_ROOT="${2:-}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# spec-lib.sh is sourced for spec_file_for_id (used by --uncovered to resolve
+# a spec ID to its file via the manifest). Sourcing only defines functions —
+# no runtime cost or new hard dependencies for the default scan path.
+# shellcheck source=spec-lib.sh disable=SC1091
+source "$SCRIPT_DIR/spec-lib.sh"
+
+# ── Argument parsing ───────────────────────────────────────────────────────────
+# Accepts --uncovered as a flag in any position; preserves the historical
+# positional arg order (spec-id, then optional project-root).
+UNCOVERED_MODE=false
+SPEC_ID=""
+PROJECT_ROOT=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --uncovered) UNCOVERED_MODE=true ;;
+    --help|-h)
+      echo "Usage: spec-trace.sh [--uncovered] <spec-id> [project-root]" >&2
+      exit 0
+      ;;
+    --)
+      shift
+      while [[ $# -gt 0 ]]; do
+        if [[ -z "$SPEC_ID" ]]; then SPEC_ID="$1"
+        elif [[ -z "$PROJECT_ROOT" ]]; then PROJECT_ROOT="$1"
+        fi
+        shift
+      done
+      break
+      ;;
+    -*)
+      echo "ERROR: unknown flag '$1'" >&2
+      exit 1
+      ;;
+    *)
+      if [[ -z "$SPEC_ID" ]]; then SPEC_ID="$1"
+      elif [[ -z "$PROJECT_ROOT" ]]; then PROJECT_ROOT="$1"
+      else
+        echo "ERROR: extra positional argument '$1'" >&2
+        exit 1
+      fi
+      ;;
+  esac
+  shift
+done
 FORMAT="${SPEC_TRACE_FORMAT:-summary}"
 
 [[ -z "$SPEC_ID" ]] && {
-  echo "Usage: spec-trace.sh <spec-id> [project-root]" >&2
+  echo "Usage: spec-trace.sh [--uncovered] <spec-id> [project-root]" >&2
   echo "  Examples:" >&2
   echo "    spec-trace.sh F13                      # legacy FXX format" >&2
   echo "    spec-trace.sh schema.field-access      # domain.slug format" >&2
   echo "    spec-trace.sh F13 /path/to/project" >&2
+  echo "    spec-trace.sh --uncovered auth.token-validation" >&2
   echo "" >&2
   echo "  Env: SPEC_TRACE_DIRS='src,lib,test'  — dirs to scan" >&2
   echo "  Env: SPEC_TRACE_FORMAT='summary'      — summary|detail|json" >&2
@@ -102,7 +150,7 @@ grep -rnE "$GREP_PATTERN" "${SCAN_DIRS[@]}" \
 
 MATCH_COUNT=$(wc -l < "$MATCHES_FILE" | tr -d ' ')
 
-if [[ "$MATCH_COUNT" -eq 0 ]]; then
+if [[ "$MATCH_COUNT" -eq 0 && "$UNCOVERED_MODE" != "true" ]]; then
   echo "No @spec annotations found for $SPEC_ID" >&2
   echo "## $SPEC_ID — Trace Report"
   echo ""
@@ -191,6 +239,66 @@ IFS=$'\n' SORTED_REQS=($(
   done | sort -V | cut -f2-
 ))
 unset IFS
+
+# ── --uncovered mode: emit R-ids defined in the spec but absent from code ───
+# Reads the spec file, enumerates R-ids under the `## Requirements` section,
+# and emits the set difference against the annotated requirements (ALL_REQS).
+# Output: one R-id per line on stdout; one-line summary on stderr.
+# Used by /spec-backfill and /curate annotation-drift analysis to drive
+# backfill of uncovered requirements in mature corpora.
+if [[ "$UNCOVERED_MODE" == "true" ]]; then
+  manifest="$PROJECT_ROOT/.spec/registry/manifest.json"
+  spec_file=""
+  if [[ -f "$manifest" ]]; then
+    spec_file=$(spec_file_for_id "$manifest" "$SPEC_ID")
+  fi
+  if [[ -z "$spec_file" || ! -f "$spec_file" ]]; then
+    echo "ERROR: Could not resolve spec file for '$SPEC_ID'" >&2
+    echo "  Expected manifest at: $manifest" >&2
+    exit 1
+  fi
+
+  # Enumerate R-ids under the `## Requirements` section. Pattern matches
+  # plain (R1.), letter-suffixed (R51a.), and sub-numbered (R5-1., R5-1a.)
+  # forms. Sub-headings (### ...) inside the section do NOT exit the scope —
+  # only the next `## ` does.
+  defined_rids=$(awk '
+    /^## Requirements *$/ { in_req = 1; next }
+    /^## / && in_req     { in_req = 0 }
+    in_req && /^R[0-9]+[a-z]*(-[0-9]+[a-z]*)?\./ {
+      rid = $0; sub(/\..*$/, "", rid); print rid
+    }
+  ' "$spec_file" | sort -u)
+
+  total_defined=0
+  if [[ -n "$defined_rids" ]]; then
+    total_defined=$(echo "$defined_rids" | wc -l | tr -d ' ')
+  fi
+
+  # Build the set of annotated R-ids (just the trailing RN portion).
+  annotated_set=$(mktemp)
+  trap 'rm -f "$MATCHES_FILE" "$annotated_set"' EXIT
+  for r in "${ALL_REQS[@]}"; do
+    echo "${r##*.}" >> "$annotated_set"
+  done
+  sort -u -o "$annotated_set" "$annotated_set"
+
+  # Emit uncovered: defined - annotated. Re-attach the spec ID prefix so
+  # the output is fully qualified and directly consumable by /spec-backfill.
+  uncovered_count=0
+  if [[ -n "$defined_rids" ]]; then
+    while IFS= read -r rid; do
+      if ! grep -qxF "$rid" "$annotated_set" 2>/dev/null; then
+        echo "${SPEC_ID}.${rid}"
+        ((uncovered_count++)) || true
+      fi
+    done <<< "$defined_rids"
+  fi
+
+  annotated_count=$(( total_defined - uncovered_count ))
+  echo "[trace] $SPEC_ID: $total_defined requirement(s) defined, $annotated_count annotated, $uncovered_count uncovered" >&2
+  exit 0
+fi
 
 # ── Output ──────────────────────────────────────────────────────────────────────
 

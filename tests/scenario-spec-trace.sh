@@ -11,6 +11,7 @@
 # - No-match case exits cleanly
 # - Summary, detail, and JSON output formats
 # - SPEC_TRACE_DIRS override
+# - --uncovered mode: emits R-ids defined in spec but absent from annotations
 #
 # Run from repo root: bash tests/scenario-spec-trace.sh
 
@@ -265,6 +266,244 @@ if [[ "$req_count" -eq 4 ]]; then
     pass "description text after — separator does not create false requirement matches"
 else
     fail "should have exactly 4 requirements (R1, R3, R7, R12)" "got: $req_count"
+fi
+
+# ── --uncovered mode setup ───────────────────────────────────────────────────
+# Add a .spec/ directory with a manifest and two spec files. F01 defines R1,
+# R3, R5, R7, R12 — only R5 has no annotation in the fixture above. F02
+# defines R1, R4, R8 — only R8 has no annotation.
+
+mkdir -p "$TEST_BASE/project/.spec/registry"
+mkdir -p "$TEST_BASE/project/.spec/domains/auth"
+mkdir -p "$TEST_BASE/project/.spec/domains/data"
+
+cat > "$TEST_BASE/project/.spec/domains/auth/F01-jwt-token.md" << 'EOF'
+---
+{
+  "id": "F01",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["auth"]
+}
+---
+
+# F01 — JWT Token Contract
+
+## Requirements
+
+R1. The system must reject null keys.
+R3. The system must validate token signatures.
+R5. The system must enforce token expiry. (uncovered — no @spec annotation)
+R7. The system must support multi-tenant claims.
+R12. The system must produce a helper constraint.
+
+## Design Narrative
+Notes here.
+EOF
+
+cat > "$TEST_BASE/project/.spec/domains/data/F02-serializer.md" << 'EOF'
+---
+{
+  "id": "F02",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["data"]
+}
+---
+
+# F02 — Serializer Contract
+
+## Requirements
+
+R1. The system must serialize records.
+R4. The system must enforce shared serialization constraint.
+R8. The system must compress records over 4KB. (uncovered)
+EOF
+
+cat > "$TEST_BASE/project/.spec/registry/manifest.json" << 'EOF'
+{
+  "schema_version": 2,
+  "specs": [
+    { "id": "F01", "path": ".spec/domains/auth/F01-jwt-token.md", "state": "APPROVED", "domains": ["auth"] },
+    { "id": "F02", "path": ".spec/domains/data/F02-serializer.md", "state": "APPROVED", "domains": ["data"] }
+  ]
+}
+EOF
+
+# ── Test 14: --uncovered emits only R-ids absent from annotations ───────────
+
+output_uncov=$(cd "$TEST_BASE/project" && bash "$TRACE_SCRIPT" --uncovered F01 2>/dev/null)
+if [[ "$output_uncov" == "F01.R5" ]]; then
+    pass "--uncovered F01 emits exactly the unannotated R-id (F01.R5)"
+else
+    fail "--uncovered should emit only F01.R5" "got: '$output_uncov'"
+fi
+
+# ── Test 15: --uncovered emits stderr summary with counts ───────────────────
+
+stderr_uncov=$(cd "$TEST_BASE/project" && bash "$TRACE_SCRIPT" --uncovered F01 2>&1 >/dev/null)
+if echo "$stderr_uncov" | grep -qE 'F01:.*5 requirement.*defined.*4 annotated.*1 uncovered'; then
+    pass "--uncovered stderr summary reports defined/annotated/uncovered counts"
+else
+    fail "stderr summary should report 5 defined / 4 annotated / 1 uncovered" "got: $stderr_uncov"
+fi
+
+# ── Test 16: --uncovered handles a spec with multiple uncovered R-ids ───────
+
+# Annotate only F02.R1 and F02.R4 in the fixture (R8 left uncovered) and verify.
+output_uncov_f02=$(cd "$TEST_BASE/project" && bash "$TRACE_SCRIPT" --uncovered F02 2>/dev/null)
+if [[ "$output_uncov_f02" == "F02.R8" ]]; then
+    pass "--uncovered F02 emits only F02.R8 (R1 and R4 are annotated)"
+else
+    fail "--uncovered F02 should emit F02.R8" "got: '$output_uncov_f02'"
+fi
+
+# ── Test 17: --uncovered with no annotations emits all defined R-ids ────────
+
+# Add a spec with NO annotations anywhere.
+cat > "$TEST_BASE/project/.spec/domains/auth/F03-orphan.md" << 'EOF'
+---
+{
+  "id": "F03",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["auth"]
+}
+---
+
+# F03 — Orphan spec
+
+## Requirements
+
+R1. First.
+R2. Second.
+R3. Third.
+EOF
+
+# Update manifest
+cat > "$TEST_BASE/project/.spec/registry/manifest.json" << 'EOF'
+{
+  "schema_version": 2,
+  "specs": [
+    { "id": "F01", "path": ".spec/domains/auth/F01-jwt-token.md", "state": "APPROVED", "domains": ["auth"] },
+    { "id": "F02", "path": ".spec/domains/data/F02-serializer.md", "state": "APPROVED", "domains": ["data"] },
+    { "id": "F03", "path": ".spec/domains/auth/F03-orphan.md", "state": "APPROVED", "domains": ["auth"] }
+  ]
+}
+EOF
+
+output_orphan=$(cd "$TEST_BASE/project" && bash "$TRACE_SCRIPT" --uncovered F03 2>/dev/null | sort)
+expected_orphan=$'F03.R1\nF03.R2\nF03.R3'
+if [[ "$output_orphan" == "$expected_orphan" ]]; then
+    pass "--uncovered emits all R-ids when none are annotated"
+else
+    fail "--uncovered F03 should emit all three R-ids" "got: '$output_orphan'"
+fi
+
+# ── Test 18: --uncovered for domain.slug spec resolves via manifest ─────────
+
+mkdir -p "$TEST_BASE/project/.spec/domains/auth/token"
+cat > "$TEST_BASE/project/.spec/domains/auth/token/validation.md" << 'EOF'
+---
+{
+  "id": "auth.token.validation",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["auth"]
+}
+---
+
+# auth.token.validation
+
+## Requirements
+
+R1. Validate signature.
+R2. Reject expired tokens.
+EOF
+
+cat > "$TEST_BASE/project/.spec/registry/manifest.json" << 'EOF'
+{
+  "schema_version": 2,
+  "specs": [
+    { "id": "F01", "path": ".spec/domains/auth/F01-jwt-token.md", "state": "APPROVED", "domains": ["auth"] },
+    { "id": "F02", "path": ".spec/domains/data/F02-serializer.md", "state": "APPROVED", "domains": ["data"] },
+    { "id": "F03", "path": ".spec/domains/auth/F03-orphan.md", "state": "APPROVED", "domains": ["auth"] },
+    { "id": "auth.token.validation", "path": ".spec/domains/auth/token/validation.md", "state": "APPROVED", "domains": ["auth"] }
+  ]
+}
+EOF
+
+output_dom=$(cd "$TEST_BASE/project" && bash "$TRACE_SCRIPT" --uncovered auth.token.validation 2>/dev/null | sort)
+expected_dom=$'auth.token.validation.R1\nauth.token.validation.R2'
+if [[ "$output_dom" == "$expected_dom" ]]; then
+    pass "--uncovered resolves domain.slug spec via manifest"
+else
+    fail "--uncovered auth.token.validation should emit R1 and R2" "got: '$output_dom'"
+fi
+
+# ── Test 19: --uncovered with letter-suffixed and sub-numbered R-ids ────────
+
+cat > "$TEST_BASE/project/.spec/domains/auth/F04-suffixed.md" << 'EOF'
+---
+{
+  "id": "F04",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["auth"]
+}
+---
+
+# F04 — Suffixed requirements
+
+## Requirements
+
+R1. Plain.
+R2a. Letter-suffixed.
+R2b. Letter-suffixed.
+R5-1. Sub-numbered.
+R5-1a. Sub-numbered with letter.
+EOF
+
+cat > "$TEST_BASE/project/.spec/registry/manifest.json" << 'EOF'
+{
+  "schema_version": 2,
+  "specs": [
+    { "id": "F01", "path": ".spec/domains/auth/F01-jwt-token.md", "state": "APPROVED", "domains": ["auth"] },
+    { "id": "F02", "path": ".spec/domains/data/F02-serializer.md", "state": "APPROVED", "domains": ["data"] },
+    { "id": "F03", "path": ".spec/domains/auth/F03-orphan.md", "state": "APPROVED", "domains": ["auth"] },
+    { "id": "auth.token.validation", "path": ".spec/domains/auth/token/validation.md", "state": "APPROVED", "domains": ["auth"] },
+    { "id": "F04", "path": ".spec/domains/auth/F04-suffixed.md", "state": "APPROVED", "domains": ["auth"] }
+  ]
+}
+EOF
+
+output_sfx=$(cd "$TEST_BASE/project" && bash "$TRACE_SCRIPT" --uncovered F04 2>/dev/null | sort)
+expected_sfx=$'F04.R1\nF04.R2a\nF04.R2b\nF04.R5-1\nF04.R5-1a'
+if [[ "$output_sfx" == "$expected_sfx" ]]; then
+    pass "--uncovered handles letter-suffixed and sub-numbered R-ids"
+else
+    fail "--uncovered should emit all suffixed R-ids" "got: '$output_sfx'"
+fi
+
+# ── Test 20: --uncovered with no manifest fails cleanly ─────────────────────
+
+# Need a src/ dir so spec-trace passes the auto-detect dir check before
+# reaching the manifest resolution step we're testing here.
+mkdir -p "$TEST_BASE/no-manifest/.git"
+mkdir -p "$TEST_BASE/no-manifest/src"
+echo '// noop' > "$TEST_BASE/no-manifest/src/dummy.java"
+cd "$TEST_BASE/no-manifest"
+output_nm=$(bash "$TRACE_SCRIPT" --uncovered F01 2>&1 || true)
+cd "$TEST_BASE/project"
+if echo "$output_nm" | grep -q "Could not resolve spec file"; then
+    pass "--uncovered without manifest fails with clear error"
+else
+    fail "--uncovered should error when manifest is missing" "got: $output_nm"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────────────

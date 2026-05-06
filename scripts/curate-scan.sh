@@ -1279,6 +1279,7 @@ fi
 > "$TMPDIR_SCAN/spec-annotation-gaps.txt"
 > "$TMPDIR_SCAN/spec-unannotated.txt"
 > "$TMPDIR_SCAN/spec-bare-only.txt"
+> "$TMPDIR_SCAN/spec-annotation-drift.txt"
 
 # has_bare_annotations <spec-id> — returns 0 if the source tree contains a
 # bare `@spec <sid>` reference (no `.R<n>` suffix). Used to differentiate
@@ -1371,7 +1372,54 @@ if [[ -f ".spec/registry/manifest.json" ]] && command -v jq >/dev/null 2>&1; the
                 [[ -z "$req_count" ]] && req_count=0
                 echo "TEST_GAP|$sid|$req_count|$no_test_clean" >> "$TMPDIR_SCAN/spec-annotation-gaps.txt"
             fi
+
+            # Annotation drift: APPROVED specs with > 50% of requirements
+            # uncovered. Reuses the trace_out we already have (via the
+            # `**Requirements traced:**` count) and counts total R-ids in
+            # the spec file. Specs reported as fully UNANNOTATED above are
+            # excluded — they're a more severe class with their own
+            # remediation (already in spec-unannotated.txt).
+            spec_file_path=""
+            spec_file_path="$(spec_file_for_id "$MANIFEST" "$sid" 2>/dev/null || true)"
+            if [[ -n "$spec_file_path" && -f "$spec_file_path" ]]; then
+                total_rids="$(awk '
+                    /^## Requirements *$/ { in_req = 1; next }
+                    /^## / && in_req     { in_req = 0 }
+                    in_req && /^R[0-9]+[a-z]*(-[0-9]+[a-z]*)?\./ { count++ }
+                    END { print count+0 }
+                ' "$spec_file_path")"
+                annotated_rids="$(grep -m1 -oE '\*\*Requirements traced:\*\* [0-9]+' <<< "$trace_out" \
+                    | grep -oE '[0-9]+' || echo 0)"
+                if [[ "$total_rids" -gt 0 && "$annotated_rids" -le "$total_rids" ]]; then
+                    uncov=$(( total_rids - annotated_rids ))
+                    pct=$(( (uncov * 100) / total_rids ))
+                    # Threshold: > 50% uncovered AND at least one annotation
+                    # exists (avoids overlap with the UNANNOTATED bucket).
+                    if (( pct > 50 && annotated_rids > 0 )); then
+                        # Spec-file age in days since last commit (best
+                        # effort — non-git repos report 0).
+                        age_days=0
+                        last_commit_date="$(git log -1 --format=%cs -- "$spec_file_path" 2>/dev/null || true)"
+                        if [[ -n "$last_commit_date" ]]; then
+                            today_epoch=$(date +%s)
+                            commit_epoch=$(date -d "$last_commit_date" +%s 2>/dev/null || echo "$today_epoch")
+                            age_days=$(( (today_epoch - commit_epoch) / 86400 ))
+                        fi
+                        echo "ANNOTATION_DRIFT|$sid|$uncov|$total_rids|$pct|$age_days" \
+                            >> "$TMPDIR_SCAN/spec-annotation-drift.txt"
+                    fi
+                fi
+            fi
         done <<< "$approved_ids"
+
+        # Sort drift findings by uncovered-pct descending, then by age
+        # descending (older specs surface first within the same coverage
+        # tier — they've drifted longer without attention).
+        sort -t'|' -k5,5 -k6,6 -rn "$TMPDIR_SCAN/spec-annotation-drift.txt" \
+            -o "$TMPDIR_SCAN/spec-annotation-drift.txt" 2>/dev/null || true
+        head -20 "$TMPDIR_SCAN/spec-annotation-drift.txt" \
+            > "$TMPDIR_SCAN/spec-annotation-drift.capped.txt" 2>/dev/null || true
+        mv "$TMPDIR_SCAN/spec-annotation-drift.capped.txt" "$TMPDIR_SCAN/spec-annotation-drift.txt" 2>/dev/null || true
 
         # Sort: IMPL_GAPs first (bigger deal — code missing), then TEST_GAPs, by count desc.
         sort -t'|' -k1,1 -k3 -rn "$TMPDIR_SCAN/spec-annotation-gaps.txt" \
@@ -2240,6 +2288,23 @@ if [[ -s "$TMPDIR_SCAN/spec-bare-only.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+# Annotation drift (Analysis 18, drift bucket): partially-annotated specs
+# whose coverage has slipped below 50%. Distinct from the unannotated bucket
+# above — these have at least one annotation, so the remediation is targeted
+# backfill via /spec-backfill <id> rather than starting from scratch.
+if [[ -s "$TMPDIR_SCAN/spec-annotation-drift.txt" ]]; then
+    echo "### Annotation drift — APPROVED specs below 50% coverage" >> "$SUMMARY_FILE"
+    echo "Partially-annotated specs whose @spec coverage has slipped below 50%. Sorted by uncovered-percentage descending; ties broken by spec-file age (older first)." >> "$SUMMARY_FILE"
+    echo "Route to \`/spec-backfill <spec-id>\` to walk the uncovered requirements one at a time. For multiple drifted specs, \`/spec-backfill --all\` covers the corpus." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Spec | Uncovered | Total | % Uncovered | Spec age (days) |" >> "$SUMMARY_FILE"
+    echo "|------|-----------|-------|-------------|------------------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ sid uncov total pct age_days; do
+        echo "| $sid | $uncov | $total | ${pct}% | $age_days |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/spec-annotation-drift.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
 # Aging obligations (Analysis 19)
 if [[ -s "$TMPDIR_SCAN/aging-obligations.txt" ]]; then
     echo "## Aging Open Obligations" >> "$SUMMARY_FILE"
@@ -2340,6 +2405,7 @@ echo "  Stalled work groups: $(wc -l < "$TMPDIR_SCAN/work-stalled.txt" 2>/dev/nu
 echo "  Work artifact drift: $(wc -l < "$TMPDIR_SCAN/work-drift.txt" 2>/dev/null || echo 0)"
 echo "  Spec annotation gaps: $(wc -l < "$TMPDIR_SCAN/spec-annotation-gaps.txt" 2>/dev/null || echo 0)"
 echo "  Unannotated APPROVED specs: $(wc -l < "$TMPDIR_SCAN/spec-unannotated.txt" 2>/dev/null || echo 0)"
+echo "  Annotation drift (<50% coverage): $(wc -l < "$TMPDIR_SCAN/spec-annotation-drift.txt" 2>/dev/null || echo 0)"
 echo "  Bare-only annotated specs: $(wc -l < "$TMPDIR_SCAN/spec-bare-only.txt" 2>/dev/null || echo 0)"
 echo "  Aging obligations: $(wc -l < "$TMPDIR_SCAN/aging-obligations.txt" 2>/dev/null || echo 0)"
 echo "  Subdivision candidates: $(wc -l < "$TMPDIR_SCAN/spec-subdivision-candidates.txt" 2>/dev/null || echo 0)"

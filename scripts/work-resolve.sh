@@ -119,7 +119,12 @@ while IFS= read -r wd_file; do
   fi
 
   if [[ "$wd_status" == "SPECIFIED" ]]; then
-    # Check wd-type deps — SPECIFIED WDs may be blocked by predecessor WDs
+    # Check wd-type deps — SPECIFIED WDs may be blocked by predecessor WDs.
+    # State match is monotonic on the WD lifecycle (DRAFT < SPECIFYING <
+    # SPECIFIED < IMPLEMENTING < COMPLETE) so a predecessor at any rank
+    # at-or-past the required state satisfies the dep. Strict equality
+    # previously blocked dependents whose predecessors had advanced past
+    # the required state (e.g. COMPLETE failed a need-SPECIFIED dep).
     spec_blockers=""
     spec_dep_count=0
     while IFS='|' read -r dep_type dep_ref dep_req_state dep_kind; do
@@ -127,8 +132,14 @@ while IFS= read -r wd_file; do
       ((spec_dep_count++)) || true
       if [[ "$dep_type" == "wd" ]]; then
         ref_status="${WD_STATUS[$dep_ref]:-}"
-        if [[ -z "$ref_status" || "$ref_status" != "$dep_req_state" ]]; then
-          spec_blockers+="wd:$dep_ref — need $dep_req_state, currently ${ref_status:-not found}"$'\n'
+        if [[ -z "$ref_status" ]]; then
+          spec_blockers+="wd:$dep_ref — need $dep_req_state, currently not found"$'\n'
+        else
+          ref_rank=$(work_wd_state_rank "$ref_status")
+          req_rank=$(work_wd_state_rank "$dep_req_state")
+          if (( ref_rank < 0 || req_rank < 0 || ref_rank < req_rank )); then
+            spec_blockers+="wd:$dep_ref — need $dep_req_state, currently $ref_status"$'\n'
+          fi
         fi
       fi
     done < <(work_fm_artifact_deps "$wd_file")
@@ -167,8 +178,16 @@ while IFS= read -r wd_file; do
         ;;
       wd)
         ref_wd_status="${WD_STATUS[$dep_ref]:-}"
-        if [[ -z "$ref_wd_status" || "$ref_wd_status" != "$dep_req_state" ]]; then
-          reason="WD $dep_ref is ${ref_wd_status:-not found} (need $dep_req_state)"
+        if [[ -z "$ref_wd_status" ]]; then
+          reason="WD $dep_ref is not found (need $dep_req_state)"
+        else
+          # Monotonic rank match — see work_wd_state_rank in work-lib.sh.
+          # COMPLETE satisfies SPECIFIED, etc.
+          ref_rank=$(work_wd_state_rank "$ref_wd_status")
+          req_rank=$(work_wd_state_rank "$dep_req_state")
+          if (( ref_rank < 0 || req_rank < 0 || ref_rank < req_rank )); then
+            reason="WD $dep_ref is $ref_wd_status (need $dep_req_state)"
+          fi
         fi
         ;;
       *)
