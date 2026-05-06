@@ -20,114 +20,79 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-04-27*
+*Last updated: 2026-05-05*
 
-**PR #61 merged (v0.16.0 cut after release). Spec-layering initiative
-ships end-to-end: parent + child spec model with natural-progression
-triggers from /curate (housekeeping) and /spec-author (just-in-time).
-Manually-authored layered specs work after the schema-and-resolver
-piece; `/spec-split` provides transactional subdivision with
-auto-rollback; `/curate` flags subdivision candidates; `/spec-author`
-Pass 2 surfaces a `/spec-split` suggestion the moment an amendment
-tips a spec into subdivision territory and loads parent + siblings
-when amending a child. Bundle also lands two soak-followup fixes
-surfaced from the 4-day jlsm sweep (sed swap for WD status
-`Edit`-without-Read, SIGPIPE on `echo $var | grep` pipelines for
-large stdin under pipefail). Six commits, 42/42 scenarios + 59/59
-install green. Pilot reserved for user discretion: run `/spec-split
-encryption.primitives-lifecycle` against jlsm's 163-req / 33K-token
-canary spec.**
+**Three patch releases shipped 2026-05-04 → 2026-05-05, all driven by
+jlsm-surfaced kit defects: v0.16.4, v0.16.5, v0.16.6. The session also
+made `@spec` annotation enforcement a structural exit precondition
+across the writer pipeline (no longer advisory). One follow-up is
+parked in `WIP.md` and queued as "Do next" below: PR B (spec-backfill
++ /curate annotation-drift analysis) for cleaning up existing
+uncovered code in mature projects.**
 
-### What's shipped since 2026-04-21
+### What shipped 2026-05-04 → 2026-05-05
 
-**v0.14.1 → v0.14.2 release sequence:**
-- v0.14.1 (2026-04-21 evening, commit `35e8e31`) — bundled the `/curate`
-  drift detection analyses (18 + 19) that were staged at the end of the
-  spec migration day.
-- v0.14.2 (commit `7fc33dd`) — four GSD-gap capabilities from the
-  2026-04-21 competitive audit:
-  - **PR #51** — `/audit` FIX_IMPOSSIBLE escalation flow (relax-test /
-    wontfix / spec-author / defer), closing the graveyard path for
-    audit findings blocked by pin tests.
-  - **PR #52** — `/spec-write` quantitative ambiguity gate (GSD
-    capability #3): `spec-ambiguity-score.sh` computes
-    `([UNVERIFIED]+[UNRESOLVED]+[CONFLICT]) / total_requirements` and
-    surfaces the score at DRAFT → APPROVED promotion time.
-  - **PR #53** — `/audit` security lens (GSD capability #1):
-    `prompts/audit/lens-security.md` with TESTABLE vs ADVISORY finding
-    taxonomy, 4 new exploration signals (credential store, PII, auth
-    middleware, deserialization). Addresses the encryption-audit gap
-    (10 bugs found via generic lens, 3 classes missed: timing channels,
-    IV reuse, ciphertext integrity).
-  - **PR #54** — `/work-start --parallel [N]` (GSD capability #2):
-    wave-based multi-WD dispatch using the existing readiness model.
+**v0.16.4 (PR #65) — `/curate` persistence + threshold cumulation.**
+User-reported on jlsm: "/curate found 0 actionable items" after the
+user had skipped multiple findings on a prior run. Three coupled
+defects:
+- Step 5's curation-state.md template was a full-file replacement,
+  wiping every prior `deferred`/`suggested` row each run.
+- Pre-flight read deferred items but no step re-presented them in the
+  pick list.
+- Pressure / gravity / drift thresholds ran against `LAST_SHA..HEAD`
+  only, so signals diluted below thresholds on frequent-cadence runs.
 
-**Also merged post-v0.14.2:**
-- **PR #55** — docs: DESIGN manifest sync + `/feature` pipeline audit
-  surfacing.
-- **PR #56** — `/audit` wontfix findings now route through
-  `open_obligations` on the most-relevant spec, resurfacing via
-  `/curate` analysis 19 aging logic once past the threshold. Closes the
-  last graveyard path for FIX_IMPOSSIBLE outcomes.
+Fix: new `scripts/curate-review-log.sh` (append-only review log with
+`migrate / append / unresolved / report` subcommands), full-window
+analysis in `curate-scan.sh` with `new since last scan` / `ongoing`
+tagging, new Step 2.5 in the SKILL that merges previously-deferred
+items into the pick list, structured key taxonomy (16 prefixes:
+`adr-pressure:`, `kb-stale:`, `link-rot:`, etc.). 11/11 new tests +
+61/61 existing curate-scan green.
 
-### The v0.14.3 bundle (this PR on `chore/v0.14.3-bundle`)
+**v0.16.5 — bundled spec-resolve perf + `@spec` annotation enforcement.**
 
-Three workstreams collapsed into one PR for reviewability. Six commits:
+- **PR #66 — `spec-resolve.sh` budget + Step 7b/7c perf.** Default
+  budget bumped 8000 → 25000 (real specs run 9-12K tokens each — prior
+  default produced empty bundles). Step 7b conflict scan and Step 7c
+  displacement scan rewritten as single awk passes — 30+ second hangs
+  on multi-spec bundles eliminated. Output line format byte-identical;
+  `Force-included` header line guarantees the bundle is never empty
+  when there are direct candidates. 4/4 new + 21/21 existing tests.
+- **PR #67 — forward enforcement of `@spec` annotation coverage.**
+  Adversarial workflow audit found exactly one place in the kit
+  explicitly told writers to add `@spec` annotations (`/spec-verify`
+  Step 1.2), and it was gated behind a `spec-bundle.md` artifact no
+  upstream skill ever wrote. Every entry point converged on the same
+  broken handoff. Closed by:
+  - New always-loaded `rules/spec-annotation-protocol.md` defining
+    format, comment syntax per language, where/when to annotate.
+  - New `scripts/spec-coverage.sh` (init / update / gate / waive /
+    report) backed by `.feature/<slug>/spec-coverage.md`. Also
+    produces `spec-bundle.md`.
+  - Mandatory exit checks at `/feature-test` and `/feature-implement`.
+  - Hard gate at `/feature-pr` with annotate / waive / override paths.
+  - `/feature-quick` spec-aware mode.
+  - `/audit` reconcile writes `@spec` to fix code as it mints new
+    R-ids.
+  - `/feature-retro` and `/feature-complete` surface coverage state.
+  - 14/14 new spec-coverage scenario tests + 64/64 install.
 
-**Fixes:**
-- **`fix(spec): v2 manifest schema compatibility`** — dual-schema (v1 +
-  v2) manifest compat across `spec-resolve.sh`, `work-lib.sh`,
-  `work-finalize.sh`, `curate-scan.sh`, `spec-stats.sh`. Root cause:
-  the 2026-04-20 spec migration flipped the manifest from
-  `{features: {FXX: ...}}` (v1) to `{schema_version: 2, specs: [...]}`
-  (v2), and several read-path scripts were still hardcoded against v1
-  keys — they silently failed under `set -euo pipefail` or fell through
-  to `NEEDS_DOMAIN_INFERENCE=true` for every call, blocking
-  `/work-start`, `/spec-write`, `/feature-plan`, `/feature-test`,
-  `/spec-author`, and `/audit` on v2 repos. Added four dual-schema
-  manifest query helpers to `spec-lib.sh`.
-- **`fix(tests): close four pre-existing scenario-test failures`** —
-  found during the manifest-v2 sweep, closed here per the
-  fix-now-not-defer rule: `scenario-index-verify` arithmetic bug,
-  `scenario-narrative` stale exit-code assertions, `scenario-version-skew`
-  legacy install-layout reference, `scenario-work-pipeline` v1-manifest
-  fixture paired with v2-style WD deps.
-- **`fix(pipeline): prevent parallel-subagent hangs`** — mode-gates
-  every unconditional `AskUserQuestion` in the three pipeline skills
-  (`/feature-test`, `/feature-implement`, `/feature-refactor`) so they
-  bypass to `cycle-log.md` + `escalated-<reason>` substage + `ESCALATED`
-  return in parallel mode instead of hanging on a missing human.
-  Strengthens `/feature-refactor`'s parallel-mode exit with an explicit
-  termination contract ("your very next message MUST be the summary
-  line — no more tools"). Adds Step 1a to `/feature-coordinate`
-  documenting the subagent dispatch contract every coordinator must
-  embed. Root-caused from the 2026-04-23 jlsm WU-3 hang (subagent wrote
-  `status.md = COMPLETE` at 10:41:32, then kept running ~2 min before
-  the user had to Ctrl+C). Regression:
-  `scenario-parallel-subagent-hang-prevention.sh` (10 structural
-  invariants).
-
-**Documentation:**
-- **`docs: freshness pass through v0.14.2 + held branches`** — CONTEXT
-  refresh, 7 decisions graduated to SETTLED.md, DEFERRED marked
-  security-aware lens as done.
-- **`docs: add GETTING-STARTED + GETTING-STARTED-EXISTING guides`** —
-  two new repo-only onboarding docs (316 + 333 lines) for people
-  landing on the GitHub page. Not shipped via MANIFEST. README gains a
-  "New here?" link section; `/vallorcine-help` gains URL hints for
-  conceptual questions.
-- **`docs: spot-check fixes for EXAMPLES + COMPETITIVE + GETTING-STARTED`**
-  — corrected the `.spec/` bug I introduced in GETTING-STARTED (`.spec/`
-  is `/spec-init`-gated, not created by `/setup-vallorcine`); added
-  `/feature-harden` to the EXAMPLES.md walkthrough (was missing);
-  reconciled the split threshold in EXAMPLES to match SETTLED (~15K
-  tokens / 5+ constructs); added four new walkthrough sections to
-  EXAMPLES (parallel execution via `/feature-coordinate`, spec workflow,
-  standalone `/audit`, `/capabilities`); refreshed COMPETITIVE's "Closed
-  gaps" with the four v0.14.2 GSD-parity shipments and sharpened the
-  standalone-security-scanner boundary; added `/feature-harden` and
-  `/capabilities` to the `.claude/rules/kit-development.md` user-facing
-  command list.
+**v0.16.6 (PR #68) — ADR quote handling + narrative WD-slug parse.**
+- `work_check_adr_dep` had asymmetric quote handling: WD-side parser
+  stripped quotes; ADR-side didn't. ADRs with `status: "accepted"`
+  silently BLOCKED dependent WDs because `"accepted" != accepted`.
+  Fix: post-extraction strip of single + double quotes on the ADR
+  side.
+- Narrative parser dropped phases for `<group>--wd-NN` slugs because
+  the parent `/work-start "<group>" <N>` JSONL token had no `--wd-`
+  infix in args. Fix: structured group-prefix + WD-number match in
+  both `build_phase` first-pass filter and `parse_story` second-pass
+  state machine. Mirrored in `parse.js` (also closed pre-existing
+  parity gap by adding `/audit` to JS `COMMAND_TO_STAGE`).
+- 8/8 new + 16/16 existing narrative + all `scenario-work-*` and
+  `scenario-spec-*` and `scenario-curate-*` suites green.
 
 ---
 
@@ -179,6 +144,35 @@ snapshot-WD-DRAFT-status. See SETTLED.md.*
   so projects can migrate (or not) at their own pace. Shipped as
   bundled in `chore/v0.14.3-bundle` (this PR).
 
+- **`@spec` annotation is a structural exit precondition, not advisory**
+  (2026-05-04) — `/feature-test` and `/feature-implement` substages
+  refuse to advance until every loaded spec requirement has at least
+  one `@spec` annotation in tests or implementation. `/feature-pr`
+  hard-gates the PR draft on coverage. Override paths are surfaced
+  explicitly to the user (annotate / waive with reason / override gate
+  with reason recorded in PR description). The forward-enforcement
+  pattern stops new gaps from accumulating; backfill (PR B) cleans up
+  existing uncovered code. Shipped in PR #67 / v0.16.5.
+
+- **Append-only state files for cross-run persistence** (2026-05-04) —
+  When a SKILL.md template carries a full-file format that includes
+  rolling state (e.g. /curate's old Review Log section in
+  curation-state.md), Claude rewrites the full file each invocation
+  and silently destroys prior rows. Fix shape: separate the rolling
+  state into a dedicated append-only file managed exclusively by a
+  helper script (curate-review-log.sh, spec-coverage.sh). The SKILL
+  template only handles immutable scan-state. Pattern is reused by
+  PR #65 (curate review log) and PR #67 (spec coverage table).
+
+- **Threshold analyses run against the full configured window**
+  (2026-05-04) — `/curate` thresholds (pressure / gravity / drift /
+  staleness / hub files) operate on the configured 3-month window
+  regardless of `LAST_SHA`. `LAST_SHA` is preserved as a tag — findings
+  carry a Status column distinguishing `new since last scan` from
+  `ongoing since prior scan`. Prior incremental-window behavior caused
+  signals to dilute below thresholds on frequent-cadence runs.
+  Shipped in PR #65 / v0.16.4.
+
 *Live list — resolve into SETTLED.md or drop when addressed.*
 *Prioritised: do next → do soon → do when needed → do when scale demands it.*
 *Status tags: `[implemented]` = code exists, needs validation. `[designed]` = spec
@@ -186,110 +180,98 @@ exists, not yet coded. No tag = needs both design and implementation.*
 
 ### Do next
 
-**Merge the work-layer-followups PR, cut a release, then migrate
-jlsm's `implement-membership` cross-group dep.**
+**PR B — `/spec-backfill` + `/curate` annotation-drift analysis.**
+PR #67 (v0.16.5) made annotation a structural exit precondition for
+NEW pipeline runs but left existing uncovered code in mature corpora
+(jlsm has 75 specs / 12 domains, most authored before annotation
+enforcement existed). PR B closes that gap. Designed scope:
 
-Gap 3 + Gap 4 from the original `/ideate continue` WIP are landed on
-`fix/work-layer-followups` (2 commits). Once merged and released, jlsm
-can upgrade the kit and the prose cross-group-dep declaration in
-`.work/implement-membership/work.md` can be replaced with an
-`external_deps:` entry. Also archive `implement-sstable-enhancements`
-(all WDs COMPLETE per prior session notes — verify and archive).
+1. **`scripts/spec-trace.sh --uncovered <spec-id>`** — extend the
+   existing tool to emit a parseable list of R-ids with zero `@spec`
+   references. Used as the primitive by both the new skill and the
+   curate analysis.
+2. **`/spec-backfill <spec-id>` skill** (~150-line SKILL.md). Walks
+   uncovered requirements one at a time. For each R, runs subject-token
+   grep across the codebase looking for likely enforcement points (same
+   heuristic as the displacement scan in `spec-resolve.sh` Step 7c).
+   Presents candidates via AskUserQuestion ("R3 about
+   `TokenValidator.expiry_check` — likely sites: (a) ..., (b) ..., (c)
+   Other, (d) Skip"). Applies the annotation. Writes a backfill log so
+   progress survives interruption. Re-runs `spec-trace` at end to
+   confirm coverage moved.
+3. **`/spec-backfill --all`** — corpus-wide one-shot mode. Iterates
+   every APPROVED spec, runs the per-spec flow. The catch-up tool for
+   mature jlsm-style projects.
+4. **`/curate` annotation-drift analysis (#23)** — APPROVED specs
+   whose requirements have <50% annotation coverage, ordered by age +
+   churn of matching code. Routes to `/spec-backfill <id>`. Surfaces
+   the problem at regular curation cadence so it never re-accumulates.
+5. **`tests/scenario-spec-backfill.sh`** — covers per-spec walk,
+   candidate suggestion, annotation application, log resumption,
+   `--all` corpus iteration.
 
-**Shipped in v0.14.4 (2026-04-24):** KB actionable across coordinator /
-suspect / prove-fix, and prove-fix Phase 0c upstream-mitigation
-short-circuit. Empirical baseline on jlsm audit: $14.03/finding
-(95 findings, $1,333), projected floor ~$11/finding once fixes soak.
-Full narrative in SETTLED.md once graduated; summary preserved in
-git history via PR #58 + PR #59.
-
-**Landed on fix/work-layer-followups (not yet released):**
-- **Gap 4** — `external_deps:` on `work.md` lets a group declare that
-  all its WDs are BLOCKED until a sibling group reaches COMPLETE.
-  `scripts/work-resolve.sh` applies the gate to DRAFT and SPECIFIED
-  WDs; IMPLEMENTING/COMPLETE/SPECIFYING are left alone.
-  `scripts/work-validate.sh` checks shape and referenced-group
-  existence, and now rejects cross-group `wd:` artifact_deps so
-  validate and runtime agree on what's reachable.
-  Tests: `scenario-work-cross-group-deps.sh` (11/11).
-- **Gap 3** — `/work-plan` Step 4a brief template has an AUTHORITATIVE
-  "Group Envelope" section. `/feature-domains` Step 2 reads it,
-  classifies envelope-covered domains as `resolved` without a fresh
-  `/architect` dispatch, and escalates WD-local contradictions back to
-  `/work-decompose` via a new `escalate-decompose` classification.
-  `/work-plan` Step 5b dedupes spec authoring against the envelope.
-  Tests: 5 new invariants in `scenario-work-layer-alignment.sh` (25/25).
-- **Three pre-existing bugs surfaced empirically by dry-running the
-  kit against a local jlsm clone:**
-  - `work_fm_produces` parser dropped `slug:` for ADR produces (78
-    false-alarm validation errors across 13 jlsm decisions-backlog
-    WDs → 0).
-  - Validate-vs-resolve spec lookup asymmetry (single-WD validate was
-    ID-only; resolve accepted slash-paths). Both now share
-    `work_check_spec_dep` with Strategy 0 ID lookup + path fallbacks.
-  - `wd:` state mismatch was incorrectly a validation FAIL — natural
-    mid-flight state was being double-reported. Now resolver-only
-    (resolver continues to surface as BLOCKED). Test 17 inverted to
-    match the corrected contract.
-- **Four SKILL.md guidance refinements** from the same dry-run:
-  /work scoping interview leads with tradeoff analysis before
-  AskUserQuestion; /work-decompose Phase A research-dispatch criterion
-  ("dispatch when the answer changes WD shape"); Phase B decidability
-  test ("settle now when shape isn't decidable from any single WD's
-  perspective"); SPECIFIED-vs-COMPLETE choice for `wd:` deps surfaced
-  explicitly (default-by-precedent was COMPLETE → fully sequential;
-  SPECIFIED unlocks parallel planning under Group Envelope).
-- **Empirical Gap 3 still untested.** Structural tests prove the
-  SKILL.md says the right things; first real `/work-plan` run on a
-  WD with a Group Envelope is the actual validation.
-
-**Positioning shift (still outstanding — carries over from v0.14.3):**
-emphasize depth-of-spec-rigor axis over the "spec-driven" label across
-user-facing docs. Bundle with the next docs pass.
+Should reuse `spec-coverage.sh` (the artifact PR #67 introduced) as the
+"what's annotated and what isn't" book — keeps the user's mental model
+coherent.
 
 ### Do soon (medium effort, clear designs)
 
-- **Fix spec-layer gaps (11 identified)** — 4 critical: feature-implement spec
-  awareness, feature-refactor spec awareness, spec-write two-file invalidation,
-  work-decompose spec state validation. Full gap analysis in session memory.
-  Status: not started since 2026-04-21. Check first whether any are already
-  covered by the manifest-v2 dual-schema work before scoping.
+- **Empirical validation of the annotation gate.** The forward
+  enforcement is structural in tests, but no real `/feature` end-to-end
+  run on jlsm has exercised the new gate yet. First production run will
+  be the real validation. Watch for: false-positive PR blocks, format
+  ambiguity in real test code, override-path UX.
 
-- **Fix 6 pipeline failure patterns** — one-sided invalidation, audit outpacing
-  specs, assert-only guards, dead code wiring, spec asymmetry, feature-centric
-  organization. Each has root cause and fix task documented. Status:
-  feature-centric organization resolved by the 2026-04-20 spec migration
-  (behavioral domains). The others still stand.
+- **Empirical validation of /curate full-window thresholds.** PR #65 is
+  in v0.16.4. Re-run /curate on jlsm and confirm previously-deferred
+  items resurface and that `new since last scan` vs `ongoing` tagging
+  reads naturally in the pick list.
 
-- **Partial implementation state model** — binary APPROVED/DRAFT insufficient for
-  specs that are 90% implemented. Need either per-requirement states, split specs,
-  or APPROVED-with-obligations. Data from verification pass will inform design.
-  Revisit once 2-3 jlsm WDs have completed implementation and we can read
-  their emergent patterns.
+- **Partial implementation state model** — binary APPROVED/DRAFT
+  insufficient for specs that are 90% implemented. Revisit once 2-3
+  jlsm WDs have completed implementation. The new annotation coverage
+  table (PR #67) gives the per-requirement grain that may inform this
+  — explicit `pending` rows for not-yet-implemented requirements
+  could be the partial-implementation primitive.
 
 - **Flaky-test surfacing in `/feature-retro`** — scan cycle-log.md for
   flakiness signals (timeouts on first run + passed-on-rerun, "flaky",
-  "retry" keywords) and emit a dedicated retro section. Triggered by the
-  2026-04-23 jlsm WU-3 run which noted a pre-existing
-  `SharedStateAdversarialTest` timeout-then-pass that would otherwise be
-  buried. See `DEFERRED.md`.
+  "retry" keywords) and emit a dedicated retro section. See
+  `DEFERRED.md`.
+
+- **Positioning shift (still outstanding — carries over from v0.14.3):**
+  emphasize depth-of-spec-rigor axis over the "spec-driven" label
+  across user-facing docs. Bundle with the next docs pass.
 
 ### Do when needed (useful but workarounds exist)
 
-- **Large repo curation testing** — `/curate` needs testing on a repo with
-  1000+ commits, 30+ contributors.
+- **Large repo curation testing** — `/curate` needs testing on a repo
+  with 1000+ commits, 30+ contributors.
 
-- **spec-trace.sh sub-lettered IDs** — R39a-h pattern not matched by numeric-only
-  regex. Annotations exist in code but uncounted. Fix when reorg drops FXX IDs.
+- **spec-trace.sh sub-lettered IDs** — R39a-h pattern not matched by
+  numeric-only regex. Annotations exist in code but uncounted. Fix
+  when reorg drops FXX IDs.
 
-- **#45 cosmetic `upgrade.sh` output bug** — low priority; originally on the
-  v0.14.1 stack, still open.
+- **#45 cosmetic `upgrade.sh` output bug** — low priority; originally
+  on the v0.14.1 stack, still open.
+
+- **Fix the older spec-layer gaps (11 identified, 2026-04-21)** — 4
+  critical: feature-implement spec awareness, feature-refactor spec
+  awareness, spec-write two-file invalidation, work-decompose spec
+  state validation. PR #67 (annotation enforcement) likely covered or
+  changed several. Re-audit before scoping.
+
+- **Older 6 pipeline failure patterns (2026-04-21)** — one-sided
+  invalidation, audit outpacing specs, assert-only guards, dead code
+  wiring, spec asymmetry. Re-audit similarly — annotation enforcement
+  may have neutralized some.
 
 ### Do when scale demands it (team/scale features)
 
 - **Team KB commands** — `/kb sync`, `/kb consolidate`, `/kb status`.
 
-- **Pipeline observability** — velocity metrics, KB utilization tracking.
+- **Pipeline observability** — velocity metrics, KB utilization
+  tracking.
 
 - **Distributed work layer** — multi-party decomposition and merge
   (deferred — team-mode feature).
