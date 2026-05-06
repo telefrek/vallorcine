@@ -12,6 +12,8 @@
 # 8. Scope signal shown for high-dep-count WDs
 # 9. Dependency graph shows which WDs unblock others
 # 10. Curate mode emits extra data tables
+# 11-16. wd-type deps (basic + chained)
+# 17-21. monotonic state-rank match for wd deps (regression for strict-equality bug)
 #
 # Run from repo root: bash tests/scenario-work-resolve.sh
 
@@ -517,6 +519,153 @@ fi
 
 # ── Cleanup wd-dep-test group ───────────────────────────────────────────────
 rm -rf .work/wd-dep-test
+
+# ── Tests 17-21: monotonic state-rank match for wd deps ─────────────────────
+#
+# Regression for strict-equality bug surfaced from jlsm: a dep declared as
+# `required_state: SPECIFIED` was reported BLOCKED when the predecessor had
+# advanced to COMPLETE (a higher-ranked state on the lifecycle). The dep
+# should be satisfied by any state at-or-past the required rank.
+#
+# Lifecycle: DRAFT (0) → SPECIFYING (1) → SPECIFIED (2) → IMPLEMENTING (3)
+# → COMPLETE (4). IN_PROGRESS is a legacy alias for IMPLEMENTING.
+
+mkdir -p "$TEST_BASE/project/.work/state-rank-test"
+
+# Predecessor we'll mutate across tests
+cat > .work/state-rank-test/WD-01.md << 'EOF'
+---
+id: WD-01
+title: Predecessor
+group: state-rank-test
+status: COMPLETE
+domains: [auth]
+artifact_deps: []
+produces: []
+---
+
+## Summary
+Predecessor whose state will vary across the test cases below.
+
+## Acceptance Criteria
+Test.
+EOF
+
+# Dependent declares need-SPECIFIED — the bug case
+cat > .work/state-rank-test/WD-02.md << 'EOF'
+---
+id: WD-02
+title: Needs WD-01 SPECIFIED
+group: state-rank-test
+status: SPECIFIED
+domains: [auth]
+artifact_deps:
+  - { type: wd, ref: "WD-01", required_state: SPECIFIED }
+produces: []
+---
+
+## Summary
+This WD only needs WD-01 to have reached SPECIFIED — any state past
+SPECIFIED (IMPLEMENTING, COMPLETE) should also satisfy.
+
+## Acceptance Criteria
+Test.
+EOF
+
+# ── Test 17: COMPLETE predecessor satisfies need-SPECIFIED (SPECIFIED branch)
+
+echo ""
+echo "── Test 17: COMPLETE predecessor satisfies need-SPECIFIED dep (SPECIFIED branch)"
+
+output="$(bash .claude/scripts/work-resolve.sh state-rank-test 2>&1)"
+if echo "$output" | grep "WD-02" | grep -q "SPECIFIED" && \
+   ! echo "$output" | grep "WD-02" | grep -q "BLOCKED"; then
+    pass "COMPLETE predecessor satisfies need-SPECIFIED on a SPECIFIED dependent"
+else
+    fail "WD-02 should be SPECIFIED (WD-01 COMPLETE >= SPECIFIED)" "got: $output"
+fi
+
+# ── Test 18: IMPLEMENTING predecessor satisfies need-SPECIFIED ──────────────
+
+echo ""
+echo "── Test 18: IMPLEMENTING predecessor satisfies need-SPECIFIED dep"
+
+sed -i 's/^status: COMPLETE$/status: IMPLEMENTING/' .work/state-rank-test/WD-01.md
+
+output="$(bash .claude/scripts/work-resolve.sh state-rank-test 2>&1)"
+if echo "$output" | grep "WD-02" | grep -q "SPECIFIED" && \
+   ! echo "$output" | grep "WD-02" | grep -q "BLOCKED"; then
+    pass "IMPLEMENTING predecessor satisfies need-SPECIFIED"
+else
+    fail "WD-02 should be SPECIFIED (WD-01 IMPLEMENTING >= SPECIFIED)" "got: $output"
+fi
+
+# ── Test 19: SPECIFYING predecessor does NOT satisfy need-SPECIFIED ─────────
+
+echo ""
+echo "── Test 19: SPECIFYING predecessor does NOT satisfy need-SPECIFIED dep"
+
+sed -i 's/^status: IMPLEMENTING$/status: SPECIFYING/' .work/state-rank-test/WD-01.md
+
+output="$(bash .claude/scripts/work-resolve.sh state-rank-test 2>&1)"
+if echo "$output" | grep "WD-02" | grep -q "BLOCKED"; then
+    pass "SPECIFYING predecessor does not satisfy need-SPECIFIED (below required rank)"
+else
+    fail "WD-02 should be BLOCKED (WD-01 SPECIFYING < SPECIFIED)" "got: $output"
+fi
+
+# ── Test 20: COMPLETE predecessor satisfies need-SPECIFIED (DRAFT branch) ───
+
+echo ""
+echo "── Test 20: COMPLETE predecessor satisfies need-SPECIFIED dep (DRAFT branch)"
+
+sed -i 's/^status: SPECIFYING$/status: COMPLETE/' .work/state-rank-test/WD-01.md
+
+# DRAFT dependent that needs WD-01 SPECIFIED
+cat > .work/state-rank-test/WD-03.md << 'EOF'
+---
+id: WD-03
+title: Draft needs WD-01 SPECIFIED
+group: state-rank-test
+status: DRAFT
+domains: [auth]
+artifact_deps:
+  - { type: wd, ref: "WD-01", required_state: SPECIFIED }
+produces: []
+---
+
+## Summary
+DRAFT WD that wants WD-01 SPECIFIED to plan against.
+
+## Acceptance Criteria
+Test.
+EOF
+
+output="$(bash .claude/scripts/work-resolve.sh state-rank-test 2>&1)"
+if echo "$output" | grep "WD-03" | grep -q "READY" && \
+   ! echo "$output" | grep "WD-03" | grep -q "BLOCKED"; then
+    pass "DRAFT WD with COMPLETE predecessor is READY (need-SPECIFIED satisfied)"
+else
+    fail "WD-03 should be READY (WD-01 COMPLETE >= SPECIFIED)" "got: $output"
+fi
+
+# ── Test 21: IN_PROGRESS legacy alias satisfies need-SPECIFIED ──────────────
+
+echo ""
+echo "── Test 21: IN_PROGRESS legacy alias satisfies need-SPECIFIED"
+
+sed -i 's/^status: COMPLETE$/status: IN_PROGRESS/' .work/state-rank-test/WD-01.md
+
+output="$(bash .claude/scripts/work-resolve.sh state-rank-test 2>&1)"
+if echo "$output" | grep "WD-02" | grep -q "SPECIFIED" && \
+   ! echo "$output" | grep "WD-02" | grep -q "BLOCKED"; then
+    pass "IN_PROGRESS (legacy IMPLEMENTING alias) satisfies need-SPECIFIED"
+else
+    fail "WD-02 should be SPECIFIED (WD-01 IN_PROGRESS == IMPLEMENTING >= SPECIFIED)" "got: $output"
+fi
+
+# ── Cleanup state-rank-test group ───────────────────────────────────────────
+rm -rf .work/state-rank-test
 
 # ── Summary ──────────────────────────────────────────────────────────────────
 
