@@ -5,6 +5,69 @@ Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Re
 
 ---
 
+## [0.16.7] — 2026-05-06
+
+### Added
+
+- **`/spec-backfill <spec-id>` and `/spec-backfill --all`** — new skill
+  that walks every requirement of an APPROVED spec lacking `@spec`
+  annotations in code, presents likely enforcement sites ranked by
+  subject-token overlap, and applies user-chosen annotations. The
+  backfill complement to v0.16.5 forward-enforcement, closing the gap
+  for mature corpora authored before annotation enforcement existed.
+  `--all` corpus mode iterates every APPROVED spec in the manifest;
+  progress persists in `.spec/backfill-log.md` so users can break out
+  and resume.
+- **`spec-trace.sh --uncovered <spec-id>`** — emits a parseable list
+  of R-ids defined in the spec but absent from any `@spec` annotation
+  in code. One R-id per line on stdout (e.g.
+  `auth.token-validation.R3`); summary on stderr. Used by
+  `/spec-backfill` and `/curate` annotation-drift analysis as the
+  discovery primitive.
+- **`scripts/spec-backfill-candidates.sh`** — given a (spec-id, R-id),
+  reads the requirement text and ranks code locations by subject-token
+  overlap (case-insensitive substring with simple plural→singular
+  normalization). The candidate-finder primitive backing
+  `/spec-backfill` Phase 2.
+- **`scripts/spec-backfill-log.sh`** — append-only `.spec/backfill-log.md`
+  tracking per-(spec, R-id) backfill outcomes (annotated / skipped /
+  waived). Provides `init`, `append`, `has-decision`, `list-decisions`,
+  and `report` subcommands. Later rows for the same key supersede
+  earlier ones; `skipped` is intentionally non-terminal so skipped
+  R-ids resurface on rerun.
+- **`/curate` annotation-drift subsection** — new "Annotation drift —
+  APPROVED specs below 50% coverage" subsection under "Spec Annotation
+  Coverage Gaps". Routes resolution to `/spec-backfill <spec-id>`,
+  with a `/spec-backfill --all` suggestion when 4+ specs have drifted.
+  Surfaces partially-annotated specs at regular curation cadence so
+  drift never re-accumulates.
+
+### Fixed
+
+- **`work-resolve.sh` strict state-equality on wd deps**. A
+  `required_state: SPECIFIED` dep was reported BLOCKED when the
+  predecessor had advanced to COMPLETE, even though COMPLETE is past
+  SPECIFIED on the WD lifecycle. Surfaced from jlsm: `/work-plan` on a
+  group with COMPLETE/SPECIFIED predecessors flagged dependents as
+  blocked despite the dependency being functionally satisfied. Fix:
+  new `work_wd_state_rank` helper in `work-lib.sh` mapping the
+  lifecycle (DRAFT < SPECIFYING < SPECIFIED < IMPLEMENTING < COMPLETE)
+  to numeric ranks, with monotonic comparison at the two wd-dep call
+  sites in `work-resolve.sh`. Spec and ADR dep checks keep
+  exact-match — those have terminal-replaced states (INVALIDATED,
+  superseded) that should NOT silently satisfy a need-APPROVED /
+  accepted dep.
+
+### Changed
+
+- **`/curate` step 2m routing**. The default remediation for "APPROVED
+  specs with no annotations at all" is now `/spec-backfill <spec-id>`
+  (was `/spec-verify`). `/spec-verify` remains as the alternative for
+  cases where the gap may indicate true spec→code divergence rather
+  than pure annotation backfill.
+
+---
+
 ## [0.16.6] — 2026-05-05
 
 ### Fixed
