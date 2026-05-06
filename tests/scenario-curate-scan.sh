@@ -1343,6 +1343,170 @@ fi
 rm -rf "$BARE_DIR" 2>/dev/null || true
 cd "$REPO_ROOT"
 
+# ── Test 32: Annotation drift — partial coverage below 50% surfaces ────────
+# An APPROVED spec with > 50% of requirements uncovered (but at least one
+# annotation) should appear in the new "Annotation drift" subsection of
+# the scan summary, distinct from UNANNOTATED. Sorted by uncovered-pct.
+
+echo ""
+echo "── Test 32: Annotation drift — partial coverage below 50% surfaces"
+
+DRIFT_DIR="/tmp/vallorcine/scenario-annotation-drift"
+rm -rf "$DRIFT_DIR" 2>/dev/null || true
+mkdir -p "$DRIFT_DIR/.spec/domains/auth" "$DRIFT_DIR/.spec/registry" \
+         "$DRIFT_DIR/.curate" "$DRIFT_DIR/.claude/scripts" "$DRIFT_DIR/src/auth"
+cp "$REPO_ROOT/scripts/curate-scan.sh" "$DRIFT_DIR/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$DRIFT_DIR/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-trace.sh" "$DRIFT_DIR/.claude/scripts/"
+
+cd "$DRIFT_DIR"
+git init -q .
+git config user.email t@t.com && git config user.name t
+
+# Spec with 5 R-ids; only R1 will be annotated → 4/5 uncovered = 80% drift.
+cat > .spec/domains/auth/token.md << 'SPECEOF'
+---
+{
+  "id": "auth.token",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["auth"],
+  "requires": [], "invalidates": [], "decision_refs": [], "kb_refs": []
+}
+---
+
+# auth.token
+
+## Requirements
+
+R1. Validate token signatures.
+R2. Reject expired tokens.
+R3. Support multi-tenant claims.
+R4. Handle malformed tokens with parse errors.
+R5. Issue tokens with configurable TTL.
+SPECEOF
+
+cat > src/auth/Token.java << 'JEOF'
+// @spec auth.token.R1 — signature validation
+public class Token {
+    public boolean validate() { return true; }
+}
+JEOF
+
+cat > .spec/registry/manifest.json << 'MFEOF'
+{"schema_version": 2, "spec_count": 1,
+ "specs": [
+   {"id":"auth.token","path":".spec/domains/auth/token.md","state":"APPROVED","version":1,"domains":["auth"],"requires":[],"invalidates":[],"decision_refs":[],"kb_refs":[]}
+ ]}
+MFEOF
+
+git add -A && git commit -q -m "init"
+
+if command -v jq >/dev/null 2>&1; then
+    bash .claude/scripts/curate-scan.sh --init >/tmp/curate-drift.out 2>&1 || true
+
+    # auth.token should appear in the drift subsection (4/5 uncovered = 80%)
+    if grep -B 2 -A 15 'Annotation drift' .curate/scan-summary.md 2>/dev/null \
+       | grep -qE '^\| auth\.token \| 4 \| 5 \| 80% \|'; then
+        pass "auth.token surfaces in annotation-drift with 4/5 uncovered"
+    else
+        fail "auth.token should appear with 4 uncov, 5 total, 80%" \
+             "$(grep -B 2 -A 15 'Annotation drift' .curate/scan-summary.md 2>/dev/null | head -25)"
+    fi
+
+    # auth.token should NOT appear in UNANNOTATED (it has at least one annotation)
+    if grep -A 10 "no @spec annotations of any kind" .curate/scan-summary.md 2>/dev/null \
+       | grep -q "auth.token"; then
+        fail "auth.token leaked into UNANNOTATED (it has @spec auth.token.R1)"
+    else
+        pass "drifted spec stays out of UNANNOTATED bucket"
+    fi
+
+    # Drift subsection routes to /spec-backfill
+    if grep -A 5 'Annotation drift' .curate/scan-summary.md 2>/dev/null \
+       | grep -q '/spec-backfill'; then
+        pass "drift subsection routes to /spec-backfill"
+    else
+        fail "drift subsection should mention /spec-backfill"
+    fi
+else
+    echo "  SKIP  jq not available"
+fi
+
+rm -rf "$DRIFT_DIR" 2>/dev/null || true
+cd "$REPO_ROOT"
+
+# ── Test 33: Annotation drift — fully-covered spec does NOT surface ────────
+# Spec with all R-ids annotated must NOT appear in the drift subsection.
+
+echo ""
+echo "── Test 33: Annotation drift — fully covered spec does not surface"
+
+COV_DIR="/tmp/vallorcine/scenario-fully-covered"
+rm -rf "$COV_DIR" 2>/dev/null || true
+mkdir -p "$COV_DIR/.spec/domains/auth" "$COV_DIR/.spec/registry" \
+         "$COV_DIR/.curate" "$COV_DIR/.claude/scripts" "$COV_DIR/src/auth"
+cp "$REPO_ROOT/scripts/curate-scan.sh" "$COV_DIR/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh" "$COV_DIR/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-trace.sh" "$COV_DIR/.claude/scripts/"
+
+cd "$COV_DIR"
+git init -q .
+git config user.email t@t.com && git config user.name t
+
+cat > .spec/domains/auth/cov.md << 'SPECEOF'
+---
+{
+  "id": "auth.cov",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "APPROVED",
+  "domains": ["auth"],
+  "requires": [], "invalidates": [], "decision_refs": [], "kb_refs": []
+}
+---
+
+# auth.cov
+
+## Requirements
+
+R1. First.
+R2. Second.
+SPECEOF
+
+cat > src/auth/Cov.java << 'JEOF'
+// @spec auth.cov.R1
+public class CovOne {}
+// @spec auth.cov.R2
+public class CovTwo {}
+JEOF
+
+cat > .spec/registry/manifest.json << 'MFEOF'
+{"schema_version": 2, "spec_count": 1,
+ "specs": [
+   {"id":"auth.cov","path":".spec/domains/auth/cov.md","state":"APPROVED","version":1,"domains":["auth"],"requires":[],"invalidates":[],"decision_refs":[],"kb_refs":[]}
+ ]}
+MFEOF
+
+git add -A && git commit -q -m "init"
+
+if command -v jq >/dev/null 2>&1; then
+    bash .claude/scripts/curate-scan.sh --init >/tmp/curate-cov.out 2>&1 || true
+
+    if grep -A 15 'Annotation drift' .curate/scan-summary.md 2>/dev/null \
+       | grep -q "auth.cov"; then
+        fail "fully-covered auth.cov leaked into drift subsection"
+    else
+        pass "fully-covered spec does not appear in annotation-drift"
+    fi
+else
+    echo "  SKIP  jq not available"
+fi
+
+rm -rf "$COV_DIR" 2>/dev/null || true
+cd "$REPO_ROOT"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""
