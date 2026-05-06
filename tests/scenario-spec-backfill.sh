@@ -380,6 +380,85 @@ else
     fail "pipes not sanitized" "got: $(grep R5 "$TEST_BASE/log.md")"
 fi
 
+# ── Test 17: --all corpus enumeration on v2 manifest ────────────────────────
+
+echo ""
+echo "── Test 17: --all corpus enumeration emits APPROVED spec IDs (v2)"
+
+# v2 manifest already in place (with F01 + billing.charge from earlier tests).
+# Add a DRAFT spec that should NOT be enumerated.
+cat > "$TEST_BASE/project/.spec/domains/auth/F09-draft.md" << 'EOF'
+---
+{
+  "id": "F09",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "DRAFT",
+  "domains": ["auth"]
+}
+---
+
+# F09 — Draft only
+
+## Requirements
+R1. Draft.
+EOF
+cat > "$TEST_BASE/project/.spec/registry/manifest.json" << 'EOF'
+{
+  "schema_version": 2,
+  "specs": [
+    { "id": "F01", "path": ".spec/domains/auth/F01-token-validation.md", "state": "APPROVED", "domains": ["auth"] },
+    { "id": "billing.charge", "path": ".spec/domains/billing/charge.md", "state": "APPROVED", "domains": ["billing"] },
+    { "id": "F09", "path": ".spec/domains/auth/F09-draft.md", "state": "DRAFT", "domains": ["auth"] }
+  ]
+}
+EOF
+
+# Mirror the SKILL's enumeration — must work without bespoke tooling.
+output=$(jq -r '
+  if .specs then
+    .specs[] | select(.state == "APPROVED") | .id
+  else
+    (.features // {}) | to_entries[] | select(.value.state == "APPROVED") | .key
+  end
+' "$TEST_BASE/project/.spec/registry/manifest.json" | sort)
+expected=$'F01\nbilling.charge'
+if [[ "$output" == "$expected" ]]; then
+    pass "--all enumeration filters APPROVED only (v2 schema)"
+else
+    fail "should emit F01 and billing.charge, exclude F09 (DRAFT)" "got: '$output'"
+fi
+
+# ── Test 18: --all corpus enumeration on v1 manifest ────────────────────────
+
+echo ""
+echo "── Test 18: --all corpus enumeration handles v1 manifest schema"
+
+cat > "$TEST_BASE/v1-manifest.json" << 'EOF'
+{
+  "domains": { "auth": {} },
+  "features": {
+    "F01": { "latest_file": "domains/auth/F01.md", "state": "APPROVED" },
+    "F02": { "latest_file": "domains/auth/F02.md", "state": "DRAFT" },
+    "F03": { "latest_file": "domains/auth/F03.md", "state": "APPROVED" }
+  }
+}
+EOF
+
+output=$(jq -r '
+  if .specs then
+    .specs[] | select(.state == "APPROVED") | .id
+  else
+    (.features // {}) | to_entries[] | select(.value.state == "APPROVED") | .key
+  end
+' "$TEST_BASE/v1-manifest.json" | sort)
+expected=$'F01\nF03'
+if [[ "$output" == "$expected" ]]; then
+    pass "--all enumeration handles v1 manifest schema"
+else
+    fail "should emit F01 and F03 from v1 manifest" "got: '$output'"
+fi
+
 # ── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 echo "────────────────────────────────────────────────"

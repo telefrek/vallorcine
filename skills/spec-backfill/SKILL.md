@@ -1,6 +1,6 @@
 ---
-description: "Backfill @spec annotations on existing code for an APPROVED spec"
-argument-hint: "<spec-id>"
+description: "Backfill @spec annotations on existing code for an APPROVED spec (or --all specs)"
+argument-hint: "<spec-id> | --all"
 ---
 
 # /spec-backfill
@@ -10,8 +10,15 @@ in code, present likely enforcement sites for each, and apply annotations
 the user chooses. The catch-up tool for mature corpora authored before
 `@spec` annotation enforcement (`v0.16.5` / PR #67) was added.
 
-**When to use:** APPROVED spec whose requirements pre-date annotation
-enforcement and which has many uncovered R-ids. `/curate` annotation-drift
+**Two modes:**
+- `/spec-backfill <spec-id>` — walk one spec.
+- `/spec-backfill --all` — iterate every APPROVED spec in the manifest,
+  running the per-spec walk against each. The catch-up tool for whole
+  corpora (e.g. jlsm: 75 specs / 12 domains, mostly authored before
+  enforcement existed).
+
+**When to use:** APPROVED spec(s) whose requirements pre-date annotation
+enforcement and which have uncovered R-ids. `/curate` annotation-drift
 analysis routes here when a spec falls below 50% coverage.
 
 **Not for:** active features mid-pipeline. The `/feature-test` and
@@ -32,10 +39,14 @@ existing pre-enforcement code that no live feature touches.
 2. Verify `.spec/registry/manifest.json` exists. If not, tell the user to
    run `/spec-init` and stop.
 
-3. Resolve the spec ID from `$ARGUMENTS`. If empty, ask the user which spec
-   to backfill via AskUserQuestion. Build the option list from
-   `spec_manifest_ids` (limit to 4 + Other; if more candidates exist, hint
-   that `/spec-backfill --all` covers the corpus).
+3. Determine mode from `$ARGUMENTS`:
+   - `--all` (or `-a`) → corpus mode (jump to "Corpus mode" section below
+     after pre-flight).
+   - empty → ask the user which spec to backfill via AskUserQuestion.
+     Build the option list from APPROVED specs in the manifest (limit to
+     4 + Other; if more candidates exist, hint that `/spec-backfill --all`
+     covers the corpus).
+   - non-empty, not `--all` → treat as a literal spec-id and use it.
 
 4. Read `rules/spec-annotation-protocol.md` (already in your context as a
    project rule) — you must follow its comment-syntax-per-language and
@@ -193,6 +204,89 @@ If `skipped` count > 0, tell the user how to resume:
 ```
 <K> requirement(s) were skipped and will resurface on rerun. Run
 /spec-backfill <spec-id> again when you're ready to revisit them.
+```
+
+---
+
+## Corpus mode (`--all`)
+
+When invoked with `--all`, iterate every APPROVED spec in the manifest
+and run the per-spec walk against each. Pre-flight runs once; the
+backfill log is the same `.spec/backfill-log.md` so progress and prior
+decisions persist across the whole corpus.
+
+### C1. Discover the candidate set
+
+Enumerate APPROVED specs by reading the manifest:
+
+```bash
+jq -r '
+  if .specs then
+    .specs[] | select(.state == "APPROVED") | .id
+  else
+    (.features // {}) | to_entries[] | select(.value.state == "APPROVED") | .key
+  end
+' .spec/registry/manifest.json
+```
+
+Both v1 (`features` object keyed by ID) and v2 (`specs` array of objects)
+manifest schemas are handled by the `if .specs then` switch — the same
+dual-schema pattern `spec-lib.sh` uses.
+
+For each ID, run `bash .claude/scripts/spec-trace.sh --uncovered <id>`
+and capture only the count of uncovered R-ids. Skip specs that return
+zero uncovered (already fully annotated).
+
+Tell the user the corpus picture in one paragraph:
+
+```
+Corpus has <N> APPROVED specs. <K> already fully annotated — skipping.
+<M> have at least one uncovered requirement, totalling <U> uncovered
+R-ids across the corpus. Walking specs in manifest order; you can
+break out at any time and rerun /spec-backfill --all to resume.
+```
+
+### C2. Per-spec walk
+
+For each spec with uncovered R-ids, run **Phase 1 → Phase 2 → Phase 3**
+verbatim from the per-spec mode above. Between specs, surface a brief
+transition line so the user knows where they are:
+
+```
+─────────────────────────────────────────
+Spec 4 of 12 — auth.token-validation
+6 uncovered, 2 already decided in log
+─────────────────────────────────────────
+```
+
+### C3. Corpus summary
+
+After the last spec, emit a final aggregate report:
+
+- Total specs walked / skipped (already covered) / partially covered after run
+- Total annotations applied this session
+- Total R-ids skipped (will resurface) / waived
+- Pointer to `.spec/backfill-log.md` for the canonical record
+
+If any spec still has skipped or undecided R-ids, tell the user how to
+resume:
+
+```
+<X> requirement(s) across <Y> spec(s) were skipped this run. Rerun
+/spec-backfill --all to resume — already-decided R-ids will be skipped
+automatically.
+```
+
+### C4. Cost awareness
+
+Whole-corpus runs can be long. Surface a one-line cost note before
+starting if the corpus has > 50 uncovered R-ids in total:
+
+```
+Heads up: <U> uncovered R-ids across the corpus. Each requires at
+least one decision (annotate / skip / waive). Plan to break this
+into multiple sessions if needed — progress persists in
+.spec/backfill-log.md.
 ```
 
 ---
