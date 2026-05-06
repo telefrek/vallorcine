@@ -187,6 +187,7 @@ or work groups stall. The result: your 5th feature is faster than your 1st.
 | `/spec-write "<id>" "<title>"` | Register a spec in `.spec/` storage with conflict and displacement check |
 | `/spec-verify "<id>"` | Verify a spec against the current implementation |
 | `/spec-split "<spec-id>"` | Subdivide a mature spec into a parent + concern-specific children. Parent retains cross-cutting requirements; children own concern-specific reqs. Transactional with auto-rollback on validation failure. Triggered by `/curate` housekeeping or `/spec-author` Pass 2 just-in-time signal. |
+| `/spec-backfill "<spec-id>" \| --all` | Walk every requirement of an APPROVED spec lacking `@spec` annotations in code, present likely enforcement sites ranked by token overlap, apply user-chosen annotations. Backfill complement to forward `@spec` enforcement; the catch-up tool for mature corpora authored before annotation enforcement existed. `--all` iterates every APPROVED spec in the manifest with progress persisted in `.spec/backfill-log.md`. Routed to from `/curate` annotation-drift findings. |
 | `/spec-resolve "<description>"` | Build a resolved context bundle. Detects displacement — when new specs contradict existing APPROVED specs — and presents resolution choices (accept, narrow, defer). Hierarchy-aware: when a child spec lands in candidates, the parent chain auto-includes; `INCLUDE_SIBLINGS=1` opt-in for adversarial paths. |
 | `/spec-init` | Initialize the `.spec/` directory structure |
 
