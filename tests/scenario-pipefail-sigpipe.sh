@@ -89,9 +89,9 @@ check_site "$REPO_ROOT/scripts/spec-validate.sh" \
     'echo "$spec_body" | grep -qE '"'"'\[CONFLICT\]'"'"
 
 check_site "$REPO_ROOT/scripts/spec-validate.sh" \
-    "spec-validate Check 11 uses <<< for ^R[0-9]+." \
-    'grep -qE '"'"'^R[0-9]+\.'"'"' <<< "$machine"' \
-    'echo "$machine" | grep -qE '"'"'^R[0-9]+\.'"'"
+    "spec-validate Check 11 uses <<< for ^R[0-9]+ requirements" \
+    'grep -qE '"'"'^R[0-9]+[a-z]*(-[0-9]+[a-z]*)?\.'"'"' <<< "$machine"' \
+    'echo "$machine" | grep -qE '"'"'^R[0-9]+'"'"
 
 # kb-search.sh — content_lower (KB index content) is unbounded for big indexes
 check_site "$REPO_ROOT/scripts/kb-search.sh" \
