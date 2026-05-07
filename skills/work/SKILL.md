@@ -214,17 +214,18 @@ Write `.work/<group-slug>/manifest.md`:
 
 ### 4c — Update .work/CLAUDE.md index
 
-Add a row to the "Active Work Groups" table:
+Append rows to both the "Active Work Groups" table and the
+"Recently Added" log via the index helper:
 
-```
-| <group-slug> | .work/<group-slug>/ | <goal> | 0 | 0 | 0 | <YYYY-MM-DD> |
+```bash
+bash .claude/scripts/work-index.sh add "<group-slug>" "<goal>"
 ```
 
-Add a row to the "Recently Added" table:
-
-```
-| <YYYY-MM-DD> | <group-slug> | — | — | active |
-```
+The script writes both rows atomically and is idempotent — if a row
+already exists for the slug it falls through to a count refresh
+instead of duplicating. Do not edit `.work/CLAUDE.md` by hand here;
+column-shape drift between hand-edits and other call sites breaks the
+table for `/work-status` and the index helper alike.
 
 ---
 
