@@ -107,17 +107,23 @@ If this is a work-group-sourced feature:
 
 1. Determine the work group slug (from status.md `work_group` field or slug prefix).
 2. Verify the WD frontmatter has `status: COMPLETE` (should already be set
-   by feature-refactor Step 6b). If not COMPLETE, set it now as a fallback.
-3. Refresh `.work/CLAUDE.md` Active Work Groups counts via the index
-   helper — recomputes `WDs / Ready / Complete` and bumps Last Updated:
+   by feature-refactor Step 6b's `work-finalize.sh` call). If not, set it
+   now as a fallback.
+3. Defensive resync of `.work/CLAUDE.md` via the index helper:
 
    ```bash
    bash .claude/scripts/work-index.sh update "<group-slug>"
    ```
 
-   Do not edit `.work/CLAUDE.md` by hand. The script reads each WD's
-   frontmatter `status:` and re-derives the row counts; hand-edits drift
-   from filesystem state and miss the date stamp.
+   In the normal pipeline this is a **no-op** — `work-finalize.sh`
+   already updated the index inside the feature PR, and the helper
+   preserves Last Updated when counts haven't changed. The call exists
+   for features that bypassed the standard pipeline (hand-completed,
+   resumed from a partial state, or running on an upgraded install
+   where the prior version didn't yet emit the index update).
+
+   Do not edit `.work/CLAUDE.md` by hand under any circumstances —
+   hand-edits drift from filesystem state and break `/work-status`.
 
 ---
 

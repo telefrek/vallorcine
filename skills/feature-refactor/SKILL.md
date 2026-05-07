@@ -717,6 +717,10 @@ bash .claude/scripts/work-finalize.sh "<slug>"
 
 The script:
 1. Sets the WD status to COMPLETE
+1b. Refreshes `.work/CLAUDE.md` Active Work Groups counts via
+   `work-index.sh update`. Bundling this here means the index update
+   lands inside the feature PR, so post-merge `/feature-complete`
+   has nothing tracked left to write.
 2. Resolves obligations referenced in brief.md (`_obligations.json`)
 3. Removes resolved IDs from spec `open_obligations` frontmatter
 

@@ -84,6 +84,19 @@ else
     echo "[finalize] WD file not found for $WORK_DEF in $WORK_DIR" >&2
 fi
 
+# ── 1b. Refresh .work/CLAUDE.md Active Work Groups counts ──────────────────
+# Bundles the index update into the feature commit (and therefore the
+# feature PR), so /feature-complete post-merge has nothing tracked to write.
+# Without this step, /feature-complete's Step 2b would leave a dirty
+# .work/CLAUDE.md after the PR was already merged, requiring a separate
+# follow-up commit + push for derived state.
+if [[ -x "$_WF_SCRIPT_DIR/work-index.sh" ]]; then
+    bash "$_WF_SCRIPT_DIR/work-index.sh" update "$WORK_GROUP" || \
+        echo "[finalize] work-index update failed — counts may be stale" >&2
+else
+    echo "[finalize] work-index.sh not found — counts not refreshed" >&2
+fi
+
 # ── 2. Resolve obligations ────────────────────────────────────────────────
 
 OB_REGISTRY=".spec/registry/_obligations.json"
