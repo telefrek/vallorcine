@@ -288,6 +288,92 @@ else
     fail "gate failed on vacuous coverage"
 fi
 
+# ── Test 11: init parses title-bearing spec section headers ─────────────────
+# Regression: spec-coverage.sh init's awk regex was anchored as `^# <id>$`,
+# but spec-resolve.sh's machine_section pass-through includes the spec
+# file's own title line `# <id> — Title`. The anchored regex never
+# matched, init emitted a vacuous-coverage file, and populated tables
+# only appeared later when /spec-coverage update re-derived rows from
+# spec-trace output. After this fix init must populate the table from a
+# title-bearing bundle just like it does from the bare-id form.
+
+echo ""
+echo "── Test 11: init parses title-bearing `# <id> — Title` section headers"
+
+mkdir -p .feature/title-bearing
+cat > .feature/title-bearing/spec-bundle.md << 'BUNDLE'
+# Resolved Context Bundle
+Generated: 2026-05-07T00:00:00Z
+
+## Feature Requirements
+
+# auth.token-validation — JWT Token Validation Contract
+
+## Requirements
+R1. The TokenValidator must reject expired tokens.
+R2. The TokenValidator must reject malformed tokens.
+
+---
+
+# auth.session-lifecycle — Session Lifecycle (revision 3)
+
+## Requirements
+R1. The SessionStore must invalidate on logout.
+R2. The SessionStore must auto-expire on inactivity.
+
+## Cross-References
+none
+BUNDLE
+
+COV_TITLE=".feature/title-bearing/spec-coverage.md"
+bash .claude/scripts/spec-coverage.sh init "$COV_TITLE" .feature/title-bearing/spec-bundle.md 2>/dev/null
+
+# Should NOT fall into the vacuous-coverage branch
+if grep -q '^No specs loaded' "$COV_TITLE"; then
+    fail "title-bearing bundle was misclassified as empty (regex still anchored?)"
+else
+    pass "title-bearing bundle did NOT trigger vacuous-coverage path"
+fi
+
+# Should populate one row per (spec, R)
+row_count=$(grep -cE '^\| auth\.[a-z\-]+ \| R[0-9]+' "$COV_TITLE" || true)
+if [[ "$row_count" == "4" ]]; then
+    pass "4 rows written from title-bearing bundle (2 specs × 2 reqs)"
+else
+    fail "expected 4 rows, got $row_count" "head: $(head -10 "$COV_TITLE")"
+fi
+
+# Spec ID column must be the bare ID, NOT the title-bearing form. If the
+# extraction failed to truncate at the first whitespace, the ID column
+# would contain the appended title.
+if grep -q '— JWT' "$COV_TITLE" || grep -q '— Session' "$COV_TITLE"; then
+    fail "spec ID column captured the title — extraction did not truncate at whitespace" \
+         "got: $(grep '^|' "$COV_TITLE" | head -3)"
+else
+    pass "spec ID column is bare (title not leaked into the ID column)"
+fi
+
+# Bare-ID form must still work — backwards compatibility for older bundles.
+mkdir -p .feature/bare-id
+cat > .feature/bare-id/spec-bundle.md << 'BUNDLE'
+# Resolved Context Bundle
+
+## Feature Requirements
+
+# auth.bare-token
+
+## Requirements
+R1. Just one requirement.
+BUNDLE
+
+COV_BARE=".feature/bare-id/spec-coverage.md"
+bash .claude/scripts/spec-coverage.sh init "$COV_BARE" .feature/bare-id/spec-bundle.md 2>/dev/null
+if grep -qE '^\| auth\.bare-token \| R1 \| pending \| pending \|' "$COV_BARE"; then
+    pass "bare-ID bundle (pre-title format) still parses (backwards-compatible)"
+else
+    fail "bare-ID bundle regressed" "got: $(cat "$COV_BARE" | tail -5)"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""
