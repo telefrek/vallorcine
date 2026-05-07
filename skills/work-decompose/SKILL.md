@@ -582,7 +582,14 @@ Write the text dependency graph from Step 3.
 
 ### Update .work/CLAUDE.md
 
-Update the Active Work Groups row for this group: set WDs count to the total.
+Refresh the Active Work Groups row — the index helper recomputes
+`WDs / Ready / Complete` from the filesystem and bumps Last Updated:
+
+```bash
+bash .claude/scripts/work-index.sh update "<group-slug>"
+```
+
+Do not hand-edit the WDs count or any column in `.work/CLAUDE.md`.
 
 ### Run invariant check
 

@@ -755,7 +755,15 @@ Write `.work/<group-slug>/manifest.md` using the same format as
 `/work-decompose` Step 6 (populate the Work Definitions table and
 Dependency Graph from the WD files).
 
-Update `.work/CLAUDE.md` — add a row to the Active Work Groups table.
+Add the group to `.work/CLAUDE.md` via the index helper, then refresh
+counts so the row reflects the WDs just created:
+
+```bash
+bash .claude/scripts/work-index.sh add "<group-slug>" "<roadmap goal>"
+bash .claude/scripts/work-index.sh update "<group-slug>"
+```
+
+Do not hand-edit the table.
 
 #### 9e — Present result
 

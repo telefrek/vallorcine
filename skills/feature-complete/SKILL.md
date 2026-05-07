@@ -105,13 +105,19 @@ status.md and does not match the `<group>--<wd>` double-dash convention.**
 
 If this is a work-group-sourced feature:
 
-1. Determine the work group slug (from status.md `work_group` field or slug prefix)
+1. Determine the work group slug (from status.md `work_group` field or slug prefix).
 2. Verify the WD frontmatter has `status: COMPLETE` (should already be set
    by feature-refactor Step 6b). If not COMPLETE, set it now as a fallback.
-3. Update `.work/CLAUDE.md` — increment the Complete count for this group
+3. Refresh `.work/CLAUDE.md` Active Work Groups counts via the index
+   helper — recomputes `WDs / Ready / Complete` and bumps Last Updated:
 
-The manifest table is automatically synced by `work-resolve.sh` — do not
-update it manually.
+   ```bash
+   bash .claude/scripts/work-index.sh update "<group-slug>"
+   ```
+
+   Do not edit `.work/CLAUDE.md` by hand. The script reads each WD's
+   frontmatter `status:` and re-derives the row counts; hand-edits drift
+   from filesystem state and miss the date stamp.
 
 ---
 
