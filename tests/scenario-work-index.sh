@@ -221,6 +221,40 @@ else
     fail "update didn't reflect status change" "got: $(grep -F '| auth-migration |' .work/CLAUDE.md | head -1)"
 fi
 
+# ── Test 11: update is a true no-op when counts haven't changed ────────────
+# Regression: previously `update` rewrote the row on every invocation
+# (bumping Last Updated to today) even when counts were unchanged. That
+# left dirty .work/CLAUDE.md after /feature-complete in the post-merge
+# window — the feature PR had already updated counts, but a same-day
+# /feature-complete still bumped the timestamp. The fix preserves the
+# existing Last Updated when counts haven't moved so re-runs leave the
+# file byte-identical.
+
+echo ""
+echo "── Test 11: update is a true no-op when counts haven't changed"
+
+# Snapshot the file, then run update again with no WD changes.
+cp .work/CLAUDE.md /tmp/work-claude-before.md
+bash "$INDEX_SCRIPT" update auth-migration >/dev/null 2>&1
+if cmp -s .work/CLAUDE.md /tmp/work-claude-before.md; then
+    pass "second update on unchanged counts wrote zero bytes (file byte-identical)"
+else
+    fail "no-op update mutated the file" \
+         "diff: $(diff /tmp/work-claude-before.md .work/CLAUDE.md | head -5)"
+fi
+
+# Even on a different calendar day: if counts are unchanged, Last
+# Updated stays put. Set the row's date column to a known past value,
+# then call update, then assert the past date is preserved (not bumped).
+sed -i -E 's/^(\| auth-migration .* \| 2 \| 0 \| 2 \|) [0-9]{4}-[0-9]{2}-[0-9]{2} \|/\1 2026-01-01 |/' .work/CLAUDE.md
+bash "$INDEX_SCRIPT" update auth-migration >/dev/null 2>&1
+if grep -qE '^\| auth-migration \|.* \| 2 \| 0 \| 2 \| 2026-01-01 \|' .work/CLAUDE.md; then
+    pass "Last Updated preserved (not bumped) when counts unchanged"
+else
+    fail "Last Updated got bumped on a no-op update" \
+         "got: $(grep -F '| auth-migration |' .work/CLAUDE.md | head -1)"
+fi
+
 # ── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 echo "────────────────────────────────────────────────"

@@ -112,10 +112,9 @@ cmd_update() {
     exit 1
   fi
 
-  local counts total ready complete today
+  local counts total ready complete
   counts="$(_count_group "$group_dir")"
   IFS='|' read -r total ready complete <<<"$counts"
-  today="$(date +%F)"
 
   # Match rows by literal prefix `| <slug> |`. Pipe is `\|` in grep ERE
   # but plain `|` is alternation in awk regex, so we use awk's index()
@@ -126,15 +125,39 @@ cmd_update() {
     exit 1
   fi
 
-  # Read the existing row's Path and Goal so update preserves them.
+  # Read the existing row's Path / Goal / counts / date so we can decide
+  # whether anything actually needs to change. Idempotence matters here:
+  # callers (feature-finalize, feature-complete) re-run update routinely,
+  # and bumping Last Updated on a no-op leaves a spurious tracked change
+  # that downstream skills then have to commit + push separately.
   local existing
   existing="$(grep -F "$row_prefix" "$index" | head -1)"
-  IFS='|' read -r _ _ path goal _ _ _ _ <<<"$existing"
-  path="$(_trim "$path")"
-  goal="$(_trim "$goal")"
+  local ex_path ex_goal ex_total ex_ready ex_complete ex_date
+  IFS='|' read -r _ _ ex_path ex_goal ex_total ex_ready ex_complete ex_date _ <<<"$existing"
+  local path goal date_col
+  path="$(_trim "$ex_path")"
+  goal="$(_trim "$ex_goal")"
+  ex_total="$(_trim "$ex_total")"
+  ex_ready="$(_trim "$ex_ready")"
+  ex_complete="$(_trim "$ex_complete")"
+  ex_date="$(_trim "$ex_date")"
+
+  # Keep the existing Last Updated unless the counts actually moved.
+  # That way "Last Updated" reflects the last meaningful change, not the
+  # last time the script was invoked.
+  if [[ "$ex_total" == "$total" && "$ex_ready" == "$ready" && "$ex_complete" == "$complete" ]]; then
+    date_col="$ex_date"
+  else
+    date_col="$(date +%F)"
+  fi
 
   local new_row
-  new_row="| $slug | $path | $goal | $total | $ready | $complete | $today |"
+  new_row="| $slug | $path | $goal | $total | $ready | $complete | $date_col |"
+
+  if [[ "$existing" == "$new_row" ]]; then
+    echo "[work-index] update: $slug already current ($total/$ready/$complete) — no-op" >&2
+    return 0
+  fi
 
   local tmp
   tmp="$(mktemp)"
