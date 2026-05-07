@@ -99,6 +99,36 @@ Options:
 ```
 Stop.
 
+### Reconcile against durable artifacts
+
+`.feature/<slug>/` is gitignored. When a sibling WD authors a spec
+that this WD's `produces:` declares, the manifest learns about it but
+this feature's status.md does not — the local cache lives only on
+whoever ran the spec-authoring session. Re-entering on a fresh
+machine then misreads "Spec Authoring pending" even though the spec
+is APPROVED and committed.
+
+Run the reconciler before reading status.md so it reflects durable
+truth:
+
+```bash
+bash .claude/scripts/feature-state-reconcile.sh "<slug>"
+```
+
+The script:
+- Detects work-group features (status.md `work_group:` field or
+  `<group>--<wd>` slug pattern). No-op for plain features.
+- Reads the WD's `produces:` list and looks up each spec's state in
+  the manifest.
+- If every produced spec is APPROVED: flips the Spec Authoring row
+  in status.md to `complete` with today's date, leaving the
+  Estimated/Actual token columns alone.
+- Idempotent — a re-run on already-reconciled state writes nothing
+  and prints "current".
+
+If the script reported drift, surface that one-line summary above the
+"CURRENT POSITION" header so the user sees what was reconciled.
+
 ---
 
 ## Step 1b — Mode dispatch
