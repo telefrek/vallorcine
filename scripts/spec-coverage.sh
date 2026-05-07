@@ -75,17 +75,22 @@ cmd_init() {
 
   # Extract (spec, R) pairs from the bundle. The spec-resolve bundle's
   # `## Feature Requirements` section contains one or more spec sections;
-  # each starts with `# <spec-id>` (matching the SPEC_ID grammar) and
-  # carries `R<n>.` requirement lines.
+  # each starts with `# <spec-id>` and may continue with ` — <title>`
+  # (the spec file's own title-bearing header is rendered into the
+  # bundle verbatim via machine_section). Match either form: the bare
+  # `^# <id>$` from older bundles AND the title-bearing
+  # `^# <id> — Title` shape that spec-resolve emits today. The
+  # substring extraction then truncates at the first whitespace so
+  # cur_spec captures only the ID, not the appended title.
   local pairs
-  pairs=$(awk -v re="^# $SPEC_ID_RE\$" '
+  pairs=$(awk -v re="^# $SPEC_ID_RE( |\$)" '
     BEGIN { in_features = 0; cur_spec = "" }
     /^## Feature Requirements *$/ { in_features = 1; next }
     in_features && /^## / && !/^## Requirements *$/ { in_features = 0 }
     in_features && /^# / {
       if (match($0, re)) {
         cur_spec = substr($0, 3)
-        sub(/[ \t]+$/, "", cur_spec)
+        sub(/[ \t].*$/, "", cur_spec)
       }
     }
     in_features && /^R[0-9]+[a-z]*(-[0-9]+[a-z]*)?\./ {
