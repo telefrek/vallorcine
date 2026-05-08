@@ -159,8 +159,11 @@ intent and behaviour, not implementation details.
 
 If `.feature/<slug>/spec-coverage.md` exists, refresh it against the current
 codebase and run the gate. The gate is the structural enforcement that every
-loaded spec requirement has at least one `@spec` annotation in tests or
-implementation:
+**primary** loaded spec requirement has at least one `@spec` annotation in
+tests or implementation. Rows tagged `context` in the Notes column come from
+specs that were transitively pulled into the bundle for planning visibility
+(parent chain, `requires:`, sibling expansion) — those are NOT this feature's
+annotation obligation and the gate skips them by default:
 
 ```bash
 if [[ -f .feature/<slug>/spec-coverage.md ]]; then
@@ -173,8 +176,9 @@ fi
 
 **If the gate fails (exit nonzero):**
 
-The script prints the list of uncovered requirements. Display the output to
-the user and stop the PR draft. Do not proceed to Step 2.
+The script prints the list of uncovered requirements (primary scope only by
+default). Display the output to the user and stop the PR draft. Do not
+proceed to Step 2.
 
 The user has three resolutions:
 
@@ -200,6 +204,18 @@ The override path is intended for rare cases where the user has a valid
 reason the kit cannot detect (e.g., legacy code being touched in a way that
 predates spec authoring). It is recorded in the PR so reviewers can see
 the gap was explicit.
+
+**`--include-context` strict mode** is available for whole-bundle audits
+(reviewing every requirement the bundle pulled in, not just primary scope):
+
+```bash
+bash .claude/scripts/spec-coverage.sh gate \
+  .feature/<slug>/spec-coverage.md --include-context
+```
+
+`/feature-pr` does NOT pass `--include-context` by default. Reach for it only
+when explicitly auditing the whole bundle's coverage — e.g., during a
+spec-backfill or curation pass — not as a routine PR check.
 
 ---
 
