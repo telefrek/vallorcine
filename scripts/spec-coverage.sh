@@ -117,6 +117,18 @@ HEADER
     return 0
   fi
 
+  # Read the bundle's "Primary specs:" preamble line. spec-resolve emits
+  # this so coverage can scope the gate: rows from primary (direct-match)
+  # specs are gate-enforced; rows from context (transitively pulled —
+  # parent chain, requires:, sibling expansion) are visible in the table
+  # but not required to be annotated by this feature. Bundles without
+  # the line treat every spec as primary (legacy behavior).
+  local primary_line primary_set=""
+  primary_line=$(grep -m1 '^Primary specs:' "$bundle" 2>/dev/null || true)
+  if [[ -n "$primary_line" ]]; then
+    primary_set=$(echo "$primary_line" | sed 's/^Primary specs:[[:space:]]*//; s/,[[:space:]]*/|/g; s/[[:space:]]*$//')
+  fi
+
   {
     cat <<HEADER
 # Spec Coverage
@@ -124,12 +136,26 @@ HEADER
 > **Managed by vallorcine pipeline. Do not hand-edit.**
 > Updated by /feature-plan, /feature-test, /feature-implement, /feature-pr.
 > Cell values: \`pending\`, \`<file>:<line>\` (multiple comma-separated), \`waived: <reason>\`.
+> Notes column: \`context\` marks rows from transitively-pulled specs that
+> the gate skips by default (visible for annotation if the WD genuinely
+> satisfies them; not required obligations).
 
 | Spec | Req | Test | Impl | Notes |
 |------|-----|------|------|-------|
 HEADER
     while IFS=$'\t' read -r spec rid; do
       [[ -z "$spec" || -z "$rid" ]] && continue
+      # Decide scope from the Primary specs preamble. Empty preamble →
+      # treat as primary (legacy bundles).
+      local scope="primary"
+      if [[ -n "$primary_set" ]]; then
+        # Exact ID match against the alternation. The set was built from
+        # `Primary specs:` so the comparison is a literal whole-word
+        # match against pipe-separated IDs.
+        if ! grep -qxE "$primary_set" <<<"$spec" 2>/dev/null; then
+          scope="context"
+        fi
+      fi
       # Restore prior cell values for this row if present
       local prior
       prior=$(echo "$existing_rows" | awk -F'\t' -v s="$spec" -v r="$rid" '$1==s && $2==r {print $3 "\t" $4 "\t" $5; exit}')
@@ -139,13 +165,34 @@ HEADER
         [[ -z "$test_cell" ]] && test_cell="pending"
         [[ -z "$impl_cell" ]] && impl_cell="pending"
       fi
+      # Only stamp `context` when the row is not already carrying an
+      # explicit waiver/annotation note from a prior run. This keeps
+      # init idempotent: re-running on a populated table preserves
+      # any context tag without overwriting waiver notes.
+      if [[ "$scope" == "context" && ( -z "$notes_cell" || "$notes_cell" == "context" ) ]]; then
+        notes_cell="context"
+      fi
       printf '| %s | %s | %s | %s | %s |\n' "$spec" "$rid" "$test_cell" "$impl_cell" "$notes_cell"
     done <<<"$pairs"
   } > "$cov"
 
-  local total
+  local total context_total
   total=$(echo "$pairs" | wc -l | tr -d ' ')
-  echo "[coverage] init: wrote $total requirement rows to $cov" >&2
+  # Count context-tagged rows via awk so the result is always a single
+  # integer (grep -c on no matches exits 1; with `|| echo 0` you get
+  # "0\n0" which breaks arithmetic). Awk emits exactly one number.
+  context_total=$(awk -F'|' '
+    /^\| *[a-zA-Z0-9.-]+ *\| *R[0-9]+/ {
+      gsub(/^ +| +$/, "", $6)
+      if ($6 == "context") n++
+    }
+    END { print n+0 }
+  ' "$cov")
+  if (( context_total > 0 )); then
+    echo "[coverage] init: wrote $total requirement rows to $cov ($((total - context_total)) primary, $context_total context)" >&2
+  else
+    echo "[coverage] init: wrote $total requirement rows to $cov" >&2
+  fi
 }
 
 # ── Subcommand: update ───────────────────────────────────────────────────────
@@ -292,7 +339,22 @@ cmd_update() {
 # Exits 0 if every row has at least one annotation (Test or Impl) OR is waived.
 # Exits 1 (with a list of pending rows on stdout) otherwise.
 cmd_gate() {
-  local cov="${1:-}"
+  local cov="" include_context=false
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --include-context) include_context=true ;;
+      -h|--help)
+        echo "Usage: spec-coverage.sh gate <coverage-md> [--include-context]" >&2
+        return 2
+        ;;
+      *)
+        if [[ -z "$cov" ]]; then cov="$1"
+        else echo "ERROR: extra positional argument '$1'" >&2; exit 2
+        fi
+        ;;
+    esac
+    shift
+  done
   [[ -z "$cov" ]] && { echo "ERROR: gate requires <coverage-md>" >&2; exit 2; }
   [[ ! -f "$cov" ]] && { echo "ERROR: coverage file not found: $cov" >&2; exit 1; }
 
@@ -301,12 +363,19 @@ cmd_gate() {
     return 0
   fi
 
+  # Default: skip rows whose Notes column starts with `context` — those
+  # are transitively-pulled specs the WD has no obligation to annotate
+  # (visible in the table for awareness; gate-enforcement would force
+  # waiver-spam on every feature pulled into a bundle for planning).
+  # `--include-context` flips to strict mode for whole-bundle audits.
   local pending
-  pending=$(awk -F'|' '
+  pending=$(awk -F'|' -v skip_context="$([[ "$include_context" == "true" ]] && echo 0 || echo 1)" '
     /^\| *[a-zA-Z0-9.-]+ *\| *R[0-9]+/ {
-      spec = $2; rid = $3; t = $4; i = $5
+      spec = $2; rid = $3; t = $4; i = $5; notes = $6
       gsub(/^ +| +$/, "", spec); gsub(/^ +| +$/, "", rid)
       gsub(/^ +| +$/, "", t); gsub(/^ +| +$/, "", i)
+      gsub(/^ +| +$/, "", notes)
+      if (skip_context && index(notes, "context") == 1) next
       # Pending iff BOTH Test and Impl are pending and neither is waived.
       if (t == "pending" && i == "pending") {
         printf("%s.%s\n", spec, rid)
@@ -314,7 +383,11 @@ cmd_gate() {
     }' "$cov")
 
   if [[ -z "$pending" ]]; then
-    echo "[coverage] gate: PASS — every loaded requirement has at least one @spec annotation or waiver" >&2
+    if [[ "$include_context" == "true" ]]; then
+      echo "[coverage] gate: PASS (--include-context) — every row has annotation or waiver" >&2
+    else
+      echo "[coverage] gate: PASS — every primary requirement has an @spec annotation or waiver" >&2
+    fi
     return 0
   fi
 
@@ -330,6 +403,10 @@ cmd_gate() {
   echo ""
   echo "Waive a row:"
   echo "  bash .claude/scripts/spec-coverage.sh waive <coverage-md> <spec-id>.R<n> \"<reason>\""
+  if [[ "$include_context" != "true" ]]; then
+    echo ""
+    echo "(Context rows skipped. Re-run with --include-context to gate the whole bundle.)"
+  fi
   return 1
 }
 
@@ -388,16 +465,25 @@ cmd_report() {
   awk -F'|' '
     /^\| *[a-zA-Z0-9.-]+ *\| *R[0-9]+/ {
       total++
-      t = $4; i = $5
-      gsub(/^ +| +$/, "", t); gsub(/^ +| +$/, "", i)
+      t = $4; i = $5; notes = $6
+      gsub(/^ +| +$/, "", t); gsub(/^ +| +$/, "", i); gsub(/^ +| +$/, "", notes)
+      is_context = (index(notes, "context") == 1)
+      if (is_context) context++
       if (t ~ /^waived:/ || i ~ /^waived:/) waived++
       else if (t != "pending" || i != "pending") covered++
+      else if (is_context) context_pending++
       else pending++
     }
     END {
       total = total + 0
-      printf("Spec coverage: %d loaded · %d annotated · %d waived · %d pending\n",
-             total, covered+0, waived+0, pending+0)
+      base = sprintf("Spec coverage: %d loaded · %d annotated · %d waived · %d pending",
+                     total, covered+0, waived+0, pending+0)
+      if (context+0 > 0) {
+        printf("%s (+ %d context not gate-enforced; %d of those still pending)\n",
+               base, context+0, context_pending+0)
+      } else {
+        printf("%s\n", base)
+      }
     }
   ' "$cov"
 }

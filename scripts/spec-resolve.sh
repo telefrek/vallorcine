@@ -290,6 +290,8 @@ done
 BUNDLE_PARTS=()
 OMITTED=()
 FORCED=()
+PRIMARY_IDS=()
+CONTEXT_IDS=()
 RUNNING_TOKENS=0
 HEADER_RESERVE=300
 
@@ -324,6 +326,16 @@ for f in "${ALL_FILES[@]+"${ALL_FILES[@]}"}"; do
 
   BUNDLE_PARTS+=("$section")
   RUNNING_TOKENS=$(( RUNNING_TOKENS + section_tokens ))
+  # Track primary (direct-match) vs context (transitively pulled —
+  # parent chain, requires:, sibling expansion). spec-coverage uses
+  # this to scope its gate: only primary-spec R-clauses are
+  # gate-enforced; context rows are visible in the table but not
+  # required to be annotated by this feature.
+  if [[ "${DIRECT_FILES[$f]+x}" == "x" ]]; then
+    PRIMARY_IDS+=("$spec_id")
+  else
+    CONTEXT_IDS+=("$spec_id")
+  fi
   if [[ "$must_force" == "true" ]]; then
     FORCED+=("$spec_id")
     echo "[resolve] WARNING: $spec_id (~$section_tokens tokens) force-included over budget $TOKEN_BUDGET — bump --token-budget to suppress this warning" >&2
@@ -700,6 +712,16 @@ if [[ ${#FORCED[@]} -gt 0 ]]; then
 else
     FORCED_STR="none"
 fi
+if [[ ${#PRIMARY_IDS[@]} -gt 0 ]]; then
+    PRIMARY_STR="$(IFS=', '; echo "${PRIMARY_IDS[*]}")"
+else
+    PRIMARY_STR="none"
+fi
+if [[ ${#CONTEXT_IDS[@]} -gt 0 ]]; then
+    CONTEXT_STR="$(IFS=', '; echo "${CONTEXT_IDS[*]}")"
+else
+    CONTEXT_STR="none"
+fi
 
 cat <<EOF
 # Resolved Context Bundle
@@ -710,6 +732,8 @@ Token budget: $TOKEN_BUDGET | Tokens used: ~$RUNNING_TOKENS
 Omitted (budget): $OMITTED_STR
 Force-included (over budget, kept to avoid empty bundle): $FORCED_STR
 Omitted (DRAFT with unresolved conflicts): $CONFLICT_OMITTED_STR
+Primary specs: $PRIMARY_STR
+Context specs: $CONTEXT_STR
 
 ## Open Obligations (must be addressed in this feature)
 ${OBLIGATIONS:-none}

@@ -602,6 +602,29 @@ else
     fail "OVERRIDE_DOMAINS should load serialization specs" "got: $v2_override"
 fi
 
+# ── Test 17: bundle preamble lists Primary specs and Context specs ─────────
+# spec-resolve tracks direct-match files vs transitively-pulled specs
+# (parent chain, requires:, sibling expansion). The bundle preamble must
+# emit both lists so spec-coverage can scope its gate to primary specs
+# only — without this preamble, every transitively-pulled context spec
+# becomes a gate obligation and the user has to override or waive
+# whole-bundle scope.
+
+echo ""
+echo "── Test 17: bundle preamble lists Primary specs (direct match)"
+
+# Both serialization specs match this query directly — both should be primary,
+# nothing should be context (no requires/parent chain in this minimal fixture).
+preamble="$(OVERRIDE_DOMAINS="serialization" \
+    bash .claude/scripts/spec-resolve.sh "serialization" 8000 2>/dev/null \
+    | head -15)"
+if echo "$preamble" | grep -qE '^Primary specs: .*serialization\.(yaml-support|json-parsing)' \
+   && echo "$preamble" | grep -qE '^Context specs: none$'; then
+    pass "Primary specs line present; both serialization specs listed; Context specs is 'none'"
+else
+    fail "Primary/Context preamble lines missing or malformed" "got: $preamble"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

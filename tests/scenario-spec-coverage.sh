@@ -374,6 +374,195 @@ else
     fail "bare-ID bundle regressed" "got: $(cat "$COV_BARE" | tail -5)"
 fi
 
+# ── Tests 12-19: primary-vs-context scope distinction ──────────────────────
+# Regression: spec-coverage previously gate-enforced every row in the
+# bundle, which forced waiver-spam on transitively-pulled context specs
+# (parent chain, requires:, sibling expansion). spec-resolve now emits
+# `Primary specs:` and `Context specs:` preamble lines; init reads them
+# to tag context rows; gate skips context-tagged rows by default with
+# --include-context for strict mode.
+
+# Bundle with explicit Primary/Context preamble lines.
+mkdir -p .feature/scoped
+cat > .feature/scoped/spec-bundle.md << 'BUNDLE'
+# Resolved Context Bundle
+Generated: 2026-05-07T00:00:00Z
+Feature request: scoped
+Domains matched: auth, billing
+Token budget: 25000 | Tokens used: ~1500
+Omitted (budget): none
+Force-included (over budget, kept to avoid empty bundle): none
+Omitted (DRAFT with unresolved conflicts): none
+Primary specs: auth.token-validation
+Context specs: auth.session-lifecycle, billing.charge-flow
+
+## Open Obligations (must be addressed in this feature)
+none
+
+## Feature Requirements
+
+# auth.token-validation — JWT Token Validation
+
+## Requirements
+R1. The TokenValidator must reject expired tokens.
+R2. The TokenValidator must reject malformed tokens.
+
+---
+
+# auth.session-lifecycle — Session Lifecycle (transitively pulled)
+
+## Requirements
+R1. The SessionStore must invalidate on logout.
+
+---
+
+# billing.charge-flow — Charge Flow (transitively pulled)
+
+## Requirements
+R1. The ChargeProcessor must finalize via SettlementGateway.
+R2. The ChargeProcessor must roll back on settlement failure.
+BUNDLE
+
+COV_SCOPED=".feature/scoped/spec-coverage.md"
+bash .claude/scripts/spec-coverage.sh init "$COV_SCOPED" .feature/scoped/spec-bundle.md 2>/dev/null
+
+# ── Test 12: init tags context-spec rows with `context` in Notes ───────────
+
+echo ""
+echo "── Test 12: init tags context-spec rows with 'context' in Notes column"
+
+if grep -qE '^\| auth\.session-lifecycle \| R1 \| pending \| pending \| context \|' "$COV_SCOPED" \
+   && grep -qE '^\| billing\.charge-flow \| R1 \| pending \| pending \| context \|' "$COV_SCOPED"; then
+    pass "context-spec rows tagged"
+else
+    fail "context-spec rows not tagged" "got: $(grep '^|' $COV_SCOPED)"
+fi
+
+# ── Test 13: init does NOT tag primary-spec rows ───────────────────────────
+
+echo ""
+echo "── Test 13: primary-spec rows have empty Notes column"
+
+if grep -qE '^\| auth\.token-validation \| R1 \| pending \| pending \|  \|' "$COV_SCOPED" \
+   && grep -qE '^\| auth\.token-validation \| R2 \| pending \| pending \|  \|' "$COV_SCOPED"; then
+    pass "primary-spec rows have empty Notes"
+else
+    fail "primary-spec rows incorrectly tagged" "got: $(grep token-validation $COV_SCOPED)"
+fi
+
+# ── Test 14: gate (default) skips context rows ─────────────────────────────
+
+echo ""
+echo "── Test 14: gate (default) fires only on primary-spec pending rows"
+
+if bash .claude/scripts/spec-coverage.sh gate "$COV_SCOPED" >/tmp/vallorcine/gate-scoped.txt 2>/dev/null; then
+    fail "gate returned 0 with primary-spec rows still pending"
+else
+    # Should list the 2 primary requirements, not the 3 context ones.
+    if grep -q "auth.token-validation.R1" /tmp/vallorcine/gate-scoped.txt \
+       && grep -q "auth.token-validation.R2" /tmp/vallorcine/gate-scoped.txt \
+       && ! grep -q "auth.session-lifecycle" /tmp/vallorcine/gate-scoped.txt \
+       && ! grep -q "billing.charge-flow" /tmp/vallorcine/gate-scoped.txt; then
+        pass "gate enumerated 2 primary requirements; context rows excluded"
+    else
+        fail "gate output mis-scoped" "$(cat /tmp/vallorcine/gate-scoped.txt)"
+    fi
+fi
+
+# ── Test 15: gate hint mentions --include-context for strict mode ──────────
+
+echo ""
+echo "── Test 15: gate failure message hints at --include-context"
+
+if grep -q -- "--include-context" /tmp/vallorcine/gate-scoped.txt; then
+    pass "gate failure mentions --include-context for strict mode"
+else
+    fail "gate failure should mention --include-context" "$(cat /tmp/vallorcine/gate-scoped.txt)"
+fi
+
+# ── Test 16: gate --include-context fires on every pending row ─────────────
+
+echo ""
+echo "── Test 16: gate --include-context flips to whole-bundle strict mode"
+
+if bash .claude/scripts/spec-coverage.sh gate "$COV_SCOPED" --include-context >/tmp/vallorcine/gate-strict.txt 2>/dev/null; then
+    fail "strict gate returned 0 with rows still pending"
+else
+    pending_count=$(grep -cE '^- ' /tmp/vallorcine/gate-strict.txt || echo 0)
+    if [[ "$pending_count" -eq 5 ]]; then
+        pass "strict gate enumerated all 5 rows (2 primary + 3 context)"
+    else
+        fail "strict gate count wrong" "got $pending_count: $(cat /tmp/vallorcine/gate-strict.txt)"
+    fi
+fi
+
+# ── Test 17: report breaks down primary vs context counts ──────────────────
+
+echo ""
+echo "── Test 17: report distinguishes primary vs context in counts"
+
+output=$(bash .claude/scripts/spec-coverage.sh report "$COV_SCOPED" 2>/dev/null)
+if echo "$output" | grep -qE '5 loaded · 0 annotated · 0 waived · 2 pending \(\+ 3 context not gate-enforced; 3 of those still pending\)'; then
+    pass "report shows primary + context breakdown"
+else
+    fail "report breakdown wrong" "got: $output"
+fi
+
+# ── Test 18: legacy bundle (no Primary specs preamble) treats all as primary ─
+
+echo ""
+echo "── Test 18: legacy bundle without Primary specs line — all rows primary"
+
+mkdir -p .feature/legacy
+cat > .feature/legacy/spec-bundle.md << 'BUNDLE'
+# Resolved Context Bundle
+Generated: 2026-04-01T00:00:00Z
+
+## Feature Requirements
+
+# auth.legacy-spec — Legacy
+
+## Requirements
+R1. Legacy req.
+BUNDLE
+
+COV_LEGACY=".feature/legacy/spec-coverage.md"
+bash .claude/scripts/spec-coverage.sh init "$COV_LEGACY" .feature/legacy/spec-bundle.md 2>/dev/null
+# No row should carry the `context` tag — legacy bundles default to primary
+if ! grep -qE '\| context \|' "$COV_LEGACY" \
+   && grep -qE '^\| auth\.legacy-spec \| R1 \| pending \| pending \|  \|' "$COV_LEGACY"; then
+    pass "legacy bundle: every row treated as primary (Notes empty)"
+else
+    fail "legacy bundle should not produce context-tagged rows" "got: $(grep '^|' $COV_LEGACY)"
+fi
+# And the gate should fire on it (default mode, not skipped as context)
+if bash .claude/scripts/spec-coverage.sh gate "$COV_LEGACY" >/dev/null 2>&1; then
+    fail "legacy gate should fail on the lone primary row"
+else
+    pass "legacy gate fires on primary row (no scope filter applied)"
+fi
+
+# ── Test 19: re-init preserves context tag idempotently ─────────────────────
+
+echo ""
+echo "── Test 19: re-init preserves context tag without overwriting waiver notes"
+
+# Apply a waiver on a context row; re-init should not clobber the waiver.
+bash .claude/scripts/spec-coverage.sh waive "$COV_SCOPED" auth.session-lifecycle.R1 \
+    "covered by integration suite" 2>/dev/null
+bash .claude/scripts/spec-coverage.sh init "$COV_SCOPED" .feature/scoped/spec-bundle.md 2>/dev/null
+if grep -qE '^\| auth\.session-lifecycle \| R1 \| waived: covered by integration suite' "$COV_SCOPED"; then
+    pass "re-init preserved waiver on context row"
+else
+    fail "re-init clobbered waiver" "got: $(grep session-lifecycle $COV_SCOPED)"
+fi
+# Other context rows should still carry the `context` tag.
+if grep -qE '^\| billing\.charge-flow \| R1 \| pending \| pending \| context \|' "$COV_SCOPED"; then
+    pass "re-init preserved context tag on un-waived context rows"
+else
+    fail "re-init lost context tag" "got: $(grep charge-flow $COV_SCOPED)"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""
