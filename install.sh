@@ -306,6 +306,7 @@ install_file "$SCRIPT_DIR/scripts/spec-backfill-candidates.sh" "$TARGET/.claude/
 install_file "$SCRIPT_DIR/scripts/spec-backfill-log.sh" "$TARGET/.claude/scripts/spec-backfill-log.sh"
 install_file "$SCRIPT_DIR/scripts/work-lib.sh" "$TARGET/.claude/scripts/work-lib.sh"
 install_file "$SCRIPT_DIR/scripts/work-resolve.sh" "$TARGET/.claude/scripts/work-resolve.sh"
+install_file "$SCRIPT_DIR/scripts/work-claim.sh" "$TARGET/.claude/scripts/work-claim.sh"
 install_file "$SCRIPT_DIR/scripts/work-validate.sh" "$TARGET/.claude/scripts/work-validate.sh"
 install_file "$SCRIPT_DIR/scripts/work-context.sh" "$TARGET/.claude/scripts/work-context.sh"
 install_file "$SCRIPT_DIR/scripts/work-finalize.sh" "$TARGET/.claude/scripts/work-finalize.sh"
@@ -339,6 +340,7 @@ chmod +x "$TARGET/.claude/scripts/spec-coverage.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-backfill-candidates.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/spec-backfill-log.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-resolve.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/work-claim.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-validate.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-context.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-finalize.sh" 2>/dev/null || true
@@ -428,6 +430,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
       "Bash(bash .claude/scripts/spec-backfill-candidates.sh:*)",
       "Bash(bash .claude/scripts/spec-backfill-log.sh:*)",
       "Bash(bash .claude/scripts/work-resolve.sh:*)",
+      "Bash(bash .claude/scripts/work-claim.sh:*)",
       "Bash(bash .claude/scripts/work-validate.sh:*)",
       "Bash(bash .claude/scripts/work-context.sh:*)",
       "Bash(bash .claude/scripts/work-finalize.sh:*)",
@@ -545,6 +548,7 @@ HOOKJSON
       "Bash(bash .claude/scripts/spec-backfill-candidates.sh:*)",
       "Bash(bash .claude/scripts/spec-backfill-log.sh:*)",
       "Bash(bash .claude/scripts/work-resolve.sh:*)",
+      "Bash(bash .claude/scripts/work-claim.sh:*)",
       "Bash(bash .claude/scripts/work-validate.sh:*)",
       "Bash(bash .claude/scripts/work-context.sh:*)",
       "Bash(bash .claude/scripts/work-finalize.sh:*)",
@@ -578,6 +582,9 @@ IGNORE_MARKER="# vallorcine runtime files"
 NEW_GITIGNORE_ENTRIES=(
     ".spec/.split-log/"
     ".spec/.split-plan.json"
+    ".work/*/_readiness.json"
+    ".work/*/_decompose-progress.md"
+    ".work/*/.work-resolve.lock"
 )
 
 if [[ "$DIFF_MODE" != "1" ]]; then
@@ -593,6 +600,9 @@ if [[ "$DIFF_MODE" != "1" ]]; then
 .curate/
 .spec/.split-log/
 .spec/.split-plan.json
+.work/*/_readiness.json
+.work/*/_decompose-progress.md
+.work/*/.work-resolve.lock
 __pycache__/
 GITIGNOREBLOCK
         echo -e "  ${GREEN}write${NC} .gitignore  (runtime file entries)"

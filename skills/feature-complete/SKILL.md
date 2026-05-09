@@ -109,18 +109,23 @@ If this is a work-group-sourced feature:
 2. Verify the WD frontmatter has `status: COMPLETE` (should already be set
    by feature-refactor Step 6b's `work-finalize.sh` call). If not, set it
    now as a fallback.
-3. Defensive resync of `.work/CLAUDE.md` via the index helper:
+3. Defensive resync of `.work/CLAUDE.md` via the index helper, then
+   refresh the per-group manifest table and readiness JSON cache:
 
    ```bash
    bash .claude/scripts/work-index.sh update "<group-slug>"
+   bash .claude/scripts/work-resolve.sh "<group-slug>" >/dev/null
    ```
 
-   In the normal pipeline this is a **no-op** — `work-finalize.sh`
+   In the normal pipeline these are **no-ops** — `work-finalize.sh`
    already updated the index inside the feature PR, and the helper
-   preserves Last Updated when counts haven't changed. The call exists
+   preserves Last Updated when counts haven't changed. The calls exist
    for features that bypassed the standard pipeline (hand-completed,
    resumed from a partial state, or running on an upgraded install
-   where the prior version didn't yet emit the index update).
+   where the prior version didn't yet emit the index update). The
+   `work-resolve.sh` call additionally ensures the per-group
+   `_readiness.json` cache reflects this WD's `COMPLETE` state so
+   parallel sessions see the new state immediately.
 
    Do not edit `.work/CLAUDE.md` by hand under any circumstances —
    hand-edits drift from filesystem state and break `/work-status`.

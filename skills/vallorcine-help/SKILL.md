@@ -75,8 +75,9 @@ command to run, then explain what it does and what the user can expect.
 - `/work-decompose "<slug>"` — decompose a work group into work definitions with dependency graph
 - `/work-status "<slug>"` — show readiness: what is ready, blocked, or complete
 - `/work-status --all` — readiness summary across all active work groups
-- `/work-plan "<slug>" [WD-nn | next]` — specify a WD (domain analysis + spec authoring only)
-- `/work-start "<slug>" [WD-nn | next]` — start implementing a specified work definition
+- `/work-resume [<slug>]` — show where a work group is and what to run next; cheap to invoke after `/clear`
+- `/work-plan "<slug>" [WD-nn | next | all]` — specify a WD (domain analysis + spec authoring only); `all` runs every READY WD sequentially via subagents
+- `/work-start "<slug>" [WD-nn | next | all]` — start implementing a specified work definition; `all` runs every SPECIFIED WD sequentially via subagents (use over `--parallel` when context economy matters)
 
 **Codebase quality:**
 - `/audit "<entry-point>"` — run the adversarial audit pipeline against shipped code. Finds bugs, proves them with failing tests, fixes the code. Accepts feature slugs, file paths, spec references, or prior audit reports.

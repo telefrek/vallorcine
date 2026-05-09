@@ -1,9 +1,9 @@
 ---
 description: "Start implementing a specified work definition — implementation pipeline only"
-argument-hint: "<group-slug> [WD-nn | next | --parallel [N]]"
+argument-hint: "<group-slug> [WD-nn | next | all | --parallel [N]]"
 ---
 
-# /work-start "<group-slug>" [WD-nn | next | --parallel [N]]
+# /work-start "<group-slug>" [WD-nn | next | all | --parallel [N]]
 
 Bridges a work definition from a work group into the implementation pipeline.
 Creates a `.feature/` directory and hands off to planning, testing, and
@@ -14,10 +14,29 @@ interface contracts), use `/work-plan` instead.
 - `<group-slug>` — the work group to draw from
 - `WD-nn` — start a specific work definition (e.g., WD-01)
 - `next` — auto-select the highest-value READY work definition
+- `all` — sequentially run every SPECIFIED WD (one subagent per WD,
+  waits for each to finish before starting the next). See "Sequential
+  all mode" below. **Use this for context-economy on multi-WD groups —
+  the parent stays small while each subagent gets a fresh context.**
 - `--parallel [N]` — start every SPECIFIED WD concurrently (optionally
   cap at N concurrent sub-agents). See "Parallel mode" section below.
 
 If no WD argument is provided, defaults to `next`.
+
+**Choosing between `all` and `--parallel`:**
+
+Both delegate to the same single-WD `/work-start` flow, so quality at
+arbitration boundaries is identical — both modes set
+`automation_mode: autonomous` for the dispatched sub-agents (escalations
+surface, routine choices auto-default).
+
+| | `all` (sequential) | `--parallel` |
+|---|---|---|
+| Subagents in flight | 1 at a time | N concurrent |
+| Wall clock | N × per-WD time | ~1 × per-WD time |
+| Token cost | Sum of per-WD costs | Sum (same total) |
+| Resource contention (DB, ports, manifest) | None | Possible |
+| Best for | Context economy, isolation | Wall-clock velocity |
 
 ---
 
@@ -52,6 +71,12 @@ Display opening header:
 ---
 
 ## Step 3 — Select work definition
+
+### If `all` is the argument:
+
+Skip the single-WD selection logic and go to the **Sequential all
+mode** section below. The rest of Step 3's single-WD paths (WD-nn /
+next) do not apply.
 
 ### If `--parallel` flag is present:
 
@@ -225,13 +250,26 @@ Stage Completion table — implementation stages only:
 | Implementation | pending |
 | Refactor | pending |
 
-### 4d — Update WD status
+### 4d — Claim the WD (SPECIFIED → IMPLEMENTING)
 
-Set the WD status with `sed` so the file does not need to be Read first
-(matches the pattern used in `scripts/work-finalize.sh`):
+Use `work-claim.sh` for the status transition. It does an atomic
+compare-and-swap under flock so two parallel sessions racing to start
+implementation on the same WD cannot both succeed — the second one
+gets a CONFLICT and bails out.
 
 ```bash
-sed -i "s/^status:.*$/status: IMPLEMENTING/" .work/<group-slug>/WD-<nn>.md
+if ! bash .claude/scripts/work-claim.sh "<group-slug>" "WD-<nn>" SPECIFIED IMPLEMENTING; then
+  echo ""
+  echo "Another session has already started this WD. Run:"
+  echo "  /work-resume \"<group-slug>\""
+  echo "to see what to do next (likely: /feature-resume \"<group>--<wd-slug>\")."
+  exit 1
+fi
+
+# Refresh the manifest table and readiness JSON cache so other skills
+# and parallel sessions see the new state without waiting for the next
+# /work-status call.
+bash .claude/scripts/work-resolve.sh "<group-slug>" >/dev/null
 ```
 
 The manifest table is automatically synced by `work-resolve.sh` — do not
@@ -249,6 +287,187 @@ Proceeding directly to work planning — specs and ADRs will be loaded
 from the resolved context.
 ```
 Invoke `/feature-plan "<slug>"`.
+
+---
+
+## Sequential all mode
+
+When invoked with `all`, `/work-start` runs every SPECIFIED work
+definition in the group **one at a time**, dispatching a separate
+sub-agent that executes the existing single-WD `/work-start` flow for
+each. The coordinator (this skill, in the user's conversation) carries
+only the dispatch state and one-line summaries of completed runs — the
+heavy 200K-per-WD planning + testing + implementation context lives
+inside each sub-agent and is gone when it returns.
+
+This is the structural automation of the
+`/clear` + `/work-resume` + `/work-start WD-N` rhythm: same per-WD
+context economy, same dependency-respecting selection, no `/clear` or
+`/work-resume` typed by the user during the run.
+
+### When to use `all` vs `--parallel`
+
+Both run every SPECIFIED WD in the group. The trade-off is wall-clock
+vs. resource isolation, NOT quality of arbitration — both modes
+delegate to the same single-WD `/work-start` flow which uses the same
+mode-gating in pipeline skills.
+
+`all` (sequential):
+- **Context economy is the priority** — multi-WD groups that would
+  otherwise accumulate context across skill switches.
+- **No spec/test resource contention** by construction — one
+  sub-agent at a time.
+- **One arbitration session per WD** — the user only sees prompts for
+  the WD currently in flight.
+
+`--parallel`:
+- Wall-clock speed is the priority AND the WDs are runtime-isolated.
+- N× token cost is acceptable.
+- Concurrent sub-agents may serialize on shared writes (manifest, KB)
+  — see Parallel mode caveats.
+
+Both modes use `automation_mode: autonomous` and
+`execution_strategy: balanced` for the dispatched sub-agents (set by
+the single-WD flow at Step 4c). Routine choices auto-default;
+escalations surface to the user.
+
+### Sequential-all flow
+
+Replace Steps 3–5 with this block when `all` is the argument.
+
+1. **Initial enumeration.** Read `_readiness.json` (refreshed by the
+   resolver call in Step 2) and collect every WD whose status is
+   `SPECIFIED`. If zero, report and stop:
+   ```
+   No SPECIFIED work definitions in '<group-slug>' — run /work-plan
+   "<group-slug>" all to specify READY WDs first, or check
+   /work-status for blockers.
+   ```
+
+2. **Show the plan.** Compute the initial run order — sort by
+   unblocking value (most downstream dependents first), tie-breaking
+   by fewer artifact dependencies. Display:
+   ```
+   ── Sequential start plan ──────────────────────
+   Group: <group-slug>
+   SPECIFIED WDs: <N>
+   Initial order (by unblocking value):
+     1. WD-<nn> — <title>  (unblocks: <list>)
+     2. WD-<nn> — ...
+   Note: a WD's completion may unblock a sibling that's currently
+   BLOCKED on a wd: dep — the loop re-enumerates between iterations,
+   so the run may include WDs not in this initial list.
+   ───────────────────────────────────────────────
+   ```
+   Use AskUserQuestion to confirm:
+     - "Run sequentially" (Recommended)
+     - "Cap at 3" (or another cap)
+     - "Stop"
+
+3. **Iterate until no eligible WD remains.** Loop:
+
+   a. **Re-enumerate.** Run `bash .claude/scripts/work-resolve.sh
+      "<group-slug>" >/dev/null` then re-read `_readiness.json`. Re-
+      enumerating is mandatory — completing a WD in iteration N may
+      satisfy a `wd:` or spec dep that promotes a sibling from
+      BLOCKED to SPECIFIED in iteration N+1.
+
+   b. **Pick the next.** From the current SPECIFIED list, pick the
+      WD with the highest unblocking value (same heuristic as Step 2).
+      Skip WDs the run has already dispatched (track in a dispatched
+      set keyed by WD id). If no SPECIFIED WD remains that hasn't been
+      dispatched, exit the loop.
+
+   c. **Honor the cap.** If the user chose a cap in Step 2 and the
+      dispatched count has reached it, exit the loop.
+
+   d. **Dispatch ONE sub-agent that recursively invokes the
+      single-WD `/work-start`.** This is critical — do NOT hand-roll
+      the feature creation + claim + pipeline dispatch logic in this
+      coordinator. The single-WD flow already does it correctly. Use
+      this prompt verbatim:
+      ```
+      You are the sequential pipeline runner for <group-slug> /
+      <wd-id>.
+
+      Invoke /work-start "<group-slug>" <wd-id>. The single-WD flow
+      will create the feature directory, claim the WD via
+      work-claim.sh (SPECIFIED → IMPLEMENTING), and hand off to
+      /feature-plan → /feature-test → /feature-implement →
+      /feature-refactor → /feature-pr.
+
+      Treat automation_mode as autonomous. Do not pause between
+      pipeline stages. If a stage escalates (test conflict, missing
+      tests, refactor escalation), record it in the feature's
+      cycle-log.md and continue with remaining stages where possible.
+
+      Distinguish two failure modes in your final return:
+
+      - If the /work-start invocation reports a `[claim] CONFLICT:`
+        message from work-claim.sh (another terminal advanced the WD
+        between the coordinator's enumeration and this dispatch),
+        return:
+          "<group-slug>--<wd-id>: SKIPPED — claim conflict"
+
+      - Any other failure (feature directory creation, status.md
+        write error, pipeline escalation, unexpected exception) is an
+        ERROR — return:
+          "<group-slug>--<wd-id>: ERROR — <one-line detail>"
+
+      Successful runs return:
+        "<group-slug>--<wd-id>: <COMPLETE | STOPPED_AT_<stage>> — <detail>"
+
+      Return exactly ONE line and nothing else after. The coordinator
+      parses this string.
+      ```
+
+   e. **Wait for the sub-agent to return.** The Agent tool blocks
+      until the child emits its final assistant message.
+
+   f. **Aggregate.** Append the sub-agent's summary to a results list.
+      Display incrementally:
+      ```
+      [<n>/<eligible>] <group-slug>--<wd-id>: <STATUS> — <detail>
+      ```
+
+   g. **Stop conditions.** Continue unless:
+      - The sub-agent returned `ERROR` or `STOPPED_AT_<stage>` AND
+        the user opts to halt (AskUserQuestion: "Continue with
+        remaining" / "Stop and inspect").
+      - SKIPPED returns are silent — log and continue (the coordinator
+        intentionally tolerates conflicts as parallel-session signals).
+
+4. **Final aggregate.** When the loop exits:
+   ```
+   ── Sequential run complete · <group-slug> ─────
+   Dispatched: <N>
+   Complete: <n>
+   Stopped mid-pipeline: <list with stage>
+   Errored: <list with detail>
+   Skipped (claim conflict / no longer eligible): <list>
+   ───────────────────────────────────────────────
+
+   Next steps:
+     <if any stopped/errored:> /feature-resume "<group>--<wd-id>" — inspect each
+     <if any new SPECIFIED post-run:> /work-start "<group-slug>" all — run the next batch
+     <if all complete:> the group is fully implemented; consider /feature-retro on each feature
+   ```
+
+### Concurrency caveats
+
+Sequential `all` avoids parallel-mode hazards by construction — one
+WD's pipeline finishes before the next starts. Two failure modes
+remain, both handled gracefully:
+
+- **Another terminal racing the same WD.** `work-claim.sh` (called
+  inside the dispatched single-WD flow at Step 4d) rejects the claim
+  with CONFLICT and exits 1. The sub-agent returns
+  `SKIPPED — claim conflict` and the coordinator continues to the next
+  WD. No corruption, no stuck loop.
+- **Status drift mid-run.** A WD that was SPECIFIED at Step 3a may be
+  IMPLEMENTING by Step 3b (another terminal got there). The
+  re-enumeration at the top of every iteration catches this — the
+  ineligible WD is filtered out before dispatch.
 
 ---
 

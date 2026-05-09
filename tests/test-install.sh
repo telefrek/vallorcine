@@ -938,6 +938,27 @@ else
     fail ".spec/.split-plan.json should be in .gitignore"
 fi
 
+# Work-layer runtime artifacts: per-machine readiness cache and ephemeral
+# decompose checkpoint must be gitignored. Otherwise readiness recomputed
+# on each machine fights with itself in merge conflicts. Use grep -qxF
+# because the entries contain literal `*` glob chars that assert_file_contains
+# would interpret as regex quantifiers.
+if grep -qxF ".work/*/_readiness.json" "$ENHANCED_TARGET/.gitignore"; then
+    pass ".work/*/_readiness.json in .gitignore"
+else
+    fail ".work/*/_readiness.json should be in .gitignore"
+fi
+if grep -qxF ".work/*/_decompose-progress.md" "$ENHANCED_TARGET/.gitignore"; then
+    pass ".work/*/_decompose-progress.md in .gitignore"
+else
+    fail ".work/*/_decompose-progress.md should be in .gitignore"
+fi
+if grep -qxF ".work/*/.work-resolve.lock" "$ENHANCED_TARGET/.gitignore"; then
+    pass ".work/*/.work-resolve.lock in .gitignore"
+else
+    fail ".work/*/.work-resolve.lock should be in .gitignore"
+fi
+
 # Upgrade path: an existing install that already has the runtime block but
 # was made before v0.16.x should pick up the new entries on re-install.
 UPGRADE_GI_TARGET="$(make_temp)"
@@ -964,6 +985,21 @@ if grep -qxF ".spec/.split-plan.json" "$UPGRADE_GI_TARGET/.gitignore"; then
     pass "upgrade path adds .spec/.split-plan.json to existing .gitignore"
 else
     fail "upgrade should add .spec/.split-plan.json to existing .gitignore"
+fi
+if grep -qxF ".work/*/_readiness.json" "$UPGRADE_GI_TARGET/.gitignore"; then
+    pass "upgrade path adds .work/*/_readiness.json to existing .gitignore"
+else
+    fail "upgrade should add .work/*/_readiness.json to existing .gitignore"
+fi
+if grep -qxF ".work/*/_decompose-progress.md" "$UPGRADE_GI_TARGET/.gitignore"; then
+    pass "upgrade path adds .work/*/_decompose-progress.md to existing .gitignore"
+else
+    fail "upgrade should add .work/*/_decompose-progress.md to existing .gitignore"
+fi
+if grep -qxF ".work/*/.work-resolve.lock" "$UPGRADE_GI_TARGET/.gitignore"; then
+    pass "upgrade path adds .work/*/.work-resolve.lock to existing .gitignore"
+else
+    fail "upgrade should add .work/*/.work-resolve.lock to existing .gitignore"
 fi
 # Idempotent: running install twice must not duplicate entries.
 bash "$REPO_ROOT/install.sh" "$UPGRADE_GI_TARGET" >/dev/null 2>&1 || true
