@@ -4,6 +4,245 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.16.8] — 2026-05-09
+
+### Added
+
+- **`/work-resume` skill** — work-layer counterpart to `/feature-resume`.
+  Cheap entry point after `/clear`, a crash, or a context switch. With
+  no arg or `--list`, shows every active work group on one line each.
+  With a group slug, shows a compact summary (active WDs, next-up
+  candidates) and routes to the next command — `/work-plan`,
+  `/work-start`, `/feature-resume`, or an unblock action — without
+  re-running the full readiness resolver every time. Reads the new
+  `_readiness.json` cache for this; falls back to running the resolver
+  if the cache is missing or stale.
+
+- **Cached readiness JSON (`.work/<group>/_readiness.json`)** —
+  `work-resolve.sh` now writes a structured JSON file alongside its
+  markdown report. Schema: `{ schema_version, generated_at, group,
+  summary, external_blocker, wds[] }` where each `wds[]` entry has
+  `id, title, status, deps_count, blockers, unblocks`. Atomic write via
+  `.tmp.$$` + rename. Lets `/work-resume` (and future parallel
+  coordination) read structured state without parsing the markdown
+  table. Per-machine cache; gitignored.
+
+- **`/work-decompose` Phase A→B checkpoint
+  (`.work/<group>/_decompose-progress.md`)** — Phase A now persists its
+  seam analysis to a checkpoint file before showing it to the user.
+  Phase B updates the checkpoint as each coordination surface settles.
+  An interrupted `/work-decompose` can be resumed at the next
+  invocation (the skill detects the checkpoint and offers to resume
+  from where Phase B left off, or discard and restart). Cleared on
+  successful manifest update. Per-machine; gitignored.
+
+### Changed
+
+- **Refresh readiness cache after WD status mutations.** `/work-plan`,
+  `/work-start`, `/work-decompose`, and `/feature-complete` now call
+  `work-resolve.sh` after they `sed`-flip a WD's status (DRAFT →
+  SPECIFYING → SPECIFIED → IMPLEMENTING → COMPLETE). Without this,
+  parallel sessions and `/work-resume` calls in the same group would
+  see stale `_readiness.json` until the next `/work-status` invocation.
+  The refresh is a fast no-op when state is already current.
+
+- **work-resolve.sh hardened for parallel sessions and partial failures.**
+  - `flock`-based serialization on `.work/<group>/.work-resolve.lock`
+    (when `flock` is available — gracefully no-op on platforms without
+    util-linux). The lock now wraps the **compute phase as well as the
+    writes**; locking only the writes left a snapshot race where two
+    parallel runs read state at different times and the second writer
+    could overwrite with stale content while still bumping mtime,
+    invisibly defeating the freshness check.
+  - EXIT trap cleans up `_readiness.json.tmp.<PID>` if printf aborts
+    mid-write (`set -e` + a parameter-expansion error would otherwise
+    leak `.tmp` files into `.work/<group>/`).
+  - `json_escape` strips ASCII control chars (0x00–0x08, 0x0B–0x0C,
+    0x0E–0x1F) before escape transforms, so a stray control byte in a
+    WD title can never produce invalid JSON downstream.
+
+- **`/work-resume` more robust on edge cases.**
+  - Detects orphan decompose checkpoints. Detection rule uses **"any WD
+    past DRAFT"** (a strong signal — Phase C must have run for any WD
+    to exist past DRAFT) rather than count-matching against the
+    checkpoint's "Tentative WDs" list (fragile under manual edits).
+    Stale-by-age (>7 days) is independently flagged.
+  - The orphan-detection bash uses `find -exec` rather than
+    `find ... | xargs grep` because `xargs` without `-r` hangs on
+    macOS when its input is empty.
+  - On `--list`, surfaces a one-line "(refreshed N stale cache(s))"
+    diagnostic when it had to run the resolver — the "cheap list"
+    claim is now honest about its actual cost.
+  - On JSON parse failure after a fresh resolver run, surfaces an
+    explicit error and stops rather than silently falling back to
+    parsing the markdown report.
+
+- **`/work-decompose` Phase A→B resume confirms with the user.** When
+  resuming from `_decompose-progress.md`, the skill now displays the
+  parsed Phase A state (tentative WDs, settled/unsettled coordination
+  surfaces) and asks the user to confirm before continuing. LLM
+  markdown parsing is fragile; this verification catches misparsed
+  state before it produces redundant subagent dispatches.
+
+- **`/work-decompose` pre-flight runs the same orphan check as
+  `/work-resume`.** When a checkpoint exists AND any WD has progressed
+  past DRAFT (or the checkpoint is >7 days old), the skill marks the
+  checkpoint as a probable orphan and recommends "Discard" instead of
+  blindly offering "Resume" as the recommended option. After resume,
+  Phase B explicitly skips already-settled surfaces rather than relying
+  on the LLM to track which were done — fixes a duplicate-dispatch bug
+  that would re-author already-settled ADRs and specs.
+
+- **`/work-plan <group> all` and `/work-start <group> all`** —
+  sequential coordinator modes that automate the
+  `/clear` + `/work-resume` + per-WD-skill rhythm. Each iterates over
+  eligible WDs (READY for `/work-plan`, SPECIFIED for `/work-start`),
+  dispatching ONE sub-agent per WD that **recursively invokes the
+  single-WD skill** (e.g., the sub-agent runs `/work-plan <group>
+  WD-01`). The coordinator carries only dispatch state and one-line
+  summaries; each sub-agent's heavy work lives in its own context
+  window and is gone when it returns.
+
+  Why recursive dispatch (instead of inlining the pipeline in the
+  coordinator's sub-agent prompt): keeps state-transition logic
+  (`work-claim.sh`, status.md initialization, manifest sync) in the
+  authoritative single-WD flow rather than duplicating it in the
+  coordinator's prompt template — where it would silently drift when
+  the single-WD flow changes.
+
+  **Re-enumerates between iterations.** A WD that was BLOCKED at
+  iteration N may become READY/SPECIFIED at iteration N+1 because the
+  previous WD's completion satisfied a dep. The coordinator re-runs
+  the resolver and re-reads `_readiness.json` at the top of every
+  loop, so the run picks up newly-eligible WDs that weren't in the
+  initial plan.
+
+  **Claim conflicts are non-fatal.** When another terminal advances a
+  WD between the coordinator's enumeration and the sub-agent's
+  dispatch, `work-claim.sh` exits 1, the sub-agent returns
+  `SKIPPED — claim conflict`, and the coordinator continues to the
+  next eligible WD. No corruption, no stuck loop.
+
+  Differences from `/work-start --parallel`:
+  - `all` is **sequential** (1 sub-agent at a time, no resource
+    contention, smaller peak token usage at any moment)
+  - `--parallel` is **concurrent** (N sub-agents at once, possible
+    contention on shared writes, faster wall clock)
+  - Quality at arbitration is **identical** — both modes delegate to
+    the same single-WD flow which uses the same `automation_mode`
+    and `execution_strategy` settings.
+
+  `/work-plan all` specifically: `/spec-author` Pass 2 arbitration
+  prompts surface to the user as designed. The coordinator pauses
+  while the user answers each finding, then continues. This is "fully
+  automated coordinator + manual arbitration" — preserves spec
+  quality at design decisions while removing the per-WD `/clear`
+  ritual.
+
+- **`scripts/work-claim.sh`** — atomic compare-and-swap for WD status
+  transitions. Reads the WD's current status under flock, asserts it
+  matches the expected value, then `sed`-flips to the new status. Two
+  parallel sessions racing the same DRAFT → SPECIFYING transition
+  cannot both succeed — the second one gets exit code 1 and a
+  CONFLICT message directing the user to `/work-resume` for the latest
+  state. Without this, two terminals running `/work-plan WD-01`
+  simultaneously could both see DRAFT (resolver snapshot is stale by
+  the time Step 4c runs), both flip to SPECIFYING, and both proceed to
+  author specs — racing on writes to the same files. `/work-plan` and
+  `/work-start` now use `work-claim.sh` for every status transition.
+  Shares the `.work-resolve.lock` file so claim and resolve serialize
+  against each other.
+
+### Why these changes
+
+Token analysis of recent multi-WD jlsm planning sessions showed
+~300–500K cache re-seed per skill switch in the planning chain, hitting
+the practical 500K input-token wall after 1–2 invocations. Three small
+additions enable a "clear-and-resume" rhythm: run a planning skill,
+`/clear`, then `/work-resume` to pick the next WD with no inherited
+reasoning history. The same primitives let multiple parallel sessions
+coordinate via the WD frontmatter source of truth and the per-machine
+readiness cache.
+
+- **`scripts/work-index.sh`** — authoritative writer for the
+  `.work/CLAUDE.md` Active Work Groups table. Subcommands `add`,
+  `update`, `update-all`, `remove` recompute `WDs / Ready / Complete`
+  counts from each group's WD frontmatter and bump Last Updated.
+  Replaces hand-edits in `/work`, `/work-decompose`, `/feature-complete`,
+  and `/decisions`. Idempotent on add; preserves Path and Goal across
+  update; sanitizes pipes in goal text so the table cannot be split.
+
+### Added
+
+- **Spec-coverage gate now scopes to primary specs by default**.
+  `/spec-resolve` builds a bundle that mixes direct-match specs (the
+  feature targeted) with transitively-pulled context specs (parent
+  chain, `requires:`, sibling expansion). Previously the
+  `spec-coverage` gate fired on every requirement across every spec,
+  forcing waiver-spam on context specs the WD has no obligation to
+  annotate (e.g. jlsm#74 had to override the gate over 136 trailing
+  context-spec R-clauses). Three coordinated changes:
+  - `spec-resolve.sh` emits new `Primary specs:` and `Context specs:`
+    preamble lines listing direct-match vs transitive IDs (data was
+    already tracked internally; just surfaced now).
+  - `spec-coverage.sh init` reads the preamble and tags non-primary
+    rows with `context` in the Notes column. Re-init preserves prior
+    waivers; legacy bundles without the preamble treat every spec as
+    primary (full backwards compatibility).
+  - `spec-coverage.sh gate` skips `context`-tagged rows by default.
+    New `--include-context` flag flips to strict whole-bundle mode
+    for audits. Failure message hints at the flag.
+  - `report` subcommand breaks down primary vs context in the count
+    line when context rows exist.
+
+### Fixed
+
+- **`spec-coverage.sh init` now parses title-bearing bundle section
+  headers**. The init parser used a fully-anchored regex `^# <id>$`,
+  but `spec-resolve.sh` writes each spec section through
+  `machine_section` verbatim and spec files use a title-bearing top
+  header `# <id> — <title>`. The anchored regex never matched, init
+  fell through to the "no specs in bundle" branch, and silently
+  emitted a vacuous-coverage file. Tables were only ever populated
+  when `/spec-coverage update` later re-derived rows from spec-trace
+  output (different code path). Two-line awk fix loosens the regex
+  to allow an optional space-and-title suffix and truncates the ID
+  extraction at the first whitespace. Backwards-compatible with the
+  legacy bare-ID bundle form.
+
+- **`/feature-resume` reconciles Spec Authoring substage against
+  manifest**. `.feature/<slug>/` is gitignored, so `status.md`
+  is a local cache that drifts when a sibling WD's session authors
+  specs in a different PR. New
+  `scripts/feature-state-reconcile.sh <slug>` reads the WD's
+  `produces:` list, looks up each produced spec's state in
+  `.spec/registry/manifest.json`, and if every produced spec is
+  APPROVED, flips the Stage Completion `Spec Authoring` row to
+  `complete`. `/feature-resume` Step 1 calls it before reading
+  status.md so the displayed state reflects durable truth.
+  Idempotent; slash- and dot-form paths both resolve.
+
+- **`/feature-complete` no longer leaves uncommitted changes**. The
+  skill's Step 2b previously asked Claude to hand-edit the Active
+  Work Groups row to "increment the Complete count" — and falsely
+  claimed `work-resolve.sh` auto-synced the table (it never did).
+  Two changes:
+  1. Step 2b now invokes `work-index.sh update <group-slug>` instead
+     of hand-editing. Same change applied to `/work` Step 4c (group
+     creation), `/work-decompose` Step 6 (post-decomposition refresh),
+     and `/decisions` Step 9d (group creation from roadmap).
+  2. `work-finalize.sh` (called at `/feature-refactor` Step 6b, before
+     `/feature-pr`) now invokes `work-index.sh update` inline so the
+     Active Work Groups row bumps in the same commit that flips the WD
+     status. The index update lands inside the feature PR; post-merge
+     `/feature-complete` has nothing tracked left to write.
+  3. `work-index.sh update` is now a true no-op when counts are
+     unchanged (preserves Last Updated, writes zero bytes), so the
+     defensive `/feature-complete` resync produces no diff in the
+     normal pipeline.
+
+---
+
 
 ## [0.16.7] — 2026-05-06
 
