@@ -233,20 +233,63 @@ by the coordinator (sub-agents don't write to TodoWrite — it's a shared
 surface). Per-unit progress is also visible in each unit's
 `.feature/<slug>/units/WU-N/status.md`.
 
-### Multi-feature parallel dispatch
+### Multi-feature dispatch — sequential vs parallel
 
-At the work-group level, `/work-start --parallel [N]` dispatches every
-SPECIFIED work definition in a group as a concurrent sub-agent,
-optionally capped at N simultaneous runs:
+When a work group has multiple SPECIFIED WDs ready to implement (or
+multiple READY WDs needing specification), two modes automate the
+chain. Both dispatch one sub-agent per WD; they differ only in
+concurrency and which trade-offs you accept.
+
+**Sequential `all` — for context economy.** Runs WDs one at a time,
+each in its own sub-agent context. The coordinator's parent context
+stays small (~6K of dispatch state + summaries) while each sub-agent
+does ~200K of planning/testing/implementation work in isolation. Use
+this when multi-WD planning would otherwise hit the context wall.
+
+```
+/work-plan "implement-transport-layer" all      # specify every READY WD
+/work-start "implement-transport-layer" all     # implement every SPECIFIED WD
+```
+
+The coordinator re-runs the resolver between iterations, so a WD
+unblocked by the previous iteration's completion gets picked up
+automatically. `work-claim.sh` prevents same-WD races if you have
+another terminal active. Arbitration prompts during `/spec-author`
+Pass 2 surface to you normally — the coordinator pauses, you answer,
+the run continues.
+
+**Parallel — for wall-clock speed.** Dispatches every SPECIFIED WD as
+a concurrent sub-agent, optionally capped at N simultaneous runs:
 
 ```
 /work-start "implement-transport-layer" --parallel 3
 ```
 
 The coordinator shows the dispatch plan, asks you to confirm (parallel
-mode burns N× the tokens of a sequential run), then fans out. Concurrency
-caveats — shared KB writes, test contention, cost budget — are surfaced
-before you confirm.
+mode burns N× the tokens of a sequential run), then fans out.
+Concurrency caveats — shared KB writes, test contention, cost budget —
+are surfaced before you confirm.
+
+### Cheap resume after `/clear`
+
+Multi-WD planning sessions hit a context wall around 500K tokens
+because each skill switch re-seeds caches. `/clear` between WDs avoids
+that, and `/work-resume` is the cheap re-entry point:
+
+```
+/clear
+/work-resume "implement-transport-layer"
+```
+
+`/work-resume` reads a cached `_readiness.json` (refreshed
+automatically when WD status changes) and shows where the group is
+plus the next command to run — `/work-plan`, `/work-start`,
+`/feature-resume`, or an unblock action. With no argument, `/work-resume`
+lists every active work group with a one-line summary.
+
+Or skip the manual `/clear`-and-resume rhythm entirely with
+`/work-{plan,start} <group> all` — same context-economy benefit,
+automated.
 
 ---
 

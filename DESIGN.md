@@ -96,7 +96,7 @@ what makes the 5th feature on a project faster than the 1st.
 | Decisions | `.decisions/` | `/architect`, `/decisions` | Architect Agent | Domain Scout, Work Planner, Spec Author, Curation |
 | Specifications | `.spec/` | `/spec-author`, `/spec`, `/spec-resolve` | Spec Author (via pipeline) | Work Planner, Test Writer, Audit, Curation |
 | Features | `.feature/` | `/feature`, `/feature-*` | Pipeline agents | Feature Resume, Retro, Curation |
-| Work | `.work/` | `/work`, `/work-decompose`, `/work-plan`, `/work-start`, `/work-status` | Work skills | Architect, Spec Author, Domain Scout, Work Planner, Feature Resume |
+| Work | `.work/` | `/work`, `/work-decompose`, `/work-plan`, `/work-start`, `/work-status`, `/work-resume` | Work skills | Architect, Spec Author, Domain Scout, Work Planner, Feature Resume |
 | Curation | `.curate/` | `/curate` | Curation scanner | Routes to Knowledge, Decisions, Specifications |
 | System | `.claude/` | `/vallorcine-help`, `/setup-vallorcine`, `/upgrade-vallorcine` | Installer, upgrade | All sessions (rules, config) |
 
@@ -818,8 +818,9 @@ vallorcine/
 │   ├── work/SKILL.md                ← /work — create a work group with scoping interview
 │   ├── work-decompose/SKILL.md      ← /work-decompose — break into WDs with dependency graph
 │   ├── work-status/SKILL.md         ← /work-status — readiness report (READY/BLOCKED/IN_PROGRESS/COMPLETE)
-│   ├── work-plan/SKILL.md           ← /work-plan — specify a WD (domain analysis + spec authoring only)
-│   ├── work-start/SKILL.md          ← /work-start — implement a specified WD (implementation pipeline only)
+│   ├── work-resume/SKILL.md         ← /work-resume — cheap "where am I, what's next" entry after /clear
+│   ├── work-plan/SKILL.md           ← /work-plan — specify a WD (single | next | all sequential coordinator)
+│   ├── work-start/SKILL.md          ← /work-start — implement a specified WD (single | next | all sequential | --parallel)
 │   │
 │   │  Curation
 │   ├── curate/SKILL.md              ← /curate — codebase quality review, correlation engine
@@ -872,7 +873,8 @@ vallorcine/
 │   ├── spec-ambiguity-score.sh     ← quantitative ambiguity gate for /spec-write (token/heuristic scoring)
 │   ├── audit-state-gate.sh         ← refuse /audit on non-APPROVED specs (spec: entry points)
 │   ├── work-lib.sh                 ← work layer shared functions (YAML parsing, dep checking)
-│   ├── work-resolve.sh             ← work definition readiness computation + dependency graph
+│   ├── work-resolve.sh             ← work definition readiness computation + dependency graph + _readiness.json cache
+│   ├── work-claim.sh               ← atomic CAS on WD status (DRAFT → SPECIFYING → ...) under flock; prevents two terminals from racing the same transition
 │   ├── work-validate.sh            ← work definition structural validation + circular dep detection
 │   ├── work-context.sh             ← work group context injection for existing commands
 │   ├── work-finalize.sh            ← finalize work group state after feature refactor (feature-refactor Step 6b)
@@ -953,6 +955,8 @@ vallorcine/
 │   ├── scenario-work-adr-quote-and-narrative-wd.sh  ← work_check_adr_dep YAML quote symmetry + narrative WD-slug filter (8 tests)
 │   ├── scenario-work-validate.sh     ← work definition structural validation (50 tests)
 │   ├── scenario-work-resolve.sh      ← work readiness computation tests
+│   ├── scenario-work-readiness-cache.sh ← _readiness.json cache emission, parallel runs, content correctness, control-char escape (16 tests)
+│   ├── scenario-work-claim.sh        ← atomic CAS on WD status, parallel-claim race (10 tests)
 │   ├── scenario-work-creation.sh     ← work group + WD creation flow tests
 │   ├── scenario-work-context.sh      ← work context injection tests
 │   ├── scenario-work-pipeline.sh     ← work-start pipeline bridge tests
