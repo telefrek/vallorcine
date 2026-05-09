@@ -42,6 +42,7 @@
 .claude/skills/work/SKILL.md
 .claude/skills/work-decompose/SKILL.md
 .claude/skills/work-status/SKILL.md
+.claude/skills/work-resume/SKILL.md
 .claude/skills/work-start/SKILL.md
 .claude/skills/work-plan/SKILL.md
 .claude/skills/audit/SKILL.md
@@ -132,6 +133,7 @@
 .claude/scripts/lens-registry.txt
 .claude/scripts/work-lib.sh
 .claude/scripts/work-resolve.sh
+.claude/scripts/work-claim.sh
 .claude/scripts/work-validate.sh
 .claude/scripts/work-context.sh
 .claude/scripts/work-finalize.sh

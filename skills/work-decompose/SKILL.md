@@ -34,7 +34,98 @@ Run after `/work "<goal>"` has created the work group.
 2. Read `.work/<group-slug>/work.md` — scope, ordering constraints, shared
    interfaces.
 
-3. Read `.work/<group-slug>/manifest.md` — check if WDs already exist.
+3. **Check for an in-flight Phase A/B checkpoint.** Read
+   `.work/<group-slug>/_decompose-progress.md`. If it exists, the previous
+   `/work-decompose` session was interrupted. Read its frontmatter `phase:`
+   field.
+
+   **Orphan-checkpoint signal.** Before prompting, run the same
+   detection rule `/work-resume` Step 2a uses: if any WD in the group
+   has progressed past DRAFT, OR `phase_a_complete_at` is more than
+   7 days old, the checkpoint is most likely an orphan from a session
+   that wrote the WDs but never cleared the file. Use:
+   ```bash
+   find ".work/<group-slug>" -maxdepth 1 -name 'WD-*.md' \
+        -exec grep -lE '^status: (SPECIFYING|SPECIFIED|IMPLEMENTING|COMPLETE)$' {} + \
+        2>/dev/null | head -1
+   ```
+
+   Surface accordingly:
+
+   **Genuine in-flight checkpoint** (no WDs past DRAFT, recent):
+   ```
+   ───────────────────────────────────────────────
+   🔧 DECOMPOSE · <group-slug>
+   ───────────────────────────────────────────────
+   Found in-flight checkpoint from <phase_a_complete_at>.
+   Last phase: <A | B>
+   ```
+
+   **Probable orphan** (some WD past DRAFT, OR >7 days old):
+   ```
+   ───────────────────────────────────────────────
+   🔧 DECOMPOSE · <group-slug>
+   ───────────────────────────────────────────────
+   Found checkpoint from <phase_a_complete_at>, but the group already has
+   WDs past DRAFT (or the checkpoint is >7 days old).
+
+   This is most likely an orphan from a prior session that wrote the WDs
+   but never cleared the file. Resuming would re-run Phase B against
+   already-decomposed work — discarding is usually the right answer.
+   ```
+
+   Use AskUserQuestion with options:
+     - "Resume from checkpoint" — load Phase A seam analysis and
+       continue at Step 4 (or wherever phase last was). For genuine
+       in-flight checkpoints, mark this **(Recommended)**.
+     - "Discard and re-decompose from scratch" — delete the checkpoint
+       and restart Phase A. For orphan checkpoints, mark this
+       **(Recommended)**.
+     - "Stop"
+
+   On resume:
+
+   a. Parse the checkpoint's "Phase A — Seam Analysis" section into the
+      equivalent of Step 2c's tentative WDs and coordination surfaces,
+      and "Phase B — Settled" into the list of already-settled surfaces.
+
+   b. **Display the parsed state back to the user before continuing.**
+      Markdown parsing by an LLM is fragile — the user must confirm the
+      interpretation matches what they remember. Show:
+      ```
+      Resumed Phase A state from checkpoint:
+
+      Tentative WDs (<N>):
+        WD-01 — <title>
+        ...
+
+      Coordination surfaces (<settled>/<total> settled):
+        1. <kind> · <subject>           settled: <yes|no>
+        2. ...
+
+      Existing artifacts that apply:
+        - <list>
+
+      Phase B will continue with the <unsettled> remaining surface(s).
+      ```
+
+      Then use AskUserQuestion with options:
+        - "Looks right — continue Phase B" (Recommended)
+        - "Restart Phase A from scratch" — discards checkpoint and re-derives seams
+        - "Stop"
+
+      If "Restart": delete the checkpoint and continue to Phase A as a
+      fresh run. If "Continue": jump to Step 4 (Phase B). When iterating
+      through surfaces in Step 4, **only process surfaces whose `Settled`
+      column is `no` in the loaded checkpoint**. Settled surfaces are
+      already done — re-dispatching `/architect` or `/spec-author` for
+      them would create duplicate ADRs/specs (or fight existing ones,
+      depending on those skills' idempotency).
+
+   On discard: `rm .work/<group-slug>/_decompose-progress.md` and continue
+   to step 4 below.
+
+4. Read `.work/<group-slug>/manifest.md` — check if WDs already exist.
    If WDs exist:
    ```
    ───────────────────────────────────────────────
@@ -46,10 +137,11 @@ Run after `/work "<goal>"` has created the work group.
      - "Add more work definitions"
      - "Replace all and re-decompose"
      - "Stop"
-   If "Replace all": delete existing WD-*.md files and clear the manifest table.
+   If "Replace all": delete existing WD-*.md files and clear the manifest
+   table. Also delete any `_decompose-progress.md` from a prior session.
    If "Add more": proceed to Step 2 with existing WDs as context.
 
-Display opening header:
+Display opening header (if not already shown above):
 ```
 ───────────────────────────────────────────────
 🔧 DECOMPOSE · <group-slug>
@@ -235,6 +327,48 @@ Draft:
   coordination surface to settle here. Record it; Phase C will add the
   frontmatter. See the work.md template in `/work` for shape.
 
+### 2d — Write the Phase A checkpoint
+
+Persist the seam analysis to `.work/<group-slug>/_decompose-progress.md`
+**before** showing it to the user. The checkpoint is what survives
+`/clear`, a crash, or a context switch — without it, an interrupted
+Phase B forces the user to redo seam-finding from scratch.
+
+Write the file with this shape (atomically — write `.tmp` then rename):
+
+```yaml
+---
+group: <group-slug>
+phase: A
+phase_a_complete_at: <ISO-8601 UTC timestamp>
+phase_b_complete_at: null
+---
+
+## Phase A — Seam Analysis
+
+### Tentative WDs
+- WD-01 — <title> — <one-line description>
+- WD-02 — <title> — <one-line description>
+...
+
+### Coordination surfaces
+| # | Kind | Subject | Why cross-WD | Settled |
+|---|------|---------|--------------|---------|
+| 1 | <kind> | <subject> | <reason> | no |
+...
+
+### Existing artifacts that apply
+- <list>
+
+### Research dispatched
+- <list of /research subagent invocations and resulting KB entries>
+
+## Phase B — Settled
+(empty — Phase B has not yet started)
+```
+
+This file is gitignored (per-machine in-flight state). Do not commit it.
+
 ---
 
 ## Step 3 — Present Phase A output
@@ -393,6 +527,17 @@ As each surface settles, record the artifacts produced:
 - Interface-contract paths
 
 These become the `artifact_deps:` WDs will reference in Step 6.
+
+**Update the checkpoint after each surface settles.** Re-write
+`.work/<group-slug>/_decompose-progress.md` with:
+- `phase: B` in the frontmatter
+- A row appended to the "## Phase B — Settled" section recording the
+  surface number, kind, and the artifact produced (ADR slug or spec id)
+- Update the "## Phase A — Seam Analysis" coordination surfaces table to
+  flip the matching row's `Settled` column from `no` to `yes`
+
+Atomic write each time (`.tmp` then rename). This way, a crash mid-Phase-B
+loses at most the in-flight surface, not all prior settlements.
 
 ---
 
@@ -591,6 +736,17 @@ bash .claude/scripts/work-index.sh update "<group-slug>"
 
 Do not hand-edit the WDs count or any column in `.work/CLAUDE.md`.
 
+### Populate the readiness cache
+
+Run the resolver once now so `_readiness.json` reflects the freshly-written
+WDs. This makes `/work-resume` cheap on the first invocation after a
+`/clear` and gives parallel sessions immediate visibility into the new
+WDs:
+
+```bash
+bash .claude/scripts/work-resolve.sh "<group-slug>" >/dev/null
+```
+
 ### Run invariant check
 
 ```bash
@@ -606,6 +762,20 @@ unsettled references and offer options:
 
 Decomposition is not complete until the invariant passes or is
 explicitly waived.
+
+### Clear the Phase A/B checkpoint
+
+Once the manifest is updated and the invariant check passes (or is
+explicitly waived), delete the in-flight checkpoint:
+
+```bash
+rm -f .work/<group-slug>/_decompose-progress.md
+```
+
+The decomposition is now durable — WD frontmatter and the manifest are
+the source of truth. Leaving the checkpoint behind would cause the next
+`/work-decompose` invocation to misread the group as "in-flight" and
+offer to resume an already-finished decomposition.
 
 ---
 

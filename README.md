@@ -220,8 +220,9 @@ or work groups stall. The result: your 5th feature is faster than your 1st.
 | `/work-decompose "<slug>"` | Break a work group into work definitions with artifact dependencies and shared interface contracts |
 | `/work-status "<slug>"` | Show readiness: what is READY, BLOCKED, IN_PROGRESS, or COMPLETE |
 | `/work-status --all` | Readiness summary across all active work groups |
-| `/work-plan "<slug>" [WD-nn \| next]` | Specify a work definition — domain analysis and spec authoring only |
-| `/work-start "<slug>" [WD-nn \| next]` | Implement a specified work definition — implementation pipeline only |
+| `/work-resume [<slug>]` | Show where a group is and what to run next — cheap entry point after `/clear` |
+| `/work-plan "<slug>" [WD-nn \| next \| all]` | Specify a work definition — domain analysis and spec authoring only. `all` chains through every READY WD sequentially via subagents |
+| `/work-start "<slug>" [WD-nn \| next \| all]` | Implement a specified work definition — implementation pipeline only. `all` chains through every SPECIFIED WD sequentially via subagents (context-economy alternative to `--parallel`) |
 
 ### Audit — adversarial bug finding
 

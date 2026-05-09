@@ -17,6 +17,40 @@ source "$SCRIPT_DIR/work-lib.sh"
 
 work_require_deps
 
+# Track tmp files written by the script so an EXIT trap can clean them up
+# if printf fails partway through (set -e aborts mid-write, mv never runs,
+# orphan .tmp.$$ accumulates). On success, mv has already moved the file
+# so the trap finds nothing to remove.
+WORK_RESOLVE_TMP_FILES=()
+work_resolve_cleanup() {
+  local f
+  for f in "${WORK_RESOLVE_TMP_FILES[@]:-}"; do
+    [[ -n "$f" && -f "$f" ]] && rm -f "$f"
+  done
+  # Return 0 explicitly. The trap's exit code becomes the script's
+  # exit code; a stale [[ -f ]] check evaluating false would otherwise
+  # propagate a 1 from a successful run.
+  return 0
+}
+trap work_resolve_cleanup EXIT
+
+# JSON string escape for the cached readiness file. Strips ASCII control
+# characters (0x00-0x08, 0x0B-0x0C, 0x0E-0x1F) before escape transforms
+# so the resulting JSON is always valid even if a WD title or blocker
+# message contains a stray control byte. Preserves \t (0x09), \n (0x0A),
+# and \r (0x0D), which the function escapes explicitly. Backslash and
+# double-quote are escaped per JSON spec.
+json_escape() {
+  local s
+  s=$(printf '%s' "${1-}" | tr -d '\000-\010\013\014\016-\037')
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\t'/\\t}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\n'/\\n}"
+  printf '%s' "$s"
+}
+
 GROUP_SLUG="${1:-}"
 CURATE_MODE=false
 for arg in "$@"; do
@@ -37,6 +71,30 @@ GROUP_DIR="$WORK_DIR/$GROUP_SLUG"
   echo "  Expected directory: $GROUP_DIR" >&2
   exit 1
 }
+
+# ── Acquire write lock (parallel-session safety) ────────────────────────────
+# Lock the entire compute+write phase, not just the writes. Locking only
+# the writes lets two parallel runs read state at different times, then
+# serialize their writes — the second writer's snapshot may be older than
+# the first writer's, producing a fresh-mtime cache with stale content.
+# The mtime-based freshness check downstream cannot detect this because
+# the cache mtime is the second-writer's write time.
+#
+# Locking the compute phase too forces the second runner to read state
+# AFTER the first runner's writes have landed, so its computation
+# reflects the latest state and its write is correct.
+#
+# flock is not available on macOS by default (util-linux not in the base
+# install). When missing, fall back to no-lock — parallel writes will
+# race the same way they did before this addition.
+
+if command -v flock >/dev/null 2>&1; then
+  WORK_RESOLVE_LOCK="$GROUP_DIR/.work-resolve.lock"
+  exec 9>"$WORK_RESOLVE_LOCK"
+  if ! flock -w 30 9; then
+    echo "[resolve] Warning: lock timeout after 30s — proceeding without lock" >&2
+  fi
+fi
 
 # ── Cross-group dependencies (external_deps on work.md) ─────────────────────
 # Any unmet external dep becomes a uniform blocker applied to all DRAFT and
@@ -383,4 +441,114 @@ if [[ "$CURATE_MODE" == "true" ]]; then
 fi
 
 echo ""
+
+# ── Emit cached readiness JSON ──────────────────────────────────────────────
+# Side-effect: write `.work/<group>/_readiness.json` so downstream skills
+# (`/work-resume`, `/work-status --all`, future parallel-coordination
+# code) can parse structured state without re-running the resolver.
+#
+# This file is gitignored — it's a per-machine cache regenerated whenever
+# any WD frontmatter changes. The atomic .tmp + rename prevents partial
+# reads from a concurrent skill invocation.
+
+READINESS_JSON="$GROUP_DIR/_readiness.json"
+READINESS_TMP="$READINESS_JSON.tmp.$$"
+WORK_RESOLVE_TMP_FILES+=("$READINESS_TMP")
+
+{
+  printf '{\n'
+  printf '  "schema_version": 1,\n'
+  printf '  "generated_at": "%s",\n' "$TIMESTAMP"
+  printf '  "group": "%s",\n' "$(json_escape "$GROUP_SLUG")"
+  printf '  "summary": {\n'
+  printf '    "total": %d,\n'        "$TOTAL_COUNT"
+  printf '    "ready": %d,\n'        "$READY_COUNT"
+  printf '    "blocked": %d,\n'      "$BLOCKED_COUNT"
+  printf '    "specifying": %d,\n'   "$SPECIFYING_COUNT"
+  printf '    "specified": %d,\n'    "$SPECIFIED_COUNT"
+  printf '    "implementing": %d,\n' "$IMPLEMENTING_COUNT"
+  printf '    "complete": %d\n'      "$COMPLETE_COUNT"
+  printf '  },\n'
+
+  # external_blocker as an array of lines (newline-separated input)
+  printf '  "external_blocker": ['
+  if [[ -n "$EXTERNAL_BLOCKER" ]]; then
+    first_eb=true
+    while IFS= read -r eb_line; do
+      [[ -z "$eb_line" ]] && continue
+      if [[ "$first_eb" == "true" ]]; then
+        printf '\n    "%s"' "$(json_escape "$eb_line")"
+        first_eb=false
+      else
+        printf ',\n    "%s"' "$(json_escape "$eb_line")"
+      fi
+    done <<< "$EXTERNAL_BLOCKER"
+    printf '\n  '
+  fi
+  printf '],\n'
+
+  # wds — sorted by status priority (matches the markdown table order)
+  printf '  "wds": ['
+  first_wd=true
+  for status_phase in READY BLOCKED SPECIFYING SPECIFIED IMPLEMENTING COMPLETE; do
+    for wd_id in $(echo "${!WD_STATUS[@]}" | tr ' ' '\n' | sort); do
+      [[ "${WD_STATUS[$wd_id]}" != "$status_phase" ]] && continue
+      if [[ "$first_wd" == "true" ]]; then
+        printf '\n    {\n'
+        first_wd=false
+      else
+        printf ',\n    {\n'
+      fi
+      printf '      "id": "%s",\n'         "$(json_escape "$wd_id")"
+      printf '      "title": "%s",\n'      "$(json_escape "${WD_TITLE[$wd_id]}")"
+      printf '      "status": "%s",\n'     "${WD_STATUS[$wd_id]}"
+      printf '      "deps_count": %d,\n'   "${WD_DEP_COUNT[$wd_id]}"
+
+      # blockers as array of escaped lines
+      printf '      "blockers": ['
+      blockers_raw="${WD_BLOCKERS[$wd_id]:-}"
+      if [[ -n "$blockers_raw" ]]; then
+        first_b=true
+        while IFS= read -r b_line; do
+          [[ -z "$b_line" ]] && continue
+          if [[ "$first_b" == "true" ]]; then
+            printf '\n        "%s"' "$(json_escape "$b_line")"
+            first_b=false
+          else
+            printf ',\n        "%s"' "$(json_escape "$b_line")"
+          fi
+        done <<< "$blockers_raw"
+        printf '\n      '
+      fi
+      printf '],\n'
+
+      # unblocks as array of WD ids
+      printf '      "unblocks": ['
+      unblocks_raw="${WD_UNBLOCKS[$wd_id]:-}"
+      if [[ -n "$unblocks_raw" ]]; then
+        first_u=true
+        IFS=',' read -ra unblock_arr <<< "$unblocks_raw"
+        for ub in "${unblock_arr[@]}"; do
+          if [[ "$first_u" == "true" ]]; then
+            printf '"%s"' "$(json_escape "$ub")"
+            first_u=false
+          else
+            printf ', "%s"' "$(json_escape "$ub")"
+          fi
+        done
+      fi
+      printf ']\n'
+      printf '    }'
+    done
+  done
+  if [[ "$first_wd" == "false" ]]; then
+    printf '\n  '
+  fi
+  printf ']\n'
+  printf '}\n'
+} > "$READINESS_TMP"
+
+mv -f "$READINESS_TMP" "$READINESS_JSON"
+
+echo "[resolve] Wrote $READINESS_JSON" >&2
 echo "[resolve] Done." >&2
