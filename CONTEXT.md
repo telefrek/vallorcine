@@ -20,79 +20,104 @@ state of the project — what's happening now and what's next.
 
 ## Current focus
 
-*Last updated: 2026-05-05*
+*Last updated: 2026-05-10*
 
-**Three patch releases shipped 2026-05-04 → 2026-05-05, all driven by
-jlsm-surfaced kit defects: v0.16.4, v0.16.5, v0.16.6. The session also
-made `@spec` annotation enforcement a structural exit precondition
-across the writer pipeline (no longer advisory). One follow-up is
-parked in `WIP.md` and queued as "Do next" below: PR B (spec-backfill
-+ /curate annotation-drift analysis) for cleaning up existing
-uncovered code in mature projects.**
+**Four releases + a new kit-internal skill shipped 2026-05-10:
+v0.17.0–v0.18.0 + `/save-wip`. The arc: KB schema canonicalization
+(v0.17.0) made structured query possible (v0.18.0); dispatch-marker
+recovery (v0.17.1) closed a silent task-list-corruption bug; KB→code
+citation hook (v0.17.2) plus the index above completed the
+faas-rippling-inspired triangle of write-time + read-time +
+drift-detection enforcement.** Session is at a natural pause point;
+next is empirical validation on jlsm.
 
-### What shipped 2026-05-04 → 2026-05-05
+### What shipped 2026-05-10
 
-**v0.16.4 (PR #65) — `/curate` persistence + threshold cumulation.**
-User-reported on jlsm: "/curate found 0 actionable items" after the
-user had skipped multiple findings on a prior run. Three coupled
-defects:
-- Step 5's curation-state.md template was a full-file replacement,
-  wiping every prior `deferred`/`suggested` row each run.
-- Pre-flight read deferred items but no step re-presented them in the
-  pick list.
-- Pressure / gravity / drift thresholds ran against `LAST_SHA..HEAD`
-  only, so signals diluted below thresholds on frequent-cadence runs.
+**v0.17.0 — Canonical KB frontmatter schema (PR #77).**
+`kb/_refs/frontmatter.md` is the single authoritative schema for all
+entry types (research, adversarial-finding, feature-footprint,
+detail-companion, reference-fragment). Realigned the existing
+adversarial-finding and feature-footprint templates as schema
+instances. Added `kb/_refs/detail-companion.md` formalising the
+`<subject>-detail.md` split with required frontmatter on companions
+(was silently optional, breaking tag-overlap scans). `/research` made
+type-aware: infers `research | adversarial-finding | feature-footprint`
+from the context hint, picks the right template, validates frontmatter
+before write, checks cross-folder filename uniqueness. Audit feedback
+hint repointed at `patterns/<concern>` (the lens) instead of
+`<topic>/adversarial-findings` (folder convention that never existed).
+Three new `/curate` analyses (cross-folder filename collisions, schema
+drift with 12 issue codes, type/location mismatch). Regression test
+21/21.
 
-Fix: new `scripts/curate-review-log.sh` (append-only review log with
-`migrate / append / unresolved / report` subcommands), full-window
-analysis in `curate-scan.sh` with `new since last scan` / `ongoing`
-tagging, new Step 2.5 in the SKILL that merges previously-deferred
-items into the pick list, structured key taxonomy (16 prefixes:
-`adr-pressure:`, `kb-stale:`, `link-rot:`, etc.). 11/11 new tests +
-61/61 existing curate-scan green.
+**v0.17.1 — Dispatch marker for crash-resilient sub-agent dispatch
+(PR #78).** Two failure modes were silently corrupting the
+`/work-start` coordinator's view of in-flight work: (1) Agent tool
+returning `[Tool result missing due to internal error]` (payload
+lost), (2) Agent tool returning `The user doesn't want to proceed
+with this tool use. The tool use was rejected.` (user pressed ESC).
+Both left the task list at `in_progress` with no signal. Fix:
+`scripts/work-dispatch.sh` writes a `_dispatch-<wd-id>.json` marker
+per dispatch (begin/ack/fail/stuck/clear subcommands). `/work-start`
+classifies returns into four shapes (clean / payload-lost /
+user-stopped / parse-failed) and routes to the right marker action.
+`/work-resume` gains rule 0: any unacknowledged marker pre-empts
+every other routing rule, gathers filesystem evidence (WD status,
+`.feature/` presence, cycle-log content), and recommends recovery.
+19/19 fixture test.
 
-**v0.16.5 — bundled spec-resolve perf + `@spec` annotation enforcement.**
+**v0.17.2 — KB→code citation hook + drift backstop (PR #79).**
+`scripts/check-kb-ref.sh` is a PostToolUse hook on Write/Edit/MultiEdit
+that validates `// KB: <path>` (or `# KB:`, `<!-- KB: -->`) citations:
+flags rotted citations (entry was renamed/deleted), flags
+`applies_to`-mismatch (likely copy-paste citation), and suggests
+matching entries when no citation is present. Auto-disables when
+`.kb/` has no entries beyond `_refs/` so non-KB projects aren't
+nagged. `/curate` Analysis 26 closes the loop after the fact, scoped
+to changed source files. Two bugs caught and fixed during self-review
+(backticks in double-quoted string interpreted as command
+substitution; sed `|` delimiter clashed with `|` alternation).
+Inspired by faas-rippling's `check-kb-ref.sh`; vallorcine's version
+adds path validation, applies_to cross-checking, suggestions,
+multi-citation, three comment syntaxes, auto-disable. 18/18 test.
 
-- **PR #66 — `spec-resolve.sh` budget + Step 7b/7c perf.** Default
-  budget bumped 8000 → 25000 (real specs run 9-12K tokens each — prior
-  default produced empty bundles). Step 7b conflict scan and Step 7c
-  displacement scan rewritten as single awk passes — 30+ second hangs
-  on multi-spec bundles eliminated. Output line format byte-identical;
-  `Force-included` header line guarantees the bundle is never empty
-  when there are direct candidates. 4/4 new + 21/21 existing tests.
-- **PR #67 — forward enforcement of `@spec` annotation coverage.**
-  Adversarial workflow audit found exactly one place in the kit
-  explicitly told writers to add `@spec` annotations (`/spec-verify`
-  Step 1.2), and it was gated behind a `spec-bundle.md` artifact no
-  upstream skill ever wrote. Every entry point converged on the same
-  broken handoff. Closed by:
-  - New always-loaded `rules/spec-annotation-protocol.md` defining
-    format, comment syntax per language, where/when to annotate.
-  - New `scripts/spec-coverage.sh` (init / update / gate / waive /
-    report) backed by `.feature/<slug>/spec-coverage.md`. Also
-    produces `spec-bundle.md`.
-  - Mandatory exit checks at `/feature-test` and `/feature-implement`.
-  - Hard gate at `/feature-pr` with annotate / waive / override paths.
-  - `/feature-quick` spec-aware mode.
-  - `/audit` reconcile writes `@spec` to fix code as it mints new
-    R-ids.
-  - `/feature-retro` and `/feature-complete` surface coverage state.
-  - 14/14 new spec-coverage scenario tests + 64/64 install.
+**v0.18.0 — JSON index + faceted search (PR #80).**
+`scripts/kb-index.sh` rebuilds `.kb/_index.json` from entry
+frontmatter (excludes `CLAUDE.md`, `_refs/`, `_archive*`,
+detail-companion entries; tolerates inline + block YAML lists; no
+PyYAML dep; atomic write). `scripts/kb-search.sh --facet
+<expression>` filters the index with comma-separated `key=value`
+pairs (AND-combined; scalar fields exact equality, list fields
+membership). New `/kb facet` subcommand documented in SKILL.md.
+`/research` Step 7.5 calls `kb-index.sh` after every KB write so
+the next facet query is latency-free. Smoke-tested against jlsm's
+238-entry KB: `type=adversarial-finding,domain=validation` returned
+7 matches in <1s. 19/19 test. The schema canonicalization in
+v0.17.0 was the prerequisite — without consistent fields the index
+would have been noise.
 
-**v0.16.6 (PR #68) — ADR quote handling + narrative WD-slug parse.**
-- `work_check_adr_dep` had asymmetric quote handling: WD-side parser
-  stripped quotes; ADR-side didn't. ADRs with `status: "accepted"`
-  silently BLOCKED dependent WDs because `"accepted" != accepted`.
-  Fix: post-extraction strip of single + double quotes on the ADR
-  side.
-- Narrative parser dropped phases for `<group>--wd-NN` slugs because
-  the parent `/work-start "<group>" <N>` JSONL token had no `--wd-`
-  infix in args. Fix: structured group-prefix + WD-number match in
-  both `build_phase` first-pass filter and `parse_story` second-pass
-  state machine. Mirrored in `parse.js` (also closed pre-existing
-  parity gap by adding `/audit` to JS `COMMAND_TO_STAGE`).
-- 8/8 new + 16/16 existing narrative + all `scenario-work-*` and
-  `scenario-spec-*` and `scenario-curate-*` suites green.
+**`/save-wip` skill (PR #81, kit-internal — not shipped).** Mid-flight
+counterpart to `/save-work`: refreshes CONTEXT.md "Current focus" +
+"Open questions", writes WIP.md from a structured template (where
+we are, branch state, in-flight tasks, next concrete action,
+pointers, risks), gathers session learnings (critical here because
+the user is about to `/clear`), and closes with an explicit "Safe
+to `/clear` now" line. Preserves WIP.md (whereas `/save-work`
+deletes it).
+
+### Memory + retention policy updates (2026-05-10)
+
+- `feedback_claude_is_the_reviewer.md` updated with explicit pipeline:
+  Claude reviews, runs tests, approves with `gh pr review --approve`,
+  merges with `gh pr merge --squash --delete-branch --admin` (because
+  GitHub blocks self-approval; user pre-authorized the bypass).
+- `feedback_release_retention.md` updated to auto-enforce retention on
+  every `/release` without asking — keep last 2 patches per minor,
+  last 3 minor versions of current major; surface deletions in the
+  closing summary, only escalate if the sandbox blocks the delete.
+- Retention swept post-v0.18.0: deleted v0.17.0 (3rd patch in 0.17.x),
+  v0.15.0 (outside 3-minor window), v0.14.4, v0.14.3 (older sweep).
+  Tags preserved in git.
 
 ---
 
@@ -100,26 +125,12 @@ items into the pick list, structured key taxonomy (16 prefixes:
 
 *Rolling window — graduate oldest entries to SETTLED.md when this exceeds ~10 items*
 
-*7 decisions graduated to SETTLED.md (2026-04-23): spec-reorg-behavioral-domains
-(executed), manifest-schema-v2, primitives-vs-applications, correctness-over-
-context-cost, fix-now-not-defer, @spec-annotations-as-traceability, planning-
-snapshot-WD-DRAFT-status. See SETTLED.md.*
-
-- **Spec violations are contracts, not backlog** (2026-04-16) — spec-verify
-  repairs violations inline (fix code or amend spec). Obligations created only
-  on explicit user deferral, never as default path.
-
-- **Partial implementation state needed** (2026-04-19) — current model is binary
-  (APPROVED or DRAFT). Need a clean representation for "90% implemented, 10%
-  explicitly deferred." Domain reorg may solve naturally (implemented parts in
-  one spec, stubs in another). Still open — revisit once 2-3 jlsm WDs have
-  completed so the data on real "90% done" shapes is available.
-
-- **GSD is a real direct-lane competitor, not a shallow lookalike**
-  (2026-04-21). See COMPETITIVE.md for the full head-to-head. Positioning
-  emphasizes depth-of-spec-rigor (lifecycle, displacement, audit integration,
-  computed readiness), not the "spec-driven" label (GSD owns that mindshare
-  at 55K+ stars). Called out here because it shapes ongoing positioning work.
+*10 decisions graduated to SETTLED.md (7 on 2026-04-23, 3 on 2026-05-09):
+spec-reorg-behavioral-domains (executed), manifest-schema-v2,
+primitives-vs-applications, correctness-over-context-cost, fix-now-not-defer,
+@spec-annotations-as-traceability, planning-snapshot-WD-DRAFT-status,
+spec-violations-are-contracts (2026-05-09), partial-impl-via-coverage-table
+(2026-05-09), GSD-direct-competitor (2026-05-09). See SETTLED.md.*
 
 - **Mode-gated AskUserQuestion + subagent termination contract** (2026-04-23)
   — pipeline skills (`/feature-test`, `/feature-implement`,
@@ -173,6 +184,49 @@ snapshot-WD-DRAFT-status. See SETTLED.md.*
   signals to dilute below thresholds on frequent-cadence runs.
   Shipped in PR #65 / v0.16.4.
 
+- **Subagent dispatch is the structural automation of `/clear`**
+  (2026-05-09) — `/clear` is a Claude Code UI operation; from inside a
+  running skill, an agent CANNOT issue it. The legitimate equivalent
+  is dispatching a subagent: each subagent gets fresh context by
+  default, parent absorbs only the return summary. The new
+  `/work-{plan,start} <group> all` modes are the structural form of
+  the manual `/clear + /work-resume + /work-* WD-N` rhythm. Same
+  per-WD context economy, no `/clear` typed during the run. Shipped
+  in PR #76 / v0.16.8.
+
+- **Recursive single-WD-skill dispatch over custom subagent prompts**
+  (2026-05-09) — early `all` mode designs had the coordinator inline
+  pipeline-dispatch logic in a custom subagent prompt. Adversarial
+  review caught a duplicate-pipeline-dispatch bug AND identified that
+  duplicating `work-claim.sh` calls in coordinator prompts would drift
+  from the canonical single-WD flow. Fix: subagent prompt just says
+  "invoke /work-start <group> WD-NN" and lets the single-WD flow do
+  its job. State-transition logic stays in one place. Shipped in PR
+  #76 / v0.16.8.
+
+- **`flock` must wrap compute+write, not just writes**
+  (2026-05-09) — first audit pass put `flock` around the manifest +
+  cache writes only. Second audit pass found a snapshot race: two
+  parallel runs read state at different times, the lock serialized
+  writes, but the second writer could overwrite with stale content
+  while still bumping mtime — invisible to the downstream
+  mtime-based freshness check. Fix: lock the entire compute phase too
+  so the second runner reads state AFTER the first runner's writes
+  have landed. The cost is marginal (resolver computation is fast
+  even under lock); the correctness gain is large. Shipped in PR #76
+  / v0.16.8.
+
+- **CAS via `work-claim.sh`, not raw `sed`** (2026-05-09) — the
+  pre-existing `/work-{plan,start}` flow used raw `sed -i` to flip WD
+  status (DRAFT → SPECIFYING, etc.). Adversarial review found a real
+  concurrency hole: two terminals invoking `/work-plan WD-01` between
+  Step 2 (resolver read of DRAFT) and Step 4c (sed) would both
+  succeed, both think they're authoring, race on writes. Fix: a small
+  `work-claim.sh` script that does read-check-write under flock (CAS
+  semantics) and exits 1 + CONFLICT message when expected != actual.
+  Pattern is reusable for future state-mutating skills. Shipped in PR
+  #76 / v0.16.8.
+
 *Live list — resolve into SETTLED.md or drop when addressed.*
 *Prioritised: do next → do soon → do when needed → do when scale demands it.*
 *Status tags: `[implemented]` = code exists, needs validation. `[designed]` = spec
@@ -180,39 +234,43 @@ exists, not yet coded. No tag = needs both design and implementation.*
 
 ### Do next
 
-**PR B — `/spec-backfill` + `/curate` annotation-drift analysis.**
-PR #67 (v0.16.5) made annotation a structural exit precondition for
-NEW pipeline runs but left existing uncovered code in mature corpora
-(jlsm has 75 specs / 12 domains, most authored before annotation
-enforcement existed). PR B closes that gap. Designed scope:
+**Empirical validation of the v0.17–v0.18 KB tooling on jlsm.** Four
+releases shipped in rapid sequence with structural test coverage but no
+real-codebase validation. After `/upgrade-vallorcine` in jlsm:
 
-1. **`scripts/spec-trace.sh --uncovered <spec-id>`** — extend the
-   existing tool to emit a parseable list of R-ids with zero `@spec`
-   references. Used as the primitive by both the new skill and the
-   curate analysis.
-2. **`/spec-backfill <spec-id>` skill** (~150-line SKILL.md). Walks
-   uncovered requirements one at a time. For each R, runs subject-token
-   grep across the codebase looking for likely enforcement points (same
-   heuristic as the displacement scan in `spec-resolve.sh` Step 7c).
-   Presents candidates via AskUserQuestion ("R3 about
-   `TokenValidator.expiry_check` — likely sites: (a) ..., (b) ..., (c)
-   Other, (d) Skip"). Applies the annotation. Writes a backfill log so
-   progress survives interruption. Re-runs `spec-trace` at end to
-   confirm coverage moved.
-3. **`/spec-backfill --all`** — corpus-wide one-shot mode. Iterates
-   every APPROVED spec, runs the per-spec flow. The catch-up tool for
-   mature jlsm-style projects.
-4. **`/curate` annotation-drift analysis (#23)** — APPROVED specs
-   whose requirements have <50% annotation coverage, ordered by age +
-   churn of matching code. Routes to `/spec-backfill <id>`. Surfaces
-   the problem at regular curation cadence so it never re-accumulates.
-5. **`tests/scenario-spec-backfill.sh`** — covers per-spec walk,
-   candidate suggestion, annotation application, log resumption,
-   `--all` corpus iteration.
+1. **`/curate --init` on jlsm.** Confirm the three v0.17.0 KB
+   structural-drift analyses (filename collisions, schema drift,
+   type/location mismatch) AND the v0.17.2 citation-drift analysis fire
+   on jlsm's 238-entry KB. The KB review earlier in this session
+   surfaced specific drift cases (cross-folder collisions on
+   `partial-init-no-rollback.md` and `mutation-outside-rollback-scope.md`,
+   non-canonical `research_status` values, etc.) — verify they show up.
 
-Should reuse `spec-coverage.sh` (the artifact PR #67 introduced) as the
-"what's annotated and what isn't" book — keeps the user's mental model
-coherent.
+2. **KB→code citation hook on a real edit.** Edit a Java file under
+   `modules/` that doesn't yet have a `// KB:` citation. Confirm
+   `check-kb-ref.sh` fires post-Write with suggestions drawn from
+   entries whose `applies_to` covers the file path. Verify the
+   auto-disable check stays silent when editing files outside any
+   entry's scope (no nagging where no entry applies).
+
+3. **Faceted search.** Run `/kb facet 'type=adversarial-finding,domain=validation'`
+   and similar. Verify results match what jlsm's KB inventory shows.
+   Check the auto-rebuild path: edit one entry's frontmatter, rerun
+   the same facet query, confirm the result reflects the edit
+   without an explicit `kb-index.sh` invocation.
+
+4. **Dispatch marker recovery.** On a real `/work-start <group> all`
+   run, simulate a stuck dispatch (or wait for one to occur naturally
+   — they happen). Confirm `/work-resume <group>` rule 0 surfaces the
+   stuck WD with the recommended recovery path (re-dispatch vs
+   `/feature-resume` vs decide-yourself).
+
+The original v0.16.8 work-layer validation queue (sequential `all`
+modes, two-terminal CAS, `/clear` + `/work-resume` rhythm, etc.)
+remains outstanding underneath this. Sequence: validate the new KB
+stack first (this session's deliverables), then revisit the v0.16.8
+queue. Token-cost and UX claims for both stacks are unproven on real
+work.
 
 ### Do soon (medium effort, clear designs)
 
@@ -220,19 +278,35 @@ coherent.
   enforcement is structural in tests, but no real `/feature` end-to-end
   run on jlsm has exercised the new gate yet. First production run will
   be the real validation. Watch for: false-positive PR blocks, format
-  ambiguity in real test code, override-path UX.
+  ambiguity in real test code, override-path UX. (Outstanding from
+  v0.16.5.)
 
 - **Empirical validation of /curate full-window thresholds.** PR #65 is
   in v0.16.4. Re-run /curate on jlsm and confirm previously-deferred
   items resurface and that `new since last scan` vs `ongoing` tagging
-  reads naturally in the pick list.
+  reads naturally in the pick list. (Outstanding from v0.16.4.)
 
-- **Partial implementation state model** — binary APPROVED/DRAFT
-  insufficient for specs that are 90% implemented. Revisit once 2-3
-  jlsm WDs have completed implementation. The new annotation coverage
-  table (PR #67) gives the per-requirement grain that may inform this
-  — explicit `pending` rows for not-yet-implemented requirements
-  could be the partial-implementation primitive.
+- **Empirical validation of `/spec-backfill`.** Shipped in v0.16.7;
+  no real corpus run yet. jlsm has 75 specs / 12 domains, most
+  authored before annotation enforcement — that's the intended use
+  case. Watch for: candidate-ranking false positives, log resumption
+  on `--all` mode interruption.
+
+- **`work-claim.sh` for OTHER state-mutating skills.** The CAS pattern
+  is reusable. Candidates:
+  - `/feature-retro` writing KB entries (currently an unguarded write)
+  - `/spec-write` registry manifest update (already serialized via
+    atomic jq + tmp + mv but no CAS — last-writer-wins on concurrent
+    spec writes from different WDs)
+  Worth scoping when a real concurrency bug surfaces, not preemptively.
+
+- **`--autonomous` flag for `/work-plan all`.** Today the flow pauses
+  for `/spec-author` Pass 2 arbitration prompts (intentional — preserves
+  spec quality at design decisions). A future `--autonomous` flag would
+  add `/spec-author` mode-gating against `execution_strategy: balanced`
+  and accept auto-defaults for falsification findings, enabling true
+  fire-and-forget bulk planning at the cost of design oversight. Defer
+  until a user actually wants it.
 
 - **Flaky-test surfacing in `/feature-retro`** — scan cycle-log.md for
   flakiness signals (timeouts on first run + passed-on-rerun, "flaky",
