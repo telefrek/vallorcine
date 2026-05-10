@@ -1287,8 +1287,8 @@ Use AskUserQuestion:
 When renaming, do NOT just `git mv` the file — also update every `related:`
 entry in the rest of `.kb/` that points at the old path, and check
 `@./` includes from any parent file (detail-companion convention) for
-broken references. Stage the rename + reference updates as one commit; do
-not push unless the user requests it.
+broken references. Stage the rename + reference updates with `git add`;
+do not commit unless the user explicitly requests it.
 
 **KB schema drift:** Read the entry and present the issues grouped together:
 
@@ -1351,7 +1351,8 @@ Use AskUserQuestion:
   - "Skip" — defer
 
 When relocating, the same care as for filename collisions applies — update
-every incoming `related:` link, check `@./` includes, stage as one commit.
+every incoming `related:` link, check `@./` includes, stage with `git add`,
+let the user commit.
 
 After completing the action, mark it `resolved` in the review log. Then
 **ALWAYS re-present the remaining items** (renumbered) so the user can
