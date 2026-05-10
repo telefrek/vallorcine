@@ -69,17 +69,21 @@ research_status: "<status>"               # MUST be one of: active, stable, arch
 - `last_researched` — date the entry's content was last verified against
   reality. Updated on every meaningful edit, not just creation. ISO format,
   always in quotes (`"2026-05-09"`, not bare `2026-05-09`).
-- `research_status`:
+- `research_status` — one of:
   - `active` — under ongoing investigation; expect changes within ~30 days.
-  - `stable` — verified, low expected churn. Default for completed research.
-  - `archived` — superseded or retired. Kept for historical reference; readers
-    should prefer the entry that replaced it.
+  - `mature` — verified by production use or extensive audits; ~6-month review.
+  - `stable` — verified, low expected churn; ~12-month review. Default for
+    completed research.
+  - `deprecated` — superseded by a newer entry; the body SHOULD point at the
+    successor. Readers should prefer the successor.
 
 ## Optional core fields (every type)
 
 ```yaml
 aliases: ["<other name>", "<another name>"]   # synonyms for grep / search
 tags: ["<tag-1>", "<tag-2>"]                  # vocabulary below
+topic: "<topic>"                               # informational; path is canonical
+category: "<category>"                         # informational; path is canonical
 related:                                       # other KB entries
   - "<topic>/<category>/<subject>.md"
 decision_refs: []                              # ADR slugs (no .md extension)
@@ -91,6 +95,11 @@ sources:                                       # citations (see Source format)
     type: "<docs|paper|blog|repo|standard>"
 confidence: "<low|medium|high>"                # earned, not asserted
 ```
+
+`topic` and `category` are optional and informational. The file's path is
+canonical — if the path says `data-structures/caching/`, the topic is
+`data-structures` and category is `caching`. When these fields are present,
+they MUST match the path. `/curate` flags mismatches as drift.
 
 ### Tag vocabulary
 
@@ -262,7 +271,12 @@ When a `/curate` schema-drift pass encounters legacy frontmatter:
 - Missing `type:` otherwise becomes `type: research`.
 - Missing `last_researched:` becomes the file's last git-commit date.
 - Missing `research_status:` becomes `stable` for footprints, `active` for everything else.
+- `research_status: archived` is renamed to `deprecated` (the canonical schema
+  uses `deprecated` for "superseded by a newer entry").
 - `confidence: high` without ≥2 corroborating sources/audits is downgraded to `medium` and flagged for human review.
+- Frontmatter `topic:` / `category:` that disagree with the file's path are
+  rewritten to match the path (path is canonical; the fields are
+  informational mirrors).
 
 Migration is opt-in per entry — `/curate` proposes patches and the user
 accepts or declines each one. Bulk silent rewrites are not allowed.

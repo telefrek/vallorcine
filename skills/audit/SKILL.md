@@ -1131,9 +1131,14 @@ Then use AskUserQuestion to get the user's choice:
 Do not proceed until the user has responded.
 
 If **create**: for each pattern, invoke
-`/research "<subject>" context: "audit adversarial pattern from <target>. Suggested: <topic>/adversarial-findings"` as a sub-agent with the pattern's
-description and affected constructs as context. After all creates complete,
-rename: `mv kb-suggestions.md kb-suggestions.applied.md`
+`/research "<subject>" context: "audit adversarial pattern from <target>. Suggested: patterns/<concern>"` as a sub-agent with the pattern's
+description and affected constructs as context. The `<concern>` is the
+pattern's lens (`validation`, `concurrency`, `resource-management`,
+`testing`, `transactions`), NOT the discovery domain. `/research` will
+infer `type: adversarial-finding` from the hint and use the
+adversarial-finding template at `.kb/_refs/adversarial-finding-template.md`.
+
+After all creates complete, rename: `mv kb-suggestions.md kb-suggestions.applied.md`
 
 If **select**: present each pattern individually for create/skip. After all
 items are processed, rename the file.

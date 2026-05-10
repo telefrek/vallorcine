@@ -158,15 +158,39 @@ skip that facet. Note it in the display so the user knows it's already covered.
 ### Placement determination
 
 For each facet, suggest:
+- **Entry type** — one of `research`, `adversarial-finding`, `feature-footprint`.
+  Inferred from the context hint (see "Entry-type inference" below). Determines
+  which template is used and which type-specific fields are required.
 - **Topic** — broad domain (e.g. `algorithms`, `systems`, `ml`). Check
   `.kb/CLAUDE.md` Topic Map for existing topics. Prefer existing topics.
 - **Category** — focused cluster within the topic (e.g. `vector-indexing`,
   `partitioning`). Check `.kb/<topic>/CLAUDE.md` for existing categories.
-  Prefer existing categories when the fit is good.
+  Prefer existing categories when the fit is good. For `adversarial-finding`
+  entries, the category is the **concern lens** (`validation`, `concurrency`,
+  `resource-management`), and the topic is `patterns`. Findings discovered
+  while researching SQL parsing belong at `patterns/validation/`, not at
+  `algorithms/sql-extensions/` — the lens, not the discovery domain.
 - **Filename** — kebab-case of the facet's core concept
 
 If a topic or category doesn't exist yet, note that it will be created. New
 topics need a one-line description.
+
+### Entry-type inference
+
+Read the context hint (if any). Apply these rules:
+
+- Hint matches `feature-retro footprint`, `Suggested: architecture/feature-footprints`, or otherwise indicates this is a per-feature record →
+  **`feature-footprint`**. Use the template at `.kb/_refs/feature-footprint-template.md`.
+  Default placement: `architecture/feature-footprints/<feature-slug>.md`.
+- Hint matches `audit adversarial pattern`, `Suggested: patterns/<concern>`, `Suggested: <topic>/adversarial-findings`, mentions a specific bug pattern, or otherwise indicates a finding from audit / aTDD / defensive testing →
+  **`adversarial-finding`**. Use the template at `.kb/_refs/adversarial-finding-template.md`.
+  Default placement: `patterns/<concern>/<finding-name>.md`.
+- Otherwise (research surveys, algorithms, systems, tradeoffs) →
+  **`research`**. Use the inline Subject File Template below.
+
+Surface the inferred type in the facet plan (Step 4) so the user can correct
+it before any file is written. If unsure, ask the user with AskUserQuestion
+listing the three types as options.
 
 ### Cap
 
@@ -238,14 +262,79 @@ Display: `── Writing KB entries ──────────────�
 
 Write one full article per confirmed facet.
 
+### Pre-write checks (run BEFORE creating any file)
+
+The canonical schema lives at `.kb/_refs/frontmatter.md`. Read it once at the
+start of this step. Every entry written below MUST conform.
+
+For each facet, run two checks before opening the writer:
+
+1. **Cross-folder filename uniqueness.** Run:
+
+   ```bash
+   find .kb -type f -name "<filename>.md" -not -path "*/_refs/*"
+   ```
+
+   If the result contains any path other than the one you are about to write
+   to, STOP. The filename collides with an existing entry under a different
+   folder. Either:
+   - Pick a more specific filename (`builder-pre-validation-mutation.md`
+     instead of `partial-init-no-rollback.md`), or
+   - Confirm with the user via AskUserQuestion that this is intentional (very
+     rare; usually it isn't).
+
+   Do not write the file under a colliding name. Cross-folder collisions
+   silently fragment search and pattern-recurrence evidence.
+
+2. **Type sanity check.** The inferred type from Step 3 determines which
+   template you use:
+   - `research` → inline Subject File Template (below)
+   - `adversarial-finding` → `.kb/_refs/adversarial-finding-template.md`
+   - `feature-footprint` → `.kb/_refs/feature-footprint-template.md`
+
+   For `adversarial-finding`, confirm the path begins with `patterns/<concern>/`.
+   For `feature-footprint`, confirm the path begins with
+   `architecture/feature-footprints/`. If a path violates these rules, the
+   inferred type is wrong (or the path is wrong) — re-confirm with the user
+   before writing.
+
+### Per-facet write rules
+
 - Path: `.kb/<topic>/<category>/<filename>.md`
-- Use the Subject File Template below
-- Keep under 200 lines; extract overflow to `<subject>-detail.md` with
-  `@./<subject>-detail.md` at the bottom
+- Template: per Type sanity check above
+- Keep under 200 lines; extract overflow to `<subject>-detail.md` per
+  `.kb/_refs/detail-companion.md` (frontmatter is required on the companion)
 - If file already exists: append `## Updates YYYY-MM-DD` section — NEVER overwrite
 - Populate `applies_to:` from the context hint if it implies specific files
+  (REQUIRED for `adversarial-finding` and `feature-footprint`)
 - Populate `decision_refs:` from the context hint if it references an ADR
 - Populate `related:` — see cross-linking rules below
+
+### Frontmatter validation (run AFTER drafting, BEFORE writing)
+
+Validate the drafted frontmatter against `.kb/_refs/frontmatter.md`:
+
+1. Required core fields present and non-empty (except `applies_to` which MAY
+   be empty for general research): `title`, `type`, `applies_to`,
+   `last_researched`, `research_status`.
+2. `type` is one of: `research`, `adversarial-finding`, `feature-footprint`,
+   `detail-companion`. (`reference-fragment` is reserved for kit `_refs/`.)
+3. Type-specific required fields present:
+   - `adversarial-finding` → `domain`, `severity`
+   - `feature-footprint` → `domains`, `constructs`
+4. `last_researched` matches `^\d{4}-\d{2}-\d{2}$` and is quoted.
+5. `research_status` is one of `active`, `mature`, `stable`, `deprecated`.
+6. `tags` (if present) all lowercase kebab-case.
+7. `sources` (if present) all carry `url`, `title`, and `accessed`. No bare
+   URLs.
+8. `confidence` defaults to `medium` for new entries. Set `high` ONLY when
+   the entry has ≥2 corroborating sources (research) or ≥2 audit findings
+   (adversarial-finding). Otherwise use `medium` or `low`. Never default to
+   `high`.
+9. If `topic:` or `category:` are populated, they MUST match the file's path.
+
+If any check fails, fix the draft and re-validate. Do not write a file that
+fails validation.
 
 ### Cross-linking rules
 
@@ -316,19 +405,23 @@ To query what's in the KB later: `/kb "<question>"`
 
 ## Subject File Template
 
+For `type: research` entries only. For other types, use the templates at
+`.kb/_refs/adversarial-finding-template.md` and
+`.kb/_refs/feature-footprint-template.md`. The canonical schema for all types
+is at `.kb/_refs/frontmatter.md`.
+
 ```markdown
 ---
 title: "<Full Name of Algorithm/Concept>"
+type: research
 aliases: ["<shorthand>", "<alternate name>"]
-topic: "<topic>"
-category: "<category>"
 tags: ["<tag1>", "<tag2>"]
 complexity:
   time_build: "<e.g. O(n log n)>"
   time_query: "<e.g. O(log n)>"
   space: "<e.g. O(n * M)>"
 research_status: "<active | mature | stable | deprecated>"
-confidence: "<high | medium | low>"
+confidence: "<medium | low>"   # default medium; upgrade to high only with ≥2 corroborating sources
 last_researched: "<YYYY-MM-DD>"
 applies_to: []
 related: []
@@ -337,7 +430,7 @@ sources:
   - url: "<URL>"
     title: "<title>"
     accessed: "<YYYY-MM-DD>"
-    type: "<paper | docs | blog | repo | benchmark>"
+    type: "<paper | docs | blog | repo | standard>"
 ---
 
 # <Full Name>
@@ -416,15 +509,24 @@ class SubjectName:
 
 ### Confidence field guidance
 
-Set `confidence` based on the strength of the sources backing the entry's claims:
+`confidence` is **earned**, not author-asserted. Default new entries to
+`medium`. Upgrade to `high` ONLY when the corroboration evidence below is
+present in the entry. `/curate` flags `high` entries that don't meet the
+bar for downgrade.
 
-- **high** — claims backed by peer-reviewed papers, official documentation, or verified benchmarks
-- **medium** — claims from reputable blog posts, conference talks, or the model's training knowledge that aligns with multiple sources
-- **low** — claims from a single unverified source, the model's general knowledge without corroboration, or extrapolations
+- **high** — claims backed by **2 or more independent sources**: e.g. a
+  peer-reviewed paper plus an official implementation, or two independent
+  audits confirming the same pattern. The corroboration MUST be visible in
+  the entry's `sources:` list (research) or `## Found in` section
+  (adversarial-finding).
+- **medium** — claims from a single strong source (one paper, one official
+  doc, one audit confirmation). **This is the default for new entries.**
+- **low** — claims from a single unverified source, the model's general
+  knowledge without corroboration, or extrapolations.
 
 When updating an existing entry, reassess confidence if new sources materially
-change the evidence base. Confidence can go up (new paper corroborates a blog
-claim) or down (a cited benchmark turns out to be synthetic).
+change the evidence base. Confidence can go up (a second source corroborates a
+prior claim) or down (a cited benchmark turns out to be synthetic).
 
 ---
 
@@ -530,7 +632,13 @@ Any prior errors found and corrected, with explanation.
 - [ ] Facet plan confirmed by user before any files were written
 - [ ] Each additional facet beyond the first has explicit justification
 - [ ] All subject files are at .kb/<topic>/<category>/<subject>.md
-- [ ] Every subject file has topic and category in frontmatter
+- [ ] Every subject file has a `type:` frontmatter field set to one of
+      `research`, `adversarial-finding`, `feature-footprint`
+- [ ] Cross-folder filename uniqueness verified (no `find .kb -name <file>.md`
+      hits outside the intended path)
+- [ ] Frontmatter validated against `.kb/_refs/frontmatter.md` (required core
+      fields present, type-specific fields present, no `confidence: high`
+      without ≥2 corroborating sources)
 - [ ] Every subject file has sources frontmatter with URLs and accessed dates
 - [ ] Every ## section heading is lowercase and hyphenated
 - [ ] code-skeleton section contains runnable pseudocode
