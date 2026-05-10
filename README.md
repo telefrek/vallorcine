@@ -244,7 +244,7 @@ or work groups stall. The result: your 5th feature is faster than your 1st.
 
 | Command | What it does |
 |---------|-------------|
-| `/curate` | Review quality signals — stale decisions, knowledge gaps, spec coverage gaps, implicit dependencies, out-of-scope ADR items, **subdivision candidates** (mature specs that have grown past one file's worth of behavior with multiple distinct concerns), **link rot** in KB citations, **falsification-lens staleness** (APPROVED specs predating a newer lens), **KB structural drift** (cross-folder filename collisions, frontmatter schema drift against `.kb/_refs/frontmatter.md`, type/location mismatches) |
+| `/curate` | Review quality signals — stale decisions, knowledge gaps, spec coverage gaps, implicit dependencies, out-of-scope ADR items, **subdivision candidates** (mature specs that have grown past one file's worth of behavior with multiple distinct concerns), **link rot** in KB citations, **falsification-lens staleness** (APPROVED specs predating a newer lens), **KB structural drift** (cross-folder filename collisions, frontmatter schema drift against `.kb/_refs/frontmatter.md`, type/location mismatches), **KB citation drift in source** (`// KB:` citations in changed source files pointing at missing entries or whose entry's `applies_to` doesn't include the source file) |
 | `/curate --init` | First-time scan on an existing codebase |
 | `/curate --deeper` | Scan 6 months of history instead of default 3 |
 | `/curate --verify [--analysis <name>]` | Focused pass over verification-shaped candidates (link rot + falsification-lens staleness). Skips the broader correlation flow. Dismissals persist to `.curate/verify-dismissed.txt`. `--analysis` accepts `link-rot`, `falsification-stale`, or `all` (default). |

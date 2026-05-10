@@ -672,14 +672,21 @@ On an existing codebase, use `--init` for the first scan:
 ```
 
 Curate finds ADR drift, stale KB entries, implicit dependencies, orphaned
-areas, out-of-scope items buried in accepted ADRs, and **KB structural drift**
+areas, out-of-scope items buried in accepted ADRs, **KB structural drift**
 — cross-folder filename collisions, frontmatter that has fallen out of sync
 with the canonical schema at `.kb/_refs/frontmatter.md`, and entries whose
-declared `type:` doesn't match their location (adversarial findings filed
-under `algorithms/` instead of `patterns/<concern>/`, where the test-writer's
-lens-based loaders never see them). For each finding, it offers an action —
-research, review, apply schema patches, relocate the entry, or create a
-deferred stub so the item shows up in `/decisions triage`.
+declared `type:` doesn't match their location — and **KB citation drift in
+source code** — `// KB: <path>` citations in changed source files that
+point at missing entries or whose entry's `applies_to` doesn't include the
+source file. For each finding, it offers an action — research, review,
+apply schema patches, relocate the entry, update or extend a citation, or
+create a deferred stub so the item shows up in `/decisions triage`.
+
+The KB→code linking convention is enforced at write-time by the
+`check-kb-ref.sh` PostToolUse hook (registered in `settings.json`).
+The hook validates `// KB:`, `# KB:`, and `<!-- KB: -->` comment forms,
+suggests matching entries when none are present, and auto-disables on
+projects whose KB has no entries — so non-KB projects aren't nagged.
 
 Example finding: your `table-partitioning` ADR scoped out "replication
 protocol" and "cross-partition transactions." Curate surfaces these as
