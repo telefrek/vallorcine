@@ -312,6 +312,7 @@ install_file "$SCRIPT_DIR/scripts/work-claim.sh" "$TARGET/.claude/scripts/work-c
 install_file "$SCRIPT_DIR/scripts/work-validate.sh" "$TARGET/.claude/scripts/work-validate.sh"
 install_file "$SCRIPT_DIR/scripts/work-context.sh" "$TARGET/.claude/scripts/work-context.sh"
 install_file "$SCRIPT_DIR/scripts/work-finalize.sh" "$TARGET/.claude/scripts/work-finalize.sh"
+install_file "$SCRIPT_DIR/scripts/work-dispatch.sh" "$TARGET/.claude/scripts/work-dispatch.sh"
 install_file "$SCRIPT_DIR/scripts/work-index.sh" "$TARGET/.claude/scripts/work-index.sh"
 install_file "$SCRIPT_DIR/scripts/feature-state-reconcile.sh" "$TARGET/.claude/scripts/feature-state-reconcile.sh"
 install_file "$SCRIPT_DIR/scripts/narrative-wrapper.sh" "$TARGET/.claude/scripts/narrative-wrapper.sh"
@@ -346,6 +347,7 @@ chmod +x "$TARGET/.claude/scripts/work-claim.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-validate.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-context.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-finalize.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/work-dispatch.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-index.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/feature-state-reconcile.sh" 2>/dev/null || true
 
@@ -436,6 +438,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
       "Bash(bash .claude/scripts/work-validate.sh:*)",
       "Bash(bash .claude/scripts/work-context.sh:*)",
       "Bash(bash .claude/scripts/work-finalize.sh:*)",
+      "Bash(bash .claude/scripts/work-dispatch.sh:*)",
       "Bash(bash .claude/scripts/work-index.sh:*)",
       "Bash(bash .claude/scripts/feature-state-reconcile.sh:*)"
     ]
@@ -554,6 +557,7 @@ HOOKJSON
       "Bash(bash .claude/scripts/work-validate.sh:*)",
       "Bash(bash .claude/scripts/work-context.sh:*)",
       "Bash(bash .claude/scripts/work-finalize.sh:*)",
+      "Bash(bash .claude/scripts/work-dispatch.sh:*)",
       "Bash(bash .claude/scripts/work-index.sh:*)",
       "Bash(bash .claude/scripts/feature-state-reconcile.sh:*)"
         ] | unique)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
@@ -587,6 +591,7 @@ NEW_GITIGNORE_ENTRIES=(
     ".work/*/_readiness.json"
     ".work/*/_decompose-progress.md"
     ".work/*/.work-resolve.lock"
+    ".work/*/_dispatch-*.json"
 )
 
 if [[ "$DIFF_MODE" != "1" ]]; then
@@ -605,6 +610,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
 .work/*/_readiness.json
 .work/*/_decompose-progress.md
 .work/*/.work-resolve.lock
+.work/*/_dispatch-*.json
 __pycache__/
 GITIGNOREBLOCK
         echo -e "  ${GREEN}write${NC} .gitignore  (runtime file entries)"
