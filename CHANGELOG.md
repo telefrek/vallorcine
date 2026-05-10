@@ -4,6 +4,74 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.17.2] — 2026-05-09
+
+### Added
+
+- **`scripts/check-kb-ref.sh`** — PostToolUse hook on Write/Edit/MultiEdit
+  that links source code back to the KB. Source files now SHOULD declare
+  which KB articles informed them via a `// KB: <path>` (or `# KB:`,
+  `<!-- KB: -->`) comment. The hook:
+  - Auto-disables when `.kb/` has no entries beyond `_refs/` — projects
+    that don't use vallorcine for code-relevant research are not nagged.
+  - Validates that each cited path exists; flags rotted citations
+    (entry was renamed, deleted, never existed).
+  - Validates that the cited entry's `applies_to:` includes the file
+    path; flags applies_to-mismatch (likely a copy-paste citation).
+  - When no citation is present and at least one KB entry's `applies_to`
+    covers the file path, lists those entries as suggestions. When no
+    entry matches, stays silent — no nagging projects whose KB hasn't
+    grown into a given area yet.
+  - Recognises three comment forms: `// KB:` (Java/JS/TS/Go/Rust/C/C++),
+    `# KB:` (Python/Bash/Ruby), `<!-- KB: -->` (HTML/XML/Markdown).
+    Multiple citations may be comma-separated on one line.
+  - Always exits 0 — the hook is advisory and never blocks the tool use.
+
+  Inspired by faas-rippling's check-kb-ref.sh; vallorcine's version
+  adds path validation, applies_to cross-checking, citation suggestions,
+  multi-citation parsing, the three comment syntaxes, and the
+  auto-disable so the kit-default is safe for every project.
+
+- **`/curate` Analysis 26 — KB citation drift in source.** Closes the
+  loop with the hook: scans source files that changed in the scan
+  window for `KB:` citations and flags drift the hook missed (kit
+  installed mid-stream, citation predates an entry rename). Two reason
+  codes: `missing-entry` and `applies_to-mismatch`. Empty `applies_to`
+  (general research) is exempt.
+
+- **`/curate` SKILL.md routing for citation drift.** Section 2s
+  documents how to read the finding. Step-4 routing offers four
+  actions: update the citation (when wrong), extend the entry's
+  `applies_to:` (when correct but the entry's stated scope is too
+  narrow), dismiss as intentional, skip. Review-log key
+  `kb-citation:<source>:<entry>` for deferred items.
+
+### Changed
+
+- **`rules/kb-protocol.md`** — documents the citation convention,
+  comment syntaxes, hook behaviour, and the `/curate` Analysis 26
+  backstop. Single canonical reference for contributors who hit a
+  hook warning and want to understand the rule.
+
+- **Install plumbing** — MANIFEST entry, `install.sh` (script copy +
+  chmod + permission allowlist + PostToolUse hook in both seed JSON
+  and jq-merge path so existing installs pick up the hook on next
+  upgrade).
+
+- **DESIGN.md script manifest** — listed `check-kb-ref.sh`; bumped
+  curate-scan.sh's "25 analyses" count to 26.
+
+### Tests
+
+- `scenario-check-kb-ref.sh` — 18/18 covering all 12 enhancement paths
+  (auto-disable, internals skipped, suggestions, citation validation,
+  applies_to mismatch, multi-citation, three comment syntaxes,
+  advisory-exit-0, empty-applies_to exemption).
+- `scenario-curate-kb-citation-drift.sh` — 11/11 with section-scoped
+  assertions so other analyses' file lists don't cause false positives.
+- `tests/test-install.sh` — still 72/72.
+
+---
 ## [0.17.1] — 2026-05-09
 
 ### Fixed
