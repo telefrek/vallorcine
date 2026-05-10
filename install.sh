@@ -315,6 +315,7 @@ install_file "$SCRIPT_DIR/scripts/work-finalize.sh" "$TARGET/.claude/scripts/wor
 install_file "$SCRIPT_DIR/scripts/work-dispatch.sh" "$TARGET/.claude/scripts/work-dispatch.sh"
 install_file "$SCRIPT_DIR/scripts/work-index.sh" "$TARGET/.claude/scripts/work-index.sh"
 install_file "$SCRIPT_DIR/scripts/check-kb-ref.sh" "$TARGET/.claude/scripts/check-kb-ref.sh"
+install_file "$SCRIPT_DIR/scripts/kb-index.sh" "$TARGET/.claude/scripts/kb-index.sh"
 install_file "$SCRIPT_DIR/scripts/feature-state-reconcile.sh" "$TARGET/.claude/scripts/feature-state-reconcile.sh"
 install_file "$SCRIPT_DIR/scripts/narrative-wrapper.sh" "$TARGET/.claude/scripts/narrative-wrapper.sh"
 chmod +x "$TARGET/.claude/scripts/narrative-wrapper.sh" 2>/dev/null || true
@@ -351,6 +352,7 @@ chmod +x "$TARGET/.claude/scripts/work-finalize.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-dispatch.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-index.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/check-kb-ref.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/kb-index.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/feature-state-reconcile.sh" 2>/dev/null || true
 
 # ── Merge driver for index files ──────────────────────────────────────────────
@@ -443,6 +445,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
       "Bash(bash .claude/scripts/work-dispatch.sh:*)",
       "Bash(bash .claude/scripts/work-index.sh:*)",
       "Bash(bash .claude/scripts/check-kb-ref.sh:*)",
+      "Bash(bash .claude/scripts/kb-index.sh:*)",
       "Bash(bash .claude/scripts/feature-state-reconcile.sh:*)"
     ]
   },
@@ -626,6 +629,7 @@ NEW_GITIGNORE_ENTRIES=(
     ".work/*/_decompose-progress.md"
     ".work/*/.work-resolve.lock"
     ".work/*/_dispatch-*.json"
+    ".kb/_index.json"
 )
 
 if [[ "$DIFF_MODE" != "1" ]]; then
@@ -645,6 +649,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
 .work/*/_decompose-progress.md
 .work/*/.work-resolve.lock
 .work/*/_dispatch-*.json
+.kb/_index.json
 __pycache__/
 GITIGNOREBLOCK
         echo -e "  ${GREEN}write${NC} .gitignore  (runtime file entries)"

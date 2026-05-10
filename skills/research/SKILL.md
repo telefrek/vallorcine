@@ -381,6 +381,20 @@ If a facet requires a new topic or category:
   `.kb/_archive.md` (create if needed) with pointer: `Older entries: [_archive.md](_archive.md)`
 - Hard cap: `.kb/CLAUDE.md` must stay under 80 lines at all times
 
+### Step 7.5 — Refresh the search index
+
+After every KB write (create or update), refresh `.kb/_index.json` so
+`kb-search.sh --facet` queries see the latest entries:
+
+```bash
+bash .claude/scripts/kb-index.sh >/dev/null 2>&1 || true
+```
+
+The index is a flat JSON array of entry summaries (title, type, tags,
+`applies_to`, etc.) regenerated cheaply from frontmatter. It is
+gitignored; concurrent `/kb` queries auto-rebuild it if missing or
+stale, but doing it here keeps the next query latency-free.
+
 ---
 
 ## Step 8 — Closing report

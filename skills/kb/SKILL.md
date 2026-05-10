@@ -13,6 +13,7 @@ Single entry point for all knowledge base operations.
 |------------|-------------|
 | `/kb "<question>"` | Query the KB in plain language |
 | `/kb lookup <topic> <category> <subject>` | Load a specific subject into context |
+| `/kb facet <key=value[,key=value...]>` | Filter entries by structured frontmatter (type, domain, tags, applies_to, etc.) using `.kb/_index.json` |
 | `/kb topic "<name>" "<description>"` | Create a new topic |
 
 **Default (no subcommand):** if the first argument looks like a question or
@@ -288,6 +289,78 @@ Display opening header:
 
 Subject files may end with `@./<subject>-detail.md` — load the detail file too
 if the task requires deep implementation knowledge.
+
+---
+
+## kb facet <key=value[,key=value...]> — structured filter via index
+
+Filters KB entries by frontmatter fields using the JSON index at
+`.kb/_index.json`. Returns paths only, no scoring — facets are exact /
+membership filters, not ranked search.
+
+When to use facet vs natural-language query:
+- Use `/kb "<question>"` when the user's intent is a topic or concept
+  ("what do we know about HNSW?").
+- Use `/kb facet ...` when the user's intent is a structured filter
+  ("show me all confirmed adversarial findings about validation",
+  "list every feature footprint that touched src/main/auth").
+
+### Field categories
+
+Scalar fields use exact equality:
+- `type`: `research` / `adversarial-finding` / `feature-footprint`
+- `topic`, `category` (derived from path)
+- `domain`, `severity` (adversarial-finding only)
+- `research_status`, `confidence`, `last_researched`, `title`
+
+List fields use membership (the value matches if it's any element of
+the list):
+- `tags`, `applies_to`, `domains`, `constructs`, `related`,
+  `decision_refs`, `spec_refs`
+
+Multiple `key=value` pairs separated by commas AND-combine — every
+filter must match for an entry to be included.
+
+### Examples
+
+```
+/kb facet type=adversarial-finding,domain=validation
+/kb facet tags=encryption
+/kb facet type=feature-footprint,domains=auth
+/kb facet research_status=stable,confidence=high
+```
+
+### Behaviour
+
+1. Run `bash .claude/scripts/kb-search.sh --facet "<expression>"`. The
+   script auto-rebuilds `.kb/_index.json` if missing or stale (any
+   `*.md` under `.kb/` newer than the index).
+2. Each line of stdout is one matching entry path. Empty output means
+   no matches.
+3. For each match, surface to the user as a bullet with the entry's
+   title and one-line summary (read the entry's frontmatter `title`
+   plus first paragraph of the body).
+
+If no matches:
+```
+No KB entries match those facets.
+Tried: <expression>
+```
+Suggest `/kb "<question>"` if the user's intent is conceptual rather
+than structured.
+
+### Limitations
+
+- Values containing literal commas are not supported (commas are the
+  pair separator). Use the natural-language query in that case.
+- Glob matching against `applies_to` patterns is NOT performed —
+  `applies_to=src/main/auth/**` matches only an entry whose
+  `applies_to:` literally lists `src/main/auth/**`. To find entries
+  that cover a specific file path, use `/kb "<question>"` or
+  `check-kb-ref.sh` (the PostToolUse hook does glob matching).
+- Confidence-overclaim and other validation logic lives in `/curate`
+  schema-drift detection — facet queries don't enforce schema, they
+  just filter what's there.
 
 ---
 
