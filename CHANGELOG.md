@@ -4,6 +4,84 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.17.1] — 2026-05-09
+
+### Fixed
+
+- **Sub-agent dispatch failures no longer silently corrupt the orchestrator's
+  task list.** Two failure modes left a `/work-start` coordinator with a
+  task entry stuck at `in_progress` and no signal of actual sub-agent
+  state:
+  1. Agent tool returned `[Tool result missing due to internal error]` —
+     payload lost, sub-agent may have run / partially run / never started.
+  2. Agent tool returned `The user doesn't want to proceed with this tool
+     use. The tool use was rejected.` (e.g. ESC during dispatch) —
+     sub-agent never started.
+
+  Both required manual filesystem inspection (does `.feature/` exist, did
+  `work-claim.sh` flip the WD to `IMPLEMENTING`, is there a branch with
+  commits) to recover. This release adds a per-dispatch JSON marker that
+  makes recovery automatic.
+
+### Added
+
+- **`scripts/work-dispatch.sh`** — writes a small JSON marker per dispatch
+  at `.work/<group>/_dispatch-<wd-id>.json` (gitignored). Subcommands:
+  - `begin <group> <wd-id>` — coordinator runs this BEFORE the Agent call;
+    marker has `ack: false`.
+  - `ack <group> <wd-id> <result-line>` — coordinator runs this when the
+    Agent returned a clean parseable line; marker flips to `ack: true`.
+  - `fail <group> <wd-id> <reason>` — coordinator runs this for the three
+    failure modes: `payload-lost`, `user-stopped`, `parse-failed`.
+  - `status <group> <wd-id>` — print marker JSON; exit 1 when absent.
+  - `stuck <group>` — list unacknowledged markers, one per line.
+  - `clear <group> <wd-id>` — delete marker after recovery (idempotent).
+
+  Atomic writes via `.tmp.$$` + rename. JSON-escapes control bytes in
+  result lines (mirrors `work-resolve.sh`'s `json_escape`) so a stray
+  byte in a sub-agent's final line cannot produce invalid JSON downstream.
+
+### Changed
+
+- **`/work-start` sequential `all` mode** — Step 3d inserts
+  `work-dispatch.sh begin` before the Agent call. Step 3f classifies the
+  return into four shapes (clean / payload-lost / user-stopped /
+  parse-failed) and routes to the right marker action plus an
+  `AskUserQuestion` (Pause for `/work-resume` recovery / Continue with
+  next WD / Stop). The coordinator MUST NOT silently advance the
+  TaskTool entry to `completed` when the result is lost — the marker is
+  the durable record.
+
+- **`/work-start --parallel` mode** — Step 5 runs `begin` in a
+  sequential loop before the multi-Agent dispatch. Step 6 classifies
+  each return identically; dispatch failures are aggregated separately
+  in the parallel-run summary so the user sees them.
+
+- **`/work-resume`** — gains rule 0 in Step 5 routing: any
+  unacknowledged dispatch marker pre-empts every other rule. For each
+  stuck marker, gathers filesystem evidence (WD status from manifest,
+  `.feature/` directory presence, cycle-log entries) and recommends the
+  right recovery path:
+  - `user-stopped` + WD still SPECIFIED + no `.feature/` → re-dispatch
+    via `/work-start "<group>" <wd-id>`.
+  - any reason + WD `IMPLEMENTING` + `.feature/` present → suggest
+    `/feature-resume "<group>--<wd-slug>"` to inspect actual state.
+  - other shapes → surface evidence, let the user decide.
+
+  Reminds the user to clear the marker after recovery.
+
+- **Install plumbing** — MANIFEST entry, `install.sh` (script copy +
+  chmod + permission allowlist), and gitignore for
+  `.work/*/_dispatch-*.json` (both new-install and upgrade paths).
+  Test coverage extended: `tests/test-install.sh` goes 70 → 72 with
+  two new gitignore assertions.
+
+- **DESIGN.md script manifest** — listed `work-dispatch.sh` and
+  bumped curate-scan.sh's "22 analyses" count to 25 (the three KB
+  structural-drift analyses added in v0.17.0 weren't reflected in the
+  prior release's docs sweep).
+
+---
 ## [0.17.0] — 2026-05-09
 
 ### Added
