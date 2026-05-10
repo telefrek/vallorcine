@@ -962,6 +962,11 @@ if grep -qxF ".work/*/.work-resolve.lock" "$ENHANCED_TARGET/.gitignore"; then
 else
     fail ".work/*/.work-resolve.lock should be in .gitignore"
 fi
+if grep -qxF ".work/*/_dispatch-*.json" "$ENHANCED_TARGET/.gitignore"; then
+    pass ".work/*/_dispatch-*.json in .gitignore"
+else
+    fail ".work/*/_dispatch-*.json should be in .gitignore"
+fi
 
 # Upgrade path: an existing install that already has the runtime block but
 # was made before v0.16.x should pick up the new entries on re-install.
@@ -1004,6 +1009,11 @@ if grep -qxF ".work/*/.work-resolve.lock" "$UPGRADE_GI_TARGET/.gitignore"; then
     pass "upgrade path adds .work/*/.work-resolve.lock to existing .gitignore"
 else
     fail "upgrade should add .work/*/.work-resolve.lock to existing .gitignore"
+fi
+if grep -qxF ".work/*/_dispatch-*.json" "$UPGRADE_GI_TARGET/.gitignore"; then
+    pass "upgrade path adds .work/*/_dispatch-*.json to existing .gitignore"
+else
+    fail "upgrade should add .work/*/_dispatch-*.json to existing .gitignore"
 fi
 # Idempotent: running install twice must not duplicate entries.
 bash "$REPO_ROOT/install.sh" "$UPGRADE_GI_TARGET" >/dev/null 2>&1 || true

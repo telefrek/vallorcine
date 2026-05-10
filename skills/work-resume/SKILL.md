@@ -260,6 +260,77 @@ re-invoked cheaply after `/clear`.
 
 Apply this routing in order — first match wins:
 
+0. **Any unacknowledged dispatch marker exists** → a previous
+   `/work-start` (sequential `all` or `--parallel`) dispatched a
+   sub-agent whose result was never confirmed by the coordinator.
+   Two known causes:
+   - The Agent tool returned `[Tool result missing due to internal error]`
+     (payload-lost), or
+   - The user pressed ESC and the dispatch returned `The user doesn't
+     want to proceed with this tool use. The tool use was rejected.`
+     (user-stopped).
+
+   In either case the WD's manifest status and `.feature/` dir do not
+   tell the full story — the coordinator's task list says
+   `in_progress` but no result was ever recorded. The dispatch marker
+   is the durable record.
+
+   Run:
+   ```bash
+   bash .claude/scripts/work-dispatch.sh stuck "<group-slug>"
+   ```
+   One line per unacknowledged marker:
+   `<wd-id>|<dispatched_at>|<has_result>|<failure_reason>`. If the
+   list is empty, fall through to rule 1.
+
+   For each stuck marker, gather filesystem evidence:
+   - Does `.feature/<group-slug>--<wd-slug>/` exist?
+   - Is the WD's frontmatter status `IMPLEMENTING` (work-claim ran)
+     or still `SPECIFIED` (sub-agent never claimed)?
+   - Does `.feature/<...>/cycle-log.md` exist with content (sub-agent
+     ran TDD cycles)?
+
+   Display:
+   ```
+   ⚠ STUCK DISPATCHES detected in <group-slug>:
+
+     WD-<nn> — dispatched <dispatched_at>
+       Reason   : <failure_reason or "no result received">
+       WD status: <SPECIFIED | IMPLEMENTING>
+       .feature/: <present | absent>
+       Cycle log: <empty | <N> cycles recorded>
+
+       Recommendation:
+         <see action selection below>
+   ```
+
+   Action selection per stuck marker:
+   - **`failure_reason: user-stopped` AND WD status is SPECIFIED AND
+     `.feature/` is absent** → the dispatch was cancelled before any
+     work happened. Recommend re-dispatch:
+     ```
+     /work-start "<group-slug>" <wd-id>
+     ```
+   - **`failure_reason: payload-lost` (or any reason) AND WD status is
+     IMPLEMENTING AND `.feature/` is present** → the sub-agent at
+     least claimed the WD and started; the result was lost. Recommend
+     `/feature-resume "<group-slug>--<wd-slug>"` to inspect actual
+     state and continue from where the sub-agent left off.
+   - **Any other shape** → surface the evidence and let the user
+     decide; do not auto-route.
+
+   After the user acts (re-dispatch, /feature-resume, or accepts the
+   loss), they should clear the marker:
+   ```bash
+   bash .claude/scripts/work-dispatch.sh clear "<group-slug>" "<wd-id>"
+   ```
+   `/work-resume` SHOULD remind the user of this at the end of the
+   stuck-marker block.
+
+   Do NOT silently proceed to the rest of the routing list while
+   markers are unacknowledged — recovery is the user's call, not the
+   skill's.
+
 1. **Any `_decompose-progress.md` exists** → already handled in Step 2.
 
 2. **Group has zero WDs** (total == 0) → decomposition has not run yet.

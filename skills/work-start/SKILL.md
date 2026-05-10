@@ -384,8 +384,21 @@ Replace Steps 3–5 with this block when `all` is the argument.
    d. **Dispatch ONE sub-agent that recursively invokes the
       single-WD `/work-start`.** This is critical — do NOT hand-roll
       the feature creation + claim + pipeline dispatch logic in this
-      coordinator. The single-WD flow already does it correctly. Use
-      this prompt verbatim:
+      coordinator. The single-WD flow already does it correctly.
+
+      **Before the Agent call**, write a dispatch marker so a
+      lost-payload or rejected-dispatch failure does not leave the
+      coordinator's task list silently out of sync with reality:
+      ```bash
+      bash .claude/scripts/work-dispatch.sh begin "<group-slug>" "<wd-id>"
+      ```
+      This creates `.work/<group-slug>/_dispatch-<wd-id>.json` with
+      `ack: false`. Step 3f flips it to `ack: true` once the result is
+      parsed (or marks `failure_reason` when parsing fails). The marker
+      is what `/work-resume` uses to detect stuck dispatches and
+      surface them as recovery candidates.
+
+      **Then invoke the sub-agent** with this prompt verbatim:
       ```
       You are the sequential pipeline runner for <group-slug> /
       <wd-id>.
@@ -424,16 +437,68 @@ Replace Steps 3–5 with this block when `all` is the argument.
    e. **Wait for the sub-agent to return.** The Agent tool blocks
       until the child emits its final assistant message.
 
-   f. **Aggregate.** Append the sub-agent's summary to a results list.
-      Display incrementally:
+   f. **Classify the return and update the marker.** The Agent tool
+      returns one of four shapes. Treat each distinctly — silent
+      assumptions corrupt the task list:
+
+      - **Clean return** matching `<group-slug>--<wd-id>: <STATUS> — <detail>`
+        (where STATUS is one of `COMPLETE`, `STOPPED_AT_<stage>`,
+        `ERROR`, `SKIPPED`). Acknowledge:
+        ```bash
+        bash .claude/scripts/work-dispatch.sh ack "<group-slug>" "<wd-id>" "<exact return line>"
+        ```
+        Append to the aggregate results list.
+
+      - **Payload lost** — the Agent return literally equals
+        `[Tool result missing due to internal error]` or otherwise
+        contains no parseable result. The sub-agent may have run,
+        partially run, or never started; the result is gone. Mark:
+        ```bash
+        bash .claude/scripts/work-dispatch.sh fail "<group-slug>" "<wd-id>" "payload-lost"
+        ```
+        Surface to the user via AskUserQuestion: "Pause for
+        `/work-resume <group-slug>` recovery" / "Continue with the
+        next WD (recovery later)" / "Stop the run". Do NOT advance
+        the coordinator's TaskTool entry to `completed` — leave it
+        `in_progress` so the user sees that it needs attention. The
+        marker is the durable record; recovery is `/work-resume`.
+
+      - **User stopped** — the Agent return contains
+        `The user doesn't want to proceed with this tool use. The tool
+        use was rejected.` The sub-agent never started. Mark:
+        ```bash
+        bash .claude/scripts/work-dispatch.sh fail "<group-slug>" "<wd-id>" "user-stopped"
+        ```
+        Surface to the user via AskUserQuestion: "Re-dispatch this WD"
+        / "Continue with the next WD" / "Stop the run". Re-dispatching
+        is safe because the sub-agent never claimed; `/work-start`
+        will see the WD still SPECIFIED (or IMPLEMENTING if a previous
+        attempt got further) and the marker will be overwritten on
+        the next `begin`.
+
+      - **Parse failed** — the return is a string but does not match
+        the expected shape. Mark:
+        ```bash
+        bash .claude/scripts/work-dispatch.sh fail "<group-slug>" "<wd-id>" "parse-failed: <first 80 chars of return>"
+        ```
+        Surface the same recovery prompt as payload-lost. The marker
+        records the unparseable tail so `/work-resume` can show it.
+
+      Append to the aggregate. Display incrementally:
       ```
       [<n>/<eligible>] <group-slug>--<wd-id>: <STATUS> — <detail>
+      ```
+      For payload-lost / user-stopped / parse-failed lines, show:
+      ```
+      [<n>/<eligible>] <group-slug>--<wd-id>: DISPATCH FAILURE (<reason>) — recoverable via /work-resume
       ```
 
    g. **Stop conditions.** Continue unless:
       - The sub-agent returned `ERROR` or `STOPPED_AT_<stage>` AND
         the user opts to halt (AskUserQuestion: "Continue with
         remaining" / "Stop and inspect").
+      - The dispatch hit `payload-lost` / `user-stopped` /
+        `parse-failed` AND the user picked "Pause" / "Stop" in 3f.
       - SKIPPED returns are silent — log and continue (the coordinator
         intentionally tolerates conflicts as parallel-session signals).
 
@@ -539,9 +604,17 @@ Replace Steps 3–5 with this block when `--parallel` is set.
    touch the `.work/` tree and are fast. Fanning out here adds no
    measurable benefit and risks racing on `manifest.md` regeneration.
 
-5. **Dispatch sub-agents concurrently.** Spawn one sub-agent per WD in
-   a **single message with multiple Agent tool calls**. Each sub-agent
-   receives this prompt:
+5. **Dispatch sub-agents concurrently.** First, write a dispatch
+   marker for every WD that's about to be dispatched (so a payload-
+   loss or user-stop on any single sub-agent can be recovered). Run
+   sequentially before the Agent calls:
+   ```bash
+   for wd_id in <list of WD ids being dispatched>; do
+     bash .claude/scripts/work-dispatch.sh begin "<group-slug>" "$wd_id"
+   done
+   ```
+   Then spawn one sub-agent per WD in a **single message with multiple Agent tool calls**.
+   Each sub-agent receives this prompt:
    ```
    You are the parallel pipeline runner for <feature-slug>.
    The feature directory exists at .feature/<feature-slug>/.
@@ -559,18 +632,31 @@ Replace Steps 3–5 with this block when `--parallel` is set.
      "<feature-slug>: <COMPLETE | STOPPED_AT_<stage> | ERROR> — <detail>"
    ```
 
-6. **Aggregate results.** When all sub-agents return, summarize:
+6. **Aggregate results — classify each return.** Use the same four-way
+   classification as Sequential mode Step 3f (clean / payload-lost /
+   user-stopped / parse-failed). For each sub-agent's return:
+   - Clean: `bash .claude/scripts/work-dispatch.sh ack "<group>" "<wd-id>" "<line>"`
+   - Payload lost: `bash .claude/scripts/work-dispatch.sh fail "<group>" "<wd-id>" "payload-lost"`
+   - User stopped: `bash .claude/scripts/work-dispatch.sh fail "<group>" "<wd-id>" "user-stopped"`
+   - Parse failed: `bash .claude/scripts/work-dispatch.sh fail "<group>" "<wd-id>" "parse-failed: <first 80 chars>"`
+
+   Then summarize:
    ```
    ── Parallel run complete · <group-slug> ───────
    Dispatched: <N>
    Complete: <n>/<N>
    Stopped mid-pipeline: <list with stage>
    Errored: <list with detail>
+   Dispatch failures (payload-lost / user-stopped / parse-failed):
+     <list with WD-id and reason>
    ───────────────────────────────────────────────
    ```
    For stopped or errored WDs, the user's next action is usually
    `/feature-resume "<feature-slug>"` to pick up where each sub-agent
-   left off.
+   left off. For dispatch failures, the next action is
+   `/work-resume "<group-slug>"` — it scans the dispatch markers and
+   surfaces each stuck WD with the right recovery path (re-dispatch,
+   inspect, or accept the partial result).
 
 ### Concurrency caveats (documented, user-accepted)
 
