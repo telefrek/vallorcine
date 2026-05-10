@@ -4,6 +4,91 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.18.0] — 2026-05-09
+
+### Added
+
+- **`scripts/kb-index.sh`** — rebuilds `.kb/_index.json` from entry
+  frontmatter. The index is a flat JSON array of entry summaries —
+  title, type, topic/category (derived from path), tags, applies_to,
+  type-specific fields, research_status, confidence, last_researched,
+  related, decision_refs, spec_refs. Used by `/kb facet` queries to
+  filter entries by structured metadata without iterating the tree on
+  every query.
+  - Walks `.kb/**/*.md`, parses frontmatter without a PyYAML dep
+    (tolerates inline + block YAML lists).
+  - Excludes `CLAUDE.md`, `_refs/`, `_archive*`, and
+    `type: detail-companion` entries (companions are surfaced via
+    parent `@./` include, not as standalone search results).
+  - Skips files without frontmatter (in-progress drafts; `/curate`'s
+    schema-drift detector flags them separately).
+  - Atomic write via `.tmp.<pid>` + rename so concurrent `/kb` queries
+    cannot read a torn write.
+
+- **`/kb facet <key=value[,key=value...]>` subcommand.** Filters KB
+  entries by frontmatter fields using the JSON index. Comma-separated
+  pairs AND-combine. Scalar fields (`type`, `domain`, `severity`,
+  `research_status`, `confidence`, `last_researched`, `title`,
+  derived `topic`/`category`) match by exact equality; list fields
+  (`tags`, `applies_to`, `domains`, `constructs`, `related`,
+  `decision_refs`, `spec_refs`) match by membership. Examples:
+  ```
+  /kb facet type=adversarial-finding,domain=validation
+  /kb facet type=feature-footprint,domains=auth
+  /kb facet tags=encryption
+  /kb facet research_status=stable,confidence=high
+  ```
+
+- **`scripts/kb-search.sh --facet <expression>` flag.** Drives the
+  facet query from any caller (the `/kb facet` skill is a thin
+  wrapper). Output: one entry path per line, no score column. The
+  existing keyword search path (BM25 via python3/node, grep fallback)
+  is unchanged — facet mode is additive.
+  - Auto-rebuilds the index when missing OR when any KB markdown file
+    is newer than the index.
+
+### Changed
+
+- **`/research` Step 7.5** — calls `kb-index.sh` after every KB write
+  so the next facet query is latency-free. The auto-rebuild on stale
+  index covers the case where another process wrote KB content
+  outside `/research`.
+
+- **`/kb` SKILL.md** — `kb facet` documented as a peer subcommand
+  alongside `kb "<question>"` and `kb lookup`. Section explains when
+  to choose facet vs natural-language query, scalar-vs-list semantics,
+  and limitations (no glob matching against `applies_to` patterns —
+  that's the hook's job; no literal-comma values).
+
+- **Install plumbing** — MANIFEST entry, `install.sh` (script copy +
+  chmod + permission allowlist + gitignore for `.kb/_index.json`).
+  Test coverage extended in `tests/test-install.sh` with two new
+  gitignore assertions; install regression goes 72 → 74.
+
+- **DESIGN.md script manifest** — listed `kb-index.sh`.
+
+### Tests
+
+- `scenario-kb-index-and-facet.sh` — 19/19 covering schema
+  (exclusions, both YAML list forms, path-derived topic/category),
+  facet queries (scalar exact match, list membership, AND-combine,
+  empty result, unknown-key tolerance), and infra
+  (auto-rebuild on missing/stale, atomic write).
+- Smoke tested against jlsm's 238-entry KB:
+  `type=adversarial-finding,domain=validation` returned 7 matches
+  in <1s; `type=feature-footprint` returned 31 matches.
+
+### Adoption notes
+
+This pairs with v0.17.2's `check-kb-ref.sh` PostToolUse hook to
+complete the KB tooling triangle from faas-rippling: write-time
+enforcement (hook), structured query (this release), and after-the-
+fact drift detection (`/curate` analyses 23–26 from v0.17.0/v0.17.2).
+The schema canonicalisation in v0.17.0 made the index possible —
+without consistent `type`, `applies_to`, `tags`, etc., a structured
+index would have been noise.
+
+---
 ## [0.17.2] — 2026-05-09
 
 ### Added
