@@ -1724,6 +1724,197 @@ fi
 
 cd "$REPO_ROOT"
 
+# ── Test 36: Spec annotation coverage rollup (Analysis 18b — F5) ─────────────
+
+echo ""
+echo "── Test 36: Spec annotation coverage rollup (corpus framing)"
+
+if command -v jq >/dev/null 2>&1; then
+    ROLL_DIR="$TEST_BASE/rollup-project"
+    rm -rf "$ROLL_DIR"; mkdir -p "$ROLL_DIR"
+    cd "$ROLL_DIR"
+    git init --initial-branch=main . >/dev/null 2>&1
+    git config user.email t@t.com; git config user.name t
+    mkdir -p .claude/scripts
+    cp "$REPO_ROOT/scripts/curate-scan.sh"  .claude/scripts/
+    cp "$REPO_ROOT/scripts/spec-lib.sh"     .claude/scripts/
+    cp "$REPO_ROOT/scripts/spec-trace.sh"   .claude/scripts/ 2>/dev/null || true
+    mkdir -p .spec/registry .spec/domains/auth src
+
+    # Two APPROVED specs: one annotated, one not. Rollup should show
+    # 50% covered / 50% unannotated.
+    cat > .spec/registry/manifest.json <<'JSON'
+{
+  "schema_version": 2,
+  "specs": [
+    { "id": "auth.session", "path": ".spec/domains/auth/session.md",
+      "state": "APPROVED", "version": 1, "domains": ["auth"], "requires": [],
+      "invalidates": [], "decision_refs": [], "kb_refs": [] },
+    { "id": "auth.token", "path": ".spec/domains/auth/token.md",
+      "state": "APPROVED", "version": 1, "domains": ["auth"], "requires": [],
+      "invalidates": [], "decision_refs": [], "kb_refs": [] }
+  ]
+}
+JSON
+    for sid in auth.session auth.token; do
+      cat > ".spec/domains/auth/${sid#auth.}.md" <<SPEC
+---
+{
+  "id": "$sid", "version": 1, "status": "ACTIVE", "state": "APPROVED",
+  "domains": ["auth"], "requires": [], "invalidates": [],
+  "amends": null, "amended_by": null,
+  "decision_refs": [], "kb_refs": []
+}
+---
+
+# $sid
+
+## Requirements
+R1. Requirement one.
+R2. Requirement two.
+
+---
+
+## Design
+Notes.
+SPEC
+    done
+
+    # Annotate auth.session fully (R1 + R2 in source). Leave auth.token bare.
+    cat > src/Session.java <<'JAVA'
+// @spec auth.session.R1
+// @spec auth.session.R2
+public class Session {}
+JAVA
+    git add -A && git commit -q -m "init"
+
+    bash .claude/scripts/curate-scan.sh --init >/tmp/curate-rollup.out 2>&1 || true
+
+    if grep -q "## Spec Annotation Coverage Rollup" .curate/scan-summary.md 2>/dev/null; then
+        pass "rollup section appears in summary"
+    else
+        fail "rollup section missing"
+    fi
+
+    if grep -A 12 "Spec Annotation Coverage Rollup" .curate/scan-summary.md 2>/dev/null \
+        | grep -E "Unannotated.*\| 1 \|" >/dev/null; then
+        pass "unannotated count = 1 surfaces in rollup"
+    else
+        fail "rollup unannotated count incorrect (expected 1)"
+    fi
+
+    if grep -A 12 "Spec Annotation Coverage Rollup" .curate/scan-summary.md 2>/dev/null \
+        | grep -E "Fully covered.*\| 1 \|" >/dev/null; then
+        pass "fully-covered count = 1 surfaces in rollup"
+    else
+        fail "rollup fully-covered count incorrect (expected 1)"
+    fi
+else
+    echo "  SKIP  jq not available"
+fi
+
+cd "$REPO_ROOT"
+
+# ── Test 37: ADRs without spec coverage (Analysis 29 — F6) ───────────────────
+
+echo ""
+echo "── Test 37: ADRs without spec coverage"
+
+if command -v jq >/dev/null 2>&1; then
+    ADR_DIR="$TEST_BASE/adr-no-spec-project"
+    rm -rf "$ADR_DIR"; mkdir -p "$ADR_DIR"
+    cd "$ADR_DIR"
+    git init --initial-branch=main . >/dev/null 2>&1
+    git config user.email t@t.com; git config user.name t
+    mkdir -p .claude/scripts
+    cp "$REPO_ROOT/scripts/curate-scan.sh"  .claude/scripts/
+    cp "$REPO_ROOT/scripts/spec-lib.sh"     .claude/scripts/
+    mkdir -p .spec/registry .spec/domains/auth
+    mkdir -p .decisions/referenced-decision .decisions/orphan-decision \
+             .decisions/rejected-decision
+
+    cat > .decisions/referenced-decision/adr.md <<'ADR'
+---
+status: accepted
+---
+
+# Referenced Decision
+ADR
+    cat > .decisions/orphan-decision/adr.md <<'ADR'
+---
+status: accepted
+---
+
+# Orphan Decision
+ADR
+    cat > .decisions/rejected-decision/adr.md <<'ADR'
+---
+status: rejected
+---
+
+# Rejected Decision (filtered out)
+ADR
+
+    cat > .spec/registry/manifest.json <<'JSON'
+{
+  "schema_version": 2,
+  "specs": [
+    { "id": "auth.session", "path": ".spec/domains/auth/session.md",
+      "state": "APPROVED", "version": 1, "domains": ["auth"], "requires": [],
+      "invalidates": [], "decision_refs": ["referenced-decision"], "kb_refs": [] }
+  ]
+}
+JSON
+    cat > .spec/domains/auth/session.md <<'SPEC'
+---
+{
+  "id": "auth.session", "version": 1, "status": "ACTIVE", "state": "APPROVED",
+  "domains": ["auth"], "requires": [], "invalidates": [],
+  "amends": null, "amended_by": null,
+  "decision_refs": ["referenced-decision"], "kb_refs": []
+}
+---
+
+# auth.session
+
+## Requirements
+R1. Sessions exist.
+
+---
+
+## Design
+Notes.
+SPEC
+    git add -A && git commit -q -m "init"
+
+    bash .claude/scripts/curate-scan.sh --init >/tmp/curate-adr.out 2>&1 || true
+
+    if grep -A 25 "ADRs Without Spec Coverage" .curate/scan-summary.md 2>/dev/null \
+        | grep -q "orphan-decision"; then
+        pass "orphan-decision (accepted, no spec) surfaces"
+    else
+        fail "orphan-decision did not surface"
+    fi
+
+    if grep -A 25 "ADRs Without Spec Coverage" .curate/scan-summary.md 2>/dev/null \
+        | grep -q "referenced-decision"; then
+        fail "referenced-decision (has spec) leaked into ADR-no-spec"
+    else
+        pass "referenced ADR does not appear in ADR-no-spec"
+    fi
+
+    if grep -A 25 "ADRs Without Spec Coverage" .curate/scan-summary.md 2>/dev/null \
+        | grep -q "rejected-decision"; then
+        fail "rejected-decision (status filter) leaked into ADR-no-spec"
+    else
+        pass "rejected ADR is filtered out by status"
+    fi
+else
+    echo "  SKIP  jq not available"
+fi
+
+cd "$REPO_ROOT"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

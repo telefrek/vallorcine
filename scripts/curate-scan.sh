@@ -1432,6 +1432,36 @@ if [[ -f ".spec/registry/manifest.json" ]] && command -v jq >/dev/null 2>&1; the
         mv "$TMPDIR_SCAN/spec-unannotated.capped.txt" "$TMPDIR_SCAN/spec-unannotated.txt"
         head -20 "$TMPDIR_SCAN/spec-bare-only.txt" > "$TMPDIR_SCAN/spec-bare-only.capped.txt" 2>/dev/null || true
         mv "$TMPDIR_SCAN/spec-bare-only.capped.txt" "$TMPDIR_SCAN/spec-bare-only.txt"
+
+        # ── Analysis 18b: Annotation coverage corpus rollup (F5) ─────────────
+        # The per-spec buckets above answer "which specs?". The corpus rollup
+        # answers "what fraction?" — surfaces backfill scope as a single
+        # actionable framing rather than 32 separate signals. Routes to
+        # `/spec-backfill --all` when the gap is large.
+        #
+        # The capped buckets above lose their original counts after `head -20`,
+        # so the rollup uses uncapped counts captured into separate vars.
+        # specs_traced is a hard count from the enumeration loop and is
+        # always accurate.
+        unann_total=$(grep -c '^UNANNOTATED|' "$TMPDIR_SCAN/spec-unannotated.txt" 2>/dev/null || echo 0)
+        bare_total=$(grep -c '^BARE_ONLY|' "$TMPDIR_SCAN/spec-bare-only.txt" 2>/dev/null || echo 0)
+        drift_total=$(grep -c '^ANNOTATION_DRIFT|' "$TMPDIR_SCAN/spec-annotation-drift.txt" 2>/dev/null || echo 0)
+        # Strip newlines from grep -c output if any (BSD/GNU variance).
+        unann_total="${unann_total//[$'\n\r']}"
+        bare_total="${bare_total//[$'\n\r']}"
+        drift_total="${drift_total//[$'\n\r']}"
+        # Defensive default: if specs_traced is 0 we don't emit the rollup
+        # at all (no data to report).
+        if (( specs_traced > 0 )); then
+            full_cov=$(( specs_traced - unann_total - bare_total - drift_total ))
+            (( full_cov < 0 )) && full_cov=0
+            unann_pct=$(( (unann_total * 100) / specs_traced ))
+            bare_pct=$(( (bare_total  * 100) / specs_traced ))
+            drift_pct=$(( (drift_total * 100) / specs_traced ))
+            full_pct=$(( (full_cov    * 100) / specs_traced ))
+            echo "ANNOTATION_ROLLUP|$specs_traced|$unann_total|$bare_total|$drift_total|$full_cov|$unann_pct|$bare_pct|$drift_pct|$full_pct" \
+                > "$TMPDIR_SCAN/spec-annotation-rollup.txt"
+        fi
     fi
 fi
 
@@ -2230,6 +2260,77 @@ if [[ -d ".spec" && -f ".spec/registry/manifest.json" ]]; then
     done < <(spec_manifest_ids "$MANIFEST")
 fi
 
+# ── Analysis 29: ADRs without spec coverage (F6) ─────────────────────────────
+# An ADR records the architectural intent; a spec records the operational
+# behavioral contract. An ADR with no spec referencing it is half-finished
+# work — the decision was made but the contract that enforces it never got
+# written. Walk `.decisions/<slug>/adr.md`, build the set of ADR slugs that
+# any spec references via `decision_refs`, emit the difference.
+#
+# Filters out ADRs that are explicitly architectural-only (status: rejected,
+# superseded, or deferred) since those don't owe a spec by definition.
+#
+# Output: ADR_NO_SPEC|<adr-slug>|<adr-status>|<adr-title>
+
+> "$TMPDIR_SCAN/adr-no-spec.txt"
+if [[ -d ".decisions" && -f ".spec/registry/manifest.json" ]] && command -v jq >/dev/null 2>&1; then
+    MANIFEST=".spec/registry/manifest.json"
+
+    # Set of ADR slugs referenced by at least one spec.
+    # Dispatch v1 (features object) vs v2 (specs array) schema explicitly —
+    # the `//` alternative operator does not fire when the LHS produces an
+    # empty stream (only when it produces null/false), so we cannot collapse
+    # both paths into one expression.
+    > "$TMPDIR_SCAN/_adr-referenced.txt"
+    jq -r '
+        if .specs then
+          .specs[].decision_refs[]?
+        else
+          (.features // {}) | to_entries[] | .value.decision_refs[]?
+        end
+    ' "$MANIFEST" 2>/dev/null \
+        | sort -u > "$TMPDIR_SCAN/_adr-referenced.txt"
+
+    # Walk every ADR. Eligible = status accepted/proposed (would normally
+    # have a spec). Skip rejected/superseded/deferred — those don't owe one.
+    while IFS= read -r adr_file; do
+        [[ -f "$adr_file" ]] || continue
+        slug="$(basename "$(dirname "$adr_file")")"
+
+        # Skip if any spec references it.
+        if grep -qxF "$slug" "$TMPDIR_SCAN/_adr-referenced.txt" 2>/dev/null; then
+            continue
+        fi
+
+        # Read status from frontmatter (YAML).
+        adr_status="$(awk '
+            /^---[[:space:]]*$/ { n++; if (n==2) exit; next }
+            n==1 && /^status:/  { sub(/^status:[[:space:]]*/, ""); gsub(/"/, ""); print; exit }
+        ' "$adr_file" 2>/dev/null | head -1 | tr -d '[:space:]')"
+
+        # Default status when missing — treat as accepted to be inclusive.
+        [[ -z "$adr_status" ]] && adr_status="accepted"
+
+        case "$adr_status" in
+            rejected|superseded|deferred|withdrawn) continue ;;
+        esac
+
+        # Title (first H1 in adr.md, or fall back to slug).
+        adr_title="$(grep -m1 '^# ' "$adr_file" 2>/dev/null | sed 's/^#[[:space:]]*//' | head -c 80 || true)"
+        [[ -z "$adr_title" ]] && adr_title="$slug"
+
+        echo "ADR_NO_SPEC|$slug|$adr_status|$adr_title" \
+            >> "$TMPDIR_SCAN/adr-no-spec.txt"
+    done < <(find .decisions -mindepth 2 -maxdepth 2 -type f -name 'adr.md' 2>/dev/null | sort)
+
+    rm -f "$TMPDIR_SCAN/_adr-referenced.txt"
+
+    # Cap at 30 rows for summary sanity — projects with >30 unspec'd ADRs
+    # need a different conversation than a curate row-by-row pick list.
+    head -30 "$TMPDIR_SCAN/adr-no-spec.txt" > "$TMPDIR_SCAN/adr-no-spec.capped.txt" 2>/dev/null || true
+    mv "$TMPDIR_SCAN/adr-no-spec.capped.txt" "$TMPDIR_SCAN/adr-no-spec.txt" 2>/dev/null || true
+fi
+
 # ── Write summary file ──────────────────────────────────────────────────────
 
 SCAN_DATE="$(date +%Y-%m-%d)"
@@ -2798,6 +2899,33 @@ if [[ -s "$TMPDIR_SCAN/kb-citation-drift.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+# Spec annotation coverage rollup (Analysis 18b — F5)
+if [[ -s "$TMPDIR_SCAN/spec-annotation-rollup.txt" ]]; then
+    while IFS='|' read -r _ traced unann bare drift full unann_pct bare_pct drift_pct full_pct; do
+        echo "## Spec Annotation Coverage Rollup" >> "$SUMMARY_FILE"
+        echo "Corpus-level summary of \`@spec\` annotation coverage across all" >> "$SUMMARY_FILE"
+        echo "APPROVED specs traced this run. Per-spec rows live in the" >> "$SUMMARY_FILE"
+        echo "individual sections below; this rollup answers \"how big is the" >> "$SUMMARY_FILE"
+        echo "backfill scope?\" so you can pick between routing to" >> "$SUMMARY_FILE"
+        echo "\`/spec-backfill --all\` (corpus sweep) vs picking specific specs." >> "$SUMMARY_FILE"
+        echo "" >> "$SUMMARY_FILE"
+        echo "| Bucket | Count | % of $traced traced |" >> "$SUMMARY_FILE"
+        echo "|--------|-------|---------------------|" >> "$SUMMARY_FILE"
+        echo "| Fully covered | $full | ${full_pct}% |" >> "$SUMMARY_FILE"
+        echo "| Annotation drift (>50% uncovered) | $drift | ${drift_pct}% |" >> "$SUMMARY_FILE"
+        echo "| Bare-only annotations (no R-grain) | $bare | ${bare_pct}% |" >> "$SUMMARY_FILE"
+        echo "| Unannotated (zero \`@spec\` refs) | $unann | ${unann_pct}% |" >> "$SUMMARY_FILE"
+        echo "" >> "$SUMMARY_FILE"
+        gap_total=$(( unann + bare + drift ))
+        if (( gap_total >= 10 )); then
+            echo "**$gap_total of $traced specs have annotation gaps** — consider" >> "$SUMMARY_FILE"
+            echo "running \`/spec-backfill --all\` once for a corpus sweep rather" >> "$SUMMARY_FILE"
+            echo "than picking row-by-row." >> "$SUMMARY_FILE"
+            echo "" >> "$SUMMARY_FILE"
+        fi
+    done < "$TMPDIR_SCAN/spec-annotation-rollup.txt"
+fi
+
 # Spec graduation candidates (Analysis 27)
 if [[ -s "$TMPDIR_SCAN/spec-graduation.txt" ]]; then
     echo "## Spec Graduation Candidates (DEPRECATED but not INVALIDATED)" >> "$SUMMARY_FILE"
@@ -2817,6 +2945,32 @@ if [[ -s "$TMPDIR_SCAN/spec-graduation.txt" ]]; then
     while IFS='|' read -r _ sid _ sstatus sstate has_dby; do
         echo "| $sid | $sstatus | $sstate | $has_dby |" >> "$SUMMARY_FILE"
     done < "$TMPDIR_SCAN/spec-graduation.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+# ADRs without spec coverage (Analysis 29 — F6)
+if [[ -s "$TMPDIR_SCAN/adr-no-spec.txt" ]]; then
+    echo "## ADRs Without Spec Coverage" >> "$SUMMARY_FILE"
+    echo "Architectural decisions that no spec references via \`decision_refs\`." >> "$SUMMARY_FILE"
+    echo "An ADR records the architectural intent; a spec records the" >> "$SUMMARY_FILE"
+    echo "operational behavioral contract that enforces it. An ADR with no" >> "$SUMMARY_FILE"
+    echo "spec backing is half-finished work. Two ways to resolve each row:" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "- **Author the spec** — \`/spec-author <slug>\` to write the" >> "$SUMMARY_FILE"
+    echo "  behavioral contract that operationalizes the decision." >> "$SUMMARY_FILE"
+    echo "- **Mark architectural-only** — if the ADR is purely about structure" >> "$SUMMARY_FILE"
+    echo "  with no behavioral surface (e.g., a project layout decision), set" >> "$SUMMARY_FILE"
+    echo "  status to \`superseded\` or document the explicit \"no spec needed\"" >> "$SUMMARY_FILE"
+    echo "  rationale in the ADR body." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "Rows with status \`rejected\` / \`superseded\` / \`deferred\` /" >> "$SUMMARY_FILE"
+    echo "\`withdrawn\` are filtered out of this list automatically." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| ADR | Status | Title |" >> "$SUMMARY_FILE"
+    echo "|-----|--------|-------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ slug status title; do
+        echo "| $slug | $status | $title |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/adr-no-spec.txt"
     echo "" >> "$SUMMARY_FILE"
 fi
 
@@ -2899,6 +3053,8 @@ echo "  KB type/location mismatch: $(wc -l < "$TMPDIR_SCAN/kb-location-mismatch.
 echo "  KB citation drift in source: $(wc -l < "$TMPDIR_SCAN/kb-citation-drift.txt" 2>/dev/null || echo 0)"
 echo "  Spec graduation candidates: $(wc -l < "$TMPDIR_SCAN/spec-graduation.txt" 2>/dev/null || echo 0)"
 echo "  Spec xref drift: $(wc -l < "$TMPDIR_SCAN/spec-xref-drift.txt" 2>/dev/null || echo 0)"
+echo "  Annotation rollup: $(wc -l < "$TMPDIR_SCAN/spec-annotation-rollup.txt" 2>/dev/null || echo 0)"
+echo "  ADRs without spec: $(wc -l < "$TMPDIR_SCAN/adr-no-spec.txt" 2>/dev/null || echo 0)"
 
 # ── Update curation state ─────────────────────────────────────────────────
 
