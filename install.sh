@@ -227,6 +227,7 @@ _install_seed "$SCRIPT_DIR/decisions/CLAUDE.md" "$TARGET/.decisions/CLAUDE.md"
 echo ""
 echo "── Spec seed files ──────────────────────────────"
 _install_seed "$SCRIPT_DIR/spec/CLAUDE.md" "$TARGET/.spec/CLAUDE.md"
+_install_seed "$SCRIPT_DIR/spec/_refs/frontmatter.md" "$TARGET/.spec/_refs/frontmatter.md"
 
 # ── Work seed files (never overwrite — same as KB / Decisions / Spec) ─────
 

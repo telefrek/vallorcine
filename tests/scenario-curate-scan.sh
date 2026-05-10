@@ -1507,6 +1507,223 @@ fi
 rm -rf "$COV_DIR" 2>/dev/null || true
 cd "$REPO_ROOT"
 
+# ── Test 34: Spec graduation candidates (Analysis 27) ────────────────────────
+
+echo ""
+echo "── Test 34: Spec graduation candidates (DEPRECATED + APPROVED)"
+
+if command -v jq >/dev/null 2>&1; then
+    GRAD_DIR="$TEST_BASE/grad-project"
+    rm -rf "$GRAD_DIR"; mkdir -p "$GRAD_DIR"
+    cd "$GRAD_DIR"
+    git init --initial-branch=main . >/dev/null 2>&1
+    git config user.email t@t.com; git config user.name t
+    mkdir -p .claude/scripts
+    cp "$REPO_ROOT/scripts/curate-scan.sh" .claude/scripts/
+    cp "$REPO_ROOT/scripts/spec-lib.sh" .claude/scripts/
+    mkdir -p .spec/registry .spec/domains/storage
+
+    # Three specs: one DEPRECATED+APPROVED (the gap), one DEPRECATED+INVALIDATED
+    # (correctly graduated, should NOT surface), one ACTIVE+APPROVED (clean).
+    cat > .spec/registry/manifest.json <<'JSON'
+{
+  "schema_version": 2,
+  "specs": [
+    { "id": "storage.v1-format", "path": ".spec/domains/storage/v1.md",
+      "state": "APPROVED", "version": 1, "domains": ["storage"], "requires": [],
+      "invalidates": [], "decision_refs": [], "kb_refs": [] },
+    { "id": "storage.v2-format", "path": ".spec/domains/storage/v2.md",
+      "state": "INVALIDATED", "version": 1, "domains": ["storage"], "requires": [],
+      "invalidates": [], "decision_refs": [], "kb_refs": [] },
+    { "id": "storage.v3-format", "path": ".spec/domains/storage/v3.md",
+      "state": "APPROVED", "version": 1, "domains": ["storage"], "requires": [],
+      "invalidates": [], "decision_refs": [], "kb_refs": [] }
+  ]
+}
+JSON
+    # storage.v1-format → DEPRECATED but still APPROVED — should surface.
+    cat > .spec/domains/storage/v1.md <<'SPEC'
+---
+{
+  "id": "storage.v1-format", "version": 1, "status": "DEPRECATED",
+  "state": "APPROVED", "domains": ["storage"], "requires": [],
+  "invalidates": [], "amends": null, "amended_by": null,
+  "decision_refs": [], "kb_refs": []
+}
+---
+
+# storage.v1-format
+
+## Requirements
+R1. Storage uses v1 binary layout.
+
+---
+
+## Design
+v1 format reference.
+SPEC
+    # storage.v2-format → DEPRECATED + INVALIDATED — already graduated,
+    # should NOT surface (Analysis 27 only flags the gap).
+    cat > .spec/domains/storage/v2.md <<'SPEC'
+---
+{
+  "id": "storage.v2-format", "version": 1, "status": "DEPRECATED",
+  "state": "INVALIDATED", "domains": ["storage"], "requires": [],
+  "invalidates": [], "displaced_by": ["storage.v3-format"],
+  "displacement_reason": "v3 supersedes",
+  "decision_refs": [], "kb_refs": []
+}
+---
+
+# storage.v2-format
+
+## Requirements
+R1. Storage uses v2 binary layout.
+
+---
+
+## Design
+v2 format reference (invalidated).
+SPEC
+    # storage.v3-format → ACTIVE + APPROVED — the clean current spec.
+    cat > .spec/domains/storage/v3.md <<'SPEC'
+---
+{
+  "id": "storage.v3-format", "version": 1, "status": "ACTIVE",
+  "state": "APPROVED", "domains": ["storage"], "requires": [],
+  "invalidates": [], "amends": null, "amended_by": null,
+  "decision_refs": [], "kb_refs": []
+}
+---
+
+# storage.v3-format
+
+## Requirements
+R1. Storage uses v3 binary layout.
+
+---
+
+## Design
+v3 format reference.
+SPEC
+    git add -A && git commit -q -m "init"
+
+    bash .claude/scripts/curate-scan.sh --init >/tmp/curate-grad.out 2>&1 || true
+
+    if grep -q "storage.v1-format" .curate/scan-summary.md 2>/dev/null \
+       && grep -A 20 "Spec Graduation Candidates" .curate/scan-summary.md \
+            | grep -q "storage.v1-format"; then
+        pass "storage.v1-format (DEPRECATED + APPROVED) surfaces in graduation candidates"
+    else
+        fail "storage.v1-format graduation candidate did not surface"
+    fi
+
+    if grep -A 20 "Spec Graduation Candidates" .curate/scan-summary.md 2>/dev/null \
+         | grep -q "storage.v2-format"; then
+        fail "storage.v2-format (already INVALIDATED) leaked into graduation candidates"
+    else
+        pass "already-INVALIDATED specs do not surface as graduation candidates"
+    fi
+
+    if grep -A 20 "Spec Graduation Candidates" .curate/scan-summary.md 2>/dev/null \
+         | grep -q "storage.v3-format"; then
+        fail "storage.v3-format (ACTIVE + APPROVED) leaked into graduation candidates"
+    else
+        pass "ACTIVE+APPROVED specs do not surface as graduation candidates"
+    fi
+else
+    echo "  SKIP  jq not available"
+fi
+
+cd "$REPO_ROOT"
+
+# ── Test 35: Spec corpus xref drift (Analysis 28) ────────────────────────────
+
+echo ""
+echo "── Test 35: Spec corpus xref drift (broken kb_refs / decision_refs)"
+
+if command -v jq >/dev/null 2>&1; then
+    XREF_DIR="$TEST_BASE/xref-project"
+    rm -rf "$XREF_DIR"; mkdir -p "$XREF_DIR"
+    cd "$XREF_DIR"
+    git init --initial-branch=main . >/dev/null 2>&1
+    git config user.email t@t.com; git config user.name t
+    mkdir -p .claude/scripts
+    cp "$REPO_ROOT/scripts/curate-scan.sh" .claude/scripts/
+    cp "$REPO_ROOT/scripts/spec-lib.sh" .claude/scripts/
+    mkdir -p .spec/registry .spec/domains/api .decisions/real-decision .kb/topic/cat
+    echo "# real adr" > .decisions/real-decision/adr.md
+    echo "# real kb"  > .kb/topic/cat/real-entry.md
+
+    cat > .spec/registry/manifest.json <<'JSON'
+{
+  "schema_version": 2,
+  "specs": [
+    { "id": "api.endpoint", "path": ".spec/domains/api/endpoint.md",
+      "state": "APPROVED", "version": 1, "domains": ["api"], "requires": [],
+      "invalidates": [], "decision_refs": ["real-decision","missing-decision"],
+      "kb_refs": ["topic/cat/real-entry","topic/cat/missing-entry"] }
+  ]
+}
+JSON
+    cat > .spec/domains/api/endpoint.md <<'SPEC'
+---
+{
+  "id": "api.endpoint", "version": 1, "status": "ACTIVE", "state": "APPROVED",
+  "domains": ["api"], "requires": [], "invalidates": [],
+  "amends": null, "amended_by": null,
+  "decision_refs": ["real-decision","missing-decision"],
+  "kb_refs": ["topic/cat/real-entry","topic/cat/missing-entry"]
+}
+---
+
+# api.endpoint
+
+## Requirements
+R1. The API exposes a versioned endpoint.
+
+---
+
+## Design
+Endpoint contract.
+SPEC
+    git add -A && git commit -q -m "init"
+
+    bash .claude/scripts/curate-scan.sh --init >/tmp/curate-xref.out 2>&1 || true
+
+    if grep -A 20 "Spec Corpus Cross-Reference Drift" .curate/scan-summary.md 2>/dev/null \
+        | grep -q "missing-decision"; then
+        pass "broken decision_ref surfaces in xref drift"
+    else
+        fail "broken decision_ref did not surface"
+    fi
+
+    if grep -A 20 "Spec Corpus Cross-Reference Drift" .curate/scan-summary.md 2>/dev/null \
+        | grep -q "topic/cat/missing-entry"; then
+        pass "broken kb_ref surfaces in xref drift"
+    else
+        fail "broken kb_ref did not surface"
+    fi
+
+    if grep -A 20 "Spec Corpus Cross-Reference Drift" .curate/scan-summary.md 2>/dev/null \
+        | grep -q "real-decision"; then
+        fail "real-decision (resolves) leaked into xref drift"
+    else
+        pass "resolving decision_ref does not appear in xref drift"
+    fi
+
+    if grep -A 20 "Spec Corpus Cross-Reference Drift" .curate/scan-summary.md 2>/dev/null \
+        | grep -q "topic/cat/real-entry"; then
+        fail "real kb_ref (resolves) leaked into xref drift"
+    else
+        pass "resolving kb_ref does not appear in xref drift"
+    fi
+else
+    echo "  SKIP  jq not available"
+fi
+
+cd "$REPO_ROOT"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

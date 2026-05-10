@@ -2162,6 +2162,74 @@ if [[ -s "$TMPDIR_SCAN/changed-source.txt" ]] && [[ -d ".kb" ]]; then
     done < "$TMPDIR_SCAN/changed-source.txt"
 fi
 
+# ── Analysis 27: Spec DEPRECATED-but-not-INVALIDATED ────────────────────────
+# A spec marked status=DEPRECATED is the author's signal that the spec is
+# obsolete. But until state=INVALIDATED, /spec-resolve still pulls it into
+# bundles. Surface specs in this graduation gap so the user can either
+# (a) finalize displacement (set state=INVALIDATED + displaced_by), or
+# (b) retract the DEPRECATED status if the spec is still authoritative.
+#
+# Output: SPEC_GRADUATION|<id>|<file>|<status>|<state>|<has-displaced-by>
+
+> "$TMPDIR_SCAN/spec-graduation.txt"
+if [[ -d ".spec" && -f ".spec/registry/manifest.json" ]]; then
+    MANIFEST=".spec/registry/manifest.json"
+    while IFS= read -r sid; do
+        [[ -z "$sid" ]] && continue
+        sfile=$(spec_file_for_id "$MANIFEST" "$sid")
+        [[ -z "$sfile" || ! -f "$sfile" ]] && continue
+
+        # Read frontmatter via fm() — it understands JSON-in-fences.
+        sstatus=$(fm "$sfile" '.status // ""' 2>/dev/null || echo "")
+        sstate=$(fm  "$sfile" '.state  // ""' 2>/dev/null || echo "")
+        dby_count=$(fm "$sfile" '.displaced_by // [] | length' 2>/dev/null || echo 0)
+
+        if [[ "$sstatus" == "DEPRECATED" && "$sstate" == "APPROVED" ]]; then
+            has_dby="no"
+            [[ "$dby_count" != "0" && "$dby_count" != "null" ]] && has_dby="yes"
+            echo "SPEC_GRADUATION|$sid|$sfile|$sstatus|$sstate|$has_dby" \
+                >> "$TMPDIR_SCAN/spec-graduation.txt"
+        fi
+    done < <(spec_manifest_ids "$MANIFEST")
+fi
+
+# ── Analysis 28: Spec corpus xref drift ──────────────────────────────────────
+# Per-spec spec-validate.sh emits warnings to stderr for unresolvable
+# decision_refs / kb_refs. At corpus scale these warnings are easy to miss
+# (jlsm 2026-05-10: 1 broken kb_ref hidden among 84 distinct refs across
+# 100 specs). Walk every APPROVED/DRAFT spec and aggregate the broken-ref
+# rows into one rollup the curate report surfaces directly.
+#
+# Output: SPEC_XREF|<id>|<ref-type>|<broken-ref>
+
+> "$TMPDIR_SCAN/spec-xref-drift.txt"
+if [[ -d ".spec" && -f ".spec/registry/manifest.json" ]]; then
+    MANIFEST=".spec/registry/manifest.json"
+    while IFS= read -r sid; do
+        [[ -z "$sid" ]] && continue
+        sfile=$(spec_file_for_id "$MANIFEST" "$sid")
+        [[ -z "$sfile" || ! -f "$sfile" ]] && continue
+
+        # decision_refs → .decisions/<slug>/adr.md
+        while IFS= read -r dref; do
+            [[ -z "$dref" ]] && continue
+            if [[ ! -f ".decisions/$dref/adr.md" ]]; then
+                echo "SPEC_XREF|$sid|decision_ref|$dref" \
+                    >> "$TMPDIR_SCAN/spec-xref-drift.txt"
+            fi
+        done < <(fm "$sfile" '.decision_refs // [] | .[]' 2>/dev/null)
+
+        # kb_refs → .kb/<path>.md
+        while IFS= read -r kref; do
+            [[ -z "$kref" ]] && continue
+            if [[ ! -f ".kb/$kref.md" ]]; then
+                echo "SPEC_XREF|$sid|kb_ref|$kref" \
+                    >> "$TMPDIR_SCAN/spec-xref-drift.txt"
+            fi
+        done < <(fm "$sfile" '.kb_refs // [] | .[]' 2>/dev/null)
+    done < <(spec_manifest_ids "$MANIFEST")
+fi
+
 # ── Write summary file ──────────────────────────────────────────────────────
 
 SCAN_DATE="$(date +%Y-%m-%d)"
@@ -2730,6 +2798,47 @@ if [[ -s "$TMPDIR_SCAN/kb-citation-drift.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+# Spec graduation candidates (Analysis 27)
+if [[ -s "$TMPDIR_SCAN/spec-graduation.txt" ]]; then
+    echo "## Spec Graduation Candidates (DEPRECATED but not INVALIDATED)" >> "$SUMMARY_FILE"
+    echo "Specs marked \`status: DEPRECATED\` while still \`state: APPROVED\`." >> "$SUMMARY_FILE"
+    echo "These continue to enter \`/spec-resolve\` bundles despite the author's" >> "$SUMMARY_FILE"
+    echo "intent to retire them. Two ways to resolve each row:" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "- **Finalize displacement** — set \`state: INVALIDATED\` and populate" >> "$SUMMARY_FILE"
+    echo "  \`displaced_by\` + \`displacement_reason\`. Removes the spec from" >> "$SUMMARY_FILE"
+    echo "  resolved bundles and preserves it for historical inspection." >> "$SUMMARY_FILE"
+    echo "- **Retract status** — if the spec is still authoritative, change" >> "$SUMMARY_FILE"
+    echo "  \`status\` back to \`STABLE\` or \`ACTIVE\`. The DEPRECATED label was" >> "$SUMMARY_FILE"
+    echo "  premature." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Spec | Status | State | Has displaced_by? |" >> "$SUMMARY_FILE"
+    echo "|------|--------|-------|-------------------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ sid _ sstatus sstate has_dby; do
+        echo "| $sid | $sstatus | $sstate | $has_dby |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/spec-graduation.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+# Spec corpus xref drift (Analysis 28)
+if [[ -s "$TMPDIR_SCAN/spec-xref-drift.txt" ]]; then
+    echo "## Spec Corpus Cross-Reference Drift" >> "$SUMMARY_FILE"
+    echo "Specs whose \`decision_refs\` or \`kb_refs\` no longer resolve to an" >> "$SUMMARY_FILE"
+    echo "ADR or KB entry on disk. \`spec-validate.sh\` emits these as per-spec" >> "$SUMMARY_FILE"
+    echo "stderr warnings; this rollup catches the corpus pattern (one broken" >> "$SUMMARY_FILE"
+    echo "ref hidden across many specs is otherwise easy to miss)." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "Per row: either fix the path (rename / restore the target), or remove" >> "$SUMMARY_FILE"
+    echo "the broken reference from the spec frontmatter." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Spec | Ref Type | Broken Reference |" >> "$SUMMARY_FILE"
+    echo "|------|----------|------------------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ sid rtype bref; do
+        echo "| $sid | $rtype | $bref |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/spec-xref-drift.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
 # Falsification lens staleness (Analysis 22)
 if [[ -s "$TMPDIR_SCAN/falsification-stale.txt" ]]; then
     echo "## Falsification Lens Staleness" >> "$SUMMARY_FILE"
@@ -2788,6 +2897,8 @@ echo "  KB filename collisions: $(wc -l < "$TMPDIR_SCAN/kb-collisions.txt" 2>/de
 echo "  KB schema drift: $(wc -l < "$TMPDIR_SCAN/kb-schema-drift.txt" 2>/dev/null || echo 0)"
 echo "  KB type/location mismatch: $(wc -l < "$TMPDIR_SCAN/kb-location-mismatch.txt" 2>/dev/null || echo 0)"
 echo "  KB citation drift in source: $(wc -l < "$TMPDIR_SCAN/kb-citation-drift.txt" 2>/dev/null || echo 0)"
+echo "  Spec graduation candidates: $(wc -l < "$TMPDIR_SCAN/spec-graduation.txt" 2>/dev/null || echo 0)"
+echo "  Spec xref drift: $(wc -l < "$TMPDIR_SCAN/spec-xref-drift.txt" 2>/dev/null || echo 0)"
 
 # ── Update curation state ─────────────────────────────────────────────────
 

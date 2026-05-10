@@ -29,6 +29,8 @@ couldn't see because they each had a narrower scope.
 17. KB schema drift — frontmatter that does not match `.kb/_refs/frontmatter.md` (missing/bad-enum fields, confidence overclaim, path/frontmatter mismatch)
 18. KB type/location mismatch — adversarial findings outside `patterns/<concern>/` or feature-footprints outside `architecture/feature-footprints/`
 19. KB citation drift in source — `// KB:` / `# KB:` citations in changed source files that point at missing entries or whose entry's `applies_to` doesn't include the source file (closes the loop with the `check-kb-ref.sh` PostToolUse hook)
+20. Spec graduation candidates — specs marked `status: DEPRECATED` that are still `state: APPROVED` (still entering `/spec-resolve` bundles despite the author's intent to retire them — finalize displacement or retract the status)
+21. Spec corpus xref drift — corpus rollup of unresolvable `decision_refs` / `kb_refs` across all specs (per-spec `spec-validate.sh` warnings are easy to miss at scale)
 
 **Flags:**
 - `--init` — first-time scan (ignores last-scanned SHA, good for new installs)
@@ -1470,6 +1472,8 @@ across runs. Use these conventions:
 | KB schema drift | `kb-schema:<path>:<issue-code>` |
 | KB type/location mismatch | `kb-location:<path>` |
 | KB citation drift | `kb-citation:<source-file>:<cited-entry>` |
+| Spec graduation candidate | `spec-graduation:<spec-id>` |
+| Spec xref drift | `spec-xref:<spec-id>:<ref-type>:<broken-ref>` |
 
 The append helper is duplicate-safe — re-appending an identical row is a
 no-op, so resuming a previous /curate session does not duplicate entries.
