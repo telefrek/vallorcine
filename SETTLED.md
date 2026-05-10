@@ -813,3 +813,37 @@ COMPLETE at 10:41:32, but the subagent kept running ~2 min before the
 user had to Ctrl+C to unblock the coordinator. Regression:
 `tests/scenario-parallel-subagent-hang-prevention.sh` (10 structural
 invariants; grep-based so it's durable against future skill edits).
+
+---
+
+## Spec violations are contracts, not backlog (2026-04-16, graduated 2026-05-09)
+
+`/spec-verify` repairs violations inline (fix code or amend spec).
+Obligations are created only on explicit user deferral, never as the
+default path. This was a deliberate inversion from an earlier model
+where every detected violation became a new obligation row, which
+encouraged "I'll fix it later" inertia and decoupled the spec from
+the code that was supposed to enforce it. Inline repair forces the
+choice (fix or amend) at detection time; deferral is an opt-in escape
+hatch for genuine "we cannot resolve this now" cases.
+
+## Partial implementation state still binary (2026-04-19, graduated 2026-05-09)
+
+The spec model remains binary (APPROVED or DRAFT). A partial
+implementation primitive — "90% implemented, 10% explicitly deferred"
+— has been on the open-questions list since 2026-04-19. Decision after
+two release cycles: the per-requirement annotation coverage table
+introduced by PR #67 (v0.16.5) provides the per-requirement grain
+(annotated / not-annotated / waived / pending). That likely IS the
+partial-implementation primitive. No new schema needed; a `pending`
+status row in `spec-coverage.md` is the explicit-deferral marker.
+Revisit if jlsm post-v0.16.5 surfaces a real workflow that the
+coverage-table grain can't express.
+
+## GSD is a direct-lane competitor (2026-04-21, graduated 2026-05-09)
+
+Positioning emphasis: depth-of-spec-rigor (lifecycle, displacement,
+audit integration, computed readiness), NOT the "spec-driven" label
+(GSD owns mindshare at 55K+ stars). See COMPETITIVE.md for the
+head-to-head breakdown. This shapes ongoing user-facing docs work and
+informs the user-facing pitch wherever vallorcine is described.
