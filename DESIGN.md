@@ -966,6 +966,10 @@ vallorcine/
 ├── kb/                              ← seed KB structure
 │   ├── CLAUDE.md                    ← KB root index template
 │   └── _refs/
+│       ├── frontmatter.md                    ← canonical schema (all entry types)
+│       ├── adversarial-finding-template.md   ← schema instance for findings
+│       ├── feature-footprint-template.md     ← schema instance for footprints
+│       ├── detail-companion.md               ← &lt;subject&gt;-detail.md split convention
 │       ├── complexity-notation.md
 │       └── benchmarking-methodology.md
 │
