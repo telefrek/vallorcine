@@ -2071,6 +2071,97 @@ if [[ -d ".kb" ]]; then
     done
 fi
 
+# ── Analysis 26: KB-citation drift in source code ──────────────────────────
+# The check-kb-ref.sh hook fires at write time and warns about missing /
+# wrong KB citations. This analysis closes the loop after the fact:
+# scans source files that changed in the window for `// KB:` / `# KB:` /
+# `<!-- KB:` citations and validates each against the KB. Catches drift
+# the hook missed (kit installed mid-stream, citation predates the
+# entry rename, etc.).
+#
+# Scope: changed source files only — the existing $TMPDIR_SCAN/changed-source.txt
+# is the bounded set. Full-tree scan would be too expensive; recent
+# drift is the actionable signal.
+#
+# Output: KB_CITATION_DRIFT|<source-file>|<cited-kb-entry>|<reason>
+
+> "$TMPDIR_SCAN/kb-citation-drift.txt"
+if [[ -s "$TMPDIR_SCAN/changed-source.txt" ]] && [[ -d ".kb" ]]; then
+    while IFS= read -r src_file; do
+        [[ -f "$src_file" ]] || continue
+        # Skip vallorcine internals and non-source.
+        case "$src_file" in
+            .kb/*|.spec/*|.work/*|.feature/*|.curate/*|.decisions/*|.claude/*) continue ;;
+        esac
+        ext="${src_file##*.}"
+        case "$ext" in
+            md|json|yaml|yml|toml|lock|txt|gitignore|env|properties) continue ;;
+        esac
+
+        # Extract citations using the same recogniser the hook uses.
+        citations="$(grep -E '^[[:space:]]*(//|#|<!--)[[:space:]]*KB:' "$src_file" 2>/dev/null \
+            | sed -E 's~^[[:space:]]*(//|#|<!--)[[:space:]]*KB:[[:space:]]*~~' \
+            | sed -E 's~[[:space:]]*-->[[:space:]]*$~~' \
+            | tr ',' '\n' \
+            | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' \
+            | grep -v '^$' || true)"
+        [[ -z "$citations" ]] && continue
+
+        while IFS= read -r cited; do
+            # Normalise to .kb/-prefixed path.
+            local_path="$cited"
+            case "$local_path" in
+                .kb/*) ;;
+                kb/*)  local_path=".$local_path" ;;
+                *)     local_path=".kb/$local_path" ;;
+            esac
+
+            if [[ ! -f "$local_path" ]]; then
+                echo "KB_CITATION_DRIFT|$src_file|$cited|missing-entry" \
+                    >> "$TMPDIR_SCAN/kb-citation-drift.txt"
+                continue
+            fi
+
+            # Check applies_to. Empty applies_to (general research) is OK;
+            # only flag when applies_to has entries AND none cover the file.
+            applies_to_lines="$(awk '
+                BEGIN { in_fm = 0; in_at = 0 }
+                /^---[[:space:]]*$/ { in_fm = !in_fm; next }
+                in_fm && /^applies_to:[[:space:]]*\[/ {
+                    sub(/^applies_to:[[:space:]]*\[[[:space:]]*/, "")
+                    sub(/[[:space:]]*\][[:space:]]*$/, "")
+                    gsub(/"/, "")
+                    n = split($0, parts, /[[:space:]]*,[[:space:]]*/)
+                    for (i = 1; i <= n; i++) if (parts[i] != "") print parts[i]
+                    next
+                }
+                in_fm && /^applies_to:[[:space:]]*$/ { in_at = 1; next }
+                in_fm && in_at && /^[[:space:]]*-[[:space:]]+/ {
+                    sub(/^[[:space:]]*-[[:space:]]+/, "")
+                    gsub(/"/, "")
+                    print
+                    next
+                }
+                in_fm && in_at && /^[^[:space:]-]/ { in_at = 0 }
+            ' "$local_path" 2>/dev/null)"
+
+            [[ -z "$applies_to_lines" ]] && continue   # general research
+
+            matched=0
+            while IFS= read -r pat; do
+                [[ -z "$pat" ]] && continue
+                # shellcheck disable=SC2053
+                if [[ "$src_file" == $pat ]]; then matched=1; break; fi
+            done <<< "$applies_to_lines"
+
+            if [[ "$matched" -eq 0 ]]; then
+                echo "KB_CITATION_DRIFT|$src_file|$cited|applies_to-mismatch" \
+                    >> "$TMPDIR_SCAN/kb-citation-drift.txt"
+            fi
+        done <<< "$citations"
+    done < "$TMPDIR_SCAN/changed-source.txt"
+fi
+
 # ── Write summary file ──────────────────────────────────────────────────────
 
 SCAN_DATE="$(date +%Y-%m-%d)"
@@ -2621,6 +2712,24 @@ if [[ -s "$TMPDIR_SCAN/kb-location-mismatch.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+# KB citation drift in source code (Analysis 26)
+if [[ -s "$TMPDIR_SCAN/kb-citation-drift.txt" ]]; then
+    echo "## KB Citation Drift in Source" >> "$SUMMARY_FILE"
+    echo "Source files that changed in the scan window cite KB entries that" >> "$SUMMARY_FILE"
+    echo "either no longer exist (\`missing-entry\`) or whose \`applies_to\`" >> "$SUMMARY_FILE"
+    echo "doesn't include the source file (\`applies_to-mismatch\`). Two" >> "$SUMMARY_FILE"
+    echo "fixes per row: update the citation to the right path, or extend" >> "$SUMMARY_FILE"
+    echo "the entry's \`applies_to\` if the citation is correct but the" >> "$SUMMARY_FILE"
+    echo "entry's stated scope is incomplete." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Source File | Cited Entry | Reason |" >> "$SUMMARY_FILE"
+    echo "|-------------|-------------|--------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ src_file cited reason; do
+        echo "| $src_file | $cited | $reason |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/kb-citation-drift.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
 # Falsification lens staleness (Analysis 22)
 if [[ -s "$TMPDIR_SCAN/falsification-stale.txt" ]]; then
     echo "## Falsification Lens Staleness" >> "$SUMMARY_FILE"
@@ -2678,6 +2787,7 @@ echo "  Falsification staleness: $(wc -l < "$TMPDIR_SCAN/falsification-stale.txt
 echo "  KB filename collisions: $(wc -l < "$TMPDIR_SCAN/kb-collisions.txt" 2>/dev/null || echo 0)"
 echo "  KB schema drift: $(wc -l < "$TMPDIR_SCAN/kb-schema-drift.txt" 2>/dev/null || echo 0)"
 echo "  KB type/location mismatch: $(wc -l < "$TMPDIR_SCAN/kb-location-mismatch.txt" 2>/dev/null || echo 0)"
+echo "  KB citation drift in source: $(wc -l < "$TMPDIR_SCAN/kb-citation-drift.txt" 2>/dev/null || echo 0)"
 
 # ── Update curation state ─────────────────────────────────────────────────
 

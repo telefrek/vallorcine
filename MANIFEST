@@ -139,6 +139,7 @@
 .claude/scripts/work-finalize.sh
 .claude/scripts/work-dispatch.sh
 .claude/scripts/work-index.sh
+.claude/scripts/check-kb-ref.sh
 .claude/scripts/feature-state-reconcile.sh
 .claude/scripts/narrative-wrapper.sh
 .claude/scripts/narrative/model.py
