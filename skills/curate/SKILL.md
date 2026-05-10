@@ -31,6 +31,8 @@ couldn't see because they each had a narrower scope.
 19. KB citation drift in source — `// KB:` / `# KB:` citations in changed source files that point at missing entries or whose entry's `applies_to` doesn't include the source file (closes the loop with the `check-kb-ref.sh` PostToolUse hook)
 20. Spec graduation candidates — specs marked `status: DEPRECATED` that are still `state: APPROVED` (still entering `/spec-resolve` bundles despite the author's intent to retire them — finalize displacement or retract the status)
 21. Spec corpus xref drift — corpus rollup of unresolvable `decision_refs` / `kb_refs` across all specs (per-spec `spec-validate.sh` warnings are easy to miss at scale)
+22. Spec annotation coverage rollup — corpus-level summary across the four buckets (fully covered / drift / bare-only / unannotated). Frames `/spec-backfill --all` vs row-by-row routing decision.
+23. ADRs without spec coverage — accepted/proposed ADRs that no spec references via `decision_refs`. Architectural intent without an operational contract.
 
 **Flags:**
 - `--init` — first-time scan (ignores last-scanned SHA, good for new installs)
@@ -1474,6 +1476,7 @@ across runs. Use these conventions:
 | KB citation drift | `kb-citation:<source-file>:<cited-entry>` |
 | Spec graduation candidate | `spec-graduation:<spec-id>` |
 | Spec xref drift | `spec-xref:<spec-id>:<ref-type>:<broken-ref>` |
+| ADR without spec coverage | `adr-no-spec:<adr-slug>` |
 
 The append helper is duplicate-safe — re-appending an identical row is a
 no-op, so resuming a previous /curate session does not duplicate entries.
