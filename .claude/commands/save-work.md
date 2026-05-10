@@ -96,6 +96,10 @@ If the user says "none", skip silently.
 If `WIP.md` exists, delete it. The work is either committed or captured in
 CONTEXT.md now — the checkpoint has served its purpose.
 
+> **Note.** `/save-work` is end-of-session: it deletes `WIP.md` because the
+> session is done. For a mid-flight save before `/clear` (where you want
+> WIP.md preserved as a resume affordance), use `/save-wip` instead.
+
 ---
 
 ## Step 5 — Confirm
