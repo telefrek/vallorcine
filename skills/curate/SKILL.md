@@ -25,6 +25,9 @@ couldn't see because they each had a narrower scope.
 13. Aging open obligations — obligations on specs that haven't been committed in 30+ days
 14. Link rot — KB-cited URLs that no longer resolve (4xx or connection failures)
 15. Falsification-lens staleness — APPROVED specs authored before a falsification lens shipped that match the lens's keywords (candidates for re-falsification under the newer lens)
+16. KB filename collisions — entries sharing a filename across folders (silently fragments search and pattern-recurrence evidence)
+17. KB schema drift — frontmatter that does not match `.kb/_refs/frontmatter.md` (missing/bad-enum fields, confidence overclaim, path/frontmatter mismatch)
+18. KB type/location mismatch — adversarial findings outside `patterns/<concern>/` or feature-footprints outside `architecture/feature-footprints/`
 
 **Flags:**
 - `--init` — first-time scan (ignores last-scanned SHA, good for new installs)
@@ -627,6 +630,105 @@ The "Decline — concerns are interlocked" option is important. Subdivision
 fragments a coherent contract when forced; it should never be automatic.
 Honest declines are a feature, not a failure.
 
+### 2r — KB structural drift
+
+**Guard:** Only run this step if any of the following sections exist in the
+scan summary: "KB Filename Collisions", "KB Schema Drift", "KB Type/Location
+Mismatch". If none exist, skip entirely.
+
+These three analyses share a goal — keep the KB's structure aligned with
+`.kb/_refs/frontmatter.md` so search, cross-reference repair, and type-aware
+loaders work. They are presented together because the user's typical action
+is the same: review one entry's drift and apply the patch.
+
+**KB filename collisions** (from "KB Filename Collisions" in scan summary):
+
+1. Each row shows a filename that exists at 2+ paths under different
+   folders. Cross-folder collisions silently fragment grep, pattern-
+   recurrence evidence, and `kb-search.sh` ranking. A reader running
+   `grep partial-init-no-rollback.md .kb` gets N hits and cannot tell
+   which is canonical.
+2. Resolve by renaming the lesser-used variant(s) to disambiguate (e.g.,
+   `builder-pre-validation-mutation.md` and `multi-step-init-no-rollback.md`).
+3. Alternatively, if the collision is intentional and benign, dismiss with a
+   one-line reason — but the default assumption is that a collision is drift.
+
+For each collision, use AskUserQuestion with options:
+- **"Rename one variant"** (description: "Choose which path keeps the name; the
+  other gets a more specific filename. /curate updates references that point
+  at the renamed file.")
+- **"Merge into one entry"** (description: "If the entries cover the same
+  pattern, merge into the canonical location and delete the duplicate.
+  Append the deleted entry's `## Audit Findings` history to the kept entry.")
+- **"Dismiss as intentional"** (description: "Record in review log; won't
+  resurface")
+- **"Skip"** (description: "Defer to next /curate pass")
+
+**KB schema drift** (from "KB Schema Drift" in scan summary):
+
+1. Each row is one issue per entry. Issue codes:
+   - `missing-frontmatter` — no YAML block at top.
+   - `missing-<field>` — required core or type-specific field absent.
+   - `bad-<field>` — value outside the allowed enum (e.g.
+     `research_status: foo`).
+   - `legacy-<field>` — deprecated value in use (e.g.
+     `research_status: archived` should be `deprecated`).
+   - `confidence-overclaim` — `confidence: high` without ≥2 corroborating
+     sources or `## Found in` entries.
+   - `topic-mismatch` / `category-mismatch` — frontmatter field disagrees
+     with the file's path (path is canonical).
+2. An entry with multiple issues appears multiple times. Resolve them
+   together when picking that entry.
+3. Drift breaks tag-based search, cross-reference repair, and the
+   type-aware loaders in `/research`, audit, and feature-retro.
+
+For each entry (group rows by path), use AskUserQuestion with options:
+- **"Apply patches"** (description: "/curate proposes the minimal edits — add
+  missing fields with derived values, fix enum values, downgrade
+  unsupported confidence, sync topic/category to path. Review each patch
+  before write.")
+- **"Walk one issue at a time"** (description: "Present each issue individually
+  with its own apply/skip choice. Use when patches need per-issue judgment.")
+- **"Dismiss the entry"** (description: "The drift is intentional or the
+  entry is being retired. Record in review log.")
+- **"Skip"** (description: "Defer to next /curate pass")
+
+When applying patches, derive values from the entry's existing content where
+possible — e.g., infer missing `last_researched` from git-blame's most-recent
+commit, infer missing `type:` from section headings (`## What happens` +
+`## Found in` ⇒ `adversarial-finding`).
+
+**KB type/location mismatch** (from "KB Type/Location Mismatch" in scan summary):
+
+1. Each row shows an entry whose declared `type:` does not match its path
+   prefix:
+   - `type: adversarial-finding` MUST live under `patterns/<concern>/`.
+   - `type: feature-footprint` MUST live under
+     `architecture/feature-footprints/`.
+2. Adversarial findings in `algorithms/` or `systems/` are invisible to the
+   test-writer that loads findings from `patterns/<concern>/` — they don't
+   show up in defensive-vector generation or audit lens loads. The bug they
+   describe gets re-discovered.
+
+For each mismatch, use AskUserQuestion with options:
+- **"Relocate the entry"** (description: "Move to the canonical path under
+  `patterns/<concern>/` (for findings) or `architecture/feature-footprints/`
+  (for footprints). Update all incoming `related:` links. /curate proposes
+  a destination; the user can override.")
+- **"Re-classify the type"** (description: "The entry isn't actually a finding
+  / footprint — it's research that mentions a finding. Change `type:` to
+  `research`, leave the location, and split the actual finding into a new
+  entry under `patterns/`.")
+- **"Dismiss as intentional"** (description: "Rare; the location is
+  deliberately non-canonical. Record in review log.")
+- **"Skip"** (description: "Defer to next /curate pass")
+
+When relocating, propose the destination as `patterns/<concern>/<basename>` —
+the writer must still pick the appropriate concern (`validation`,
+`concurrency`, `resource-management`, `testing`, `transactions`).
+`/curate` infers the concern from the entry's `domain:` field (for
+adversarial-findings) or asks the user.
+
 ---
 
 ## Step 2.5 — Merge in unresolved prior items
@@ -771,6 +873,15 @@ I scanned <N> commits since last review and found <N> items:
 
  19. Spec <ID> — authored <date>, predates <lens> lens (matched keyword "<word>")
      → I'll show the lens scope so you can run a depth pass or decline
+
+ 20. <N> KB filename collisions — `<basename>` exists at <N> paths
+     → I'll show each so you can rename, merge, or dismiss
+
+ 21. <N> KB schema-drift issues across <M> entries
+     → I'll group by entry and propose patches against `.kb/_refs/frontmatter.md`
+
+ 22. <N> KB type/location mismatches — adversarial-findings outside `patterns/` or footprints outside `architecture/feature-footprints/`
+     → I'll propose a relocation or type reclassification per entry
 
 Items you don't address are saved automatically — run /curate anytime to pick them up.
 ```
@@ -1149,6 +1260,100 @@ If "Dismiss" (verify mode only): append
 `.curate/verify-dismissed.txt`. Prompt for a one-line reason; default
 to "user dismissed".
 
+**KB filename collision:** Read both/all colliding entries and present a
+side-by-side: title, type, last_researched, audit-finding count, and the
+first sentence of `## summary` or `## What happens`. Help the user judge
+which is canonical. Present:
+
+```
+── Filename collision: <basename> ─────────────
+  [A] <path-A>
+      type: <type>, last: <date>, citations: <N>
+      "<first-sentence>"
+
+  [B] <path-B>
+      type: <type>, last: <date>, citations: <N>
+      "<first-sentence>"
+```
+
+Use AskUserQuestion:
+  - "Rename A" — A becomes a more specific filename; user proposes the new name
+  - "Rename B" — B becomes a more specific filename; user proposes the new name
+  - "Merge into A" — fold B's audit-findings into A, delete B, update incoming `related:` links
+  - "Merge into B" — fold A's audit-findings into B, delete A, update incoming `related:` links
+  - "Dismiss as intentional" — record in review log; won't resurface
+  - "Skip" — defer
+
+When renaming, do NOT just `git mv` the file — also update every `related:`
+entry in the rest of `.kb/` that points at the old path, and check
+`@./` includes from any parent file (detail-companion convention) for
+broken references. Stage the rename + reference updates with `git add`;
+do not commit unless the user explicitly requests it.
+
+**KB schema drift:** Read the entry and present the issues grouped together:
+
+```
+── Schema drift: <path> ──────────────────────
+  Issues (<N>):
+    · missing-type — required field 'type' is unset
+    · missing-last-researched — field absent
+    · confidence-overclaim — confidence: high but only 1 corroborating finding
+
+  Frontmatter (current):
+    title: "<title>"
+    research_status: "active"
+    confidence: "high"
+    ...
+
+  Proposed patches (per .kb/_refs/frontmatter.md):
+    + type: adversarial-finding   (inferred from sections '## What happens' + '## Found in')
+    + last_researched: "2026-04-12"   (from git-blame)
+    ~ confidence: medium   (downgrade from high; only 1 finding)
+```
+
+Use AskUserQuestion:
+  - "Apply patches" — write all proposed patches at once
+  - "Walk one at a time" — present each issue individually with its own apply/skip
+  - "Dismiss the entry" — drift is intentional; record in review log
+  - "Skip" — defer
+
+When applying, derive values where possible:
+- `last_researched` → most-recent git commit touching the file
+- `type` → infer from sections (`## What happens` + `## Found in` ⇒ `adversarial-finding`; entry under `architecture/feature-footprints/` ⇒ `feature-footprint`; otherwise `research`)
+- `research_status: archived` → rewrite to `deprecated`
+- `topic:` / `category:` mismatches → rewrite to match the path
+- `confidence: high` overclaim → downgrade to `medium`
+
+Always stage the patches; do not commit unless explicitly requested.
+
+**KB type/location mismatch:** Read the entry. Determine the expected location:
+- `type: adversarial-finding` → `patterns/<concern>/<basename>`. Infer
+  `<concern>` from the entry's `domain:` field (`validation`, `concurrency`,
+  `resource-management`, `data-integrity`, etc.). If the domain doesn't map
+  cleanly, ask the user with AskUserQuestion listing the existing
+  `patterns/` subfolders.
+- `type: feature-footprint` → `architecture/feature-footprints/<basename>`.
+
+Present:
+
+```
+── Type/location mismatch: <path> ────────────
+  Type: <type>
+  Current location: <topic>/<category>/
+  Canonical location: <expected-prefix>
+  Reason: <reason>
+```
+
+Use AskUserQuestion:
+  - "Relocate" — move to the canonical location, update incoming `related:` links and any `@./` includes
+  - "Re-classify type" — entry is research that mentions a finding; change `type:` to `research`, leave at current path. Then ask if the user wants to also create a new finding entry under `patterns/<concern>/`
+  - "Dismiss as intentional" — rare; record in review log
+  - "Skip" — defer
+
+When relocating, the same care as for filename collisions applies — update
+every incoming `related:` link, check `@./` includes, stage with `git add`,
+let the user commit.
+
 After completing the action, mark it `resolved` in the review log. Then
 **ALWAYS re-present the remaining items** (renumbered) so the user can
 continue. Only proceed to Step 5 when the user says "done" or all items
@@ -1213,6 +1418,9 @@ across runs. Use these conventions:
 | Cross-ref repair | `crossref:<artifact-id>` |
 | Subdivision candidate | `subdivision:<spec-id>` |
 | Bookkeeping repair | `scan-bookkeeping:<repair-name>` |
+| KB filename collision | `kb-collision:<basename>` |
+| KB schema drift | `kb-schema:<path>:<issue-code>` |
+| KB type/location mismatch | `kb-location:<path>` |
 
 The append helper is duplicate-safe — re-appending an identical row is a
 no-op, so resuming a previous /curate session does not duplicate entries.

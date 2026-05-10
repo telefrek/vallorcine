@@ -119,6 +119,10 @@ for extra in \
     ".kb/CLAUDE.md" \
     ".kb/_refs/complexity-notation.md" \
     ".kb/_refs/benchmarking-methodology.md" \
+    ".kb/_refs/adversarial-finding-template.md" \
+    ".kb/_refs/feature-footprint-template.md" \
+    ".kb/_refs/frontmatter.md" \
+    ".kb/_refs/detail-companion.md" \
     ".decisions/CLAUDE.md"; do
     if assert_file_exists "$TARGET/$extra"; then
         :

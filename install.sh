@@ -213,6 +213,8 @@ _install_seed "$SCRIPT_DIR/kb/_refs/complexity-notation.md"           "$TARGET/.
 _install_seed "$SCRIPT_DIR/kb/_refs/benchmarking-methodology.md"      "$TARGET/.kb/_refs/benchmarking-methodology.md"
 _install_seed "$SCRIPT_DIR/kb/_refs/adversarial-finding-template.md"  "$TARGET/.kb/_refs/adversarial-finding-template.md"
 _install_seed "$SCRIPT_DIR/kb/_refs/feature-footprint-template.md"    "$TARGET/.kb/_refs/feature-footprint-template.md"
+_install_seed "$SCRIPT_DIR/kb/_refs/frontmatter.md"                   "$TARGET/.kb/_refs/frontmatter.md"
+_install_seed "$SCRIPT_DIR/kb/_refs/detail-companion.md"              "$TARGET/.kb/_refs/detail-companion.md"
 
 # ── Decisions seed files (never overwrite — same as KB) ──────────────────────
 
