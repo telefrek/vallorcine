@@ -880,6 +880,7 @@ vallorcine/
 │   ├── work-finalize.sh            ← finalize work group state after feature refactor (feature-refactor Step 6b)
 │   ├── work-dispatch.sh            ← per-dispatch JSON marker (begin/ack/fail/stuck/clear) so payload-loss / user-stop on Agent calls does not silently corrupt the coordinator's task list; consumed by /work-resume for recovery
 │   ├── check-kb-ref.sh             ← PostToolUse hook on Write/Edit; validates `// KB:` citations against KB entries, suggests matches when none present, auto-disables when .kb/ has no entries
+│   ├── kb-index.sh                 ← rebuild `.kb/_index.json` from entry frontmatter (gitignored); consumed by `kb-search.sh --facet` for structured queries (type, domain, tags, applies_to, etc.) without iterating the tree on every query
 │   ├── curate-scan.sh              ← curation scanner (26 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill, work group health, link rot, falsification-lens staleness, KB filename collisions, KB schema drift, KB type/location mismatch, KB citation drift in source; thresholds always run against full configured window with new/ongoing tagging vs LAST_SHA)
 │   ├── curate-review-log.sh        ← append-only review log manager for /curate (migrate / append / unresolved / report); persists deferred and suggested findings across runs in `.curate/review-log.md`
 │   ├── lens-registry.txt           ← falsification lens introduction-date registry (consumed by curate-scan Analysis 22)

@@ -345,6 +345,32 @@ Domain Scout identifies relevant prior work.
 
 ---
 
+## Querying the knowledge base by facets
+
+For structured queries — "show me all confirmed adversarial findings about
+validation", "list every feature footprint touching the auth domain" — use
+`/kb facet`:
+
+```
+/kb facet type=adversarial-finding,domain=validation
+/kb facet type=feature-footprint,domains=auth
+/kb facet tags=encryption
+/kb facet research_status=stable,confidence=high
+```
+
+Comma-separated `key=value` pairs are AND-combined. Scalar fields (`type`,
+`domain`, `severity`, `research_status`, `confidence`) match by exact
+equality; list fields (`tags`, `applies_to`, `domains`, `constructs`)
+match by membership. Backed by a per-machine JSON index at
+`.kb/_index.json` that `/research` keeps fresh after every write; queries
+that find a missing or stale index trigger an auto-rebuild.
+
+For natural-language questions ("what do we know about HNSW?", "which
+caching strategy fits a low-latency read path?"), use `/kb "<question>"`
+instead — it keyword-ranks against KB content and walks `related:` links.
+
+---
+
 ## Querying the knowledge base
 
 Ask questions in plain language — the KB agent searches the hierarchy

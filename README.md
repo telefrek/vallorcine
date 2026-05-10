@@ -35,6 +35,12 @@ work definitions with artifact-based dependencies. Readiness is computed
 mechanically — completing one work definition automatically unblocks others.
 Supports specification-only and implementation-only pipeline modes.
 
+**Knowledge Base** — `/kb "<question>"` for natural-language queries (BM25-ranked,
+walks `related:` links), `/kb facet <key=value[,...]>` for structured filters
+against `.kb/_index.json` (faceted search by type, domain, tags, applies_to,
+etc.). The index is regenerated automatically by `/research` after every KB
+write and auto-rebuilt by queries when stale.
+
 **Curation** — `/curate` scans your codebase for quality signals: decisions that
 no longer match the code, research that's gone stale, specs that have drifted
 from implementation, and areas with no structured knowledge. It connects the
