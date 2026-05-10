@@ -1871,6 +1871,206 @@ if [[ -n "$LENS_REGISTRY" ]] && [[ -d ".spec" && -f ".spec/registry/manifest.jso
     fi
 fi
 
+# ── Analysis 23: Cross-folder KB filename collisions ────────────────────────
+# Two entries with the same filename under different folders silently fragment
+# search and pattern-recurrence evidence. Flag every collision pair.
+#
+# Output: KB_COLLISION|<basename>|<path1>|<path2>[|<path3>...]
+
+> "$TMPDIR_SCAN/kb-collisions.txt"
+if [[ -d ".kb" ]]; then
+    find .kb -type f -name '*.md' \
+        -not -name 'CLAUDE.md' \
+        -not -path '*/_refs/*' \
+        -not -path '*/_archive*' \
+        2>/dev/null | awk -F/ '{ name=$NF; print name "|" $0 }' \
+      | sort \
+      | awk -F'|' '
+            $1 != prev_name { if (count > 1) print prev_line; prev_name = $1; prev_line = "KB_COLLISION|" $1 "|" $2; count = 1; next }
+            { prev_line = prev_line "|" $2; count++ }
+            END { if (count > 1) print prev_line }
+        ' >> "$TMPDIR_SCAN/kb-collisions.txt"
+fi
+
+# ── Analysis 24: KB frontmatter schema drift ────────────────────────────────
+# Validates each KB entry against .kb/_refs/frontmatter.md. Emits one row per
+# distinct issue per entry so the user can address each independently.
+#
+# Output: KB_SCHEMA|<path>|<issue-code>|<detail>
+
+> "$TMPDIR_SCAN/kb-schema-drift.txt"
+if [[ -d ".kb" ]]; then
+    find .kb -type f -name '*.md' \
+        -not -name 'CLAUDE.md' \
+        -not -path '*/_refs/*' \
+        -not -path '*/_archive*' \
+        2>/dev/null | while IFS= read -r kb_file; do
+
+        # Extract frontmatter block (lines between the first two --- markers).
+        # Skip files without a frontmatter block.
+        fm="$(awk '
+            BEGIN { in_fm = 0; found = 0 }
+            /^---[[:space:]]*$/ {
+                if (in_fm == 0) { in_fm = 1; found = 1; next }
+                else            { in_fm = 0; exit }
+            }
+            in_fm == 1 { print }
+            END { if (!found) exit 1 }
+        ' "$kb_file" 2>/dev/null)" || {
+            echo "KB_SCHEMA|$kb_file|missing-frontmatter|no YAML block at top of file" \
+                >> "$TMPDIR_SCAN/kb-schema-drift.txt"
+            continue
+        }
+
+        # Field extraction. Each helper returns the raw value or empty string.
+        get_field() {
+            echo "$fm" | grep -E "^${1}:" | head -1 | sed -E "s/^${1}:[[:space:]]*//" | tr -d '"' || true
+        }
+        has_field() {
+            echo "$fm" | grep -qE "^${1}:"
+        }
+
+        title="$(get_field title)"
+        type_field="$(get_field type)"
+        last_researched="$(get_field last_researched)"
+        research_status="$(get_field research_status)"
+        confidence="$(get_field confidence)"
+        topic_field="$(get_field topic)"
+        category_field="$(get_field category)"
+
+        # Required core fields (per frontmatter.md).
+        [[ -z "$title" ]] && \
+            echo "KB_SCHEMA|$kb_file|missing-title|required field 'title' is empty or absent" \
+                >> "$TMPDIR_SCAN/kb-schema-drift.txt"
+        [[ -z "$last_researched" ]] && \
+            echo "KB_SCHEMA|$kb_file|missing-last-researched|required field 'last_researched' is empty or absent" \
+                >> "$TMPDIR_SCAN/kb-schema-drift.txt"
+        if [[ -n "$last_researched" && ! "$last_researched" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "KB_SCHEMA|$kb_file|bad-last-researched|value '$last_researched' is not ISO YYYY-MM-DD" \
+                >> "$TMPDIR_SCAN/kb-schema-drift.txt"
+        fi
+        [[ -z "$research_status" ]] && \
+            echo "KB_SCHEMA|$kb_file|missing-research-status|required field 'research_status' is empty or absent" \
+                >> "$TMPDIR_SCAN/kb-schema-drift.txt"
+        if [[ -n "$research_status" ]]; then
+            case "$research_status" in
+                active|mature|stable|deprecated) ;;
+                archived)
+                    echo "KB_SCHEMA|$kb_file|legacy-research-status|value 'archived' is legacy; canonical is 'deprecated'" \
+                        >> "$TMPDIR_SCAN/kb-schema-drift.txt" ;;
+                *)
+                    echo "KB_SCHEMA|$kb_file|bad-research-status|value '$research_status' not in {active,mature,stable,deprecated}" \
+                        >> "$TMPDIR_SCAN/kb-schema-drift.txt" ;;
+            esac
+        fi
+
+        # Type-specific required fields.
+        case "$type_field" in
+            adversarial-finding)
+                has_field domain   || echo "KB_SCHEMA|$kb_file|missing-domain|adversarial-finding requires 'domain' field" \
+                    >> "$TMPDIR_SCAN/kb-schema-drift.txt"
+                has_field severity || echo "KB_SCHEMA|$kb_file|missing-severity|adversarial-finding requires 'severity' field" \
+                    >> "$TMPDIR_SCAN/kb-schema-drift.txt" ;;
+            feature-footprint)
+                has_field domains    || echo "KB_SCHEMA|$kb_file|missing-domains|feature-footprint requires 'domains' field" \
+                    >> "$TMPDIR_SCAN/kb-schema-drift.txt"
+                has_field constructs || echo "KB_SCHEMA|$kb_file|missing-constructs|feature-footprint requires 'constructs' field" \
+                    >> "$TMPDIR_SCAN/kb-schema-drift.txt" ;;
+            detail-companion)
+                has_field companion_to || echo "KB_SCHEMA|$kb_file|missing-companion-to|detail-companion requires 'companion_to' field" \
+                    >> "$TMPDIR_SCAN/kb-schema-drift.txt" ;;
+            "")
+                # No type field — usually means writer used legacy template.
+                # Heuristic: if file has 'What happens' + 'Found in' it should be adversarial-finding.
+                if grep -q '^## What happens' "$kb_file" 2>/dev/null && \
+                   grep -q '^## Found in' "$kb_file" 2>/dev/null; then
+                    echo "KB_SCHEMA|$kb_file|missing-type|file looks like adversarial-finding (has 'What happens' + 'Found in') but type is unset" \
+                        >> "$TMPDIR_SCAN/kb-schema-drift.txt"
+                else
+                    echo "KB_SCHEMA|$kb_file|missing-type|required field 'type' is unset (defaults to 'research'; set explicitly)" \
+                        >> "$TMPDIR_SCAN/kb-schema-drift.txt"
+                fi ;;
+            research|reference-fragment) ;;
+            *)
+                echo "KB_SCHEMA|$kb_file|bad-type|value '$type_field' not in {research,adversarial-finding,feature-footprint,detail-companion,reference-fragment}" \
+                    >> "$TMPDIR_SCAN/kb-schema-drift.txt" ;;
+        esac
+
+        # Confidence overclaim heuristic: confidence: high requires ≥2
+        # corroborating sources (sources URLs) or ≥2 entries in '## Found in'.
+        if [[ "$confidence" == "high" ]]; then
+            sources_count="$(echo "$fm" | grep -cE '^[[:space:]]*-[[:space:]]+url:' || true)"
+            found_in_count=0
+            if grep -q '^## Found in' "$kb_file" 2>/dev/null; then
+                found_in_count="$(awk '
+                    /^## Found in/ { in_section = 1; next }
+                    in_section && /^## / { exit }
+                    in_section && /^- / { count++ }
+                    END { print count + 0 }
+                ' "$kb_file" 2>/dev/null || echo 0)"
+            fi
+            corroboration=$(( sources_count > found_in_count ? sources_count : found_in_count ))
+            if (( corroboration < 2 )); then
+                echo "KB_SCHEMA|$kb_file|confidence-overclaim|confidence: high but only $corroboration corroborating source/finding (need ≥2)" \
+                    >> "$TMPDIR_SCAN/kb-schema-drift.txt"
+            fi
+        fi
+
+        # Path ↔ frontmatter consistency for topic / category fields.
+        # The path is canonical; populated fields MUST match.
+        path_topic="$(echo "$kb_file" | awk -F/ '{ print $2 }')"
+        path_category="$(echo "$kb_file" | awk -F/ '{ print $3 }')"
+        if [[ -n "$topic_field" && "$topic_field" != "$path_topic" ]]; then
+            echo "KB_SCHEMA|$kb_file|topic-mismatch|frontmatter topic='$topic_field' but path implies '$path_topic'" \
+                >> "$TMPDIR_SCAN/kb-schema-drift.txt"
+        fi
+        if [[ -n "$category_field" && "$category_field" != "$path_category" ]]; then
+            echo "KB_SCHEMA|$kb_file|category-mismatch|frontmatter category='$category_field' but path implies '$path_category'" \
+                >> "$TMPDIR_SCAN/kb-schema-drift.txt"
+        fi
+    done
+fi
+
+# ── Analysis 25: KB type ↔ location mismatch ───────────────────────────────
+# Adversarial-finding entries belong under patterns/<concern>/, not under
+# research-style topics. Feature-footprints belong under
+# architecture/feature-footprints/. Catches mis-filed findings that hide from
+# the test-writer.
+#
+# Output: KB_LOCATION|<path>|<expected-prefix>|<actual-prefix>|<reason>
+
+> "$TMPDIR_SCAN/kb-location-mismatch.txt"
+if [[ -d ".kb" ]]; then
+    find .kb -type f -name '*.md' \
+        -not -name 'CLAUDE.md' \
+        -not -path '*/_refs/*' \
+        -not -path '*/_archive*' \
+        2>/dev/null | while IFS= read -r kb_file; do
+
+        type_field="$(awk '
+            BEGIN { in_fm = 0 }
+            /^---[[:space:]]*$/ { in_fm = !in_fm; next }
+            in_fm && /^type:/ { sub(/^type:[[:space:]]*/, ""); gsub(/"/, ""); print; exit }
+        ' "$kb_file" 2>/dev/null)"
+
+        rel="${kb_file#.kb/}"
+        topic="${rel%%/*}"
+
+        case "$type_field" in
+            adversarial-finding)
+                if [[ "$topic" != "patterns" ]]; then
+                    echo "KB_LOCATION|$kb_file|patterns/<concern>/|$topic/|adversarial-finding outside patterns/" \
+                        >> "$TMPDIR_SCAN/kb-location-mismatch.txt"
+                fi ;;
+            feature-footprint)
+                if [[ "$rel" != "architecture/feature-footprints/"* ]]; then
+                    echo "KB_LOCATION|$kb_file|architecture/feature-footprints/|$topic/|feature-footprint outside architecture/feature-footprints/" \
+                        >> "$TMPDIR_SCAN/kb-location-mismatch.txt"
+                fi ;;
+        esac
+    done
+fi
+
 # ── Write summary file ──────────────────────────────────────────────────────
 
 SCAN_DATE="$(date +%Y-%m-%d)"
@@ -2357,6 +2557,70 @@ if [[ -s "$TMPDIR_SCAN/link-rot.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
+# KB filename collisions (Analysis 23)
+if [[ -s "$TMPDIR_SCAN/kb-collisions.txt" ]]; then
+    echo "## KB Filename Collisions" >> "$SUMMARY_FILE"
+    echo "Two or more KB entries share a filename under different folders." >> "$SUMMARY_FILE"
+    echo "Cross-folder collisions silently fragment search and pattern-recurrence" >> "$SUMMARY_FILE"
+    echo "evidence — \`grep partial-init-no-rollback.md\` returns N hits and the" >> "$SUMMARY_FILE"
+    echo "reader has to triangulate which is canonical." >> "$SUMMARY_FILE"
+    echo "Resolve by renaming the lesser-used variants to disambiguate." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Filename | Locations |" >> "$SUMMARY_FILE"
+    echo "|----------|-----------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ name path1 rest; do
+        # Multiple paths may follow; concatenate with <br> for readability.
+        if [[ -n "$rest" ]]; then
+            locations="$path1<br>$(echo "$rest" | tr '|' '\n' | sed 's/^/<br>/' | tr -d '\n')"
+            locations="${locations//<br><br>/<br>}"
+        else
+            locations="$path1"
+        fi
+        echo "| $name | $locations |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/kb-collisions.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+# KB schema drift (Analysis 24)
+if [[ -s "$TMPDIR_SCAN/kb-schema-drift.txt" ]]; then
+    echo "## KB Schema Drift" >> "$SUMMARY_FILE"
+    echo "KB entries whose frontmatter does not match the canonical schema at" >> "$SUMMARY_FILE"
+    echo "\`.kb/_refs/frontmatter.md\`. Each row is one issue per entry; an" >> "$SUMMARY_FILE"
+    echo "entry with multiple issues appears multiple times. Drift breaks" >> "$SUMMARY_FILE"
+    echo "tag-based search, cross-reference repair, and type-aware loaders." >> "$SUMMARY_FILE"
+    echo "Issue codes: \`missing-*\` (required field absent), \`bad-*\` (value" >> "$SUMMARY_FILE"
+    echo "outside allowed enum), \`legacy-*\` (deprecated value used)," >> "$SUMMARY_FILE"
+    echo "\`confidence-overclaim\` (\`high\` without ≥2 corroborations)," >> "$SUMMARY_FILE"
+    echo "\`*-mismatch\` (frontmatter field disagrees with file path)." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Entry | Issue | Detail |" >> "$SUMMARY_FILE"
+    echo "|-------|-------|--------|" >> "$SUMMARY_FILE"
+    # Sort so a reader sees all issues for one entry together.
+    sort "$TMPDIR_SCAN/kb-schema-drift.txt" 2>/dev/null \
+      | while IFS='|' read -r _ kb_file issue detail; do
+            echo "| $kb_file | $issue | $detail |" >> "$SUMMARY_FILE"
+        done
+    echo "" >> "$SUMMARY_FILE"
+fi
+
+# KB type ↔ location mismatch (Analysis 25)
+if [[ -s "$TMPDIR_SCAN/kb-location-mismatch.txt" ]]; then
+    echo "## KB Type/Location Mismatch" >> "$SUMMARY_FILE"
+    echo "KB entries whose declared \`type:\` does not match their location." >> "$SUMMARY_FILE"
+    echo "Adversarial findings filed under \`algorithms/\` or \`systems/\` are" >> "$SUMMARY_FILE"
+    echo "invisible to the test-writer that loads findings from" >> "$SUMMARY_FILE"
+    echo "\`patterns/<concern>/\`. Resolve by relocating the entry, updating" >> "$SUMMARY_FILE"
+    echo "the type to match the location, or splitting into a research entry" >> "$SUMMARY_FILE"
+    echo "(at the current path) plus a finding (under \`patterns/\`)." >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "| Entry | Expected Prefix | Actual Prefix | Reason |" >> "$SUMMARY_FILE"
+    echo "|-------|-----------------|---------------|--------|" >> "$SUMMARY_FILE"
+    while IFS='|' read -r _ kb_file expected actual reason; do
+        echo "| $kb_file | $expected | $actual | $reason |" >> "$SUMMARY_FILE"
+    done < "$TMPDIR_SCAN/kb-location-mismatch.txt"
+    echo "" >> "$SUMMARY_FILE"
+fi
+
 # Falsification lens staleness (Analysis 22)
 if [[ -s "$TMPDIR_SCAN/falsification-stale.txt" ]]; then
     echo "## Falsification Lens Staleness" >> "$SUMMARY_FILE"
@@ -2411,6 +2675,9 @@ echo "  Aging obligations: $(wc -l < "$TMPDIR_SCAN/aging-obligations.txt" 2>/dev
 echo "  Subdivision candidates: $(wc -l < "$TMPDIR_SCAN/spec-subdivision-candidates.txt" 2>/dev/null || echo 0)"
 echo "  Link rot in KB: $(wc -l < "$TMPDIR_SCAN/link-rot.txt" 2>/dev/null || echo 0)"
 echo "  Falsification staleness: $(wc -l < "$TMPDIR_SCAN/falsification-stale.txt" 2>/dev/null || echo 0)"
+echo "  KB filename collisions: $(wc -l < "$TMPDIR_SCAN/kb-collisions.txt" 2>/dev/null || echo 0)"
+echo "  KB schema drift: $(wc -l < "$TMPDIR_SCAN/kb-schema-drift.txt" 2>/dev/null || echo 0)"
+echo "  KB type/location mismatch: $(wc -l < "$TMPDIR_SCAN/kb-location-mismatch.txt" 2>/dev/null || echo 0)"
 
 # ── Update curation state ─────────────────────────────────────────────────
 
