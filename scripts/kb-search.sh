@@ -20,6 +20,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 QUERY=""
 KB_ROOT=".kb"
 TOP_N=10
+FACET=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -31,6 +32,14 @@ while [[ $# -gt 0 ]]; do
             TOP_N="${2:-10}"
             shift 2
             ;;
+        --facet)
+            # Comma-separated key=value list. Switches the script into
+            # index-based filter mode (no keyword ranking; exact / list-
+            # membership matching against the structured index at
+            # .kb/_index.json).
+            FACET="${2:-}"
+            shift 2
+            ;;
         *)
             if [[ -z "$QUERY" ]]; then
                 QUERY="$1"
@@ -40,7 +49,91 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -z "$QUERY" ]] || [[ ! -d "$KB_ROOT" ]]; then
+if [[ ! -d "$KB_ROOT" ]]; then
+    exit 0
+fi
+
+# ── Facet mode ───────────────────────────────────────────────────────────────
+#
+# When --facet is set, ignore keyword search and filter the JSON index by
+# exact (scalar) or membership (list) match. The index is rebuilt on
+# demand if missing or stale (older than any KB markdown file). One path
+# per line on stdout; no score column.
+
+if [[ -n "$FACET" ]]; then
+    if ! command -v python3 >/dev/null 2>&1; then
+        # Facet mode requires python3. Stay silent (consistent with the
+        # exit-0-on-failure pattern of the keyword path) so callers
+        # don't get tripped up by missing dependencies.
+        exit 0
+    fi
+
+    INDEX="$KB_ROOT/_index.json"
+
+    # Stale check: rebuild if any *.md under KB_ROOT is newer than the index.
+    rebuild=0
+    if [[ ! -f "$INDEX" ]]; then
+        rebuild=1
+    elif [[ -n "$(find "$KB_ROOT" -name '*.md' -newer "$INDEX" -print -quit 2>/dev/null)" ]]; then
+        rebuild=1
+    fi
+    if [[ "$rebuild" -eq 1 ]]; then
+        bash "$SCRIPT_DIR/kb-index.sh" --kb-root "$KB_ROOT" --out "$INDEX" \
+            >/dev/null 2>&1 || exit 0
+    fi
+
+    python3 - "$INDEX" "$FACET" <<'PYEOF'
+import json
+import sys
+
+index_path = sys.argv[1]
+expr = sys.argv[2]
+
+try:
+    doc = json.load(open(index_path, encoding="utf-8"))
+except Exception:
+    sys.exit(0)
+
+# Parse comma-separated key=value pairs. A value containing a literal
+# comma is not currently supported — facet expressions stay simple.
+filters: list[tuple[str, str]] = []
+for pair in expr.split(","):
+    pair = pair.strip()
+    if not pair or "=" not in pair:
+        continue
+    k, _, v = pair.partition("=")
+    filters.append((k.strip(), v.strip()))
+
+if not filters:
+    sys.exit(0)
+
+# Field categories. Scalar fields use exact equality; list fields use
+# membership (any element matches the value).
+SCALAR_FIELDS = {"type", "topic", "category", "domain", "severity",
+                 "research_status", "confidence", "last_researched", "title"}
+LIST_FIELDS = {"tags", "applies_to", "domains", "constructs",
+               "related", "decision_refs", "spec_refs"}
+
+
+def matches(entry: dict, key: str, val: str) -> bool:
+    if key in SCALAR_FIELDS:
+        ev = entry.get(key)
+        return ev == val
+    if key in LIST_FIELDS:
+        ev = entry.get(key) or []
+        return val in ev
+    # Unknown key — never matches. Caller's typo, not our problem.
+    return False
+
+
+for entry in doc.get("entries", []):
+    if all(matches(entry, k, v) for k, v in filters):
+        print(entry.get("path", ""))
+PYEOF
+    exit 0
+fi
+
+if [[ -z "$QUERY" ]]; then
     exit 0
 fi
 

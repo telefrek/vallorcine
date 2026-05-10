@@ -967,6 +967,11 @@ if grep -qxF ".work/*/_dispatch-*.json" "$ENHANCED_TARGET/.gitignore"; then
 else
     fail ".work/*/_dispatch-*.json should be in .gitignore"
 fi
+if grep -qxF ".kb/_index.json" "$ENHANCED_TARGET/.gitignore"; then
+    pass ".kb/_index.json in .gitignore"
+else
+    fail ".kb/_index.json should be in .gitignore"
+fi
 
 # Upgrade path: an existing install that already has the runtime block but
 # was made before v0.16.x should pick up the new entries on re-install.
@@ -1014,6 +1019,11 @@ if grep -qxF ".work/*/_dispatch-*.json" "$UPGRADE_GI_TARGET/.gitignore"; then
     pass "upgrade path adds .work/*/_dispatch-*.json to existing .gitignore"
 else
     fail "upgrade should add .work/*/_dispatch-*.json to existing .gitignore"
+fi
+if grep -qxF ".kb/_index.json" "$UPGRADE_GI_TARGET/.gitignore"; then
+    pass "upgrade path adds .kb/_index.json to existing .gitignore"
+else
+    fail "upgrade should add .kb/_index.json to existing .gitignore"
 fi
 # Idempotent: running install twice must not duplicate entries.
 bash "$REPO_ROOT/install.sh" "$UPGRADE_GI_TARGET" >/dev/null 2>&1 || true
