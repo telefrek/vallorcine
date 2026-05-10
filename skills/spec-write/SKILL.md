@@ -13,6 +13,13 @@ a prerequisite stub.
 For authoring hardened specs with adversarial review, use `/spec-author`
 first, then `/spec-write` to register the output.
 
+**Canonical frontmatter schema:** `.spec/_refs/frontmatter.md` is the single
+authoritative reference for what fields a spec carries, what enums each
+field accepts, and how `state` and `status` differ. Read it once at the
+start of any spec authoring session — it is short and exhaustive.
+Validation (`spec-validate.sh`) and corpus drift detection (`/curate`
+analyses 20–21) reconcile against this schema; deviations surface there.
+
 ---
 
 ## Inputs expected in context
