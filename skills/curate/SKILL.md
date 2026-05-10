@@ -28,6 +28,7 @@ couldn't see because they each had a narrower scope.
 16. KB filename collisions — entries sharing a filename across folders (silently fragments search and pattern-recurrence evidence)
 17. KB schema drift — frontmatter that does not match `.kb/_refs/frontmatter.md` (missing/bad-enum fields, confidence overclaim, path/frontmatter mismatch)
 18. KB type/location mismatch — adversarial findings outside `patterns/<concern>/` or feature-footprints outside `architecture/feature-footprints/`
+19. KB citation drift in source — `// KB:` / `# KB:` citations in changed source files that point at missing entries or whose entry's `applies_to` doesn't include the source file (closes the loop with the `check-kb-ref.sh` PostToolUse hook)
 
 **Flags:**
 - `--init` — first-time scan (ignores last-scanned SHA, good for new installs)
@@ -729,6 +730,50 @@ the writer must still pick the appropriate concern (`validation`,
 `/curate` infers the concern from the entry's `domain:` field (for
 adversarial-findings) or asks the user.
 
+### 2s — KB citation drift in source
+
+**Guard:** Only run this step if the "KB Citation Drift in Source" section
+exists in the scan summary. If absent, skip entirely.
+
+This analysis closes the loop with the `check-kb-ref.sh` PostToolUse hook:
+the hook fires at write-time, this analysis catches the cases the hook
+missed (kit installed mid-stream, file edited before the hook landed,
+citation predates an entry rename). Every row is a `// KB:` / `# KB:` /
+`<!-- KB: -->` citation in a source file that doesn't reconcile with the
+KB.
+
+Two reason codes:
+
+- `missing-entry` — the cited path doesn't resolve. The KB entry was
+  renamed, deleted, or never existed. The citation is rotted.
+- `applies_to-mismatch` — the cited entry exists, but its `applies_to`
+  doesn't include the source file. Either the citation is wrong (likely
+  copy-paste from another file) or the entry's `applies_to` is too
+  narrow.
+
+For each row, use AskUserQuestion with options:
+
+- **"Update the citation"** (description: "The citation is wrong. Edit
+  the source file to point at the correct KB entry, or remove the
+  citation if no KB applies. /curate proposes the right entry from
+  `applies_to` matches when possible.")
+- **"Extend the entry's applies_to"** (description: "The citation is
+  correct but the cited entry's `applies_to` is too narrow. Add the
+  source file (or a glob covering it) to the entry's `applies_to:`
+  frontmatter list. Stage the change with `git add`; user commits.")
+- **"Dismiss as intentional"** (description: "Rare; e.g., the citation
+  is to a parent-domain entry that the writer wanted to reference even
+  though `applies_to` is more specific. Record in review log.")
+- **"Skip"** (description: "Defer to next /curate pass")
+
+For `missing-entry`: only "Update the citation" / "Dismiss" / "Skip" make
+sense (you can't extend an entry that doesn't exist).
+
+For `applies_to-mismatch`: when the user picks "Extend", `/curate`
+proposes a glob — usually the broadest folder under which the source
+file lives (e.g. `modules/auth/**` rather than the exact file path).
+Confirm with the user before staging.
+
 ---
 
 ## Step 2.5 — Merge in unresolved prior items
@@ -882,6 +927,9 @@ I scanned <N> commits since last review and found <N> items:
 
  22. <N> KB type/location mismatches — adversarial-findings outside `patterns/` or footprints outside `architecture/feature-footprints/`
      → I'll propose a relocation or type reclassification per entry
+
+ 23. <N> KB citation drift rows in changed source files — `// KB:` lines pointing at missing entries or whose entry's `applies_to` doesn't include the source file
+     → I'll propose either a citation update or an `applies_to` extension per row
 
 Items you don't address are saved automatically — run /curate anytime to pick them up.
 ```
@@ -1421,6 +1469,7 @@ across runs. Use these conventions:
 | KB filename collision | `kb-collision:<basename>` |
 | KB schema drift | `kb-schema:<path>:<issue-code>` |
 | KB type/location mismatch | `kb-location:<path>` |
+| KB citation drift | `kb-citation:<source-file>:<cited-entry>` |
 
 The append helper is duplicate-safe — re-appending an identical row is a
 no-op, so resuming a previous /curate session does not duplicate entries.

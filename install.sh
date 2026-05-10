@@ -314,6 +314,7 @@ install_file "$SCRIPT_DIR/scripts/work-context.sh" "$TARGET/.claude/scripts/work
 install_file "$SCRIPT_DIR/scripts/work-finalize.sh" "$TARGET/.claude/scripts/work-finalize.sh"
 install_file "$SCRIPT_DIR/scripts/work-dispatch.sh" "$TARGET/.claude/scripts/work-dispatch.sh"
 install_file "$SCRIPT_DIR/scripts/work-index.sh" "$TARGET/.claude/scripts/work-index.sh"
+install_file "$SCRIPT_DIR/scripts/check-kb-ref.sh" "$TARGET/.claude/scripts/check-kb-ref.sh"
 install_file "$SCRIPT_DIR/scripts/feature-state-reconcile.sh" "$TARGET/.claude/scripts/feature-state-reconcile.sh"
 install_file "$SCRIPT_DIR/scripts/narrative-wrapper.sh" "$TARGET/.claude/scripts/narrative-wrapper.sh"
 chmod +x "$TARGET/.claude/scripts/narrative-wrapper.sh" 2>/dev/null || true
@@ -349,6 +350,7 @@ chmod +x "$TARGET/.claude/scripts/work-context.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-finalize.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-dispatch.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-index.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/check-kb-ref.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/feature-state-reconcile.sh" 2>/dev/null || true
 
 # ── Merge driver for index files ──────────────────────────────────────────────
@@ -440,6 +442,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
       "Bash(bash .claude/scripts/work-finalize.sh:*)",
       "Bash(bash .claude/scripts/work-dispatch.sh:*)",
       "Bash(bash .claude/scripts/work-index.sh:*)",
+      "Bash(bash .claude/scripts/check-kb-ref.sh:*)",
       "Bash(bash .claude/scripts/feature-state-reconcile.sh:*)"
     ]
   },
@@ -450,6 +453,17 @@ if [[ "$DIFF_MODE" != "1" ]]; then
           {
             "type": "command",
             "command": "bash .claude/scripts/token-stop-hook.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/check-kb-ref.sh"
           }
         ]
       }
@@ -494,6 +508,26 @@ HOOKJSON
         echo -e "  ${GREEN}merge${NC} SubagentStart/SubagentStop hooks added to settings.json"
     elif [[ -f "$SETTINGS_FILE" ]]; then
         echo -e "  ${YELLOW}skip${NC}  settings.json exists but jq not available — add subagent hooks manually"
+    fi
+
+    # ── PostToolUse hook: KB-citation enforcement (Write|Edit) ────────
+    # Auto-disables when .kb/ has no entries (the script self-gates) so
+    # projects that don't use vallorcine for code-relevant research
+    # aren't nagged.
+    KBREF_MARKER="check-kb-ref"
+    if [[ -f "$SETTINGS_FILE" ]] && grep -qF "$KBREF_MARKER" "$SETTINGS_FILE" 2>/dev/null; then
+        echo -e "  ${YELLOW}skip${NC}  KB-ref hook already registered"
+    elif [[ -f "$SETTINGS_FILE" ]] && command -v jq &>/dev/null; then
+        jq '.hooks.PostToolUse = ((.hooks.PostToolUse // []) + [{
+            "matcher": "Write|Edit|MultiEdit",
+            "hooks": [{
+                "type": "command",
+                "command": "bash .claude/scripts/check-kb-ref.sh"
+            }]
+        }])' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+        echo -e "  ${GREEN}merge${NC} PostToolUse KB-ref hook added to settings.json"
+    elif [[ -f "$SETTINGS_FILE" ]]; then
+        echo -e "  ${YELLOW}skip${NC}  settings.json exists but jq not available — add PostToolUse KB-ref hook manually"
     fi
 
     # ── PreCompact hook for crash recovery ───────────────────────────
