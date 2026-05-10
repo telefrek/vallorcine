@@ -4,6 +4,130 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.17.0] — 2026-05-09
+
+### Added
+
+- **Canonical KB frontmatter schema (`kb/_refs/frontmatter.md`).** Single
+  authoritative reference for all entry types (`research`,
+  `adversarial-finding`, `feature-footprint`, `detail-companion`,
+  `reference-fragment`). Defines required core fields (title, type,
+  applies_to, last_researched, research_status), optional fields with clear
+  semantics, tag vocabulary (lowercase kebab-case, fixed domain/concern/
+  discovery/construct sets), source format (no bare URLs — `accessed:`
+  required), confidence discipline (earned not asserted: `high` requires
+  ≥2 corroborating sources or ≥2 audit findings). Migration rules cover
+  legacy entries (path-canonical for topic/category, `archived` ↔ `deprecated`,
+  type inference from section headings). Both `/research` and `/curate`
+  now treat this file as the source of truth.
+
+- **Detail-companion convention (`kb/_refs/detail-companion.md`).**
+  Formalises the `<subject>-detail.md` split for entries that exceed ~200
+  lines: when to split, naming, placement, **frontmatter requirements
+  (now mandatory on companion files** — was silently optional, breaking
+  tag-overlap cross-reference repair), what content belongs in the
+  companion vs the parent, and the rules `/curate` enforces (parent
+  ↔ companion bidirectional link, companion not listed as standalone
+  subject in indexes, etc.).
+
+- **Three `/curate` analyses for KB structural drift.**
+  - **Cross-folder filename collisions** — flags any KB filename living
+    at 2+ paths under different folders. Catches the
+    `partial-init-no-rollback` / `mutation-outside-rollback-scope` class
+    of collision before grep silently fragments search and pattern-
+    recurrence evidence under separate filenames.
+  - **Schema drift** — parses every KB entry's frontmatter and validates
+    against the canonical schema. 12 distinct issue codes:
+    `missing-frontmatter`, `missing-title`, `missing-last-researched`,
+    `bad-last-researched`, `missing-research-status`, `bad-research-status`,
+    `legacy-research-status` (archived → deprecated rename),
+    `missing-domain`/`severity` (adversarial-finding required fields),
+    `missing-domains`/`constructs` (feature-footprint required fields),
+    `missing-companion-to`, `missing-type`, `bad-type`,
+    `confidence-overclaim` (counted from the entry's own evidence, not
+    author assertion), `topic-mismatch`/`category-mismatch`. One row per
+    distinct issue per entry so the user can address each independently.
+  - **Type ↔ location mismatch** — flags `type: adversarial-finding`
+    outside `patterns/<concern>/` and `type: feature-footprint` outside
+    `architecture/feature-footprints/`. These are entries the test-writer's
+    lens-based loaders never see.
+
+- **`/curate` SKILL.md routing for KB drift findings.** Section 2r
+  documents how to read all three findings; three Step-4 routing blocks
+  add AskUserQuestion options (rename / merge / dismiss for collisions;
+  apply patches / walk-one-at-a-time / dismiss for schema drift;
+  relocate / re-classify-type / dismiss for location mismatches). All
+  resolutions stage with `git add` and let the user commit — drift
+  remediation stays reviewer-gated. Review-log keys
+  (`kb-collision:<basename>`, `kb-schema:<path>:<issue-code>`,
+  `kb-location:<path>`) so deferred items resurface deterministically.
+
+- **Regression test (`tests/scenario-curate-kb-schema-drift.sh`).**
+  Synthetic fixture with a known mix of clean and drifted KB entries
+  asserts: collision detection finds the cross-folder pair, all 12
+  schema-drift codes fire on the right entries, clean entries do NOT
+  appear in any KB-quality finding, `_refs/` files excluded from
+  KB-quality analyses (may still appear in general git-history analyses
+  like Churn Hotspots), type/location detection works for both
+  adversarial-findings and feature-footprints. 21/21 assertions pass.
+
+### Changed
+
+- **`/research` is type-aware.** Step 3 placement determination now infers
+  `type: research | adversarial-finding | feature-footprint` from the
+  context hint (`feature-retro footprint for ...` ⇒ `feature-footprint`,
+  `audit adversarial pattern from ...` / `Suggested: patterns/<concern>` ⇒
+  `adversarial-finding`, otherwise `research`) and surfaces the inferred
+  type in the facet plan so the user can correct before any file is
+  written. Step 6 selects the appropriate template — inline research
+  template for research, the `_refs/` templates for findings and
+  footprints. Clean separation that was previously absent (one template
+  applied to all writes was the root cause of the schema drift this
+  release addresses).
+
+- **`/research` cross-folder filename collision check.** Before opening
+  the writer, `/research` runs `find .kb -name "<filename>.md"` and
+  refuses to write if the name already exists under a different folder.
+  Disambiguation prompt offers a more specific name; intentional collisions
+  require explicit user confirmation.
+
+- **`/research` frontmatter validation against the canonical schema.**
+  After drafting, `/research` validates: required core fields present,
+  type recognised, type-specific required fields present,
+  `last_researched` ISO-quoted, `research_status` is one of four valid
+  values, tags are kebab-case, sources have url+title+accessed (no bare
+  URLs), confidence defaults to `medium` and never to `high` without ≥2
+  corroborating sources, path ↔ frontmatter `topic`/`category`
+  consistency.
+
+- **Audit feedback hint repointed at `patterns/<concern>`.** The
+  feedback-loop dispatch hint changed from
+  `Suggested: <topic>/adversarial-findings` (which never existed as a
+  folder convention) to `Suggested: patterns/<concern>` (the lens, not
+  the discovery domain). Findings discovered while researching SQL
+  parsing now land at `patterns/validation/<finding>.md` where the
+  test-writer's lens-based loaders will find them.
+
+- **Realigned `_refs/adversarial-finding-template.md` and
+  `_refs/feature-footprint-template.md`** as schema instances, not
+  overlapping schemas. Both now reference the canonical
+  `frontmatter.md` and document the type-specific guidance unique to
+  each (e.g. `tags` should always include `adversarial-finding` for
+  findings; footprints use `domains:` plural and `research_status:
+  stable` because they're historical records).
+
+- **`kb/CLAUDE.md` root template includes decision rules.** "Where does X
+  go?" section explains the domain-topic vs `patterns/` boundary;
+  filename uniqueness rule documented (must be unique across the entire
+  `.kb/` tree, not just within category).
+
+- **install.sh + tests/test-install.sh ship and verify the new `_refs/`
+  files.** Existing installs receive the new files on next
+  `/upgrade-vallorcine` (upgrade.sh's existing glob over
+  `kb/_refs/*.md` picks them up automatically). Test coverage extended
+  to verify all six `_refs/` files install (was checking only two).
+
+---
 ## [0.16.8] — 2026-05-09
 
 ### Added
