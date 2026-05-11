@@ -7,8 +7,9 @@ description: "Check for and apply updates from the vallorcine source repository"
 Checks the source repository for a newer release of vallorcine and,
 with confirmation, downloads and applies it to this project.
 
-Safe to run at any time. Never touches .kb/, .decisions/, or .feature/.
-User-populated index files are preserved even when kit files are updated.
+Safe to run at any time. Never touches .kb/, .decisions/, .feature/,
+.work/, or .spec/. User-populated index files are preserved even when
+kit files are updated.
 
 ---
 
@@ -110,9 +111,12 @@ Updates (overwritten with new version):
 Preserved (never touched):
   .kb/                 your knowledge base
   .decisions/          your architecture decisions
+  .spec/               your specifications + registry
   .feature/            your in-progress feature work
+  .work/               your work groups + orchestrator state
   .kb/CLAUDE.md        if you have added topics
   .decisions/CLAUDE.md if you have added decisions
+  .spec/CLAUDE.md      if you have authored specs
 
 Use AskUserQuestion with options:
   - "Apply upgrade"
