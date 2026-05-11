@@ -4,6 +4,124 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.19.2] — 2026-05-11
+
+### Fixed
+
+- **5 CRITICAL bugs surfaced by the adversarial sweep across
+  `/work-decompose`, `/work-resume` + `work-claim.sh`, `/spec-backfill`,
+  and `/curate` + `curate-scan.sh`.** All hit production code paths;
+  shipped together so jlsm and other users can upgrade past them.
+
+  1. **`/curate` "Recently Accepted" rotation kept OLDER ADRs** —
+     `scripts/index-verify.sh` overflow trimmed bottom-N rows assuming
+     "newest at top," but auto-repair inserted new rows on top in
+     filesystem order regardless of date. The 2026-05-10 jlsm bug
+     (newer 2026-04-26 ADRs rotated out, older 2026-03-19 ADRs kept)
+     is now fixed: rows are sorted date-desc before the trim, so the
+     bottom-N selection always picks the oldest. Regression test
+     `scenario-index-verify.sh` Test 9b asserts survivors by date
+     identity, not just count.
+
+  2. **`work-validate.sh` rejected valid in-flight WD statuses.** The
+     enum was `{DRAFT|SPECIFIED|READY|IN_PROGRESS|COMPLETE|BLOCKED}`
+     but `work-resolve.sh` produces `SPECIFYING` and `IMPLEMENTING`.
+     Re-running `/work-decompose` on any group with in-flight WDs
+     wedged at validation. Fixed: enum extended to
+     `{DRAFT|SPECIFYING|SPECIFIED|READY|IMPLEMENTING|IN_PROGRESS|COMPLETE|BLOCKED}`.
+
+  3. **`/work-decompose --from-obligations` read non-existent fields.**
+     SKILL.md referenced `spec`, `affects`, `blocked_by` — actual
+     `_obligations.json` schema is `target_feature`, `domains`,
+     `description`, `status` (verified against `spec-resolve.sh` and
+     `spec-obligations-gc.sh`). The whole mode silently produced zero
+     WDs. SKILL.md updated to the correct schema with explicit
+     reference to where the schema is enforced.
+
+  4. **`/spec-backfill` Phase 1 filter silently re-walked annotated
+     R-ids.** `spec-trace --uncovered` emits fully-qualified R-ids
+     (e.g. `auth.token.R3`), but `spec-backfill-candidates.sh` and
+     `spec-backfill-log.sh has-decision` both expect bare R-ids
+     (e.g. `R3`). Filter never matched; already-annotated requirements
+     resurfaced on every run. SKILL.md now explicitly strips the
+     prefix (`r_id="${fq_rid##*.}"`) before downstream calls — both
+     single-spec mode and corpus mode (Phase A).
+
+  5. **`/curate` no-op exits left stale summary visible.** When the
+     scan exited "No new commits since last scan" or "No commits found
+     in scan range," it left the prior summary on disk with its still-
+     valid sentinel. Step 1.1's check passed, and `/curate` consumed
+     days-old findings as if fresh. Fixed: both exit paths overwrite
+     `scan-summary.md` with a distinct `no-op` marker (sentinel
+     includes `· no-op ·`); Step 1.1 detects this and routes the user
+     to `--init` / wider window / stop. Regression test asserts the
+     no-op marker is written.
+
+- **Nested dispatch broke `/feature-coordinate` when run under
+  `/work-start all`, `/work-start --parallel`, or `/work-run`.** The
+  dispatched sub-agent context can't itself issue Agent tool calls, so
+  `/feature-coordinate`'s parallel work-unit batches failed at runtime
+  when invoked from inside a sub-agent. Real bug hit on jlsm.
+  Fix: `/work-start` grows a `--nested` flag. When set, Step 4c writes
+  `nested_in_dispatch: true` + `execution_strategy: cost` into
+  `status.md`. `/feature-plan` honors the flag by forcing
+  `execution_strategy: cost` (skipping `/feature-coordinate`).
+  `/feature-coordinate` has a defensive Step 0 guard that errors if
+  invoked with the flag set. All three dispatchers (`/work-start all`,
+  `/work-start --parallel`, `/work-run`) now pass `--nested` through.
+  Test: `tests/scenario-nested-dispatch.sh` (19 contract checks).
+
+### Added
+
+- **`/work-run` — dynamic-DAG dispatcher for entire work groups.** Drives
+  a fully-decomposed, fully-specified work group through implementation
+  autonomously, dispatching SPECIFIED WDs as concurrent sub-agents
+  (background via `run_in_background`) and re-dispatching newly-ready WDs
+  the moment a sibling completes. Replaces `/work-start --parallel`'s
+  wave-of-one model: a 10-WD group with cross-WD `required_state:
+  SPECIFIED` deps can complete in roughly the wall-clock time of the
+  longest single WD. Pauses for user input ONLY on USER-REQUIRED
+  escalations (per PR A's contract): freezes new dispatches, surfaces
+  the question via `AskUserQuestion`, resumes after resolution.
+  Currently in-flight sub-agents continue during the freeze. Concurrency
+  guard: atomic `mkdir`-based driver lock (single driver per group).
+  Test: `tests/scenario-work-run.sh` (64 contract-validation checks
+  covering Step 0/1/2/3a/3b/3c/3d/3e/3f/4 plus the post-adversarial
+  fixes for CRITICAL/HIGH findings).
+
+- **`scripts/work-orchestrator.sh`: `skip` subcommand.** Atomic
+  `blocked → completed:ERROR` transition. The `/work-run` "Skip this
+  WD" UX needs this — the prior `unblock + complete` sequence failed
+  because `complete` requires in-flight membership and `unblock`
+  moved the WD to queue. Tested in extended
+  `scenario-work-orchestrator.sh` (71 checks, was 63).
+
+- **`scripts/work-orchestrator.sh` — persistent state machine for dynamic
+  WD dispatch.** Tracks queue, in-flight, completed, and blocked sets per
+  work group at `.work/<group>/.orchestrator/` (each subset is a
+  directory of small per-WD JSON files; transitions are atomic `mv`
+  operations). Subcommands: `init / status / dump / ready / dispatch /
+  complete / block / unblock / resume / hung / resolve / clear`. Reads
+  work-resolve.sh output to compute SPECIFIED-ready set; re-resolves
+  on every `complete` to surface newly-unblocked WDs. `hung` detects
+  stalled in-flight WDs by checking `.feature/<slug>/status.md` mtime.
+  No jq dependency — flat JSON written from scratch. `/work-resume`
+  gains Step 2c that detects orchestrator state and surfaces it before
+  normal readiness routing. Test:
+  `tests/scenario-work-orchestrator.sh` (71 checks).
+
+- **User-required escalation contract for sub-agents.** `/work-start`
+  sequential and parallel modes now distinguish technical escalations
+  (auto-handled in cycle-log, pipeline continues) from user-required
+  escalations (sub-agent halts, writes `.feature/<slug>/escalation.json`,
+  returns `ESCALATION_AT_<stage> — <category>: <question>`). The parent
+  classifier is now 5-way (escalation / clean / payload-lost /
+  user-stopped / parse-failed) and the post-run summary surfaces
+  escalations distinctly with paths to the JSON files. Foundation for
+  the dynamic-DAG orchestrator and `/work-run`. Test:
+  `tests/scenario-work-start-escalation.sh` (40 checks).
+
+---
 ## [0.19.1] — 2026-05-10
 
 ### Added
