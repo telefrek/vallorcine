@@ -46,7 +46,7 @@ Run after `/work "<goal>"` has created the work group.
    that wrote the WDs but never cleared the file. Use:
    ```bash
    find ".work/<group-slug>" -maxdepth 1 -name 'WD-*.md' \
-        -exec grep -lE '^status: (SPECIFYING|SPECIFIED|IMPLEMENTING|COMPLETE)$' {} + \
+        -exec grep -lE '^[[:space:]]*status:[[:space:]]*(SPECIFYING|SPECIFIED|IMPLEMENTING|COMPLETE)$' {} + \
         2>/dev/null | head -1
    ```
 
@@ -68,7 +68,7 @@ Run after `/work "<goal>"` has created the work group.
    ```bash
    for wd_id in <phase_a_target_wds>; do
      [[ -f ".work/<group-slug>/${wd_id}.md" ]] \
-       && grep -qE '^status: (SPECIFYING|SPECIFIED|IMPLEMENTING|COMPLETE)$' \
+       && grep -qE '^[[:space:]]*status:[[:space:]]*(SPECIFYING|SPECIFIED|IMPLEMENTING|COMPLETE)$' \
             ".work/<group-slug>/${wd_id}.md" \
        && echo "orphan-candidate"
    done | head -1
@@ -841,18 +841,7 @@ bash .claude/scripts/work-index.sh update "<group-slug>"
 
 Do not hand-edit the WDs count or any column in `.work/CLAUDE.md`.
 
-### Populate the readiness cache
-
-Run the resolver once now so `_readiness.json` reflects the freshly-written
-WDs. This makes `/work-resume` cheap on the first invocation after a
-`/clear` and gives parallel sessions immediate visibility into the new
-WDs:
-
-```bash
-bash .claude/scripts/work-resolve.sh "<group-slug>" >/dev/null
-```
-
-### Run invariant check
+### Run invariant check (BEFORE populating the readiness cache)
 
 ```bash
 bash .claude/scripts/work-validate.sh --group "<group-slug>" --decompose
@@ -860,13 +849,32 @@ bash .claude/scripts/work-validate.sh --group "<group-slug>" --decompose
 
 This verifies that every cross-WD reference has a settled group-level
 artifact (from Phase B or pre-existing). If the check fails, display the
-unsettled references and offer options:
+unsettled references and offer options via `AskUserQuestion`:
 - "Re-open Phase B to settle them"
 - "Mark them out of scope in work.md and proceed"
 - "Stop"
 
 Decomposition is not complete until the invariant passes or is
 explicitly waived.
+
+**Order matters here** (2026-05-11 adversarial MED #1). Previously this
+ran the resolver BEFORE validate, so a failed invariant left
+`_readiness.json` stamped with the post-resolver snapshot of a
+half-finished decomposition. `/work-resume` Step 3's mtime check then
+treated the cache as fresh and downstream skills consumed it as if
+decomposition completed. Run validate first; only populate the cache
+once decomposition is actually durable.
+
+### Populate the readiness cache
+
+Run the resolver once now so `_readiness.json` reflects the freshly-written
+WDs AND a passing decompose invariant. This makes `/work-resume` cheap
+on the first invocation after a `/clear` and gives parallel sessions
+immediate visibility into the new WDs:
+
+```bash
+bash .claude/scripts/work-resolve.sh "<group-slug>" >/dev/null
+```
 
 ### Clear the Phase A/B checkpoint
 

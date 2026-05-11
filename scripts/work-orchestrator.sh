@@ -126,6 +126,34 @@ validate_wd_id() {
 # both read epoch=5, both write epoch=6). The future /work-run skill
 # should detect contention via the orchestrator-state directory's existence
 # rather than running two sessions against the same group.
+#
+# 2026-05-11 adversarial MED #1 (cluster 1): defensive flock around
+# mutating cross-set transitions. /work-run is the single driver in
+# practice, but /work-resume Step 2c reads the same directory via
+# `status` and a `complete` running concurrently could trigger a
+# transient read on a partially-moved file (WD briefly in BOTH or
+# NEITHER of in-flight/ and completed/ during the rm + write window).
+#
+# The wrapper acquires an exclusive file lock on $dir/.state.lock for
+# the duration of the caller's block. If flock isn't available
+# (containers, ancient shells), the wrapper degrades to a no-op —
+# single-driver assumption stands. Callers wrap the rm + write_*
+# sequence in `acquire_state_lock "$dir"` as a guard.
+
+acquire_state_lock() {
+  local dir="$1"
+  # Returns 0 if lock acquired (caller proceeds), or sets up a no-op
+  # when flock is missing. The lock auto-releases when the calling
+  # shell's FD 9 closes (at function/script exit).
+  if command -v flock >/dev/null 2>&1; then
+    mkdir -p "$dir" 2>/dev/null || true
+    exec 9>"$dir/.state.lock"
+    flock -x -w 30 9 || {
+      echo "ERROR: failed to acquire state lock on $dir within 30s" >&2
+      exit 2
+    }
+  fi
+}
 
 # ── State-directory locator ─────────────────────────────────────────────────
 
@@ -641,6 +669,10 @@ cmd_complete() {
     exit 3
   fi
 
+  # Hold the state lock across the rm + write to prevent concurrent
+  # `status`/`dump`/`hung` from seeing a torn state.
+  acquire_state_lock "$dir"
+
   # Order: rm in-flight FIRST, then write completed. A crash between the
   # two leaves the WD in NEITHER set — recoverable on next re-resolve
   # since work-resolve will see the WD's underlying COMPLETE status and
@@ -684,6 +716,8 @@ cmd_block() {
   local feature_slug
   feature_slug=$(grep -oE '"feature_slug":[[:space:]]*"[^"]*"' "$dir/in-flight/$wd_id.json" \
     | sed -E 's/.*"([^"]*)"/\1/')
+
+  acquire_state_lock "$dir"
 
   # Order: rm in-flight FIRST, then write blocked. See cmd_complete for
   # rationale — neither-set crash window is recoverable; both-set isn't.
@@ -736,6 +770,8 @@ cmd_skip() {
     echo "ERROR: $wd_id is not blocked (cannot skip)" >&2
     exit 3
   fi
+
+  acquire_state_lock "$dir"
 
   # Order: rm blocked FIRST, then write completed — same crash-window
   # rationale as cmd_complete / cmd_block.
