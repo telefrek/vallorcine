@@ -211,9 +211,53 @@ If `skipped` count > 0, tell the user how to resume:
 ## Corpus mode (`--all`)
 
 When invoked with `--all`, iterate every APPROVED spec in the manifest
-and run the per-spec walk against each. Pre-flight runs once; the
-backfill log is the same `.spec/backfill-log.md` so progress and prior
-decisions persist across the whole corpus.
+and run the per-spec walk against each via the **subagent dispatch
+pattern** — each spec is processed by a dedicated sub-agent that owns
+all file reads, the candidate-finding subprocess, and edit application.
+The coordinator (this skill, in the user's conversation) only holds
+per-spec one-line summaries, keeping its context bounded as the corpus
+grows. Pre-flight runs once; the backfill log is the same
+`.spec/backfill-log.md` so progress and prior decisions persist across
+the whole corpus.
+
+### Why dispatch instead of inline iteration
+
+Inline iteration accumulates context linearly: spec 1's candidates +
+requirement text + edit application stay in the coordinator's window
+while spec 2 begins, and so on. By spec 12 a coordinator running
+inline holds 12 × (5–30 KB) of read state. Dispatching each spec as a
+sub-agent gives that spec a fresh context window; the coordinator
+absorbs only the return summary (~80 bytes per spec). 12 specs ≈ 1 KB
+of accumulated summaries — bounded forever.
+
+The dispatch boundary lines up with per-spec independence: backfill
+decisions for spec A do not affect spec B's candidate scoring or
+requirement text. Cross-spec resumption is already handled by the
+append-only `backfill-log.md` — already-decided (spec, R-id) pairs
+auto-skip on subsequent runs regardless of which run made the decision.
+
+### C0. Pre-flight: surface stuck dispatches from prior runs
+
+Before enumerating, check for unacknowledged dispatch markers under
+`.spec/_backfill-dispatches/`:
+
+```bash
+bash .claude/scripts/dispatch-marker.sh stuck .spec/_backfill-dispatches
+```
+
+If output is non-empty, surface each stuck spec to the user via
+AskUserQuestion BEFORE starting the corpus walk:
+
+- **"Re-dispatch <spec-id>"** — clear the marker and include the spec
+  in the run.
+- **"Skip <spec-id> for now"** — leave the marker; spec will be
+  surfaced again next run.
+- **"Investigate manually"** — print the marker contents
+  (`dispatch-marker.sh status …`) and stop the run.
+
+This mirrors `/work-resume rule 0` (PR #79) — any unacknowledged marker
+pre-empts the normal flow because it represents a previous run whose
+result the coordinator never saw.
 
 ### C1. Discover the candidate set
 
@@ -235,59 +279,133 @@ dual-schema pattern `spec-lib.sh` uses.
 
 For each ID, run `bash .claude/scripts/spec-trace.sh --uncovered <id>`
 and capture only the count of uncovered R-ids. Skip specs that return
-zero uncovered (already fully annotated).
+zero uncovered (already fully annotated). The pre-flight scan is the
+ONLY place the coordinator reads spec-trace output for the corpus —
+per-spec depth lives inside each dispatched sub-agent.
 
 Tell the user the corpus picture in one paragraph:
 
 ```
 Corpus has <N> APPROVED specs. <K> already fully annotated — skipping.
 <M> have at least one uncovered requirement, totalling <U> uncovered
-R-ids across the corpus. Walking specs in manifest order; you can
-break out at any time and rerun /spec-backfill --all to resume.
+R-ids across the corpus. Dispatching one sub-agent per spec to keep
+this conversation's context bounded. Break out at any time and rerun
+/spec-backfill --all to resume.
 ```
 
-### C2. Per-spec walk
+Use AskUserQuestion to confirm before starting if `<U>` exceeds 50:
+- **"Run all"** (Recommended)
+- **"Cap at 10 specs"** (or another cap)
+- **"Cancel"**
 
-For each spec with uncovered R-ids, run **Phase 1 → Phase 2 → Phase 3**
-verbatim from the per-spec mode above. Between specs, surface a brief
-transition line so the user knows where they are:
+### C2. Per-spec dispatch loop
+
+For each spec with uncovered R-ids, in manifest order, run this loop
+until the dispatched count reaches the cap (if set) or the eligible
+set is empty:
+
+**C2a. Write the dispatch marker.**
+
+```bash
+bash .claude/scripts/dispatch-marker.sh begin .spec/_backfill-dispatches <spec-id>
+```
+
+This creates `.spec/_backfill-dispatches/_dispatch-<spec-id>.json` with
+`ack: false`. The marker is gitignored. Flipped to `ack: true` once the
+sub-agent returns and the coordinator parses its result.
+
+**C2b. Dispatch the sub-agent.** Invoke the Agent tool with this prompt
+verbatim (substitute `<spec-id>`):
 
 ```
-─────────────────────────────────────────
-Spec 4 of 12 — auth.token-validation
-6 uncovered, 2 already decided in log
-─────────────────────────────────────────
+You are the per-spec backfill runner for <spec-id>.
+
+Invoke /spec-backfill <spec-id>. The single-spec flow handles Phase 1
+(discover uncovered R-ids), Phase 2 (per-R-id candidate walk with user
+decisions), and Phase 3 (re-trace + summarize). AskUserQuestion in
+Phase 2 surfaces to the actual user — you do not auto-answer it. The
+user IS available across the dispatch boundary; do not assume
+autonomy.
+
+When the per-spec flow completes, return EXACTLY ONE LINE on stdout
+matching this shape:
+
+  COMPLETE <spec-id> annotated=<N> skipped=<K> waived=<W> uncovered_after=<U>
+
+If the user breaks out mid-walk (any non-resume exit), return:
+
+  STOPPED <spec-id> annotated=<N> skipped=<K> waived=<W> remaining=<R>
+
+If the spec turns out to have zero uncovered R-ids after the log query
+(prior runs covered everything), return:
+
+  EMPTY <spec-id>
+
+Any other return is treated as a parse failure.
 ```
+
+**C2c. Wait for the return.** The Agent tool blocks until the sub-agent
+emits its final assistant message.
+
+**C2d. Classify and ack.** Parse the return into one of four shapes:
+
+- **COMPLETE** / **STOPPED** / **EMPTY** — ack the marker with the
+  exact return line:
+  ```bash
+  bash .claude/scripts/dispatch-marker.sh ack .spec/_backfill-dispatches <spec-id> "<return-line>"
+  ```
+  Print a one-line summary to the user: `<spec-id> — <return-line>`.
+  Continue to next spec.
+
+- **Payload lost** — Agent return literally equals
+  `[Tool result missing due to internal error]`. Mark the marker as
+  failed:
+  ```bash
+  bash .claude/scripts/dispatch-marker.sh fail .spec/_backfill-dispatches <spec-id> "payload-lost"
+  ```
+  Surface via AskUserQuestion: "Pause for investigation" /
+  "Re-dispatch <spec-id>" / "Skip and continue".
+
+- **User stopped** — Agent return contains
+  `The user doesn't want to proceed with this tool use`. Mark as
+  failed with reason `user-stopped`. Surface AskUserQuestion:
+  "Re-dispatch <spec-id>" / "Continue with next spec" / "Stop the run".
+
+- **Parse failed** — return present but does not match any expected
+  shape. Mark as failed with reason `parse-failed: <first-80-chars>`.
+  Print the raw return to the user and offer the same recovery options
+  as user-stopped.
+
+**C2e. Honor the cap.** If a cap was set in C1 and the dispatched
+count has reached it, exit the loop after acking the current spec.
 
 ### C3. Corpus summary
 
-After the last spec, emit a final aggregate report:
+After the loop exits, emit a final aggregate report:
 
-- Total specs walked / skipped (already covered) / partially covered after run
-- Total annotations applied this session
+- Total specs dispatched / completed / stopped / empty / failed
+- Total annotations applied this session (sum from return lines)
 - Total R-ids skipped (will resurface) / waived
+- Any remaining stuck markers (re-run pre-flight count)
 - Pointer to `.spec/backfill-log.md` for the canonical record
 
-If any spec still has skipped or undecided R-ids, tell the user how to
-resume:
+If any spec returned STOPPED or any marker is still failed, tell the
+user how to resume:
 
 ```
-<X> requirement(s) across <Y> spec(s) were skipped this run. Rerun
-/spec-backfill --all to resume — already-decided R-ids will be skipped
-automatically.
+<X> spec(s) left work undone this run. Rerun /spec-backfill --all
+to resume — already-decided R-ids will be skipped automatically, and
+the pre-flight will offer to re-dispatch any stuck markers.
 ```
 
 ### C4. Cost awareness
 
-Whole-corpus runs can be long. Surface a one-line cost note before
-starting if the corpus has > 50 uncovered R-ids in total:
-
-```
-Heads up: <U> uncovered R-ids across the corpus. Each requires at
-least one decision (annotate / skip / waive). Plan to break this
-into multiple sessions if needed — progress persists in
-.spec/backfill-log.md.
-```
+Even with dispatch, whole-corpus runs are still long because each
+sub-agent does real work — the win is coordinator context economy,
+not wall-clock. The C1 confirmation step surfaces the cost note when
+the uncovered count exceeds 50, but a corpus with 50+ specs may still
+benefit from a `Cap at 10` first pass to validate the dispatch is
+behaving as expected.
 
 ---
 
