@@ -4,6 +4,116 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.20.0] — 2026-05-11
+
+This is the "adversarial sweep" release. A four-agent review across
+`/work-decompose`, `/work-resume` + `work-claim.sh`, `/spec-backfill`,
+and `/curate` + `curate-scan.sh` surfaced 40 findings; v0.19.2 shipped
+the 8 CRITICALs, and this release ships the 19 HIGH + 13 MEDIUM. Plus
+two structural fixes (the `/work-start all` IMPLEMENTING-WD pickup and
+the `/upgrade-vallorcine` banner correction) and ~130 new test checks
+across 11 new scenario files.
+
+### Fixed
+
+**`/work-start all` skipped stranded IMPLEMENTING WDs** (PR #95).
+Real bug on jlsm: a WD claimed by an earlier `/work-start` that crashed
+mid-pipeline was left at `status: IMPLEMENTING` and `/work-start all`'s
+enumeration only picked SPECIFIED, so stranded WDs needed a separate
+manual `/feature-resume`. The flow now enumerates three sets:
+`specified` (full pipeline via `--nested`), `stranded_implementing`
+(resume via `/feature-resume`), and `needs_planning` (SPECIFYING WDs,
+informational). Active vs stranded distinguishes by dispatch-marker
+state + age; IMPLEMENTING WDs sort before SPECIFIED in the run order.
+
+**`/upgrade-vallorcine` banner correction** (PR #94). `.spec/` and
+`.work/` are preserved on upgrade just like `.kb/`, `.decisions/`, and
+`.feature/`, but the upgrade banner omitted them — worrying users
+about spec corpora being overwritten. Banner now lists all five.
+
+**19 HIGH adversarial findings** (PRs #96-#99):
+
+- *work-claim.sh*: validate EXPECTED state enum; post-write assertion
+  that the new status actually landed in the frontmatter; handle
+  status-less WDs by inserting into the frontmatter block instead of
+  silently sed-no-op.
+- *work-resume*: rewrite Step 5's 9 routing branches to use
+  `AskUserQuestion` instead of prose "NEXT STEP" blocks (prose lets
+  auto-mode Claude execute recommendations without input); remove
+  dead rule 1 (decompose checkpoint handled in Step 2); cross-platform
+  GNU/BSD `date` fallback for the 7-day staleness check; Step 2c
+  orchestrator routing also moves to AskUserQuestion. Documented
+  three-state-source precedence (`.orchestrator/in-flight/` >
+  frontmatter > cache) in Implementation Notes; Step 2c suppresses
+  Step 5 routing for WDs owned by the orchestrator.
+- *spec-backfill*: `report` counts use latest-status semantics per
+  (spec, rid) — previously double-counted superseded rows; C0
+  stuck-marker recovery groups by spec-id (strips `--propose` /
+  `--apply` suffixes) instead of prompting twice per spec; corpus
+  mode adds C2f forward-progress re-loop so specs with >12 uncovered
+  R-ids surface beyond the first batch; skip Phase B dispatch when
+  decision-set is no-op (re-runs after completion no longer pay
+  full sub-agent overhead).
+- *curate*: Step 4 no longer re-runs `dispatch-marker.sh stuck`
+  (Step 0 is the single recovery point — no more double prompts);
+  Analysis 29 drops `-maxdepth 2` so nested `.decisions/<area>/<slug>/adr.md`
+  layouts are walked; `MAX_SPECS_TRACED=0` writes an explicit
+  "_Skipped this run_" rollup section so the omission is a positive
+  signal; `has_bare_annotations` builds a one-time index instead of
+  N full-tree greps per spec (Analysis 18 wall-time drops orders of
+  magnitude on large repos).
+- *work-decompose*: orphan classifier scoped to `phase_a_target_wds`
+  (no false positives on "Add more" flows); post-write self-validation
+  after each Phase B checkpoint update (3-invariant check catches
+  silent LLM-edit corruption); `phase_b_deferred: true` escape hatch
+  for "Defer all" — work-validate.sh skips the cross-WD invariant
+  with a clear SKIP message instead of wedging Step 7.
+
+**13 MEDIUM adversarial findings** (PRs #100-#102):
+
+- *work-decompose*: Step 7 ordering — validate BEFORE populating cache
+  (failed invariant no longer leaves stale `_readiness.json`); orphan
+  regex anchored `^[[:space:]]*status:` (tolerates YAML indentation).
+- *work-orchestrator*: `acquire_state_lock()` flock around mutating
+  subcommands (`complete` / `block` / `skip`) prevents torn reads
+  from concurrent `status` / `dump` calls.
+- *work-resume*: Step 3 stage-2 same-mtime check handles 1-second
+  filesystem granularity; Step 2a detects corrupted/partially-deleted
+  state (manifest lists WDs but fewer `WD-*.md` files exist) and
+  offers "Restore from git" recovery.
+- *spec-backfill*: C2b cross-reference typo (C2d → C2e) + explicit
+  fail-marker invocation; user-aborts-mid-AskUserQuestion-loop
+  dispatches Phase B with the partial decision-set (idempotent log
+  filter prevents double-writes); `dispatch-marker.sh read_field`
+  handles escaped quotes (prefer jq; perl regex with backslash-
+  escape consumption as fallback); `spec-backfill-candidates.sh`
+  exits 3 on empty `SCAN_DIRS` instead of silent empty stdout.
+- *curate*: Step 5 is no-op for `curation-state.md` (script is
+  canonical writer; SKILL-side template removed); link-rot cache
+  prunes URLs no longer referenced (no more monotonic growth);
+  stuck-marker prompts batch when N > 2 (single "Re-dispatch all /
+  Skip all / Walk one at a time" instead of N consecutive prompts);
+  Analysis 28 accepts both `.decisions/<slug>/adr.md` (grouped)
+  and `.decisions/<slug>.md` (flat) layouts.
+
+### Tests
+
+~130 new contract + scenario assertions across:
+- `scenario-work-start-all-implementing.sh` (20)
+- `scenario-work-claim.sh` (+4, now 14)
+- `scenario-work-resume-routing.sh` (22)
+- `scenario-spec-backfill-corpus.sh` (16)
+- `scenario-spec-backfill-medium.sh` (10)
+- `scenario-curate-high-cluster.sh` (11)
+- `scenario-curate-medium-cluster.sh` (14)
+- `scenario-decompose-high-cluster.sh` (15)
+- `scenario-work-medium-cluster.sh` (15)
+
+All baseline regression suites still green: parallel (21/21), escalation
+(40/40), run (64/64), orchestrator (71/71), curate-scan (86/86),
+work-resolve (21/21), work-validate (22/22), install (74/74).
+
+---
 ## [0.19.2] — 2026-05-11
 
 ### Fixed
