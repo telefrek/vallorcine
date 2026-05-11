@@ -4,6 +4,66 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.19.1] — 2026-05-10
+
+### Added
+
+- **Scan-complete sentinel.** `scripts/curate-scan.sh` now appends
+  a trailing line to `.curate/scan-summary.md` after the report
+  block:
+  ```
+  ✓ Scan complete: <iso-date> · max_specs_traced=<N> ·
+    specs_traced=<M> · scan_mode=<full|incremental> · window_months=<W>
+  ```
+  Records scan provenance (which knobs ran, which were skipped). The
+  marker's absence is what `/curate` Step 1.1 checks to detect an
+  interrupted scan.
+
+- **`/curate` Step 1.1 — sentinel verification.** New mandatory step
+  after running the scan script. Reads `tail -1 .curate/scan-summary.md`
+  for the sentinel; if missing, surfaces partial-scan recovery via
+  AskUserQuestion (re-run with `--max-specs-traced 0` for fast scan,
+  re-run with `--init` for full re-scan, or read partial summary
+  anyway with explicit user responsibility). If sentinel present with
+  `specs_traced=0` AND APPROVED specs exist, notes that annotation-
+  coverage rollup data is absent — offers follow-up trace pass before
+  closing.
+
+### Changed
+
+- **`scripts/curate-scan.sh`** pre-creates
+  `$TMPDIR_SCAN/spec-annotation-rollup.txt` at Analysis 18's tmpfile
+  initialization step. Eliminates "No such file or directory" stderr
+  from the end-of-script counter when Analysis 18 is skipped (no
+  manifest, no spec-trace.sh on PATH, or `--max-specs-traced 0`
+  passed). The `|| echo 0` fallback worked silently-but-noisily;
+  pre-creation is cleaner.
+
+### Fixed
+
+- **Truncated `scan-summary.md` reads as authoritative
+  (correctness bug surfaced during 2026-05-10 jlsm walk).** When
+  `/curate --init` was killed mid-write (Claude Code Bash timeout on
+  large repos where Analysis 18's per-spec trace pushes runtime past
+  5 min), the summary file had the early sections but lacked every
+  subsequent analysis section AND the report counters. Downstream
+  readers treated the missing sections as "no findings here" rather
+  than "didn't run." The sentinel + Step 1.1 check now makes the
+  partial state visible and forces recovery routing.
+
+### Notes
+
+- **Chunking large scans.** The existing `--max-specs-traced <n>`
+  flag IS the chunking primitive — no new flag needed:
+  - `--max-specs-traced 0` skips Analysis 18 entirely; finishes in
+    <60s on jlsm-sized repos (~100 approved specs).
+  - `--max-specs-traced 50` (default) caps wall-clock at ~10 min.
+  - `--max-specs-traced 200` traces all specs; 15+ min on jlsm.
+  Run fast first for the immediate signals; follow up with a trace
+  pass for annotation rollup when needed. The sentinel records which
+  phase ran so the user knows what was covered.
+
+---
 ## [0.19.0] — 2026-05-10
 
 ### Added
