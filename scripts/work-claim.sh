@@ -50,6 +50,21 @@ case "$NEW" in
     ;;
 esac
 
+# Validate the EXPECTED state too (2026-05-11 adversarial HIGH #2): a
+# caller bug that passes "FROBNICATED" otherwise surfaces as a misleading
+# CONFLICT message ("expected 'FROBNICATED'"), wasting diagnosis time.
+# Allow the empty string only when claiming a fresh WD whose status:
+# line was hand-stripped (rare; works because a missing status field
+# can be the start state). DRAFT and the lifecycle enum cover normal
+# claims; anything else is a typo.
+case "$EXPECTED" in
+  ""|DRAFT|SPECIFYING|SPECIFIED|IMPLEMENTING|COMPLETE) ;;
+  *)
+    echo "ERROR: unknown expected-status '$EXPECTED' (valid: DRAFT|SPECIFYING|SPECIFIED|IMPLEMENTING|COMPLETE or empty for status-less WDs)" >&2
+    exit 2
+    ;;
+esac
+
 WORK_DIR="$(work_find_root)" || exit 2
 GROUP_DIR="$WORK_DIR/$GROUP_SLUG"
 WD_FILE="$GROUP_DIR/$WD_ID.md"
@@ -88,7 +103,38 @@ fi
 # Atomic write: sed -i uses tmp + rename internally on most platforms.
 # We're inside the lock, so even if the underlying I/O races on inode
 # state, no other claim or resolver run can be in flight.
-sed -i "s/^status:.*$/status: $NEW/" "$WD_FILE"
+# Branch on whether the WD has a `status:` line at all. If it doesn't
+# (EXPECTED was empty), insert a new line into the frontmatter rather
+# than rely on sed-substitute (which silently matches nothing — 2026-05-11
+# adversarial HIGH #1).
+if grep -qE '^status:' "$WD_FILE"; then
+  sed -i "s/^status:.*$/status: $NEW/" "$WD_FILE"
+else
+  # No status: line. Insert one inside the frontmatter (between the
+  # opening `---` and the closing `---`). awk over awk -i inplace would
+  # require GNU awk; do this with a tmp file + mv for portability.
+  awk -v new="status: $NEW" '
+    BEGIN { in_fm = 0; inserted = 0 }
+    /^---$/ {
+      if (in_fm == 0) { in_fm = 1; print; next }
+      if (in_fm == 1 && inserted == 0) { print new; inserted = 1 }
+      in_fm = 2; print; next
+    }
+    { print }
+  ' "$WD_FILE" > "$WD_FILE.tmp.$$" && mv "$WD_FILE.tmp.$$" "$WD_FILE"
+fi
+
+# Post-write assertion: verify the file actually carries the new status.
+# Without this, a silent sed no-op (e.g. corrupt file with no `status:`
+# line that the awk fallback couldn't handle either) lets us exit 0
+# while leaving the WD unchanged. 2026-05-11 adversarial HIGH #1.
+VERIFY=$(work_fm "$WD_FILE" "status")
+if [[ "$VERIFY" != "$NEW" ]]; then
+  echo "ERROR: [claim] post-write verification failed for $WD_ID" >&2
+  echo "        expected status: '$NEW' but file reads: '$VERIFY'" >&2
+  echo "        Check $WD_FILE — frontmatter may be malformed." >&2
+  exit 2
+fi
 
 echo "[claim] $WD_ID: $EXPECTED → $NEW"
 exit 0

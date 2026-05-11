@@ -135,6 +135,32 @@ distinct handling:
 - (b) `phase_a_complete_at` from the checkpoint frontmatter is more than
   7 days old — stale-by-age.
 
+  **Cross-platform date parsing (2026-05-11 adversarial HIGH #5):** the
+  checkpoint timestamp is ISO-8601 (e.g., `2026-05-04T18:30:00Z`). Use
+  this fallback chain (GNU → BSD → fail loudly), since GNU `date -d`
+  doesn't exist on macOS without coreutils:
+
+  ```bash
+  ts="<phase_a_complete_at value>"
+  age_secs=""
+  parsed=$(date -u -d "$ts" +%s 2>/dev/null \
+        || date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$ts" +%s 2>/dev/null \
+        || echo "")
+  if [[ -n "$parsed" ]]; then
+    age_secs=$(( $(date -u +%s) - parsed ))
+  else
+    echo "WARN: could not parse phase_a_complete_at='$ts' — treating as fresh" >&2
+    # Conservative default: treat as fresh so the orphan rule doesn't
+    # auto-fire on a parse failure. The "WD past DRAFT" signal still
+    # catches genuine orphans without needing this branch.
+  fi
+  # 7 days = 604800 seconds
+  if [[ -n "$age_secs" && "$age_secs" -gt 604800 ]]; then
+    # stale-by-age — classify as orphan
+    :
+  fi
+  ```
+
 WD-count matching (the original heuristic) was fragile because users can
 add or remove WDs by hand, and Phase A's "tentative" list isn't a
 reliable count baseline. "Any WD past DRAFT" is a much stronger signal
@@ -217,11 +243,27 @@ Interpret the output:
   the state directory can be cleared at the user's discretion with
   `work-orchestrator.sh clear <group-slug>`.
 
-This is detection + diagnosis only. The actionable routing UX
-(AskUserQuestion-driven escalation handling, automatic re-dispatch)
-lives in `/work-run` itself; here we just inform the user that the
-orchestrator state exists so they're not surprised by a stale queue
-or unresolved escalation.
+Use `AskUserQuestion` (2026-05-11 adversarial HIGH #6) — NOT prose —
+to surface the recovery options. The exact option set depends on the
+state shown above:
+
+- **Paused: YES** → options: **Run `/work-run "<group-slug>" --resume`**
+  (recommended — surfaces escalations + resumes when resolved) /
+  **Inspect blocked/ manually** / **Stop**.
+- **In-flight > 0 (no Paused)** → options: **Run `work-orchestrator.sh
+  hung "<group-slug>"`** (recommended — surfaces stuck WDs) /
+  **Run `/work-run "<group-slug>" --resume`** (re-enter the dispatch
+  loop) / **Stop**.
+- **All sets empty / completed == total** → options: **Run
+  `work-orchestrator.sh clear "<group-slug>"`** / **Keep state for
+  inspection** / **Continue to readiness routing**.
+
+When the user picks an option, route accordingly. Suppress Step 5's
+routing rules 3/4/5/6/7 for any WD that appears in
+`.orchestrator/in-flight/`, `.orchestrator/blocked/`, or
+`.orchestrator/completed/` — those WDs are owned by `/work-run`'s
+state machine and Step 5 must not present a conflicting recommendation
+(see Implementation Notes → "Source-of-truth precedence").
 
 ---
 
@@ -304,7 +346,27 @@ re-invoked cheaply after `/clear`.
 
 ## Step 5 — Determine the next command
 
-Apply this routing in order — first match wins:
+Apply this routing in order — first match wins. **Every recommendation
+that names a specific command MUST use `AskUserQuestion` to confirm
+before that command runs** (2026-05-11 adversarial HIGH #3). Prose
+"NEXT STEP" blocks let auto-mode Claude execute the recommendation
+without user input — the kit-development rule "Interactive prompt
+standard" says this is a correctness issue.
+
+The general shape for each rule below:
+
+1. Display the diagnostic block (current state, what was found).
+2. Construct `AskUserQuestion` with 2-4 options + an Other escape
+   hatch. Options always include at minimum:
+   - **`<recommended command>`** — the rule's primary suggestion
+   - **Stop** — exit without running anything
+3. Wait for the user's answer; only then execute (or surface
+   alternatives via Other).
+
+When a rule's recommendation depends on per-WD state (rule 0's
+stuck-marker enumeration), build the option list dynamically — one
+option per actionable WD, capped at 4 total with "Investigate
+manually" as the spillover.
 
 0. **Any unacknowledged dispatch marker exists** → a previous
    `/work-start` (sequential `all` or `--parallel`) dispatched a
@@ -346,24 +408,28 @@ Apply this routing in order — first match wins:
        .feature/: <present | absent>
        Cycle log: <empty | <N> cycles recorded>
 
-       Recommendation:
-         <see action selection below>
-   ```
+       ```
 
-   Action selection per stuck marker:
+   For each stuck marker, after surfacing the evidence, use
+   `AskUserQuestion` (NOT prose) to route — same correctness reason
+   as the rest of Step 5. The option set depends on the evidence
+   shape:
+
    - **`failure_reason: user-stopped` AND WD status is SPECIFIED AND
      `.feature/` is absent** → the dispatch was cancelled before any
-     work happened. Recommend re-dispatch:
-     ```
-     /work-start "<group-slug>" <wd-id>
-     ```
-   - **`failure_reason: payload-lost` (or any reason) AND WD status is
-     IMPLEMENTING AND `.feature/` is present** → the sub-agent at
-     least claimed the WD and started; the result was lost. Recommend
-     `/feature-resume "<group-slug>--<wd-slug>"` to inspect actual
-     state and continue from where the sub-agent left off.
-   - **Any other shape** → surface the evidence and let the user
-     decide; do not auto-route.
+     work happened. Options:
+     - **Re-dispatch `/work-start "<group-slug>" <wd-id>`** — recommended
+     - **Clear the marker without re-dispatching**
+     - **Investigate manually** — exit
+   - **`failure_reason: payload-lost` (or any) AND WD status is
+     IMPLEMENTING AND `.feature/` is present** → the sub-agent
+     claimed the WD and started; the result was lost. Options:
+     - **Resume via `/feature-resume "<group-slug>--<wd-slug>"`** — recommended
+     - **Clear the marker (accept the partial result)**
+     - **Investigate manually** — exit
+   - **Any other shape** → surface the evidence and use
+     `AskUserQuestion` with options: **Clear marker** / **Investigate
+     manually** / **Stop**. Do not auto-route.
 
    After the user acts (re-dispatch, /feature-resume, or accepts the
    loss), they should clear the marker:
@@ -377,38 +443,33 @@ Apply this routing in order — first match wins:
    markers are unacknowledged — recovery is the user's call, not the
    skill's.
 
-1. **Any `_decompose-progress.md` exists** → already handled in Step 2.
+1. **Group has zero WDs** (total == 0) → decomposition has not run yet.
+   Display the diagnostic, then `AskUserQuestion`:
+   - **Run `/work-decompose "<group-slug>"`** — recommended
+   - **Stop** — exit; the user will decompose later
 
-2. **Group has zero WDs** (total == 0) → decomposition has not run yet.
-   Suggest:
-   ```
-   NEXT STEP
-     /work-decompose "<group-slug>"
-     This group has no work definitions yet — decompose it first.
-   ```
+2. **Any WD is SPECIFYING with a `.feature/<group>--<wd-slug>/` dir
+   present** → user has an in-flight specification feature. Display
+   the WD context, then `AskUserQuestion`:
+   - **Run `/feature-resume "<group>--<wd-slug>"`** — recommended (the
+     WD with the most-recently-modified status.md when several match)
+   - **Show alternatives** — list the other in-flight SPECIFYING WDs
+   - **Stop** — exit
 
-3. **Any WD is SPECIFYING with a `.feature/<group>--<wd-slug>/` dir
-   present** → user has an in-flight specification feature. Suggest:
-   ```
-   NEXT STEP
-     /feature-resume "<group>--<wd-slug>"
-     <one sentence: "WD-<nn> is mid-spec — resume the specification feature">
-   ```
-   When more than one WD is SPECIFYING, pick the one whose
-   `.feature/<group>--<wd-slug>/status.md` was modified most recently
-   (active work tends to leave the freshest status mtime). Fall back to
-   the WD-NN.md mtime only when no matching `.feature/` directory
-   exists locally — in that case priority 5 already handled it.
+   When more than one WD is SPECIFYING, the recommended option picks
+   the WD whose `.feature/<group>--<wd-slug>/status.md` was modified
+   most recently (active work tends to leave the freshest mtime). Fall
+   back to the WD-NN.md mtime only when no matching `.feature/` exists
+   locally — in that case rule 4 already handled it.
 
-4. **Any WD is IMPLEMENTING with a `.feature/<group>--<wd-slug>/` dir
-   present** → user has an in-flight implementation feature. Suggest:
-   ```
-   NEXT STEP
-     /feature-resume "<group>--<wd-slug>"
-     <one sentence: "WD-<nn> is mid-implementation — resume it">
-   ```
+3. **Any WD is IMPLEMENTING with a `.feature/<group>--<wd-slug>/` dir
+   present** → user has an in-flight implementation feature. Display
+   the WD context, then `AskUserQuestion`:
+   - **Run `/feature-resume "<group>--<wd-slug>"`** — recommended
+   - **Show alternatives** — list the other in-flight IMPLEMENTING WDs
+   - **Stop** — exit
 
-5. **Any WD is SPECIFYING/IMPLEMENTING but the matching `.feature/`
+4. **Any WD is SPECIFYING/IMPLEMENTING but the matching `.feature/`
    directory does NOT exist on this machine** → the in-flight feature
    was authored on another machine or in a clobbered workspace. Surface:
    ```
@@ -419,39 +480,44 @@ Apply this routing in order — first match wins:
    ```
    Do not auto-route — let the user decide.
 
-6. **Any WD is SPECIFIED** → planning is done, ready to implement.
-   Suggest:
-   ```
-   NEXT STEP
-     /work-start "<group-slug>" next
-     <one sentence: "<n> WD(s) planned and ready to implement">
-   ```
+5. **Any WD is SPECIFIED** → planning is done, ready to implement.
+   Display the count, then `AskUserQuestion`:
+   - **Run `/work-start "<group-slug>" next`** — recommended; picks
+     the highest-unblocking WD
+   - **Run `/work-start "<group-slug>" all`** — start every SPECIFIED
+     WD sequentially via sub-agents
+   - **Run `/work-run "<group-slug>"`** — start all WDs as a
+     dynamic-DAG dispatch (concurrent sub-agents)
+   - **Stop** — exit
 
-7. **Any WD is READY** → planning is the next step. Suggest:
-   ```
-   NEXT STEP
-     /work-plan "<group-slug>" next
-     <one sentence: "<n> WD(s) ready to plan">
-   ```
+6. **Any WD is READY** → planning is the next step. Display the count,
+   then `AskUserQuestion`:
+   - **Run `/work-plan "<group-slug>" next`** — recommended
+   - **Run `/work-plan "<group-slug>" all`** — plan every READY WD
+   - **Stop** — exit
 
-8. **All remaining WDs are BLOCKED** → list the unique unblock actions
-   (from `wds[*].blockers`). Group by blocker type:
-   ```
-   NEXT STEP — unblock to proceed
-     /spec-author "<id>" "<title>"   — for <list of WDs blocked on it>
-     /architect "<problem>"          — for <list of WDs blocked on it>
-     /research "<subject>"           — for <list of WDs blocked on it>
-   ```
+7. **All remaining WDs are BLOCKED** → list the unique unblock actions
+   from `wds[*].blockers`. Display the grouped list, then
+   `AskUserQuestion` with one option per distinct unblock action
+   (capped at 4 total):
+   - **Run `/spec-author "<id>" "<title>"`** — unblocks <N> WD(s)
+   - **Run `/architect "<problem>"`** — unblocks <N> WD(s)
+   - **Run `/research "<subject>"`** — unblocks <N> WD(s)
+   - **Stop** / **Show alternatives** as spillover when >3 unblockers
 
-9. **All WDs are COMPLETE** → display:
+8. **All WDs are COMPLETE** → display:
    ```
-   NEXT STEP
-     This group is finished. Run /feature-retro on individual features
-     if you haven't already, or /work "<goal>" to start a new group.
+   This group is finished.
    ```
+   Then `AskUserQuestion`:
+   - **Run `/feature-retro`** on the most-recently completed feature
+   - **Start a new group via `/work "<goal>"`** (Other — collects goal)
+   - **Stop** — exit
 
-Stop after displaying the NEXT STEP block. Do not auto-invoke — the
-caller may want to switch groups or take a different path.
+The `AskUserQuestion` IS the halt — Claude does not auto-invoke any
+of the recommended commands until the user picks one. This is the
+key correctness property: prose recommendations let auto-mode Claude
+execute without input; AskUserQuestion forces the wait.
 
 ---
 
@@ -460,6 +526,27 @@ caller may want to switch groups or take a different path.
 - **No subagent dispatch.** This skill is intentionally lightweight. It
   reads files and renders text. Heavy lifting is delegated to
   `/work-status`, `/work-plan`, `/work-start`, and `/feature-resume`.
+
+- **Source-of-truth precedence (2026-05-11 adversarial HIGH #7).**
+  Three state stores can disagree:
+  1. **WD frontmatter `status:`** — canonical, written by `work-claim.sh`.
+  2. **`.work/<group>/.orchestrator/`** — written by `/work-run`'s
+     state machine. Records dispatch reality (in-flight / completed /
+     blocked).
+  3. **`_readiness.json`** — cached projection of #1 + dependency
+     resolution.
+
+  Precedence on conflict: **`.orchestrator/in-flight/` > frontmatter >
+  cache**. If a WD appears in `.orchestrator/in-flight/<wd>.json`, the
+  orchestrator believes it's running — Step 5 routing rules 3/4/5/6/7
+  MUST suppress recommendations for that WD even if the frontmatter
+  says SPECIFIED/READY (it can lag the orchestrator's view).
+
+  This precedence is enforced in Step 2c, which displays orchestrator
+  state BEFORE Step 5 enters routing. The user is expected to follow
+  Step 2c's `/work-run --resume` recommendation when orchestrator
+  state is non-empty rather than treat Step 5's NEXT STEP as
+  authoritative.
 - **JSON-first.** Always prefer `_readiness.json` over re-running the
   resolver. The cache is regenerated whenever any WD frontmatter
   changes, so staleness is bounded by file mtime.
