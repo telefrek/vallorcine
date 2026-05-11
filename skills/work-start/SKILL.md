@@ -410,17 +410,31 @@ Replace Steps 3–5 with this block when `all` is the argument.
       /feature-refactor → /feature-pr.
 
       Treat automation_mode as autonomous. Do not pause between
-      pipeline stages. If a stage escalates (test conflict, missing
-      tests, refactor escalation), record it in the feature's
-      cycle-log.md and continue with remaining stages where possible.
+      pipeline stages. If a stage hits a TECHNICAL escalation (test
+      conflict, missing tests, refactor escalation), record it in the
+      feature's cycle-log.md and continue with remaining stages where
+      possible — this is auto-handled and reported in your summary.
 
-      Distinguish two failure modes in your final return:
+      If a stage hits a USER-REQUIRED escalation (design ambiguity,
+      missing context the kit can't supply, irreconcilable spec
+      conflict, an impossible requirement), follow the user-required
+      escalation contract from /work-start: write
+      .feature/<feature-slug>/escalation.json with the schema in the
+      "User-required escalation contract" section, append a
+      `user-escalation — <category>: <question>` entry to cycle-log.md,
+      set status.md substage to `awaiting-user-input`, then halt the
+      WD and return ESCALATION_AT_<stage> as below.
+
+      Distinguish these return modes in your final return:
 
       - If the /work-start invocation reports a `[claim] CONFLICT:`
         message from work-claim.sh (another terminal advanced the WD
         between the coordinator's enumeration and this dispatch),
         return:
           "<group-slug>--<wd-id>: SKIPPED — claim conflict"
+
+      - If you wrote escalation.json per the contract, return:
+          "<group-slug>--<wd-id>: ESCALATION_AT_<stage> — <category>: <question>"
 
       - Any other failure (feature directory creation, status.md
         write error, pipeline escalation, unexpected exception) is an
@@ -438,8 +452,23 @@ Replace Steps 3–5 with this block when `all` is the argument.
       until the child emits its final assistant message.
 
    f. **Classify the return and update the marker.** The Agent tool
-      returns one of four shapes. Treat each distinctly — silent
-      assumptions corrupt the task list:
+      returns one of five shapes. Treat each distinctly — silent
+      assumptions corrupt the task list. **Match `ESCALATION_AT_`
+      before `STOPPED_AT_`** since both share the `<STATUS>_AT_<stage>`
+      shape.
+
+      - **Escalation return** matching `<group-slug>--<wd-id>: ESCALATION_AT_<stage> — <category>: <question>`.
+        The sub-agent halted awaiting user input and has written
+        `.feature/<group>--<wd>/escalation.json` with the structured
+        question (see "User-required escalation contract"). Mark with
+        the category as the reason so the future orchestrator can
+        route:
+        ```bash
+        bash .claude/scripts/work-dispatch.sh fail "<group-slug>" "<wd-id>" "escalation:<category>"
+        ```
+        Use `fail` (not `ack`) because the WD is not complete — it is
+        paused awaiting user input. Append to a dedicated escalations
+        list separate from the clean-return aggregate.
 
       - **Clean return** matching `<group-slug>--<wd-id>: <STATUS> — <detail>`
         (where STATUS is one of `COMPLETE`, `STOPPED_AT_<stage>`,
@@ -623,18 +652,38 @@ Replace Steps 3–5 with this block when `--parallel` is set.
 
    Invoke /feature-plan "<feature-slug>" and run the full pipeline
    through to /feature-refactor. Do not pause for user confirmation;
-   treat automation_mode as autonomous. If any stage escalates (spec
-   conflict, missing tests, test writer escalation), record it in
-   cycle-log.md and continue with the remaining stages where possible;
-   report the escalation in your final one-line summary.
+   treat automation_mode as autonomous.
 
-   Return a single summary line of the form:
-     "<feature-slug>: <COMPLETE | STOPPED_AT_<stage> | ERROR> — <detail>"
+   TECHNICAL escalations (spec conflict, missing tests, test writer
+   escalation) are auto-handled: record in cycle-log.md and continue
+   with remaining stages where possible; mention in your summary.
+
+   USER-REQUIRED escalations (design ambiguity, missing context the
+   kit can't supply, irreconcilable spec conflict, impossible
+   requirement) halt the WD. Follow the user-required escalation
+   contract from /work-start:
+     1. write .feature/<feature-slug>/escalation.json with the schema
+        in /work-start's "User-required escalation contract" section
+     2. append a `user-escalation — <category>: <question>` entry to
+        cycle-log.md
+     3. set status.md substage to `awaiting-user-input`
+     4. return ESCALATION_AT_<stage> per below
+
+   Return a single summary line of one of these forms:
+     "<feature-slug>: COMPLETE — <detail>"
+     "<feature-slug>: ESCALATION_AT_<stage> — <category>: <question>"
+     "<feature-slug>: STOPPED_AT_<stage> — <detail>"
+     "<feature-slug>: ERROR — <detail>"
    ```
 
-6. **Aggregate results — classify each return.** Use the same four-way
-   classification as Sequential mode Step 3f (clean / payload-lost /
-   user-stopped / parse-failed). For each sub-agent's return:
+6. **Aggregate results — classify each return.** Use the same
+   five-way classification as Sequential mode Step 3f (escalation /
+   clean / payload-lost / user-stopped / parse-failed). **Match
+   `ESCALATION_AT_` before `STOPPED_AT_`** since both share the
+   `<STATUS>_AT_<stage>` shape. For each sub-agent's return:
+   - Escalation (`ESCALATION_AT_<stage> — <category>: <question>`):
+     `bash .claude/scripts/work-dispatch.sh fail "<group>" "<wd-id>" "escalation:<category>"`
+     (use `fail` not `ack` — WD is paused awaiting user input)
    - Clean: `bash .claude/scripts/work-dispatch.sh ack "<group>" "<wd-id>" "<line>"`
    - Payload lost: `bash .claude/scripts/work-dispatch.sh fail "<group>" "<wd-id>" "payload-lost"`
    - User stopped: `bash .claude/scripts/work-dispatch.sh fail "<group>" "<wd-id>" "user-stopped"`
@@ -645,15 +694,21 @@ Replace Steps 3–5 with this block when `--parallel` is set.
    ── Parallel run complete · <group-slug> ───────
    Dispatched: <N>
    Complete: <n>/<N>
+   Escalations awaiting user input: <n>
+     WD-<nn> (<category>) — "<question>"
+          .feature/<group>--WD-<nn>/escalation.json
    Stopped mid-pipeline: <list with stage>
    Errored: <list with detail>
    Dispatch failures (payload-lost / user-stopped / parse-failed):
      <list with WD-id and reason>
    ───────────────────────────────────────────────
    ```
-   For stopped or errored WDs, the user's next action is usually
-   `/feature-resume "<feature-slug>"` to pick up where each sub-agent
-   left off. For dispatch failures, the next action is
+   For escalations, the user's next action is to open the listed
+   escalation.json file(s), resolve the design point (edit the spec,
+   add an ADR, supply context), then re-dispatch via
+   `/work-resume "<group-slug>"`. For stopped or errored WDs, the
+   user's next action is usually `/feature-resume "<feature-slug>"`.
+   For dispatch failures, the next action is
    `/work-resume "<group-slug>"` — it scans the dispatch markers and
    surfaces each stuck WD with the right recovery path (re-dispatch,
    inspect, or accept the partial result).
@@ -676,6 +731,127 @@ Replace Steps 3–5 with this block when `--parallel` is set.
   parallel is safe; if not, either cap at 1 or don't use parallel.
 - **Token / cost budget.** N parallel pipelines burn roughly N× the
   tokens and dollars of a single run. Budget accordingly.
+
+---
+
+## User-required escalation contract
+
+Two kinds of escalation happen during autonomous pipeline runs. They
+need to be distinguished — only one of them halts the WD.
+
+**Stage escalation** (existing, auto-continued): a pipeline stage hits
+a technical conflict it can handle within the pipeline — test writer
+can't write a failing test, refactor stage finds a spec conflict, etc.
+The kit's existing rules say: record in `cycle-log.md` and continue
+with remaining stages. The WD finishes (possibly with `STOPPED_AT_`)
+and the user sees the escalation in the post-run summary.
+
+**User-required escalation** (this contract): the sub-agent cannot
+proceed without user input. Common categories:
+
+| Category | When |
+|----------|------|
+| `design-choice` | Spec/ADR is ambiguous; multiple valid implementations. The sub-agent can identify them but cannot pick. |
+| `missing-context` | A referenced concept (symbol, decision, KB entry) doesn't resolve. The sub-agent searched and found nothing. |
+| `spec-conflict` | Two specs contradict each other on a point the current stage needs to honor. Cannot be reconciled in-pipeline. |
+| `impossible` | A requirement physically can't be satisfied (e.g., contradicts an external fact). Needs scope/spec revision. |
+| `other` | Escape hatch — use the `question` field to explain. |
+
+The sub-agent halts the WD and surfaces the question via a structured
+artifact. The parent (this skill, today; the orchestrator in a future
+PR) routes the question to the user.
+
+### Sub-agent obligations on user-required escalation
+
+When a sub-agent in `automation_mode: autonomous` encounters a
+user-required situation:
+
+1. **Write `.feature/<slug>/escalation.json`** with this schema (JSON,
+   atomic write via tmp + rename):
+
+   ```json
+   {
+     "schema_version": 1,
+     "feature_slug": "<group>--<wd>",
+     "wd_id": "WD-nn",
+     "group_slug": "<group-slug>",
+     "raised_at": "<ISO-8601 UTC>",
+     "blocking_stage": "feature-plan|feature-test|feature-implement|feature-refactor",
+     "category": "design-choice|missing-context|spec-conflict|impossible|other",
+     "question": "<one-line summary, suitable for AskUserQuestion prompt>",
+     "context": "<longer explanation; may include rationale + what was tried>",
+     "context_refs": ["<file:line>", "<spec-id.RN>", "<.decisions/slug>"],
+     "options": [
+       { "label": "<short>", "description": "<what choosing this means>" }
+     ]
+   }
+   ```
+
+   `context_refs` and `options` are optional. If the sub-agent has no
+   candidate answers, omit `options` — the user will provide one.
+
+2. **Record a `user-escalation` entry in `cycle-log.md`**:
+   ```
+   - <ISO-8601 UTC> user-escalation — <category>: <question>
+   ```
+   This complements escalation.json (which is the structured form) and
+   keeps cycle-log as the single audit timeline.
+
+3. **Update `status.md` substage** to `awaiting-user-input` so
+   `/work-resume` and `/feature-resume` recognize the halted state.
+
+4. **Return one line** of the form:
+   ```
+   <feature-slug>: ESCALATION_AT_<stage> — <category>: <question>
+   ```
+   The leading sentinel `ESCALATION_AT_` is what the parent classifier
+   matches. The `<category>: <question>` tail is for the human-readable
+   summary.
+
+### Parent classifier (5-way + dispatch-failure modes)
+
+Extend the sequential and parallel mode classifiers from 4 to 5
+recognized clean-return shapes. Order matters — match
+`ESCALATION_AT_` before `STOPPED_AT_` since both share the
+`<feature>: <STATUS>_AT_<stage>` shape.
+
+| Status pattern | Classification | Marker call |
+|----------------|----------------|-------------|
+| `: COMPLETE — ` | clean | `ack <line>` |
+| `: ESCALATION_AT_<stage> — ` | **escalation (new)** | `fail "escalation:<category>"` |
+| `: STOPPED_AT_<stage> — ` | stopped mid-pipeline | `ack <line>` |
+| `: SKIPPED — ` | skipped (claim conflict) | `ack <line>` |
+| `: ERROR — ` | errored | `ack <line>` |
+
+The dispatch-failure modes (`payload-lost`, `user-stopped`,
+`parse-failed`) remain unchanged. Use `fail` with reason
+`escalation:<category>` rather than `ack` for escalations because the
+WD did NOT complete — it is paused awaiting input. A future orchestrator
+will re-dispatch the WD after the user resolves the question.
+
+### Parent summary — escalations are surfaced distinctly
+
+Both sequential `all` and `--parallel` modes extend the post-run
+summary with an "Escalations awaiting user input" block:
+
+```
+── Parallel run complete · <group-slug> ───────
+Dispatched: 5
+Complete: 2/5
+Escalations awaiting user input: 1
+  WD-04 (design-choice) — "Use sealed permit or interface for codec?"
+       .feature/<group>--WD-04/escalation.json
+Stopped mid-pipeline: WD-07 (testing)
+Errored: 1 (WD-02)
+Dispatch failures: 0
+───────────────────────────────────────────────
+Next: open the escalation.json file(s) to read context, then re-dispatch
+the resolved WD with /work-resume "<group-slug>".
+```
+
+Until the future orchestrator (PR B/C) lands, the user opens
+escalation.json manually, resolves the design point (edits the spec,
+adds an ADR, updates context), then re-dispatches via `/work-resume`.
 
 ---
 
