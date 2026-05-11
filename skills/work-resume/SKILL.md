@@ -119,14 +119,44 @@ distinct handling:
    Even if the group hasn't moved past DRAFT, the user has clearly
    abandoned this attempt; offer recovery.
 
-**Detection rule**: classify the checkpoint as an orphan if EITHER:
+**Detection rule (2026-05-11 adversarial MED #3 added a third signal):**
+classify the checkpoint as one of three states. Check in order; first
+match wins.
+
+- **(c) Corrupted / partially-deleted** — `manifest.md` lists WDs in
+  its Work Definitions table but FEWER `WD-*.md` files exist on disk
+  than the table claims, OR the manifest lists WDs that the
+  filesystem does not contain at all. Pre-fix: the orphan classifier
+  fell through to "genuinely in-flight" when the find returned zero
+  past-DRAFT WDs (because there were zero WDs at all), telling the
+  user to run `/work-decompose` to resume — but the underlying state
+  is corrupt, not in-flight. The user might restore from git, rerun
+  decompose, or accept the loss.
+
+  Detection:
+  ```bash
+  manifest_count=$(awk '/^\| WD-[0-9]/' .work/<group-slug>/manifest.md 2>/dev/null | wc -l)
+  fs_count=$(find .work/<group-slug> -maxdepth 1 -name 'WD-*.md' 2>/dev/null | wc -l)
+  if [[ "$manifest_count" -gt 0 ]] && (( fs_count < manifest_count )); then
+    classify_as=corrupted_partial
+  fi
+  ```
+
+  Surface via `AskUserQuestion`:
+  - **Restore from git** (recommended if the user remembers wiping
+    the dir) — exit so the user can `git checkout HEAD -- .work/<group>`
+  - **Re-run `/work-decompose` from scratch** — discard the checkpoint
+    and the inconsistent manifest entries
+  - **Stop** — exit and investigate
+
+Otherwise, classify the checkpoint as an orphan if EITHER:
 
 - (a) **At least one WD has progressed past DRAFT.** Use `find ... -exec`
   rather than piping to `xargs` — `xargs` without `-r` hangs on macOS
   when the input is empty:
   ```bash
   find ".work/<group-slug>" -maxdepth 1 -name 'WD-*.md' \
-       -exec grep -lE '^status: (SPECIFYING|SPECIFIED|IMPLEMENTING|COMPLETE)$' {} + \
+       -exec grep -lE '^[[:space:]]*status:[[:space:]]*(SPECIFYING|SPECIFIED|IMPLEMENTING|COMPLETE)$' {} + \
        2>/dev/null | head -1
   ```
   If the command prints any path, treat as orphan. Phase C must have run
@@ -269,15 +299,40 @@ state machine and Step 5 must not present a conflicting recommendation
 
 ## Step 3 — Refresh readiness cache (if needed)
 
-Decide whether the cache is fresh with this single check (mtime-based,
-no JSON parsing needed):
+Decide whether the cache is fresh with this two-stage check:
 
 ```bash
 CACHE=".work/<group-slug>/_readiness.json"
-if [[ ! -f "$CACHE" ]] || \
-   find ".work/<group-slug>" -maxdepth 1 \
+# Stage 1: cache missing OR any source file is strictly newer →
+# regenerate. The strict mtime comparison covers most cases.
+needs_refresh=0
+if [[ ! -f "$CACHE" ]]; then
+  needs_refresh=1
+elif find ".work/<group-slug>" -maxdepth 1 \
         \( -name 'WD-*.md' -o -name 'work.md' \) \
-        -newer "$CACHE" -print -quit | grep -q .; then
+        -newer "$CACHE" -print -quit 2>/dev/null | grep -q .; then
+  needs_refresh=1
+else
+  # Stage 2 (2026-05-11 adversarial MED #2): handle 1-second mtime
+  # granularity. On filesystems where mtime has seconds resolution
+  # (older HFS+, some network FS), a same-second edit then resolve
+  # would show as "not strictly newer" and the cache would serve
+  # stale data. Compare mtimes for equality and force a refresh
+  # when any source file has the SAME mtime as the cache — the
+  # rare false-positive cost (one extra resolver run) is cheap
+  # compared to the stale-cache cost.
+  cache_mtime=$(stat -c %Y "$CACHE" 2>/dev/null || stat -f %m "$CACHE" 2>/dev/null || echo 0)
+  for src in .work/<group-slug>/WD-*.md .work/<group-slug>/work.md; do
+    [[ -f "$src" ]] || continue
+    src_mtime=$(stat -c %Y "$src" 2>/dev/null || stat -f %m "$src" 2>/dev/null || echo 0)
+    if [[ "$src_mtime" -eq "$cache_mtime" ]]; then
+      needs_refresh=1
+      break
+    fi
+  done
+fi
+
+if (( needs_refresh )); then
   bash .claude/scripts/work-resolve.sh "<group-slug>" >/dev/null
 fi
 ```
