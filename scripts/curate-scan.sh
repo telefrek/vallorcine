@@ -1867,9 +1867,33 @@ if [[ -d ".kb" ]] && command -v curl >/dev/null 2>&1; then
                      2>/dev/null || true)
 
     # Atomic cache write: merge old + updates, dedupe by URL keeping latest.
-    if [[ -s "$LINK_ROT_CACHE_UPDATES" ]]; then
+    # 2026-05-11 adversarial MED #2: also prune URLs no longer referenced
+    # by any KB entry. Previously the cache grew monotonically — a URL
+    # deleted from KB stayed cached forever, eventually creating an
+    # unbounded `link-rot-cache.txt` for long-lived projects. Now we
+    # intersect the cache with LINK_ROT_SEEN (URLs actually referenced in
+    # this scan) and drop entries not in the set. Safe because every URL
+    # gets revisited in each scan (the cache only short-circuits the HTTP
+    # check, not the URL enumeration).
+    if [[ -s "$LINK_ROT_CACHE_UPDATES" ]] || [[ -s "$LINK_ROT_CACHE" ]]; then
+        # Emit the URLs we saw this scan into a tmp file for awk lookup.
+        > "$TMPDIR_SCAN/_link-rot-seen-urls.txt"
+        for url in "${!LINK_ROT_SEEN[@]}"; do
+            printf '%s\n' "$url" >> "$TMPDIR_SCAN/_link-rot-seen-urls.txt"
+        done
+
         cat "$LINK_ROT_CACHE" "$LINK_ROT_CACHE_UPDATES" 2>/dev/null \
-            | awk -F'|' 'NF >= 3 { cache[$1] = $0 } END { for (k in cache) print cache[k] }' \
+            | awk -F'|' -v seen_file="$TMPDIR_SCAN/_link-rot-seen-urls.txt" '
+                BEGIN {
+                  while ((getline line < seen_file) > 0) seen[line] = 1
+                  close(seen_file)
+                }
+                NF >= 3 {
+                  # Keep only entries whose URL was referenced this scan.
+                  if (seen[$1]) cache[$1] = $0
+                }
+                END { for (k in cache) print cache[k] }
+              ' \
             > "$LINK_ROT_CACHE.new"
         mv "$LINK_ROT_CACHE.new" "$LINK_ROT_CACHE"
     fi
@@ -2312,10 +2336,16 @@ if [[ -d ".spec" && -f ".spec/registry/manifest.json" ]]; then
         sfile=$(spec_file_for_id "$MANIFEST" "$sid")
         [[ -z "$sfile" || ! -f "$sfile" ]] && continue
 
-        # decision_refs → .decisions/<slug>/adr.md
+        # decision_refs → .decisions/<slug>/adr.md (standard layout)
+        # OR .decisions/<slug>.md (flat layout) — 2026-05-11 adversarial
+        # MED #4. Pre-fix this hardcoded the grouped-directory layout
+        # and false-positived every spec's decision_refs on projects
+        # using flat .decisions/<slug>.md naming, drowning the user in
+        # bogus xref-drift findings.
         while IFS= read -r dref; do
             [[ -z "$dref" ]] && continue
-            if [[ ! -f ".decisions/$dref/adr.md" ]]; then
+            if [[ ! -f ".decisions/$dref/adr.md" ]] \
+               && [[ ! -f ".decisions/$dref.md" ]]; then
                 echo "SPEC_XREF|$sid|decision_ref|$dref" \
                     >> "$TMPDIR_SCAN/spec-xref-drift.txt"
             fi
