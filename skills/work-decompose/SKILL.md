@@ -50,6 +50,33 @@ Run after `/work "<goal>"` has created the work group.
         2>/dev/null | head -1
    ```
 
+   **Scoped orphan check for "Add more" flows (2026-05-11 adversarial
+   HIGH #1).** When the user runs `/work-decompose` on a group that
+   already has some live WDs (the "Add more" pattern — extending an
+   existing decomposition with additional WDs), the global "any WD
+   past DRAFT" signal would always fire and mis-classify the
+   checkpoint as an orphan. The checkpoint frontmatter should record
+   which WD slot range Phase A is operating on:
+
+   ```yaml
+   phase_a_target_wds: ["WD-05", "WD-06"]   # the new WDs being added
+   ```
+
+   When this field is present in the checkpoint, restrict the orphan
+   detector to only those WD slots:
+
+   ```bash
+   for wd_id in <phase_a_target_wds>; do
+     [[ -f ".work/<group-slug>/${wd_id}.md" ]] \
+       && grep -qE '^status: (SPECIFYING|SPECIFIED|IMPLEMENTING|COMPLETE)$' \
+            ".work/<group-slug>/${wd_id}.md" \
+       && echo "orphan-candidate"
+   done | head -1
+   ```
+
+   If `phase_a_target_wds` is absent (legacy checkpoints, fresh
+   decomposition), fall back to the global scan above.
+
    Surface accordingly:
 
    **Genuine in-flight checkpoint** (no WDs past DRAFT, recent):
@@ -450,8 +477,21 @@ Use AskUserQuestion with options:
 If "Pre-commit some decisions": record the pre-committed choices, then
 remove matching items from the surfaces list before proceeding.
 
-If "Defer all": skip to Step 5 (Phase C) with the tentative decomposition.
-Log a warning in manifest.md that Phase B was deferred.
+If "Defer all": skip to Step 5 (Phase C) with the tentative
+decomposition. **Set `phase_b_deferred: true` in `work.md` frontmatter
+BEFORE running Step 7's validate** (2026-05-11 adversarial HIGH #4).
+
+Pre-fix, "Defer all" wedged at Step 7: `work-validate.sh --decompose`
+runs the cross-WD coordination-surface invariant, which by
+construction fails when no surfaces are settled. Users hit
+`unsettled cross-WD reference(s)` even though they explicitly chose
+to defer. The validator now respects `phase_b_deferred: true` and
+skips that invariant with a one-line "SKIP" note; downstream
+`/work-plan` and `/work-start` runs surface any actual cross-WD
+breakage when WD-level planning happens.
+
+Also append a `phase_b_deferred:` note to manifest.md's narrative so
+the user sees it in `/work-status` output.
 
 If "Adjust the seams": apply changes and re-present.
 
@@ -571,6 +611,38 @@ These become the `artifact_deps:` WDs will reference in Step 6.
 
 Atomic write each time (`.tmp` then rename). This way, a crash mid-Phase-B
 loses at most the in-flight surface, not all prior settlements.
+
+**Post-write self-validation (2026-05-11 adversarial HIGH #2 + #3).**
+The three structural mutations on one markdown file are LLM-driven —
+flipping the wrong row in the seams table when subjects collide on
+substring is a real failure mode. After each write, re-parse the
+checkpoint and verify:
+
+1. The new row is present in `## Phase B — Settled`.
+2. Exactly ONE row in the seams table has `Settled: yes` for THIS
+   surface (no other rows accidentally flipped).
+3. The total settled-count in the table equals the number of rows in
+   `## Phase B — Settled` (the two sections must agree).
+
+If the self-check fails:
+- Restore from the `.tmp` backup if it still exists.
+- Surface to the user via `AskUserQuestion` with options: **Retry the
+  edit** / **Investigate the checkpoint manually** / **Stop**.
+- Do NOT proceed to the next surface — silent corruption here cascades
+  on every subsequent settle.
+
+The pattern that historically bit users: two surfaces with subjects
+like "encoding for IDs" and "encoding for KIDs" — the LLM flips row 1
+when settling surface 2, leaving surface 1 marked as settled (without
+its artifact) and surface 2 marked as unsettled (with its artifact in
+Phase B — Settled). The cross-section count check catches this.
+
+**Migration note.** This SKILL still uses a markdown checkpoint that
+the LLM edits in place. The medium-term fix is a JSON checkpoint with
+a helper script (`work-decompose-checkpoint.sh settle <surface-id>
+<artifact-produced>`) doing the edits — same shape as
+`work-orchestrator.sh`. Until that migration lands, this self-check
+is the safety net.
 
 ---
 

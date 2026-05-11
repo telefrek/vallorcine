@@ -432,6 +432,27 @@ check_decompose_invariant() {
   local unsettled=()
   local settled_count=0
 
+  # "Defer all" escape hatch (2026-05-11 adversarial HIGH #4). When the
+  # user picks "Defer all to /work-plan" at Step 3, Phase B never runs,
+  # so by construction no cross-WD coordination surface is settled. The
+  # tentative WDs still need to validate structurally, but the
+  # cross-WD invariant cannot be enforced here — it's the user's
+  # explicit decision to defer settlement to /work-plan.
+  #
+  # The deferral is recorded in work.md frontmatter as
+  # `phase_b_deferred: true`. When that flag is set, skip the invariant
+  # check and emit a one-line note. /work-plan and /work-start will
+  # surface any actual cross-WD breakage when WD-level planning runs.
+  if [[ -f "$work_md" ]]; then
+    local deferred
+    deferred=$(work_fm "$work_md" "phase_b_deferred")
+    if [[ "$deferred" == "true" ]]; then
+      echo "  SKIP  decompose invariant: phase_b_deferred=true in work.md"
+      echo "        Cross-WD references will be settled at /work-plan time."
+      return 0
+    fi
+  fi
+
   # Build the union of all produces: entries across all WDs in the group.
   # Format in the set: "<type>:<ref>" (e.g. "spec:encryption/primitives").
   local -A PRODUCED
