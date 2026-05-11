@@ -404,7 +404,10 @@ Any other return shape is treated as a parse failure.
 
 Receive the JSON. Validate via `jq -e '.spec_id and .items'`. On
 parse failure, mark the propose-stage marker as failed and continue
-to next spec (the surfacing logic is in C2d).
+to next spec (the surfacing logic is in C2e — mark the propose marker
+as failed via `bash .claude/scripts/dispatch-marker.sh fail
+.spec/_backfill-dispatches <spec-id>--propose "parse-failed: <first
+80 chars>"`, surface to user, continue).
 
 ```bash
 bash .claude/scripts/dispatch-marker.sh ack .spec/_backfill-dispatches <spec-id>--propose "<one-line-summary>"
@@ -609,6 +612,30 @@ behaving as expected.
 - **Edit collides with an existing annotation that already covers this
   R-id.** That should not happen if Phase 1 filtered correctly, but if
   it does: log as `annotated` (idempotent on the log) and continue.
-- **User aborts mid-walk.** The log preserves every decision applied so
-  far; rerunning resumes from where the user left off. Do not revert
-  applied annotations.
+- **User aborts mid-walk (single-spec mode).** The log preserves every
+  decision applied so far; rerunning resumes from where the user left
+  off. Do not revert applied annotations.
+- **User aborts mid-AskUserQuestion loop (corpus mode C2c)** — 2026-05-11
+  adversarial MED #2. In corpus mode, decisions are collected in
+  coordinator memory across multiple `AskUserQuestion` prompts (one per
+  R-id) BEFORE Phase B dispatches and writes log rows. A user abort
+  (ESC) after, say, 5 of 12 R-ids leaves 5 answered decisions in
+  memory with 7 unanswered. Without explicit handling, the run exits
+  and ALL 5 decisions are discarded — the user has to redo them on the
+  next run.
+
+  When a corpus-mode C2c AskUserQuestion returns a user-abort signal:
+  1. **Dispatch Phase B with the PARTIAL decision-set** the user has
+     already answered. Phase B is idempotent (log dedupe + has-decision
+     filter) so this is safe.
+  2. After Phase B completes, surface to the user that the run is
+     stopping with progress preserved:
+     ```
+     Aborted mid-walk on <spec-id> at R-id <N>/<total>.
+     <K> decisions applied to log; <total - K> R-ids will resurface on
+     the next /spec-backfill --all run.
+     ```
+  3. Exit the corpus loop (do NOT continue to the next spec).
+
+  The full corpus run is interruptible at any boundary; this fix makes
+  the in-spec walk interruptible too without losing answered decisions.
