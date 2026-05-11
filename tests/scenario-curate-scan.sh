@@ -1915,6 +1915,152 @@ fi
 
 cd "$REPO_ROOT"
 
+# ── Test 38: Scan-complete sentinel written when scan finishes cleanly ───────
+
+echo ""
+echo "── Test 38: scan-complete sentinel marks the summary as authoritative"
+
+if command -v jq >/dev/null 2>&1; then
+    SENT_DIR="$TEST_BASE/sentinel-project"
+    rm -rf "$SENT_DIR"; mkdir -p "$SENT_DIR"
+    cd "$SENT_DIR"
+    git init --initial-branch=main . >/dev/null 2>&1
+    git config user.email t@t.com; git config user.name t
+    mkdir -p .claude/scripts
+    cp "$REPO_ROOT/scripts/curate-scan.sh"  .claude/scripts/
+    cp "$REPO_ROOT/scripts/spec-lib.sh"     .claude/scripts/
+    echo "x" > a.md
+    git add -A && git commit -q -m "init"
+
+    bash .claude/scripts/curate-scan.sh --init >/dev/null 2>&1 || true
+
+    if tail -1 .curate/scan-summary.md | grep -q "^✓ Scan complete:"; then
+        pass "sentinel line present at end of summary"
+    else
+        fail "sentinel line missing"
+    fi
+
+    if tail -1 .curate/scan-summary.md | grep -q "max_specs_traced=50"; then
+        pass "sentinel records max_specs_traced setting"
+    else
+        fail "sentinel missing max_specs_traced field"
+    fi
+
+    if tail -1 .curate/scan-summary.md | grep -q "scan_mode=full"; then
+        pass "sentinel records scan_mode (full on --init)"
+    else
+        fail "sentinel missing scan_mode field"
+    fi
+else
+    echo "  SKIP  jq not available"
+fi
+
+cd "$REPO_ROOT"
+
+# ── Test 39: Sentinel records specs_traced=0 with --max-specs-traced 0 ───────
+
+echo ""
+echo "── Test 39: --max-specs-traced 0 sentinel marks the trace as skipped"
+
+if command -v jq >/dev/null 2>&1; then
+    FAST_DIR="$TEST_BASE/sentinel-fast-project"
+    rm -rf "$FAST_DIR"; mkdir -p "$FAST_DIR"
+    cd "$FAST_DIR"
+    git init --initial-branch=main . >/dev/null 2>&1
+    git config user.email t@t.com; git config user.name t
+    mkdir -p .claude/scripts
+    cp "$REPO_ROOT/scripts/curate-scan.sh"  .claude/scripts/
+    cp "$REPO_ROOT/scripts/spec-lib.sh"     .claude/scripts/
+    cp "$REPO_ROOT/scripts/spec-trace.sh"   .claude/scripts/ 2>/dev/null || true
+    mkdir -p .spec/registry .spec/domains/auth
+
+    cat > .spec/registry/manifest.json <<'JSON'
+{
+  "schema_version": 2,
+  "specs": [
+    { "id": "auth.session", "path": ".spec/domains/auth/session.md",
+      "state": "APPROVED", "version": 1, "domains": ["auth"], "requires": [],
+      "invalidates": [], "decision_refs": [], "kb_refs": [] }
+  ]
+}
+JSON
+    cat > .spec/domains/auth/session.md <<'SPEC'
+---
+{
+  "id": "auth.session", "version": 1, "status": "ACTIVE", "state": "APPROVED",
+  "domains": ["auth"], "requires": [], "invalidates": [],
+  "amends": null, "amended_by": null,
+  "decision_refs": [], "kb_refs": []
+}
+---
+
+# auth.session
+
+## Requirements
+R1. Sessions exist.
+
+---
+
+## Design
+Notes.
+SPEC
+    git add -A && git commit -q -m "init"
+
+    bash .claude/scripts/curate-scan.sh --init --max-specs-traced 0 >/dev/null 2>&1 || true
+
+    if tail -1 .curate/scan-summary.md | grep -q "specs_traced=0"; then
+        pass "fast scan records specs_traced=0"
+    else
+        fail "fast scan did not record specs_traced=0" "got: $(tail -1 .curate/scan-summary.md)"
+    fi
+
+    if tail -1 .curate/scan-summary.md | grep -q "max_specs_traced=0"; then
+        pass "fast scan records max_specs_traced=0 setting"
+    else
+        fail "fast scan did not record max_specs_traced=0"
+    fi
+else
+    echo "  SKIP  jq not available"
+fi
+
+cd "$REPO_ROOT"
+
+# ── Test 40: Truncated summary (simulates killed scan) lacks the sentinel ────
+
+echo ""
+echo "── Test 40: truncated summary fails the sentinel check"
+
+if command -v jq >/dev/null 2>&1; then
+    TRUNC_DIR="$TEST_BASE/sentinel-trunc-project"
+    rm -rf "$TRUNC_DIR"; mkdir -p "$TRUNC_DIR"
+    cd "$TRUNC_DIR"
+    git init --initial-branch=main . >/dev/null 2>&1
+    git config user.email t@t.com; git config user.name t
+    mkdir -p .claude/scripts .curate
+    cp "$REPO_ROOT/scripts/curate-scan.sh"  .claude/scripts/
+    cp "$REPO_ROOT/scripts/spec-lib.sh"     .claude/scripts/
+    echo "x" > a.md
+    git add -A && git commit -q -m "init"
+
+    bash .claude/scripts/curate-scan.sh --init >/dev/null 2>&1 || true
+
+    # Now simulate a killed scan: chop off the trailing sentinel block.
+    # Real-world equivalent: the script's final write block (sentinel +
+    # state update) never ran because the process was SIGTERM'd between
+    # the body of the last analysis and the sentinel append.
+    head -n -3 .curate/scan-summary.md > .curate/.tmp && mv .curate/.tmp .curate/scan-summary.md
+
+    if tail -1 .curate/scan-summary.md | grep -q "^✓ Scan complete:"; then
+        fail "sentinel present after truncation (test setup wrong)"
+    else
+        pass "truncated summary correctly fails sentinel check"
+    fi
+else
+    echo "  SKIP  jq not available"
+fi
+
+cd "$REPO_ROOT"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

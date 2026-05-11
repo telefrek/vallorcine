@@ -187,6 +187,54 @@ bash .claude/scripts/curate-scan.sh [--init] [--window <months>] \
 Run the script. If it exits with "No new commits since last scan," report that
 and ask if the user wants to force a rescan with `--init`.
 
+### Step 1.1 — Verify scan completeness via sentinel (REQUIRED)
+
+After the scan script exits, before reading the summary in Step 2,
+check that `.curate/scan-summary.md` ends with the scan-complete
+sentinel. The sentinel is the last line and looks like:
+
+```
+✓ Scan complete: <iso-date> · max_specs_traced=<N> · specs_traced=<M> · scan_mode=<full|incremental> · window_months=<W>
+```
+
+A missing sentinel means the script exited before its final block —
+the summary was partially written and **must NOT be read as
+authoritative**. Common causes: Claude Code's default Bash timeout
+(jlsm-sized repos can run 10–15 min if Analysis 18 traces all
+APPROVED specs), manual Ctrl-C, context compaction mid-run.
+
+**Check:**
+
+```bash
+tail -1 .curate/scan-summary.md | grep -q "^✓ Scan complete:"
+```
+
+If absent → the scan was interrupted. Surface to the user via
+AskUserQuestion:
+
+- **"Re-run with `--init --max-specs-traced 0`"** — recommended for
+  large repos. Skips the per-spec annotation trace (Analysis 18),
+  which is the only analysis that typically pushes runtime past 60s.
+  Annotation-coverage rollup data will be absent; if needed, run a
+  follow-up trace pass with `--max-specs-traced 50` (or higher) once
+  the fast scan confirms the rest of the corpus is clean.
+- **"Re-run with `--init`"** — fresh full scan; same timeout risk.
+- **"Read partial summary anyway"** — only safe when the missing
+  analyses are known to not apply (small repos, first-time setup).
+  The user takes responsibility.
+
+If the sentinel IS present, surface its contents to the user in one
+line so they see the scope of what ran:
+
+```
+Scan complete: <date> · traced <M>/<approved-count> specs · window <W>m
+```
+
+If `specs_traced=0` in the sentinel AND APPROVED specs exist in the
+manifest, note that the annotation-coverage rollup (Analysis 18b) and
+the per-spec annotation gap analyses (Analysis 18) did not run for
+this scan. Offer to schedule a follow-up trace pass before closing.
+
 ---
 
 ## Step 1.5 — Verify-mode branch

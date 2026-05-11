@@ -1280,6 +1280,13 @@ fi
 > "$TMPDIR_SCAN/spec-unannotated.txt"
 > "$TMPDIR_SCAN/spec-bare-only.txt"
 > "$TMPDIR_SCAN/spec-annotation-drift.txt"
+# Pre-create the rollup tmpfile up here so the end-of-script counter
+# (`wc -l <…/spec-annotation-rollup.txt`) does not emit "No such file"
+# stderr when Analysis 18 is skipped (manifest missing or spec-trace.sh
+# unavailable). The rollup itself is written inside the SPEC_TRACE-found
+# block at the tail of Analysis 18; pre-creating an empty file here is
+# harmless when the block doesn't execute.
+> "$TMPDIR_SCAN/spec-annotation-rollup.txt"
 
 # has_bare_annotations <spec-id> — returns 0 if the source tree contains a
 # bare `@spec <sid>` reference (no `.R<n>` suffix). Used to differentiate
@@ -3055,6 +3062,30 @@ echo "  Spec graduation candidates: $(wc -l < "$TMPDIR_SCAN/spec-graduation.txt"
 echo "  Spec xref drift: $(wc -l < "$TMPDIR_SCAN/spec-xref-drift.txt" 2>/dev/null || echo 0)"
 echo "  Annotation rollup: $(wc -l < "$TMPDIR_SCAN/spec-annotation-rollup.txt" 2>/dev/null || echo 0)"
 echo "  ADRs without spec: $(wc -l < "$TMPDIR_SCAN/adr-no-spec.txt" 2>/dev/null || echo 0)"
+
+# ── Sentinel: mark the summary as complete ─────────────────────────────────
+# When this line is present at the end of scan-summary.md, /curate Step 1
+# knows the script ran end-to-end. When it's MISSING, the summary was
+# written but the script died before the report block — i.e. a partial
+# scan masquerading as a clean one. Without this, an interrupted scan
+# (Claude Code Bash timeout, ctrl-C, OOM) leaves a truncated summary that
+# reads as "all analyses ran and found nothing" — the failure mode we
+# need to detect.
+#
+# The trace-depth annotation records how many APPROVED specs were
+# actually run through spec-trace.sh in Analysis 18. When the user
+# passes `--max-specs-traced 0` for a fast scan, the rollup data is
+# missing by design; /curate Step 1 surfaces this so the user can
+# request a follow-up trace pass if needed.
+
+TRACED_COUNT="${specs_traced:-0}"
+
+cat >> "$SUMMARY_FILE" << SENTINEL
+
+---
+
+✓ Scan complete: $(date -u +"%Y-%m-%dT%H:%M:%SZ") · max_specs_traced=$MAX_SPECS_TRACED · specs_traced=$TRACED_COUNT · scan_mode=$SCAN_MODE · window_months=$WINDOW_MONTHS
+SENTINEL
 
 # ── Update curation state ─────────────────────────────────────────────────
 
