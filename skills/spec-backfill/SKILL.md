@@ -298,85 +298,184 @@ Use AskUserQuestion to confirm before starting if `<U>` exceeds 50:
 - **"Cap at 10 specs"** (or another cap)
 - **"Cancel"**
 
-### C2. Per-spec dispatch loop
+### C2. Per-spec two-phase dispatch loop
 
 For each spec with uncovered R-ids, in manifest order, run this loop
 until the dispatched count reaches the cap (if set) or the eligible
-set is empty:
+set is empty.
 
-**C2a. Write the dispatch marker.**
+**The two-phase pattern is mandatory.** The single-spec flow's Phase 2
+uses AskUserQuestion per R-id. Dispatched sub-agents (Agent tool) run
+to a single final-message return; the codebase convention is that
+sub-agents do NOT call AskUserQuestion mid-flow (the only documented
+sub-agent contract — see `/work-start all`, `/feature-coordinate` — is
+"run autonomously and return one message"). Two-phase dispatch
+respects that contract by splitting the work: sub-agent A runs the
+read-heavy discover + propose stage with no user prompting, the
+coordinator surfaces the per-R-id decisions via AskUserQuestion, then
+sub-agent B applies the decisions mechanically.
+
+**C2a. Phase A — discover + propose (sub-agent, autonomous).**
+
+Write the marker, then dispatch:
 
 ```bash
-bash .claude/scripts/dispatch-marker.sh begin .spec/_backfill-dispatches <spec-id>
+bash .claude/scripts/dispatch-marker.sh begin .spec/_backfill-dispatches <spec-id>--propose
 ```
 
-This creates `.spec/_backfill-dispatches/_dispatch-<spec-id>.json` with
-`ack: false`. The marker is gitignored. Flipped to `ack: true` once the
-sub-agent returns and the coordinator parses its result.
-
-**C2b. Dispatch the sub-agent.** Invoke the Agent tool with this prompt
-verbatim (substitute `<spec-id>`):
+Agent prompt verbatim (substitute `<spec-id>`):
 
 ```
-You are the per-spec backfill runner for <spec-id>.
+You are the discover + propose stage for /spec-backfill <spec-id>.
 
-Invoke /spec-backfill <spec-id>. The single-spec flow handles Phase 1
-(discover uncovered R-ids), Phase 2 (per-R-id candidate walk with user
-decisions), and Phase 3 (re-trace + summarize). AskUserQuestion in
-Phase 2 surfaces to the actual user — you do not auto-answer it. The
-user IS available across the dispatch boundary; do not assume
-autonomy.
+Run, in order:
+  1. bash .claude/scripts/spec-trace.sh --uncovered <spec-id>
+  2. For each uncovered R-id (cap at 12 — surface "more remain" in
+     output if there are more): extract the requirement text from the
+     spec file under ## Requirements; run
+     bash .claude/scripts/spec-backfill-candidates.sh <spec-id> <r-id>
+     and capture the top 5 candidates.
+  3. Read .spec/backfill-log.md if it exists; mark R-ids that already
+     have a terminal decision (annotated | waived) as "already_decided"
+     so the coordinator can skip them.
 
-When the per-spec flow completes, return EXACTLY ONE LINE on stdout
-matching this shape:
+Return EXACTLY ONE LINE — a JSON object — matching this shape:
+
+{"spec_id":"<spec-id>","total_uncovered":<int>,"more_remain":<bool>,
+ "items":[
+   {"r_id":"R3","requirement_text":"<≤200 chars>",
+    "candidates":[{"file":"<path>","line":<int>,"context":"<≤80 chars>","score":<float>}],
+    "already_decided":null},
+   ...
+ ]}
+
+If `total_uncovered` is 0, return:
+  {"spec_id":"<spec-id>","total_uncovered":0,"items":[]}
+
+DO NOT call AskUserQuestion. DO NOT edit any files. DO NOT log anything.
+Read-only stage. Coordinator handles all user interaction + log writes.
+
+Any other return shape is treated as a parse failure.
+```
+
+**C2b. Parse the proposal + ack marker.**
+
+Receive the JSON. Validate via `jq -e '.spec_id and .items'`. On
+parse failure, mark the propose-stage marker as failed and continue
+to next spec (the surfacing logic is in C2d).
+
+```bash
+bash .claude/scripts/dispatch-marker.sh ack .spec/_backfill-dispatches <spec-id>--propose "<one-line-summary>"
+```
+
+**C2c. Coordinator AskUserQuestion loop (per R-id).**
+
+For each `item` in `items` where `already_decided` is null:
+
+Build AskUserQuestion options dynamically from the top candidates plus
+the standard tail (Skip, Waive, Other). Present:
+
+```
+R3 — <requirement_text>
+
+Suggested annotation sites:
+  (a) <file>:<line>  (score: <s>)  <context>
+  (b) ...
+
+Pick one, or Skip / Waive / specify Other.
+```
+
+Collect the user's decision into a decision-set:
+
+```json
+{"spec_id":"<spec-id>","decisions":[
+  {"r_id":"R3","action":"annotate","file":"...","line":123},
+  {"r_id":"R5","action":"skip"},
+  {"r_id":"R7","action":"waive","reason":"<≤100 chars>"}
+]}
+```
+
+If the user picks "Other", validate the file path exists in coordinator
+before adding to the decision-set (same validation as today's inline
+flow).
+
+The decision-set lives in coordinator context briefly (~500 bytes per
+spec at most) — released as soon as Phase B returns.
+
+**C2d. Phase B — apply (sub-agent, autonomous, idempotent).**
+
+```bash
+bash .claude/scripts/dispatch-marker.sh begin .spec/_backfill-dispatches <spec-id>--apply
+```
+
+Agent prompt verbatim (substitute the JSON):
+
+```
+You are the apply stage for /spec-backfill <spec-id>.
+
+Decisions (JSON):
+<paste the decision-set JSON here>
+
+For each decision, in order:
+
+- action="annotate" → read the file at <file>, locate <line>, insert
+  a `@spec <spec-id>.<R-id>` annotation in a comment ABOVE the line
+  (per rules/spec-annotation-protocol.md comment syntax). If a sibling
+  @spec annotation already exists at that location, append to the
+  existing comment rather than adding a new line. Use the Edit tool.
+  Append to the log:
+    bash .claude/scripts/spec-backfill-log.sh append \
+      .spec/backfill-log.md "$(date +%F)" <spec-id> <R-id> annotated \
+      "<file>:<line>"
+
+- action="skip" → append `skipped` row to the log (no location).
+
+- action="waive" → append `waived` row with the reason in notes.
+
+Before each apply, query `bash .claude/scripts/spec-backfill-log.sh
+has-decision .spec/backfill-log.md <spec-id> <R-id>`. If a terminal
+decision (annotated | waived) already exists, skip this decision
+silently — the apply stage MUST be idempotent so a re-dispatch after a
+crash does not double-annotate.
+
+After all decisions, run:
+  bash .claude/scripts/spec-trace.sh --uncovered <spec-id>
+and count the remaining uncovered R-ids.
+
+Return EXACTLY ONE LINE:
 
   COMPLETE <spec-id> annotated=<N> skipped=<K> waived=<W> uncovered_after=<U>
 
-If the user breaks out mid-walk (any non-resume exit), return:
-
-  STOPPED <spec-id> annotated=<N> skipped=<K> waived=<W> remaining=<R>
-
-If the spec turns out to have zero uncovered R-ids after the log query
-(prior runs covered everything), return:
-
-  EMPTY <spec-id>
-
-Any other return is treated as a parse failure.
+DO NOT call AskUserQuestion. The decision set is final; do not
+re-prompt. Any other return is treated as a parse failure.
 ```
 
-**C2c. Wait for the return.** The Agent tool blocks until the sub-agent
-emits its final assistant message.
+**C2e. Parse Phase B return + ack the apply-stage marker.**
 
-**C2d. Classify and ack.** Parse the return into one of four shapes:
+Classify into one of:
 
-- **COMPLETE** / **STOPPED** / **EMPTY** — ack the marker with the
-  exact return line:
+- **COMPLETE …** — ack the marker:
   ```bash
-  bash .claude/scripts/dispatch-marker.sh ack .spec/_backfill-dispatches <spec-id> "<return-line>"
+  bash .claude/scripts/dispatch-marker.sh ack .spec/_backfill-dispatches <spec-id>--apply "<return-line>"
   ```
-  Print a one-line summary to the user: `<spec-id> — <return-line>`.
-  Continue to next spec.
+  Print `<spec-id> — <return-line>` to the user. Continue to next spec.
 
 - **Payload lost** — Agent return literally equals
-  `[Tool result missing due to internal error]`. Mark the marker as
-  failed:
-  ```bash
-  bash .claude/scripts/dispatch-marker.sh fail .spec/_backfill-dispatches <spec-id> "payload-lost"
-  ```
-  Surface via AskUserQuestion: "Pause for investigation" /
-  "Re-dispatch <spec-id>" / "Skip and continue".
+  `[Tool result missing due to internal error]`. Mark the apply
+  marker `payload-lost`. The propose marker is still acked, and the
+  log captured partial progress if Phase B did any work. Surface via
+  AskUserQuestion: "Re-dispatch <spec-id> apply" /
+  "Skip and continue" / "Investigate manually".
 
 - **User stopped** — Agent return contains
-  `The user doesn't want to proceed with this tool use`. Mark as
-  failed with reason `user-stopped`. Surface AskUserQuestion:
-  "Re-dispatch <spec-id>" / "Continue with next spec" / "Stop the run".
+  `The user doesn't want to proceed with this tool use`. Mark
+  `user-stopped`. Same recovery options.
 
-- **Parse failed** — return present but does not match any expected
-  shape. Mark as failed with reason `parse-failed: <first-80-chars>`.
-  Print the raw return to the user and offer the same recovery options
-  as user-stopped.
+- **Parse failed** — return present but does not match. Mark
+  `parse-failed: <first-80-chars>`. Print raw return; same recovery
+  options.
 
-**C2e. Honor the cap.** If a cap was set in C1 and the dispatched
+**C2f. Honor the cap.** If a cap was set in C1 and the dispatched
 count has reached it, exit the loop after acking the current spec.
 
 ### C3. Corpus summary

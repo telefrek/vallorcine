@@ -118,6 +118,29 @@ PRIOR_UNRESOLVED=$(bash .claude/scripts/curate-review-log.sh unresolved \
 records. Empty when this is the first run or every prior finding was
 resolved/dismissed.
 
+**Stuck-marker recovery.** Scan `.curate/_dispatches/` for any
+unacknowledged finding-resolution markers from a previous `/curate`
+run that crashed mid-dispatch:
+
+```bash
+STUCK_MARKERS=$(bash .claude/scripts/dispatch-marker.sh stuck \
+  .curate/_dispatches 2>/dev/null || true)
+```
+
+Each row is `<finding-key>|<dispatched-at>|<has-result>|<failure-reason>`.
+
+If non-empty, surface BEFORE Step 1 (the scan run): for each stuck
+marker, use AskUserQuestion with three options —
+**"Re-dispatch"** (clear marker, include in this run),
+**"Skip for now"** (leave marker; next run will resurface it),
+**"Investigate manually"** (print marker JSON via
+`dispatch-marker.sh status .curate/_dispatches <finding-key>` and
+stop the `/curate` run).
+
+This mirrors `/work-resume rule 0` (PR #79) and `/spec-backfill` C0 —
+any unacknowledged marker pre-empts the normal flow because it
+represents a previous dispatch whose result was never reconciled.
+
 Display opening header:
 ```
 ───────────────────────────────────────────────
@@ -995,9 +1018,203 @@ Present numbered list → user picks → execute action → mark resolved →
 re-present remaining items → user picks again → ... → user says "done" → close
 ```
 
-### User picks a number
+### Step 4 dispatch protocol (context-economy on long sessions)
 
-Execute the action for that item:
+When a `/curate` run surfaces 20+ findings, resolving each finding
+inline accumulates file-read context in the coordinator linearly with
+the finding count. For a 30-finding session that resolves a mix of
+ADR/KB/spec findings, the coordinator can carry 200–300 KB of read
+state by the end. The dispatch protocol below isolates that
+read-cost in per-finding sub-agents and keeps the coordinator's
+context bounded.
+
+**Pattern: two-phase dispatch per finding.** Dispatched sub-agents
+follow the codebase convention (`/work-start all`, `/feature-coordinate`)
+of running autonomously — they do NOT call AskUserQuestion mid-flow.
+User interaction happens in the coordinator between the two phases.
+
+**When to use dispatch:** findings whose resolution involves reading
+artifact files (ADR, KB entries, spec frontmatter, source files).
+The list is recorded in the **Dispatchable types** table below. When
+the user picks a finding NOT in that table (index rebuild, log
+appends, trivial bookkeeping), handle inline as today.
+
+**Dispatchable types** (heavy file reads in resolution):
+
+| Type | Why it qualifies |
+|------|------------------|
+| ADR pressure / gravity / drift | Reads full ADR file + constrained file list |
+| KB stale | Reads KB entry full text + related entries |
+| Spec coverage / spec-code drift | Reads spec frontmatter + manifest + source matches |
+| Spec annotation drift (Analysis 18b drift bucket) | Reads spec file + spec-trace output |
+| Spec graduation candidate (Analysis 27) | Reads spec frontmatter + invalidates-references |
+| Spec corpus xref drift (Analysis 28) | Reads spec frontmatter + ADR/KB resolution |
+| ADRs without spec (Analysis 29) | Reads full ADR file to scope the spec to author |
+| KB schema drift / type-location mismatch | Reads KB entry frontmatter + body |
+| Subdivision candidate | Reads full spec body to assess split |
+
+**Pre-flight: stuck-marker recovery.** Before re-entering the pick
+list after a prior `/curate` run, check
+`.curate/_dispatches/` for unacknowledged markers:
+
+```bash
+bash .claude/scripts/dispatch-marker.sh stuck .curate/_dispatches
+```
+
+If non-empty, surface each one via AskUserQuestion:
+- **"Re-dispatch <finding-key>"** — clear the marker, include the
+  finding in this run.
+- **"Skip <finding-key>"** — leave marker in place; it will resurface
+  next run.
+- **"Investigate manually"** — print the marker JSON via
+  `dispatch-marker.sh status` and stop.
+
+This mirrors `/work-resume rule 0` and `/spec-backfill` C0.
+
+**Phase A — diagnose + propose** (autonomous sub-agent):
+
+```bash
+bash .claude/scripts/dispatch-marker.sh begin .curate/_dispatches <finding-key>--propose
+```
+
+Agent prompt verbatim (substitute `<finding-key>`, `<finding-type>`,
+`<scan-summary-excerpt>` — copy the 1–3 rows from
+`.curate/scan-summary.md` that describe this finding):
+
+```
+You are the diagnose + propose stage for /curate finding
+<finding-key> of type <finding-type>.
+
+Scan summary excerpt:
+<scan-summary-excerpt>
+
+Read whatever artifacts the resolution playbook for this finding type
+requires (see `.claude/skills/curate/SKILL.md` Step 4 subsections —
+look up the row whose label matches `<finding-type>` and follow its
+"Read the X file" / "compare against Y" instructions for the read
+portion ONLY). Build a structured proposal.
+
+Return EXACTLY ONE LINE — a JSON object — matching this shape:
+
+{"finding_key":"<finding-key>","finding_type":"<type>",
+ "diagnosis":"<2–3 sentence summary of what you found>",
+ "options":[
+   {"label":"<≤4 words>","description":"<≤80 chars>",
+    "side_effect":"<one of: invoke-architect | invoke-research |
+                   invoke-spec-author | edit-file | log-only | other>",
+    "side_effect_args":{...}}
+ ],
+ "auto_applicable":<bool>,
+ "auto_apply_instructions":<string|null>}
+
+Cap at 4 options. Always include a "Skip" option as the LAST option.
+
+`auto_applicable: true` is allowed ONLY for these types: index rebuild
+(not in dispatchable list — would not reach this prompt), `kb-citation`
+with a single obvious successor target (rename-and-update mechanical).
+For all other types, set `auto_applicable: false`. The coordinator
+treats out-of-whitelist auto_applicable claims as `false` regardless.
+
+DO NOT call AskUserQuestion. DO NOT edit any files. DO NOT log
+anything. Read-only stage. Any other return shape is a parse failure.
+```
+
+**Parse the proposal + ack marker.** Validate JSON via `jq -e
+'.finding_key and .options'`. On parse failure, mark
+`parse-failed: <first-80-chars>` and surface AskUserQuestion to the
+user with recovery options (re-dispatch, skip, handle-inline).
+
+```bash
+bash .claude/scripts/dispatch-marker.sh ack .curate/_dispatches <finding-key>--propose "<diagnosis>"
+```
+
+**Coordinator: AskUserQuestion.** Present `diagnosis` as the
+preamble; build options from the `options[]` list. The user's choice
+becomes the input to Phase B.
+
+If `auto_applicable: true` AND the type is in the whitelist
+(`kb-citation` only), skip the AskUserQuestion and proceed directly
+to Phase B with the `auto_apply_instructions`.
+
+**Phase B — apply** (autonomous sub-agent, idempotent):
+
+```bash
+bash .claude/scripts/dispatch-marker.sh begin .curate/_dispatches <finding-key>--apply
+```
+
+Agent prompt verbatim:
+
+```
+You are the apply stage for /curate finding <finding-key>.
+
+Chosen option:
+  label: <user's chosen label>
+  side_effect: <one of: invoke-architect | invoke-research |
+                invoke-spec-author | edit-file | log-only | other>
+  side_effect_args: <JSON from proposal>
+
+Execute the side effect:
+
+- invoke-architect → Use the Agent tool to invoke /architect with the
+  arguments in side_effect_args.problem_statement. Wait for return.
+- invoke-research → Use the Agent tool to invoke /research with
+  side_effect_args.subject.
+- invoke-spec-author → Use the Agent tool to invoke /spec-author with
+  side_effect_args.feature_id + side_effect_args.title.
+- edit-file → Use Edit tool to apply side_effect_args.old_string →
+  side_effect_args.new_string in side_effect_args.file_path.
+- log-only → no side effect; just log to review-log.
+- other → side_effect_args.notes describes the action; record it in
+  review-log with status `manual-resolution-required`.
+
+After executing, append to .curate/review-log.md via:
+  bash .claude/scripts/curate-review-log.sh append \
+    .curate/review-log.md "$(date +%F)" "<finding-key>" \
+    "<status: resolved | deferred | skipped | manual-resolution-required>" \
+    "<one-line notes>"
+
+Return EXACTLY ONE LINE:
+
+  RESOLVED|<finding-key>|<one-line-summary>
+  DEFERRED|<finding-key>|<reason>
+  SKIPPED|<finding-key>
+  MANUAL|<finding-key>|<reason>
+
+DO NOT call AskUserQuestion. The decision is final. Any other return
+is a parse failure.
+```
+
+**Parse Phase B + ack the apply marker.** Same payload-lost /
+user-stopped / parse-failed handling as `/spec-backfill` C2e. On
+success, ack the marker:
+
+```bash
+bash .claude/scripts/dispatch-marker.sh ack .curate/_dispatches <finding-key>--apply "<return-line>"
+```
+
+Return to the pick list with the finding marked resolved.
+
+**Why this works across the dispatch boundary:**
+
+- Each sub-agent has a fresh context window — its file reads cost ~0
+  to the coordinator.
+- The coordinator holds only: the pick list (text), the in-flight
+  finding's proposal JSON (~1–2 KB briefly), the user's choice
+  (<100 bytes), the final summary (<200 bytes kept across iterations).
+- After 30 findings: ~6 KB of accumulated summaries vs ~200 KB
+  inline today.
+
+The protocol's first cut applies to the **Dispatchable types** above.
+Light findings (index rebuild, log appends, no-artifact-read
+bookkeeping) continue to use the inline patterns below.
+
+### User picks a number — inline patterns (light findings + fallback)
+
+For findings NOT in the **Dispatchable types** table above, OR if the
+dispatch fails and the user opts to "handle inline" during recovery,
+execute the action directly per the playbooks below. These are also
+the playbooks the dispatched sub-agent reads to know what to do —
+the only difference is who holds the file-read context.
 
 **Index/integrity fixes:** Fix directly — rebuild indexes, clean up stale
 entries. These are bookkeeping and don't need architectural judgment.
