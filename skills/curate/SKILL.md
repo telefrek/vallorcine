@@ -230,6 +230,32 @@ line so they see the scope of what ran:
 Scan complete: <date> · traced <M>/<approved-count> specs · window <W>m
 ```
 
+**No-op scan detection** (CRIT 5, 2026-05-11 adversarial). When the
+scan script exits "No new commits since last scan" or "No commits
+found in scan range," it overwrites scan-summary.md with a `no-op`
+marker — the sentinel includes the literal substring `· no-op ·`.
+Detect this:
+
+```bash
+if tail -1 .curate/scan-summary.md | grep -q "· no-op ·"; then
+    # No-op scan — prior findings already addressed or no qualifying
+    # activity in window. Do NOT proceed into Step 2 with the prior
+    # summary as if it were fresh.
+fi
+```
+
+If detected, surface to the user via AskUserQuestion:
+
+- **"Force a fresh scan (`--init`)"** — re-runs against the full window
+  regardless of `LAST_SHA`.
+- **"Expand the window (`--window-months N`)"** — useful when commit
+  activity falls outside the default window.
+- **"Stop — nothing to curate right now"** — exit cleanly.
+
+Without this check, prior findings (potentially days/weeks old) get
+re-presented as if they were just discovered — confusing the user and
+re-surfacing already-resolved drift.
+
 If `specs_traced=0` in the sentinel AND APPROVED specs exist in the
 manifest, note that the annotation-coverage rollup (Analysis 18b) and
 the per-spec annotation gap analyses (Analysis 18) did not run for

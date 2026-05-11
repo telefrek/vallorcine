@@ -156,13 +156,36 @@ If `--from-obligations` is present, skip Steps 1-4 and use this flow instead.
 
 ### OB-1 — Read and filter obligations
 
-Read `.spec/registry/_obligations.json`. Filter to open obligations only
-(`status == "open"`).
+Read `.spec/registry/_obligations.json`. The schema (verified against
+`scripts/spec-resolve.sh` lines 345-355 and
+`scripts/spec-obligations-gc.sh` lines 39-52) is:
+
+```json
+{
+  "obligations": [
+    {
+      "id": "OBL-...",
+      "target_feature": "<spec-id>",
+      "domains": ["<domain>", ...],
+      "description": "<free text>",
+      "status": "open" | "resolved" | ...
+    }
+  ]
+}
+```
+
+There is NO `spec`, `affects`, or `blocked_by` field — earlier drafts of
+this SKILL referenced fields that the producer never writes, so the
+filter and decomposition silently produced zero results (2026-05-11
+adversarial finding, CRIT 3).
+
+Filter to open obligations only (`status == "open"`).
 
 Apply filters if provided:
-- `--spec <spec-id>` → only obligations where `spec` matches. Spec ID can be
-  legacy `FXX` (e.g., `F12`) or domain.slug (e.g., `query.full-text-index`).
-- `--domain <domain>` → only obligations where `domains` array contains the value
+- `--spec <spec-id>` → only obligations where `target_feature` matches.
+  Spec ID can be legacy `FXX` (e.g., `F12`) or domain.slug (e.g.,
+  `query.full-text-index`).
+- `--domain <domain>` → only obligations where `domains` array contains the value.
 
 If no open obligations match the filters:
 ```
@@ -174,9 +197,9 @@ Display:
 ```
 Found <N> open obligations:
 
-| # | ID | Spec | Affected Reqs | Blocked By |
-|---|-----|------|---------------|------------|
-| 1 | <id> | <spec> | <count> | <blocked_by> |
+| # | ID | Target Feature | Domains | Description |
+|---|-----|---------------|---------|-------------|
+| 1 | <id> | <target_feature> | <domains joined> | <description first line> |
 ...
 ```
 
@@ -184,23 +207,33 @@ Found <N> open obligations:
 
 Analyze the obligations and group them by natural boundaries:
 
-1. **Same blocked_by** → obligations sharing a blocker should be in the same
-   WD (they need the same prerequisite work)
-2. **Code locality** — obligations affecting the same class/module should be
-   together
-3. **Dependency ordering** — if obligation A's fix is a prerequisite for
-   obligation B's fix, A's WD must come first (use `type: wd` deps)
-4. **Size** — keep each WD at a manageable scope. Split obligations that
-   represent multi-week efforts into separate WDs.
+1. **Same `target_feature`** → obligations against the same spec usually
+   belong to the same WD (they affect the same contract surface).
+2. **Domain overlap** — obligations sharing one or more `domains` values
+   are candidates for grouping; the WD's `domains` field is the union.
+3. **Dependency ordering** — if completing obligation A's WD is a
+   prerequisite for obligation B's WD (e.g., A introduces an interface
+   B depends on), use `type: wd` artifact_deps to encode the order.
+4. **Size** — keep each WD at a manageable scope. Split when the
+   obligation set spans multi-week scope.
 
 For each proposed WD, determine:
-- **status: SPECIFIED** — specs already exist, these are implementation-only
-- **artifact_deps** — add `type: wd` deps for ordering constraints between WDs
-- **Acceptance criteria** — map from the obligation's `affects` list:
-  each affected requirement becomes a testable criterion
-- **Summary** — synthesize from the obligation `description` field
-- **Implementation notes** — include `blocked_by` context and any
-  implementation hints from the description
+- **status: SPECIFIED** — specs already exist (the obligations target
+  specs that are already APPROVED); these WDs are implementation-only.
+- **artifact_deps** — add `type: wd` deps for ordering constraints between
+  WDs, and `type: spec required_state: APPROVED` for each `target_feature`
+  the WD addresses.
+- **Acceptance criteria** — derive from the obligation's `description`
+  field: each obligation typically maps to one testable criterion that
+  closes the gap it describes. If the description names specific
+  requirements (e.g., "R12, R13 currently unenforced"), each becomes a
+  criterion.
+- **Summary** — synthesize from the obligation `description` fields,
+  grouping multiple obligations' descriptions into one coherent WD
+  narrative.
+- **Implementation notes** — copy the relevant obligation descriptions
+  verbatim; the LLM running /feature-implement will use them as the
+  authoritative source of what needs to change.
 
 ### OB-3 — Present decomposition
 

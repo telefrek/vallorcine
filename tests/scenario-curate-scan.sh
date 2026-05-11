@@ -323,6 +323,24 @@ else
     fail "should skip when HEAD matches last scan" "got: $output"
 fi
 
+# CRIT 5 (2026-05-11 adversarial): no-op exit MUST overwrite scan-summary.md
+# with a distinct no-op marker so downstream readers can't mistake a
+# stale prior summary for fresh output.
+if [[ -f "$PROJECT/.curate/scan-summary.md" ]] && \
+   tail -1 "$PROJECT/.curate/scan-summary.md" | grep -q "· no-op ·"; then
+    pass "no-op exit writes scan-summary.md with no-op sentinel"
+else
+    fail "no-op exit should overwrite scan-summary.md with no-op sentinel" \
+         "tail: $(tail -1 "$PROJECT/.curate/scan-summary.md" 2>/dev/null)"
+fi
+
+# Scan mode should be 'no-op' in the body too (for human readers).
+if grep -q "^Scan mode: no-op" "$PROJECT/.curate/scan-summary.md"; then
+    pass "no-op summary has 'Scan mode: no-op' body line"
+else
+    fail "no-op summary missing 'Scan mode: no-op' header"
+fi
+
 # ── Test 10: Incremental scan — picks up new commits ────────────────────────
 
 echo ""

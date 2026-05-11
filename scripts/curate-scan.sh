@@ -77,6 +77,30 @@ SINCE_DATE="$(date -d "-${WINDOW_MONTHS} months" +%Y-%m-%d 2>/dev/null || date -
 
 if [[ -n "$LAST_SHA" && "$LAST_SHA" == "$CURRENT_SHA" ]]; then
     echo "No new commits since last scan." >&2
+    # CRIT 5 (2026-05-11 adversarial). Overwrite scan-summary.md with a
+    # distinct no-op marker so Step 1.1's sentinel check + downstream
+    # readers can tell "scan was a no-op" apart from "scan completed
+    # with findings." Previously, this exit path left the PRIOR scan's
+    # summary on disk with its still-valid sentinel — /curate would
+    # consume days-old findings as if fresh.
+    SUMMARY_FILE="${SUMMARY_FILE:-$CURATE_DIR/scan-summary.md}"
+    mkdir -p "$(dirname "$SUMMARY_FILE")" 2>/dev/null || true
+    cat > "$SUMMARY_FILE" <<EOF
+# Curation Scan Summary
+
+Scan date: $(date +%Y-%m-%d)
+Scan mode: no-op
+Current HEAD: $CURRENT_SHA
+Last scanned HEAD: $LAST_SHA
+
+_No new commits since last scan. The prior findings (if any) have been
+addressed or aged out; re-run with \`--init\` to force a fresh scan
+against the full window._
+
+---
+
+✓ Scan complete: $(date -u +"%Y-%m-%dT%H:%M:%SZ") · no-op · current_head=$CURRENT_SHA
+EOF
     exit 0
 fi
 
@@ -133,6 +157,27 @@ COMMIT_COUNT="$(grep -cE '^[0-9a-f]{40}$' "$TMPDIR_SCAN/raw-log.txt" 2>/dev/null
 
 if [[ "$COMMIT_COUNT" -eq 0 ]]; then
     echo "No commits found in scan range." >&2
+    # CRIT 5 (2026-05-11 adversarial). Same no-op overwrite as the
+    # LAST_SHA==CURRENT_SHA path above — see that block for rationale.
+    SUMMARY_FILE="${SUMMARY_FILE:-$CURATE_DIR/scan-summary.md}"
+    mkdir -p "$(dirname "$SUMMARY_FILE")" 2>/dev/null || true
+    cat > "$SUMMARY_FILE" <<EOF
+# Curation Scan Summary
+
+Scan date: $(date +%Y-%m-%d)
+Scan mode: no-op
+Current HEAD: $CURRENT_SHA
+Window: ${WINDOW_MONTHS} months
+Commits scanned: 0
+
+_No commits found in the scan window. Either the window is too narrow
+or the repo has no qualifying activity. Re-run with a wider
+\`--window-months\` value or check that \`git log\` returns commits._
+
+---
+
+✓ Scan complete: $(date -u +"%Y-%m-%dT%H:%M:%SZ") · no-op · current_head=$CURRENT_SHA · commits=0
+EOF
     exit 0
 fi
 

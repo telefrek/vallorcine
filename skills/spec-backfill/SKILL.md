@@ -62,8 +62,22 @@ Run the trace primitive in `--uncovered` mode:
 bash .claude/scripts/spec-trace.sh --uncovered <spec-id>
 ```
 
-Output is a parseable list, one R-id per line on stdout (e.g.
-`auth.token-validation.R3`); a count summary is on stderr.
+Output is a parseable list, one **fully-qualified R-id** per line on
+stdout (e.g. `auth.token-validation.R3`); a count summary is on stderr.
+
+**Important — strip the `<spec-id>.` prefix before passing to downstream
+scripts.** `spec-backfill-candidates.sh` and `spec-backfill-log.sh`
+both expect **bare R-ids** (e.g. `R3`), not fully-qualified ones. Pass
+the FQ form and the candidate finder errors with "Requirement '...' not
+found"; the log helpers' `has-decision` key never matches an annotated
+row. The 2026-05-11 adversarial finding (CRIT 4) confirmed this caused
+Phase 1's terminal-decision filter to silently no-op, re-walking
+already-annotated requirements.
+
+For each FQ R-id captured (e.g. `auth.token-validation.R3`), compute
+the bare form via shell expansion: `r_id="${fq_rid##*.}"` (yields
+`R3`). Use `r_id` for ALL subsequent `spec-backfill-candidates.sh` /
+`spec-backfill-log.sh` invocations.
 
 If output is empty: tell the user "spec is fully annotated — nothing to
 backfill" and stop.
@@ -71,9 +85,9 @@ backfill" and stop.
 If non-empty: capture the list and the count. Read `.spec/backfill-log.md`
 (initialize with `bash .claude/scripts/spec-backfill-log.sh init
 .spec/backfill-log.md` if it does not exist) and filter the list down to
-R-ids that do NOT yet have a terminal decision (`annotated` or `waived`).
-`skipped` rows from prior runs are NOT terminal — those resurface by
-design.
+R-ids (bare form) that do NOT yet have a terminal decision (`annotated`
+or `waived`). `skipped` rows from prior runs are NOT terminal — those
+resurface by design.
 
 Tell the user the plan in one or two sentences:
 
@@ -330,14 +344,23 @@ You are the discover + propose stage for /spec-backfill <spec-id>.
 
 Run, in order:
   1. bash .claude/scripts/spec-trace.sh --uncovered <spec-id>
+     This emits FULLY-QUALIFIED R-ids (e.g., `auth.foo.R3`).
   2. For each uncovered R-id (cap at 12 — surface "more remain" in
-     output if there are more): extract the requirement text from the
-     spec file under ## Requirements; run
-     bash .claude/scripts/spec-backfill-candidates.sh <spec-id> <r-id>
-     and capture the top 5 candidates.
-  3. Read .spec/backfill-log.md if it exists; mark R-ids that already
-     have a terminal decision (annotated | waived) as "already_decided"
-     so the coordinator can skip them.
+     output if there are more):
+     - Strip the spec-id prefix to get the bare R-id:
+       r_id="${fq_rid##*.}" (e.g., `auth.foo.R3` → `R3`).
+       spec-backfill-candidates.sh and spec-backfill-log.sh both
+       require BARE R-ids; passing the FQ form errors. (CRIT 4,
+       2026-05-11 adversarial.)
+     - Extract the requirement text from the spec file under
+       ## Requirements (match `^<r_id>[a-z]*(-…)?\.`).
+     - Run `bash .claude/scripts/spec-backfill-candidates.sh <spec-id>
+       <r_id>` (bare) and capture the top 5 candidates.
+  3. Read .spec/backfill-log.md if it exists; for each bare R-id, run
+     `bash .claude/scripts/spec-backfill-log.sh has-decision
+     .spec/backfill-log.md <spec-id> <r_id>`; mark R-ids whose
+     has-decision returns `annotated|waived` as "already_decided" so
+     the coordinator can skip them.
 
 Return EXACTLY ONE LINE — a JSON object — matching this shape:
 
