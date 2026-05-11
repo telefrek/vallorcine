@@ -709,7 +709,28 @@ Manual mode. I'll prompt you at each stage boundary.
 
 ### Step 4b — Start test writing or coordinator
 
-**If `execution_strategy` is `balanced` or `speed`:**
+**First — check for nested-dispatch context.** Read `status.md`. If it
+contains `nested_in_dispatch: true` (set by `/work-start --nested`
+when this feature was dispatched as part of `/work-start all`,
+`/work-start --parallel`, or `/work-run`), force
+`execution_strategy: cost` regardless of any prior setting. The
+dispatched sub-agent context cannot dispatch nested Agent tool
+calls, so `/feature-coordinate`'s parallel batching would fail at
+runtime. The orchestrator already provides parallelism at the WD
+level — sequential work-unit execution inside each WD is correct.
+
+If `nested_in_dispatch` is true AND the existing `execution_strategy`
+in status.md is `balanced` or `speed`, overwrite it to `cost` and
+append a brief note to `cycle-log.md`:
+
+```
+- <iso-now> execution-strategy-forced — was: <prior>, now: cost (nested_in_dispatch)
+```
+
+Then fall through to the `cost` branch below.
+
+**If `execution_strategy` is `balanced` or `speed`** (and
+`nested_in_dispatch` is NOT true):
 
 ```
 ───────────────────────────────────────────────
@@ -719,7 +740,8 @@ Run /feature-resume "<slug>" at any point to see batch status.
 ```
 Invoke `/feature-coordinate "<slug>"` as a sub-agent immediately.
 
-**If `execution_strategy` is `cost` (or not set):**
+**If `execution_strategy` is `cost` (or not set, or forced from
+`nested_in_dispatch`):**
 
 If work units are defined:
 ```

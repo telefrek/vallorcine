@@ -1,9 +1,9 @@
 ---
 description: "Start implementing a specified work definition — implementation pipeline only"
-argument-hint: "<group-slug> [WD-nn | next | all | --parallel [N]]"
+argument-hint: "<group-slug> [WD-nn | next | all | --parallel [N]] [--nested]"
 ---
 
-# /work-start "<group-slug>" [WD-nn | next | all | --parallel [N]]
+# /work-start "<group-slug>" [WD-nn | next | all | --parallel [N]] [--nested]
 
 Bridges a work definition from a work group into the implementation pipeline.
 Creates a `.feature/` directory and hands off to planning, testing, and
@@ -240,6 +240,32 @@ pipeline_mode: implementation
 
 Set stage = `planning`, substage = `loading-context`.
 
+**If `--nested` was passed** (this single-WD invocation is being driven
+by `/work-start all`, `/work-start --parallel`, or `/work-run` — i.e.,
+this whole `/work-start` is itself running inside a dispatched
+sub-agent), add these additional fields:
+
+```yaml
+nested_in_dispatch: true
+execution_strategy: cost
+```
+
+**Why:** the dispatched-sub-agent context cannot itself dispatch
+nested Agent tool calls — `/feature-coordinate` (which `/feature-plan`
+would otherwise invoke for balanced/speed strategies) needs Agent
+dispatch for its work-unit parallel batches. Inside an already-
+dispatched sub-agent, that nested dispatch fails at runtime. The
+orchestrator already provides parallelism at the WD level (multiple
+sub-agents running concurrently); within each WD, sequential
+execution is correct.
+
+`/feature-plan` honors `nested_in_dispatch: true` by forcing
+`execution_strategy: cost` and routing directly to
+`/feature-test --unit WU-1` (or sequential single-WU flow) rather
+than invoking `/feature-coordinate`. `/feature-coordinate` has a
+defensive guard in its Step 0 that errors out if invoked with this
+flag set.
+
 Stage Completion table — implementation stages only:
 
 | Stage | Status |
@@ -327,8 +353,11 @@ mode-gating in pipeline skills.
   — see Parallel mode caveats.
 
 Both modes use `automation_mode: autonomous` and
-`execution_strategy: balanced` for the dispatched sub-agents (set by
-the single-WD flow at Step 4c). Routine choices auto-default;
+`execution_strategy: cost` for the dispatched sub-agents (set by the
+single-WD flow at Step 4c via the `--nested` flag; nested sub-agents
+cannot dispatch nested Agent calls so `/feature-coordinate`'s parallel
+batching can't run inside them, and the parallelism is already provided
+at the WD level by this skill). Routine choices auto-default;
 escalations surface to the user.
 
 ### Sequential-all flow
@@ -403,11 +432,13 @@ Replace Steps 3–5 with this block when `all` is the argument.
       You are the sequential pipeline runner for <group-slug> /
       <wd-id>.
 
-      Invoke /work-start "<group-slug>" <wd-id>. The single-WD flow
-      will create the feature directory, claim the WD via
-      work-claim.sh (SPECIFIED → IMPLEMENTING), and hand off to
-      /feature-plan → /feature-test → /feature-implement →
-      /feature-refactor → /feature-pr.
+      Invoke /work-start "<group-slug>" <wd-id> --nested. The single-WD
+      flow will create the feature directory with nested_in_dispatch:
+      true + execution_strategy: cost in status.md (because nested
+      dispatch can't invoke /feature-coordinate — see /work-start's
+      4c section), claim the WD via work-claim.sh (SPECIFIED →
+      IMPLEMENTING), and hand off to /feature-plan → /feature-test →
+      /feature-implement → /feature-refactor → /feature-pr.
 
       Treat automation_mode as autonomous. Do not pause between
       pipeline stages. If a stage hits a TECHNICAL escalation (test
@@ -627,11 +658,15 @@ Replace Steps 3–5 with this block when `--parallel` is set.
    - "Stop — I'll start them manually"
 
 4. **Create feature directories (all WDs, sequential).** For each
-   dispatched WD, run Step 4 from the single-WD path in full: generate
-   `brief.md`, verify readiness, write `status.md`, update the WD's
-   status to `IMPLEMENTING`. Do this sequentially — these operations
-   touch the `.work/` tree and are fast. Fanning out here adds no
-   measurable benefit and risks racing on `manifest.md` regeneration.
+   dispatched WD, run Step 4 from the single-WD path in full **treating
+   `--nested` as set** (the dispatched sub-agent cannot itself dispatch
+   `/feature-coordinate`; status.md must carry `nested_in_dispatch:
+   true` + `execution_strategy: cost` so `/feature-plan` routes
+   sequentially): generate `brief.md`, verify readiness, write
+   `status.md` with the nested fields per 4c, update the WD's status
+   to `IMPLEMENTING`. Do this sequentially — these operations touch
+   the `.work/` tree and are fast. Fanning out here adds no measurable
+   benefit and risks racing on `manifest.md` regeneration.
 
 5. **Dispatch sub-agents concurrently.** First, write a dispatch
    marker for every WD that's about to be dispatched (so a payload-

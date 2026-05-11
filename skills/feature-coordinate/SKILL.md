@@ -15,6 +15,32 @@ is `balanced` or `speed`.
 
 Read `.feature/<slug>/status.md`.
 
+- **Nested-dispatch guard (CRITICAL — refuse to run inside a dispatched
+  sub-agent).** If status.md contains `nested_in_dispatch: true`, this
+  skill was invoked inside a `/work-start --nested` / `/work-run`
+  dispatched sub-agent. The dispatched-sub-agent context cannot itself
+  issue Agent tool calls, so this skill's work-unit parallel batches
+  would fail at runtime. The orchestrator already provides parallelism
+  at the WD level. Refuse to run:
+  ```
+  🔀 COORDINATOR · <slug>
+  ───────────────────────────────────────────────
+  ERROR: This feature was dispatched as a sub-agent of /work-start or
+  /work-run (status.md has nested_in_dispatch: true). /feature-coordinate
+  cannot run inside a dispatched sub-agent — nested Agent tool calls are
+  not supported, and the orchestrator is already providing parallelism
+  at the WD level.
+
+  /feature-plan should have forced execution_strategy: cost on this
+  feature before reaching this skill. If you're seeing this error, the
+  upstream /feature-plan invocation didn't honor nested_in_dispatch.
+  Inspect status.md and update execution_strategy to cost manually,
+  then run /feature-test "<slug>" --unit WU-1 to start sequential
+  work-unit execution.
+  ───────────────────────────────────────────────
+  ```
+  Stop with exit 1.
+
 - Verify `execution_strategy` is `balanced` or `speed`. If it is `cost` or `not-set`:
   ```
   🔀 COORDINATOR · <slug>
