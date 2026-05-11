@@ -342,17 +342,31 @@ else
     fail "list-decisions output mismatch" "got: $output"
 fi
 
-# ── Test 14: report counts each status ──────────────────────────────────────
+# ── Test 14: report counts use latest-status semantics ────────────────────
+# (Updated 2026-05-11 per adversarial HIGH #1.)
+#
+# Pre-fix: cmd_report counted EACH row independently — so R2's two rows
+# (skipped then annotated) double-counted as both `skipped: 1` and
+# `annotated: 1`. The corpus-mode summary then overstated "skipped (will
+# resurface)" for already-resolved requirements.
+#
+# Post-fix: cmd_report uses latest-status semantics per (spec, rid). R2's
+# latest is `annotated`, so the `skipped` count drops to 0.
+#
+# Log state for this test:
+#   R1: annotated (one row)
+#   R2: skipped (row 1) → annotated (row 2) — latest is annotated
+#   R3: waived (one row)
+# Effective counts: annotated=2, skipped=0, waived=1.
 
 echo ""
-echo "── Test 14: report counts each status correctly"
+echo "── Test 14: report counts use latest-status semantics (HIGH #1)"
 
-# Log has: R1 annotated, R2 skipped+annotated, R3 waived → 4 rows total
 output=$(bash "$LOG" report "$TEST_BASE/log.md" 2>/dev/null)
-if echo "$output" | grep -qE 'rows: 4 +annotated: 2 +skipped: 1 +waived: 1'; then
-    pass "report counts rows=4 / annotated=2 / skipped=1 / waived=1"
+if echo "$output" | grep -qE 'rows: 4 +annotated: 2 +skipped: 0 +waived: 1'; then
+    pass "report counts rows=4 (raw) / annotated=2 / skipped=0 / waived=1 (effective)"
 else
-    fail "report counts mismatch" "got: $output"
+    fail "report counts wrong (expected latest-status semantics)" "got: $output"
 fi
 
 # ── Test 15: invalid status rejected ────────────────────────────────────────
