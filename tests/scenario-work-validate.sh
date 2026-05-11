@@ -152,6 +152,38 @@ else
     fail "invalid status should fail" "got: $output"
 fi
 
+# ── Test 3b: SPECIFYING and IMPLEMENTING in-flight states pass validation ────
+# Regression for 2026-05-11 adversarial finding: work-validate's enum was
+# missing SPECIFYING and IMPLEMENTING even though work-resolve.sh produces
+# them, wedging /work-decompose re-runs on groups with any in-flight WD.
+
+echo ""
+echo "── Test 3b: in-flight status enum values pass validation"
+
+for in_flight_status in SPECIFYING IMPLEMENTING; do
+    cat > ".work/test-group/wd-$in_flight_status.md" <<EOF
+---
+id: WD-IF-$in_flight_status
+title: In-flight test
+group: test-group
+status: $in_flight_status
+domains: [auth]
+---
+
+## Summary
+.
+
+## Acceptance Criteria
+.
+EOF
+    output="$(bash .claude/scripts/work-validate.sh ".work/test-group/wd-$in_flight_status.md" 2>&1 || true)"
+    if echo "$output" | grep -q "PASS"; then
+        pass "status: $in_flight_status passes validation"
+    else
+        fail "status: $in_flight_status should be valid" "got: $output"
+    fi
+done
+
 # ── Test 4: Empty domains fails ──────────────────────────────────────────────
 
 echo ""

@@ -431,6 +431,104 @@ fi
 
 rm -rf "$OVERFLOW_DIR" 2>/dev/null || true
 
+# ── Test 9b: overflow keeps the DATE-newest rows, not document-newest ───────
+# Regression for the 2026-05-10 jlsm bug: /curate rotated newer ADRs
+# (2026-04-26 et al.) out of "Recently Accepted" and pulled older ADRs
+# (2026-03-19 et al.) in. Root cause: the overflow trimmed from the bottom
+# assuming "newest is at the top," but auto-repair inserted missing rows
+# on top in filesystem order regardless of their accepted_at date. The
+# fix sorts the section by date desc before applying the cap.
+# This test specifically arranges document-order ≠ date-order so a
+# position-trimming implementation fails while a date-sorting one passes.
+
+echo ""
+echo "── Test 9b: Recently Accepted survivors selected by DATE, not document order"
+
+ORDER_DIR="/tmp/vallorcine/scenario-overflow-order"
+rm -rf "$ORDER_DIR" 2>/dev/null || true
+mkdir -p "$ORDER_DIR/.claude/scripts" "$ORDER_DIR/.decisions"
+cp "$REPO_ROOT/scripts/index-verify.sh" "$ORDER_DIR/.claude/scripts/"
+
+# Build a CLAUDE.md where the OLDER rows appear at the TOP and NEWER rows
+# at the BOTTOM — the opposite of the "newest first" assumption the old
+# overflow logic baked in. With 90 rows + the other sections we'll hit
+# the 80-line cap and trigger overflow.
+{
+    cat << 'HEAD'
+# Architecture Decisions — Master Index
+
+## Active Decisions
+| Problem | Slug | Date | Status | Recommendation |
+|---------|------|------|--------|----------------|
+
+## Recently Accepted (last 5)
+| Problem | Slug | Accepted | Recommendation |
+|---------|------|----------|----------------|
+HEAD
+    # Rows 1..85 are OLD (2026-01-*). Rows 86..90 are the NEW ones that
+    # SHOULD survive (2026-04-*). They live at the BOTTOM of the table.
+    for n in $(seq 1 85); do
+        d=$(printf "2026-01-%02d" $((n % 28 + 1)))
+        echo "| Old $n | adr-old-$n | $d | reco old $n |"
+    done
+    for n in $(seq 1 5); do
+        d=$(printf "2026-04-%02d" $((n * 5)))
+        echo "| New $n | adr-new-$n | $d | reco new $n |"
+    done
+    cat << 'TAIL'
+
+## Deferred
+| Problem | Slug | Deferred | Resume When |
+|---------|------|----------|-------------|
+
+## Closed
+| Problem | Slug | Closed | Reason |
+|---------|------|--------|--------|
+TAIL
+} > "$ORDER_DIR/.decisions/CLAUDE.md"
+
+(cd "$ORDER_DIR" && bash .claude/scripts/index-verify.sh --decisions 2>&1) >/tmp/index-verify-order.out
+
+# All 5 "New" rows (2026-04-*) should survive in CLAUDE.md.
+new_survivors="$(grep -cE '^\| New [0-9]+ \|' "$ORDER_DIR/.decisions/CLAUDE.md" 2>/dev/null; true)"
+new_survivors="${new_survivors:-0}"
+if (( new_survivors == 5 )); then
+    pass "all 5 date-newest rows survive in CLAUDE.md (sort-by-date works)"
+else
+    fail "expected 5 'New' rows surviving, got $new_survivors" \
+         "(this is the 2026-05-10 jlsm bug shape)"
+fi
+
+# All 85 "Old" rows (2026-01-*) should be in history.md.
+old_archived="$(grep -cE '^\| Old [0-9]+ \|' "$ORDER_DIR/.decisions/history.md" 2>/dev/null; true)"
+old_archived="${old_archived:-0}"
+if (( old_archived == 85 )); then
+    pass "all 85 date-older rows archived to history.md"
+else
+    fail "expected 85 'Old' rows archived, got $old_archived"
+fi
+
+# Zero "New" rows in history.md (would mean we archived newer rows — the bug).
+new_archived="$(grep -cE '^\| New [0-9]+ \|' "$ORDER_DIR/.decisions/history.md" 2>/dev/null; true)"
+new_archived="${new_archived:-0}"
+if (( new_archived == 0 )); then
+    pass "zero 'New' rows leaked into history (no inversion bug)"
+else
+    fail "$new_archived 'New' rows got archived (date-newer should never be archived)"
+fi
+
+# Sanity: the surviving 5 rows should be ordered date-desc (newest at top).
+# The fixture has New 1..5 with dates 2026-04-05, -10, -15, -20, -25.
+# After sort desc: New 5 (-25), New 4 (-20), New 3 (-15), New 2 (-10), New 1 (-05).
+first_remaining="$(grep -m1 -E '^\| New [0-9]+ \|' "$ORDER_DIR/.decisions/CLAUDE.md")"
+if echo "$first_remaining" | grep -qF "New 5"; then
+    pass "first surviving row is the date-newest (New 5, 2026-04-25)"
+else
+    fail "expected 'New 5' first, got: $first_remaining"
+fi
+
+rm -rf "$ORDER_DIR" 2>/dev/null || true
+
 # ── Test 10: under-cap files unchanged ──────────────────────────────────────
 
 echo ""

@@ -69,11 +69,17 @@ validate_wd_file() {
       [[ -z "$val" ]] && errors+=("Missing required field: $field")
     done
 
-    # Check 3: status is valid enum
+    # Check 3: status is valid enum.
+    # MUST include every state work-resolve.sh can produce, or re-running
+    # /work-decompose on a group with any in-flight WD wedges at this
+    # check. SPECIFYING and IMPLEMENTING are produced by work-resolve.sh;
+    # IN_PROGRESS is the legacy alias for IMPLEMENTING. 2026-05-11
+    # adversarial finding: missing enum entries silently rejected valid
+    # in-flight WDs.
     local status
     status=$(work_fm "$file" "status")
-    if [[ -n "$status" && ! "$status" =~ ^(DRAFT|SPECIFIED|READY|IN_PROGRESS|COMPLETE|BLOCKED)$ ]]; then
-      errors+=("Invalid status: '$status' — must be DRAFT|SPECIFIED|READY|IN_PROGRESS|COMPLETE|BLOCKED")
+    if [[ -n "$status" && ! "$status" =~ ^(DRAFT|SPECIFYING|SPECIFIED|READY|IMPLEMENTING|IN_PROGRESS|COMPLETE|BLOCKED)$ ]]; then
+      errors+=("Invalid status: '$status' — must be DRAFT|SPECIFYING|SPECIFIED|READY|IMPLEMENTING|IN_PROGRESS|COMPLETE|BLOCKED")
     fi
 
     # Check 4: domains is non-empty

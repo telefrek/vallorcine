@@ -222,10 +222,42 @@ if [[ "$CHECK_DECISIONS" == "1" && -d ".decisions" && -f ".decisions/CLAUDE.md" 
                 mapfile -t row_nums < <(awk -v s="$sep_line" -v e="$ra_end" 'NR>s && NR<=e && /^\| / {print NR}' '.decisions/CLAUDE.md')
                 total="${#row_nums[@]}"
                 if (( total > keep )); then
+                    # Sort the rows by accepted-date column (4th pipe field)
+                    # descending before trimming. Without this, the overflow
+                    # archives bottom-N rows assuming they're oldest — but
+                    # auto-repair inserts missing rows on top in filesystem
+                    # order, and pre-existing rows live wherever they were
+                    # written. Document order ≠ date order. The 2026-05-10
+                    # jlsm bug: /curate rotated newer 2026-04-26 ADRs out
+                    # and pulled older 2026-03-19 ADRs in. Sorting first
+                    # makes the invariant explicit (date-desc) so the
+                    # bottom-N overflow really does pick the oldest.
+                    first_row="${row_nums[0]}"
+                    last_row="${row_nums[$((total - 1))]}"
+                    sorted_rows="$(sed -n "${first_row},${last_row}p" '.decisions/CLAUDE.md' \
+                        | awk -F'|' '{
+                            d=$4
+                            gsub(/^[[:space:]]+|[[:space:]]+$/, "", d)
+                            printf "%s\t%s\n", d, $0
+                          }' \
+                        | sort -t$'\t' -k1,1 -r \
+                        | cut -f2-)"
+                    # Rebuild file with sorted rows replacing the original block.
+                    {
+                        sed -n "1,$((first_row - 1))p" '.decisions/CLAUDE.md'
+                        printf '%s\n' "$sorted_rows"
+                        sed -n "$((last_row + 1)),\$p" '.decisions/CLAUDE.md'
+                    } > '.decisions/CLAUDE.md.tmp' && mv '.decisions/CLAUDE.md.tmp' '.decisions/CLAUDE.md'
+
+                    # Re-read row positions after the rewrite (line numbers
+                    # haven't shifted because we wrote the same number of rows,
+                    # but be defensive).
+                    mapfile -t row_nums < <(awk -v s="$sep_line" -v e="$ra_end" 'NR>s && NR<=e && /^\| / {print NR}' '.decisions/CLAUDE.md')
+                    total="${#row_nums[@]}"
+
                     overflow_count=$(( total - keep ))
-                    # Rows are stored newest-first (auto-repair inserts right
-                    # after the separator). Overflow the LAST `overflow_count`
-                    # rows = oldest by insertion order.
+                    # Rows are now in date-desc order. Overflow the LAST
+                    # `overflow_count` rows = oldest by accepted-date.
                     first_overflow_idx=$(( total - overflow_count ))
                     first_line="${row_nums[$first_overflow_idx]}"
                     last_line="${row_nums[$((total - 1))]}"
