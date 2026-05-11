@@ -129,13 +129,34 @@ STUCK_MARKERS=$(bash .claude/scripts/dispatch-marker.sh stuck \
 
 Each row is `<finding-key>|<dispatched-at>|<has-result>|<failure-reason>`.
 
-If non-empty, surface BEFORE Step 1 (the scan run): for each stuck
-marker, use AskUserQuestion with three options —
-**"Re-dispatch"** (clear marker, include in this run),
-**"Skip for now"** (leave marker; next run will resurface it),
-**"Investigate manually"** (print marker JSON via
-`dispatch-marker.sh status .curate/_dispatches <finding-key>` and
-stop the `/curate` run).
+If non-empty, surface BEFORE Step 1 (the scan run). **Batch the prompt
+when N > 2 markers exist** (2026-05-11 adversarial MED #3) — per the
+kit-development "Interactive prompt standard," dynamic lists with >4
+items should use summary options rather than firing N consecutive
+AskUserQuestions in a row.
+
+- **N == 1**: single AskUserQuestion with three options —
+  **"Re-dispatch"** (clear marker, include in this run),
+  **"Skip for now"** (leave marker; next run will resurface it),
+  **"Investigate manually"** (print marker JSON via
+  `dispatch-marker.sh status .curate/_dispatches <finding-key>` and
+  stop the `/curate` run).
+
+- **N == 2**: two sequential AskUserQuestions, same option set.
+  Acceptable user friction.
+
+- **N > 2 (the batching path)**: one AskUserQuestion with summary
+  options that apply to all stuck markers:
+    - **"Re-dispatch all"** — clears all markers and includes each
+      finding in this run
+    - **"Skip all"** — leaves every marker; next run resurfaces them
+    - **"Walk one at a time"** — falls back to the per-marker prompt
+      (N consecutive AskUserQuestions, one per marker, same option
+      set as the N==1 case)
+    - **"Investigate manually"** — print all marker JSONs and stop
+  This caps user interruption at one prompt regardless of N — the
+  pre-fix flow with N=5 markers fired 5 sequential prompts before the
+  scan even started.
 
 This mirrors `/work-resume rule 0` (PR #79) and `/spec-backfill` C0 —
 any unacknowledged marker pre-empts the normal flow because it
@@ -1776,28 +1797,30 @@ items via Step 2.5 deprioritized below new findings.
 
 After the user is done (explored items, deferred, or noted for later):
 
-Update `.curate/curation-state.md` with **only the Scan State section**.
-The Review Log lives in `.curate/review-log.md` (append-only) and is
-managed exclusively via `curate-review-log.sh`. Writing the Review Log
-inline in curation-state.md would silently destroy prior rows on every
-run — that is the bug this design replaces.
+**`curate-scan.sh` already wrote `.curate/curation-state.md`** at the
+end of its run (lines 3190-3195). It's the canonical writer — Step 5
+is a no-op for this file. Format the script emits (verified
+2026-05-11):
 
-```markdown
-# Curation State
-
-## Scan State
+```
 Last scanned: <current HEAD SHA>
-Last scanned date: <YYYY-MM-DD>
-Window: <months used>
-Commits scanned: <N>
+Scan date: <YYYY-MM-DD>
+Commits: <N>
+Window: <months> months
 ```
 
-(The original Step 5 template emitted both Scan State and Review Log into
-this file, which is what destroyed the persistence guarantee. Do not
-re-introduce the Review Log section here.)
+Pre-2026-05-11 (MED #1 adversarial finding), Step 5 prescribed a
+DIFFERENT format with `# Curation State` / `## Scan State` headers
+and field names like `Last scanned date` / `Commits scanned` —
+overwriting the script's output every run with conflicting field
+names. Step 0's reader keys on `^Last scanned:` so basic functionality
+survived, but other consumers got inconsistent data. **Do not
+re-introduce the SKILL-side write.**
 
-After updating curation-state.md, do not write to review-log.md directly
-— Step 4 already appended every finding via `curate-review-log.sh append`.
+The Review Log lives in `.curate/review-log.md` (append-only) and is
+managed exclusively via `curate-review-log.sh`. Step 4 already
+appended every finding via `curate-review-log.sh append` — Step 5
+does not touch review-log.md either.
 
 ---
 
