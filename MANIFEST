@@ -139,6 +139,7 @@
 .claude/scripts/work-finalize.sh
 .claude/scripts/work-dispatch.sh
 .claude/scripts/dispatch-marker.sh
+.claude/scripts/work-orchestrator.sh
 .claude/scripts/work-index.sh
 .claude/scripts/check-kb-ref.sh
 .claude/scripts/kb-index.sh

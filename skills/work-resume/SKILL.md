@@ -179,6 +179,52 @@ finalized is misleading.
 
 ---
 
+## Step 2c — Detect orchestrator state
+
+If `.work/<group-slug>/.orchestrator/` exists, the `/work-run` orchestrator
+(when present) was running a dynamic-DAG dispatch over this group and
+either finished, was paused for escalation, or crashed.
+
+The orchestrator's persistent state is independent of any
+`/work-decompose` checkpoint and lives in its own directory tree —
+state.json + queue.txt + in-flight/ + completed/ + blocked/.
+
+Display its current state before routing the user to readiness:
+
+```bash
+bash .claude/scripts/work-orchestrator.sh status "<group-slug>"
+```
+
+Interpret the output:
+
+- **Paused: YES** — the orchestrator halted on a user-required escalation.
+  Read each `blocked/<wd>.json` to find the escalation_path and show the
+  user the underlying question. The user should resolve the design
+  point (edit specs/ADRs/context as needed), then either:
+  - Run `work-orchestrator.sh unblock <group> <wd-id>` + `resume <group>`
+    to re-queue the blocked WD, OR
+  - Re-invoke `/work-run` (when it lands in PR C) — the skill detects
+    the orchestrator state and resumes from where it stopped.
+
+- **In-flight > 0** — a previous orchestrator session crashed or its
+  parent exited mid-run. Run
+  `work-orchestrator.sh hung "<group-slug>" --threshold-seconds 1800`
+  to find WDs whose `.feature/<slug>/status.md` hasn't been touched
+  for 30+ minutes; those are recoverable via `/feature-resume <slug>`
+  or by clearing the in-flight record and re-queueing.
+
+- **All sets empty / completed = total** — the orchestrator finished;
+  the state directory can be cleared at the user's discretion with
+  `work-orchestrator.sh clear <group-slug>`.
+
+This is detection + diagnosis only. The actionable routing UX
+(AskUserQuestion-driven escalation handling, automatic re-dispatch)
+lives in `/work-run` itself; here we just inform the user that the
+orchestrator state exists so they're not surprised by a stale queue
+or unresolved escalation.
+
+---
+
 ## Step 3 — Refresh readiness cache (if needed)
 
 Decide whether the cache is fresh with this single check (mtime-based,
