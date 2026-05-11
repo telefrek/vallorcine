@@ -365,24 +365,67 @@ escalations surface to the user.
 Replace Steps 3–5 with this block when `all` is the argument.
 
 1. **Initial enumeration.** Read `_readiness.json` (refreshed by the
-   resolver call in Step 2) and collect every WD whose status is
-   `SPECIFIED`. If zero, report and stop:
+   resolver call in Step 2) and collect WDs into three sets:
+
+   - **`specified`** — WDs whose status is `SPECIFIED`. Dispatch the
+     full single-WD `/work-start` pipeline for each.
+   - **`stranded_implementing`** — WDs whose status is `IMPLEMENTING`
+     (or the legacy alias `IN_PROGRESS`) that are NOT being actively
+     run by another session. These are typically WDs whose prior
+     `/work-start` run claimed them (SPECIFIED → IMPLEMENTING) but
+     didn't finish the pipeline — for example, a crashed sub-agent
+     or a stalled `/feature-coordinate` dispatch. **Route these via
+     `/feature-resume "<feature-slug>"`** (NOT another `/work-start`,
+     which would re-trigger `work-claim.sh` and fail on the already-
+     IMPLEMENTING state). The feature slug is `<group>--<wd-id>`.
+
+     **Active vs stranded distinction.** A WD is `stranded` (eligible
+     for re-dispatch) if EITHER:
+     - `.work/<group>/_dispatch-<wd-id>.json` does not exist, OR
+     - The marker exists but is in state `fail` (prior attempt errored), OR
+     - The marker is in state `begin` and its `dispatched_at` is more
+       than 30 minutes old (assume the dispatcher died).
+
+     A WD is `active` (skip — another session is running it) if the
+     marker is in state `begin` and was written within the last 30
+     minutes. Surface skipped active WDs in the plan display so the
+     user can stop their other session if it's actually dead.
+   - **`needs_planning`** — WDs whose status is `SPECIFYING`. These
+     are mid-`/spec-author` arbitration and need `/work-plan
+     "<group-slug>" "<wd-id>"` to finish. Surface them as
+     informational; `/work-start all` does not start planning work.
+
+   If `specified` and `stranded_implementing` are BOTH empty, report
+   and stop:
    ```
-   No SPECIFIED work definitions in '<group-slug>' — run /work-plan
-   "<group-slug>" all to specify READY WDs first, or check
-   /work-status for blockers.
+   No work to start in '<group-slug>' — no SPECIFIED or stranded
+   IMPLEMENTING WDs.
+   <if needs_planning is non-empty:>
+   Note: <P> WD(s) need /work-plan "<group-slug>" to finish their
+   arbitration (currently SPECIFYING):
+     - WD-<nn> — <title>
+     - ...
    ```
 
 2. **Show the plan.** Compute the initial run order — sort by
    unblocking value (most downstream dependents first), tie-breaking
-   by fewer artifact dependencies. Display:
+   by fewer artifact dependencies. IMPLEMENTING WDs sort BEFORE
+   SPECIFIED ones (finish in-flight work first). Display:
    ```
    ── Sequential start plan ──────────────────────
    Group: <group-slug>
-   SPECIFIED WDs: <N>
-   Initial order (by unblocking value):
-     1. WD-<nn> — <title>  (unblocks: <list>)
-     2. WD-<nn> — ...
+   Stranded IMPLEMENTING WDs to resume: <M>  (via /feature-resume)
+   SPECIFIED WDs to start: <N>               (full pipeline)
+   <if needs_planning is non-empty:>
+   Note: <P> SPECIFYING WD(s) need /work-plan first:
+     - WD-<nn> — <title>
+   <if any active-skipped WDs:>
+   Skipping (another session active): <list of WD-ids>
+   <end>
+   Initial order (by unblocking value, IMPLEMENTING first):
+     1. WD-<nn> [resume] — <title>  (unblocks: <list>)
+     2. WD-<nn> [start]  — <title>  (unblocks: <list>)
+     3. ...
    Note: a WD's completion may unblock a sibling that's currently
    BLOCKED on a wd: dep — the loop re-enumerates between iterations,
    so the run may include WDs not in this initial list.
@@ -401,19 +444,32 @@ Replace Steps 3–5 with this block when `all` is the argument.
       satisfy a `wd:` or spec dep that promotes a sibling from
       BLOCKED to SPECIFIED in iteration N+1.
 
-   b. **Pick the next.** From the current SPECIFIED list, pick the
-      WD with the highest unblocking value (same heuristic as Step 2).
-      Skip WDs the run has already dispatched (track in a dispatched
-      set keyed by WD id). If no SPECIFIED WD remains that hasn't been
-      dispatched, exit the loop.
+   b. **Pick the next.** From the combined `stranded_implementing` ∪
+      `specified` sets, pick the WD with the highest unblocking value
+      (same heuristic as Step 2; IMPLEMENTING WDs sort before
+      SPECIFIED ones). Skip WDs the run has already dispatched (track
+      in a dispatched set keyed by WD id). Also re-evaluate the
+      "active vs stranded" check (Step 1) on each iteration — markers
+      can flip from `begin` to `ack`/`fail` between iterations. If no
+      eligible WD remains, exit the loop.
 
    c. **Honor the cap.** If the user chose a cap in Step 2 and the
       dispatched count has reached it, exit the loop.
 
-   d. **Dispatch ONE sub-agent that recursively invokes the
-      single-WD `/work-start`.** This is critical — do NOT hand-roll
-      the feature creation + claim + pipeline dispatch logic in this
-      coordinator. The single-WD flow already does it correctly.
+   d. **Dispatch ONE sub-agent.** Route based on the WD's current
+      status — same coordinator, different inner skill:
+
+      - **SPECIFIED** → sub-agent invokes single-WD `/work-start
+        "<group>" <wd-id> --nested` (handles feature dir creation,
+        claim, full pipeline).
+      - **IMPLEMENTING** (stranded) → sub-agent invokes
+        `/feature-resume "<group>--<wd-id>"` (picks up the existing
+        feature directory from where the prior pipeline stopped;
+        no claim needed — WD is already IMPLEMENTING).
+
+      Do NOT hand-roll feature creation + claim + pipeline dispatch
+      logic in this coordinator. Each inner skill handles its
+      respective flow correctly.
 
       **Before the Agent call**, write a dispatch marker so a
       lost-payload or rejected-dispatch failure does not leave the
@@ -425,9 +481,14 @@ Replace Steps 3–5 with this block when `all` is the argument.
       `ack: false`. Step 3f flips it to `ack: true` once the result is
       parsed (or marks `failure_reason` when parsing fails). The marker
       is what `/work-resume` uses to detect stuck dispatches and
-      surface them as recovery candidates.
+      surface them as recovery candidates. For resume-mode dispatches,
+      the marker overwrites any stale pre-existing marker — the new
+      one supersedes.
 
-      **Then invoke the sub-agent** with this prompt verbatim:
+      **Then invoke the sub-agent.** Use ONE of the two prompts below
+      based on the WD's status.
+
+      **Prompt A — SPECIFIED WD (fresh start):**
       ```
       You are the sequential pipeline runner for <group-slug> /
       <wd-id>.
@@ -477,6 +538,38 @@ Replace Steps 3–5 with this block when `all` is the argument.
 
       Return exactly ONE line and nothing else after. The coordinator
       parses this string.
+      ```
+
+      **Prompt B — IMPLEMENTING WD (stranded resume):**
+      ```
+      You are the sequential resume runner for <group-slug> /
+      <wd-id>. The WD is already IMPLEMENTING — a prior /work-start
+      dispatch claimed it and started the pipeline, but did not run
+      it to completion (typically because of a crashed sub-agent or
+      a stalled inner-dispatch step). The feature directory exists
+      at .feature/<group-slug>--<wd-id>/ with status.md reflecting
+      the stage where the prior run stopped.
+
+      Invoke /feature-resume "<group-slug>--<wd-id>". It will read
+      status.md, identify the stage to resume from, and continue the
+      pipeline through /feature-pr. Do NOT re-invoke /work-start —
+      work-claim.sh would reject the transition (already IMPLEMENTING).
+
+      Treat automation_mode as autonomous. TECHNICAL escalations are
+      auto-handled (record in cycle-log, continue). USER-REQUIRED
+      escalations follow the contract: write
+      .feature/<group-slug>--<wd-id>/escalation.json, append a
+      user-escalation entry to cycle-log.md, set status.md substage
+      to awaiting-user-input, then return ESCALATION_AT_<stage>.
+
+      Return exactly ONE line matching the same classifier shape as
+      Prompt A:
+        "<group-slug>--<wd-id>: COMPLETE — <detail>"
+        "<group-slug>--<wd-id>: ESCALATION_AT_<stage> — <category>: <question>"
+        "<group-slug>--<wd-id>: STOPPED_AT_<stage> — <detail>"
+        "<group-slug>--<wd-id>: ERROR — <one-line detail>"
+
+      Nothing else after.
       ```
 
    e. **Wait for the sub-agent to return.** The Agent tool blocks
