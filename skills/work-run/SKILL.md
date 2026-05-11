@@ -437,12 +437,17 @@ For each WD in `READY` (one per line):
    ```
    You are the dynamic pipeline runner for <feature-slug>.
 
-   Invoke /work-start "<group-slug>" <wd-id> — it will detect that
-   the WD is already IMPLEMENTING (orchestrator set this), create
+   Invoke /work-start "<group-slug>" <wd-id> --nested — the --nested
+   flag tells /work-start to write nested_in_dispatch: true +
+   execution_strategy: cost into status.md (because nested sub-agent
+   contexts cannot dispatch /feature-coordinate's parallel batches).
+   /work-start will then claim the WD via work-claim.sh, create
    the feature directory at .feature/<feature-slug>/ if not present,
    and run the single-WD pipeline (/feature-plan → /feature-test →
    /feature-implement → /feature-refactor → /feature-pr) in
-   automation_mode autonomous.
+   automation_mode autonomous with execution_strategy cost (sequential
+   work-unit execution — the orchestrator provides parallelism at
+   the WD level).
 
    <If escalation-resolved.md exists, insert here verbatim:>
    ── Prior escalation resolution ──
