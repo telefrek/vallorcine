@@ -228,7 +228,8 @@ or work groups stall. The result: your 5th feature is faster than your 1st.
 | `/work-status --all` | Readiness summary across all active work groups |
 | `/work-resume [<slug>]` | Show where a group is and what to run next — cheap entry point after `/clear` |
 | `/work-plan "<slug>" [WD-nn \| next \| all]` | Specify a work definition — domain analysis and spec authoring only. `all` chains through every READY WD sequentially via subagents |
-| `/work-start "<slug>" [WD-nn \| next \| all]` | Implement a specified work definition — implementation pipeline only. `all` chains through every SPECIFIED WD sequentially via subagents (context-economy alternative to `--parallel`) |
+| `/work-start "<slug>" [WD-nn \| next \| all \| --parallel [N]] [--nested]` | Implement a specified work definition — implementation pipeline only. `all` chains through every SPECIFIED WD sequentially via subagents (context-economy alternative to `--parallel`). `--nested` is set automatically when `/work-start` is itself dispatched as a sub-agent. |
+| `/work-run "<slug>" [--cap N] [--resume]` | Dynamic-DAG dispatcher: drives an entire work group autonomously, dispatching SPECIFIED WDs as concurrent sub-agents and re-dispatching newly-unblocked WDs as siblings complete. Pauses only on USER-REQUIRED escalations (surfaces them via AskUserQuestion, resumes after resolution). Use this for 10+ WD groups where you've done the spec/research upfront. |
 
 ### Audit — adversarial bug finding
 
