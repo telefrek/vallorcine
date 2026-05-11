@@ -38,6 +38,8 @@
 #   block    <group> <wd-id> <reason> <esc>     in-flight -> blocked
 #                                               (also sets paused=true)
 #   unblock  <group> <wd-id>                    blocked -> queue
+#   skip     <group> <wd-id> <reason>           blocked -> completed:ERROR
+#                                               (atomic; for /work-run Skip)
 #   resume   <group>                            clear paused flag
 #   hung     <group> [--threshold-seconds N]    print in-flight WDs whose
 #                                               status.md hasn't transitioned
@@ -75,6 +77,7 @@ Usage:
   work-orchestrator.sh complete <group> <wd-id> <status> <summary-line>
   work-orchestrator.sh block    <group> <wd-id> <reason> <escalation-path>
   work-orchestrator.sh unblock  <group> <wd-id>
+  work-orchestrator.sh skip     <group> <wd-id> <reason>
   work-orchestrator.sh resume   <group>
   work-orchestrator.sh hung     <group> [--threshold-seconds N]
   work-orchestrator.sh resolve  <group>
@@ -711,6 +714,38 @@ cmd_unblock() {
   echo "unblocked $wd_id — re-queued"
 }
 
+# ── Subcommand: skip ────────────────────────────────────────────────────────
+# Atomic blocked → completed transition. PR C's /work-run "Skip this WD"
+# option needs this; the old `unblock + complete` sequence failed because
+# `complete` requires in-flight membership and `unblock` moved to queue,
+# not in-flight (CRITICAL #1 from 2026-05-11 adversarial review of PR C).
+
+cmd_skip() {
+  local group="$1" wd_id="$2" reason="$3"
+  validate_wd_id "$wd_id"
+  if [[ -z "$reason" ]]; then
+    echo "ERROR: skip requires a non-empty reason" >&2
+    exit 2
+  fi
+
+  local dir
+  dir=$(orch_dir "$group")
+  require_init "$dir"
+
+  if ! in_set "$dir" blocked "$wd_id"; then
+    echo "ERROR: $wd_id is not blocked (cannot skip)" >&2
+    exit 3
+  fi
+
+  # Order: rm blocked FIRST, then write completed — same crash-window
+  # rationale as cmd_complete / cmd_block.
+  rm -f "$dir/blocked/$wd_id.json"
+  write_completed "$dir" "$wd_id" "ERROR" "user skipped: $reason"
+
+  state_tick "$dir"
+  echo "skipped $wd_id ($reason); moved blocked → completed:ERROR"
+}
+
 # ── Subcommand: resume ──────────────────────────────────────────────────────
 
 cmd_resume() {
@@ -850,6 +885,7 @@ case "$action" in
   complete) [[ $# -ne 4 ]] && usage; cmd_complete "$@" ;;
   block)    [[ $# -ne 4 ]] && usage; cmd_block "$@" ;;
   unblock)  [[ $# -ne 2 ]] && usage; cmd_unblock "$@" ;;
+  skip)     [[ $# -ne 3 ]] && usage; cmd_skip "$@" ;;
   resume)   [[ $# -ne 1 ]] && usage; cmd_resume "$@" ;;
   hung)     [[ $# -lt 1 ]] && usage; cmd_hung "$@" ;;
   resolve)  [[ $# -ne 1 ]] && usage; cmd_resolve "$@" ;;

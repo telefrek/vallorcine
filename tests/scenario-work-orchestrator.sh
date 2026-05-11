@@ -669,6 +669,64 @@ else
     fail "WD-id validation missed path-injection"
 fi
 
+# ── skip: atomic blocked → completed:ERROR ─────────────────────────────────
+# (PR C CRITICAL #1: /work-run "Skip this WD" path needs this to avoid
+# the unblock+complete sequence that the state machine rejects.)
+
+echo ""
+echo "── skip subcommand (PR C CRITICAL #1)"
+echo "  ─────────────────────────────────"
+
+# Fresh scenario: clear, re-init, dispatch a fresh WD, block, skip.
+$ORCH clear inv >/dev/null 2>&1 || true
+$ORCH init inv --cap 2 >/dev/null
+$ORCH dispatch inv WD-01 inv--WD-01 >/dev/null
+$ORCH block inv WD-01 "escalation:design-choice" ".feature/inv--WD-01/escalation.json" >/dev/null
+
+# skip refuses missing reason
+if ! $ORCH skip inv WD-01 "" 2>/dev/null; then
+    pass "skip refuses empty reason"
+else
+    fail "skip should require non-empty reason"
+fi
+
+# skip refuses non-blocked WD
+if ! $ORCH skip inv WD-99 "test" 2>/dev/null; then
+    pass "skip refuses non-blocked WD"
+else
+    fail "skip should require blocked membership"
+fi
+
+# Happy path
+$ORCH skip inv WD-01 "user picked Skip" >/dev/null
+if [[ ! -f .work/inv/.orchestrator/blocked/WD-01.json ]]; then
+    pass "skip removed WD-01 from blocked/"
+else
+    fail "WD-01 still in blocked after skip"
+fi
+
+if [[ -f .work/inv/.orchestrator/completed/WD-01.json ]]; then
+    pass "skip wrote WD-01 to completed/"
+else
+    fail "WD-01 not in completed after skip"
+fi
+
+if grep -q '"status": "ERROR"' .work/inv/.orchestrator/completed/WD-01.json; then
+    pass "skip records WD as ERROR status"
+else
+    fail "skip's completed record missing ERROR status"
+fi
+
+if grep -q '"summary_line": "user skipped: user picked Skip"' .work/inv/.orchestrator/completed/WD-01.json; then
+    pass "skip records 'user skipped:' prefix + reason"
+else
+    fail "skip didn't preserve reason in summary_line"
+fi
+
+# State-invariant: state.json still valid; no cross-set overlap.
+assert_valid_state_json "skip"
+assert_no_cross_set_overlap "skip"
+
 # ── Summary ─────────────────────────────────────────────────────────────────
 
 echo ""
