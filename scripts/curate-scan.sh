@@ -1339,19 +1339,39 @@ fi
 # is not referenced anywhere". The classification matters because the user
 # remediation differs: the former needs a refactor of existing annotations,
 # the latter needs new annotations from scratch.
+#
+# 2026-05-11 adversarial HIGH #4: pre-fix this ran a recursive grep over
+# the entire source tree PER unannotated spec — for 50 unannotated specs
+# on a large repo (jlsm scale) this is 50 full-tree walks, which was the
+# main driver of Analysis 18's 10-15 min runtime documented in SKILL.md.
+# The fix builds a one-time index file (`spec-refs-index.txt`) containing
+# every `@spec <id>...` line in the source tree, ONCE before the spec
+# loop. Per-spec membership becomes a single grep -qF against the index
+# (O(file_size), not O(tree_size × specs)).
+SPEC_REFS_INDEX="$TMPDIR_SCAN/spec-refs-index.txt"
+> "$SPEC_REFS_INDEX"
+grep -rhoE '@spec [A-Za-z][A-Za-z0-9_.-]*' \
+    --include='*.java' --include='*.py' --include='*.js' \
+    --include='*.ts' --include='*.go' --include='*.rs' \
+    --include='*.kt' --include='*.scala' --include='*.c' \
+    --include='*.cpp' --include='*.h' --include='*.hpp' \
+    --include='*.cs' --include='*.rb' --include='*.swift' \
+    --include='*.m' --include='*.sh' \
+    --exclude-dir='node_modules' --exclude-dir='vendor' \
+    --exclude-dir='target' --exclude-dir='build' --exclude-dir='dist' \
+    . 2>/dev/null \
+    | sort -u > "$SPEC_REFS_INDEX" || true
+
 has_bare_annotations() {
     local sid="$1"
-    local sid_re="${sid//./\\.}"
-    grep -rqE "@spec ${sid_re}([^.A-Za-z0-9_-]|\$)" \
-        --include='*.java' --include='*.py' --include='*.js' \
-        --include='*.ts' --include='*.go' --include='*.rs' \
-        --include='*.kt' --include='*.scala' --include='*.c' \
-        --include='*.cpp' --include='*.h' --include='*.hpp' \
-        --include='*.cs' --include='*.rb' --include='*.swift' \
-        --include='*.m' --include='*.sh' \
-        --exclude-dir='node_modules' --exclude-dir='vendor' \
-        --exclude-dir='target' --exclude-dir='build' --exclude-dir='dist' \
-        . 2>/dev/null
+    # A "bare" reference is `@spec <sid>` followed by NOT a dot (no
+    # `.R<n>` suffix). Match exactly via fixed-string grep on `@spec
+    # <sid> ` (note trailing space) — any line starting with that and
+    # NOT containing a dot in the matched identifier qualifies.
+    awk -v target="@spec $sid" '
+        $0 == target { found = 1; exit }
+        END { exit (found ? 0 : 1) }
+    ' "$SPEC_REFS_INDEX"
 }
 
 if [[ -f ".spec/registry/manifest.json" ]] && command -v jq >/dev/null 2>&1; then
@@ -2345,9 +2365,22 @@ if [[ -d ".decisions" && -f ".spec/registry/manifest.json" ]] && command -v jq >
 
     # Walk every ADR. Eligible = status accepted/proposed (would normally
     # have a spec). Skip rejected/superseded/deferred — those don't owe one.
+    #
+    # 2026-05-11 adversarial HIGH #2: previously used `-mindepth 2
+    # -maxdepth 2`, which silently skipped ADRs at deeper paths like
+    # `.decisions/<area>/<slug>/adr.md` (grouped-decisions layouts).
+    # Now walks any depth and derives the slug as the path-relative
+    # directory name. Spec decision_refs use the same slug convention
+    # (e.g., `area/slug` or just `slug`), so we compute the slug as
+    # the relative path under .decisions/ minus the trailing /adr.md.
     while IFS= read -r adr_file; do
         [[ -f "$adr_file" ]] || continue
-        slug="$(basename "$(dirname "$adr_file")")"
+        # Derive the slug: strip leading .decisions/ and trailing /adr.md
+        # so `.decisions/foo/adr.md` → `foo` and
+        # `.decisions/security/auth-tokens/adr.md` → `security/auth-tokens`.
+        slug="${adr_file#./}"
+        slug="${slug#.decisions/}"
+        slug="${slug%/adr.md}"
 
         # Skip if any spec references it.
         if grep -qxF "$slug" "$TMPDIR_SCAN/_adr-referenced.txt" 2>/dev/null; then
@@ -2373,7 +2406,7 @@ if [[ -d ".decisions" && -f ".spec/registry/manifest.json" ]] && command -v jq >
 
         echo "ADR_NO_SPEC|$slug|$adr_status|$adr_title" \
             >> "$TMPDIR_SCAN/adr-no-spec.txt"
-    done < <(find .decisions -mindepth 2 -maxdepth 2 -type f -name 'adr.md' 2>/dev/null | sort)
+    done < <(find .decisions -mindepth 2 -type f -name 'adr.md' 2>/dev/null | sort)
 
     rm -f "$TMPDIR_SCAN/_adr-referenced.txt"
 
@@ -2951,7 +2984,14 @@ if [[ -s "$TMPDIR_SCAN/kb-citation-drift.txt" ]]; then
     echo "" >> "$SUMMARY_FILE"
 fi
 
-# Spec annotation coverage rollup (Analysis 18b — F5)
+# Spec annotation coverage rollup (Analysis 18b — F5).
+# When MAX_SPECS_TRACED=0 (fast-scan path for large repos), Analyses 18
+# and 18b skip entirely — no rollup row in the tmp file. Pre-fix, the
+# section just disappeared from scan-summary.md with no explanation
+# (2026-05-11 adversarial HIGH #3), so the user reading the summary
+# couldn't tell "no annotation gaps" from "annotation analysis didn't
+# run." Emit an explicit "skipped" section in that case so the omission
+# is a positive signal.
 if [[ -s "$TMPDIR_SCAN/spec-annotation-rollup.txt" ]]; then
     while IFS='|' read -r _ traced unann bare drift full unann_pct bare_pct drift_pct full_pct; do
         echo "## Spec Annotation Coverage Rollup" >> "$SUMMARY_FILE"
@@ -2976,6 +3016,19 @@ if [[ -s "$TMPDIR_SCAN/spec-annotation-rollup.txt" ]]; then
             echo "" >> "$SUMMARY_FILE"
         fi
     done < "$TMPDIR_SCAN/spec-annotation-rollup.txt"
+elif (( MAX_SPECS_TRACED == 0 )); then
+    # Explicit "skipped" marker when fast-scan path was chosen. The
+    # absence of this section without explanation previously read as
+    # "no annotation gaps found" — which is wrong; the analysis just
+    # didn't run. 2026-05-11 adversarial HIGH #3.
+    echo "## Spec Annotation Coverage Rollup" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
+    echo "_Skipped this run (\`--max-specs-traced 0\`). Per-spec annotation" >> "$SUMMARY_FILE"
+    echo "gap analysis (Analysis 18) and the corpus-level rollup (Analysis 18b)" >> "$SUMMARY_FILE"
+    echo "both require tracing each APPROVED spec; the fast-scan path skips" >> "$SUMMARY_FILE"
+    echo "them to keep runtime under 60s on large repos. Re-run with" >> "$SUMMARY_FILE"
+    echo "\`--max-specs-traced 50\` (or higher) to surface annotation gaps._" >> "$SUMMARY_FILE"
+    echo "" >> "$SUMMARY_FILE"
 fi
 
 # Spec graduation candidates (Analysis 27)

@@ -1127,23 +1127,18 @@ appends, trivial bookkeeping), handle inline as today.
 | KB schema drift / type-location mismatch | Reads KB entry frontmatter + body |
 | Subdivision candidate | Reads full spec body to assess split |
 
-**Pre-flight: stuck-marker recovery.** Before re-entering the pick
-list after a prior `/curate` run, check
-`.curate/_dispatches/` for unacknowledged markers:
+**Stuck-marker recovery already happened in Step 0.** Pre-fix, this
+section duplicated Step 0's pre-flight (lines 90-150) — users were
+prompted twice for the same stuck marker in one session (2026-05-11
+adversarial HIGH #1). Step 0 is the single recovery point; if the
+user reaches Step 4 with stuck markers present, Step 0 already
+surfaced them and the user made their choice. Do NOT re-run
+`dispatch-marker.sh stuck` here.
 
-```bash
-bash .claude/scripts/dispatch-marker.sh stuck .curate/_dispatches
-```
-
-If non-empty, surface each one via AskUserQuestion:
-- **"Re-dispatch <finding-key>"** — clear the marker, include the
-  finding in this run.
-- **"Skip <finding-key>"** — leave marker in place; it will resurface
-  next run.
-- **"Investigate manually"** — print the marker JSON via
-  `dispatch-marker.sh status` and stop.
-
-This mirrors `/work-resume rule 0` and `/spec-backfill` C0.
+If markers accumulate AFTER Step 0 (Phase A succeeded, Phase B
+interrupted mid-session within the SAME run), they're surfaced at
+the natural recovery boundary — typically the C2e ack-or-fail
+classifier directly within this iteration.
 
 **Phase A — diagnose + propose** (autonomous sub-agent):
 
