@@ -879,9 +879,10 @@ vallorcine/
 │   ├── work-context.sh             ← work group context injection for existing commands
 │   ├── work-finalize.sh            ← finalize work group state after feature refactor (feature-refactor Step 6b)
 │   ├── work-dispatch.sh            ← per-dispatch JSON marker (begin/ack/fail/stuck/clear) so payload-loss / user-stop on Agent calls does not silently corrupt the coordinator's task list; consumed by /work-resume for recovery
+│   ├── dispatch-marker.sh          ← generic counterpart to work-dispatch.sh — same subcommands, marker root passed as first arg; consumed by /spec-backfill --all (two-phase dispatch) and /curate Step 4 dispatch protocol
 │   ├── check-kb-ref.sh             ← PostToolUse hook on Write/Edit; validates `// KB:` citations against KB entries, suggests matches when none present, auto-disables when .kb/ has no entries
 │   ├── kb-index.sh                 ← rebuild `.kb/_index.json` from entry frontmatter (gitignored); consumed by `kb-search.sh --facet` for structured queries (type, domain, tags, applies_to, etc.) without iterating the tree on every query
-│   ├── curate-scan.sh              ← curation scanner (26 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill, work group health, link rot, falsification-lens staleness, KB filename collisions, KB schema drift, KB type/location mismatch, KB citation drift in source; thresholds always run against full configured window with new/ongoing tagging vs LAST_SHA)
+│   ├── curate-scan.sh              ← curation scanner (29 analyses: churn, co-change, artifact, orphan, staleness, revisit, test-drift, backfill, work group health, link rot, falsification-lens staleness, KB filename collisions, KB schema drift, KB type/location mismatch, KB citation drift in source, spec annotation coverage rollup, spec graduation candidates, spec corpus xref drift, ADRs without spec coverage; thresholds always run against full configured window with new/ongoing tagging vs LAST_SHA)
 │   ├── curate-review-log.sh        ← append-only review log manager for /curate (migrate / append / unresolved / report); persists deferred and suggested findings across runs in `.curate/review-log.md`
 │   ├── lens-registry.txt           ← falsification lens introduction-date registry (consumed by curate-scan Analysis 22)
 │   ├── decisions-scan.sh           ← decisions roadmap clustering and classification
@@ -978,6 +979,11 @@ vallorcine/
 │
 ├── decisions/                       ← seed decisions structure
 │   └── CLAUDE.md                    ← active decisions index template
+│
+├── spec/                            ← seed spec structure
+│   ├── CLAUDE.md                    ← active specs index template
+│   └── _refs/
+│       └── frontmatter.md           ← canonical spec frontmatter schema (state, status, required + optional fields, ID grammar, cross-ref resolution paths)
 │
 └── work/                            ← seed work structure
     └── CLAUDE.md                    ← work group index template
