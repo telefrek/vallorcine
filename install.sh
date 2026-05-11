@@ -315,6 +315,7 @@ install_file "$SCRIPT_DIR/scripts/work-context.sh" "$TARGET/.claude/scripts/work
 install_file "$SCRIPT_DIR/scripts/work-finalize.sh" "$TARGET/.claude/scripts/work-finalize.sh"
 install_file "$SCRIPT_DIR/scripts/work-dispatch.sh" "$TARGET/.claude/scripts/work-dispatch.sh"
 install_file "$SCRIPT_DIR/scripts/dispatch-marker.sh" "$TARGET/.claude/scripts/dispatch-marker.sh"
+install_file "$SCRIPT_DIR/scripts/work-orchestrator.sh" "$TARGET/.claude/scripts/work-orchestrator.sh"
 install_file "$SCRIPT_DIR/scripts/work-index.sh" "$TARGET/.claude/scripts/work-index.sh"
 install_file "$SCRIPT_DIR/scripts/check-kb-ref.sh" "$TARGET/.claude/scripts/check-kb-ref.sh"
 install_file "$SCRIPT_DIR/scripts/kb-index.sh" "$TARGET/.claude/scripts/kb-index.sh"
@@ -353,6 +354,7 @@ chmod +x "$TARGET/.claude/scripts/work-context.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-finalize.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-dispatch.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/dispatch-marker.sh" 2>/dev/null || true
+chmod +x "$TARGET/.claude/scripts/work-orchestrator.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/work-index.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/check-kb-ref.sh" 2>/dev/null || true
 chmod +x "$TARGET/.claude/scripts/kb-index.sh" 2>/dev/null || true
@@ -447,6 +449,7 @@ if [[ "$DIFF_MODE" != "1" ]]; then
       "Bash(bash .claude/scripts/work-finalize.sh:*)",
       "Bash(bash .claude/scripts/work-dispatch.sh:*)",
       "Bash(bash .claude/scripts/dispatch-marker.sh:*)",
+      "Bash(bash .claude/scripts/work-orchestrator.sh:*)",
       "Bash(bash .claude/scripts/work-index.sh:*)",
       "Bash(bash .claude/scripts/check-kb-ref.sh:*)",
       "Bash(bash .claude/scripts/kb-index.sh:*)",
@@ -600,6 +603,7 @@ HOOKJSON
       "Bash(bash .claude/scripts/work-finalize.sh:*)",
       "Bash(bash .claude/scripts/work-dispatch.sh:*)",
       "Bash(bash .claude/scripts/dispatch-marker.sh:*)",
+      "Bash(bash .claude/scripts/work-orchestrator.sh:*)",
       "Bash(bash .claude/scripts/work-index.sh:*)",
       "Bash(bash .claude/scripts/feature-state-reconcile.sh:*)"
         ] | unique)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
