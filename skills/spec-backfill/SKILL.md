@@ -259,15 +259,34 @@ Before enumerating, check for unacknowledged dispatch markers under
 bash .claude/scripts/dispatch-marker.sh stuck .spec/_backfill-dispatches
 ```
 
-If output is non-empty, surface each stuck spec to the user via
-AskUserQuestion BEFORE starting the corpus walk:
+Each line is `<dispatch-id>|<dispatched_at>|...`. Dispatch IDs for
+this skill are **suffixed**: `<spec-id>--propose` (Phase A markers)
+or `<spec-id>--apply` (Phase B markers). The stuck output may show
+both, the same spec, or just one. **Group stuck markers by spec-id
+before surfacing** (2026-05-11 adversarial HIGH #2) — otherwise the
+user sees "Re-dispatch <spec>--propose" + "Re-dispatch <spec>--apply"
+as two separate prompts for the same spec, with no clear meaning
+because the user doesn't necessarily know what "--propose" vs
+"--apply" implies.
 
-- **"Re-dispatch <spec-id>"** — clear the marker and include the spec
-  in the run.
-- **"Skip <spec-id> for now"** — leave the marker; spec will be
-  surfaced again next run.
-- **"Investigate manually"** — print the marker contents
-  (`dispatch-marker.sh status …`) and stop the run.
+For each unique `<spec-id>` (stripping the `--propose`/`--apply`
+suffix via `${id%--*}`), pick the appropriate routing based on
+which markers exist:
+
+| Markers present | Meaning | Recommended action |
+|-----------------|---------|---------------------|
+| `--propose` only | Phase A ran but Phase B never dispatched. Decisions in memory were lost. | Re-dispatch Phase A (the user's prior decisions are gone; walk the spec again). |
+| `--apply` only | Phase B dispatched but never ack'd. Some annotations may already exist; the log records them. | **Investigate** first — list completed rows via `spec-backfill-log.sh list-decisions <log> <spec>`. Re-dispatching Phase A is safe (the log's terminal-decision filter skips them), but a partial Phase B's `skipped` rows from the lost run will surface again. |
+| Both | Phase A and Phase B both fired; result lost mid-Phase-B. | Same as `--apply` only — investigate the log first. |
+
+Use `AskUserQuestion` per unique spec-id, with options drawn from
+the table above:
+
+- **"Re-dispatch Phase A (walk spec again)"** — clears any
+  `<spec>--propose` marker, runs Phase A fresh.
+- **"Investigate via `spec-backfill-log.sh list-decisions`"** — print
+  the per-R-id state and stop the run for this spec.
+- **"Skip <spec> for now"** — leave markers; spec resurfaces next run.
 
 This mirrors `/work-resume rule 0` (PR #79) — any unacknowledged marker
 pre-empts the normal flow because it represents a previous run whose
@@ -425,6 +444,26 @@ flow).
 The decision-set lives in coordinator context briefly (~500 bytes per
 spec at most) — released as soon as Phase B returns.
 
+**Skip Phase B dispatch when the decision-set is no-op** (2026-05-11
+adversarial HIGH #4). Before invoking C2d:
+
+- If `decisions` is empty AND every item was `already_decided` (this is
+  a no-op re-run of an already-completed spec), skip C2d entirely.
+  Print `<spec-id> — all uncovered R-ids already terminal (no-op)` and
+  ack the propose marker with that summary. Continue to next spec.
+- If `decisions` is non-empty but contains ONLY `skip` actions (user
+  declined every R-id this round), there are still log rows to write
+  for audit trail — dispatch C2d normally so the `skipped` rows are
+  recorded (they're non-terminal and will resurface on the next run
+  with a forward-progress signal).
+- Otherwise dispatch C2d normally.
+
+This guard avoids paying full sub-agent overhead to log zero rows
+when re-running `/spec-backfill --all` after a clean completion (every
+Phase A returns items with `already_decided` set; previously the
+coordinator dispatched Phase B per spec just to confirm "no work to
+do").
+
 **C2d. Phase B — apply (sub-agent, autonomous, idempotent).**
 
 ```bash
@@ -498,7 +537,36 @@ Classify into one of:
   `parse-failed: <first-80-chars>`. Print raw return; same recovery
   options.
 
-**C2f. Honor the cap.** If a cap was set in C1 and the dispatched
+**C2f. Forward-progress re-loop for >12 uncovered specs** (2026-05-11
+adversarial HIGH #3). Phase A's prompt caps at 12 uncovered R-ids per
+dispatch and sets `more_remain=true` in the JSON when there are more.
+Without a re-loop, a spec with 30 uncovered R-ids only ever surfaces
+R-ids 1-12 across any number of `/spec-backfill --all` runs — R-ids
+13-30 are invisible because `skipped` rows from the first batch keep
+the same 12 surfacing first.
+
+After C2e ack, check the Phase A return's `more_remain` flag:
+
+- If `more_remain == false` → continue to next spec (current behavior).
+- If `more_remain == true`:
+  - Count this round's **forward progress** = number of decisions
+    whose action was `annotate` or `waive` (terminal in the log).
+  - If forward progress is **zero** (user skipped every R-id this
+    round), stop iterating this spec — the next batch would just
+    re-surface the same 12. Continue to next spec. The skipped R-ids
+    will resurface on the next `/spec-backfill --all` run.
+  - If forward progress is **>= 1**, re-dispatch Phase A for the same
+    spec (new propose marker, fresh AskUserQuestion loop). The
+    already-annotated/waived R-ids will be filtered by Phase A's
+    `already_decided` check; the user sees the next batch of 12
+    uncovered R-ids. Cap the inner loop at 3 iterations per spec to
+    prevent pathological cases.
+
+This makes the corpus walk eventually-complete for specs with >12
+uncovered R-ids, as long as the user makes forward progress at least
+once per round.
+
+**C2g. Honor the cap.** If a cap was set in C1 and the dispatched
 count has reached it, exit the loop after acking the current spec.
 
 ### C3. Corpus summary

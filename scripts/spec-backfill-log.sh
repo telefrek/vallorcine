@@ -152,11 +152,39 @@ cmd_report() {
     echo "no log file at $log"
     return 0
   }
-  local total ann skp wav
+  # Effective counts use latest-status semantics — for each (spec, rid)
+  # pair, only the most recent decision counts. Without this, a row
+  # that flipped skipped → annotated counted as BOTH annotated and
+  # skipped, and the corpus summary overstated "skipped (will resurface)"
+  # for already-resolved requirements (2026-05-11 adversarial HIGH #1).
+  #
+  # `total` reports the raw row count (audit trail). `annotated` /
+  # `skipped` / `waived` report the effective state by (spec, rid).
+  local total
   total=$(grep -cE '^\| [0-9]{4}-[0-9]{2}-[0-9]{2} \|' "$log" 2>/dev/null || echo 0)
-  ann=$(awk -F'|' '$5 ~ /annotated/ {n++} END {print n+0}' "$log")
-  skp=$(awk -F'|' '$5 ~ /skipped/   {n++} END {print n+0}' "$log")
-  wav=$(awk -F'|' '$5 ~ /waived/    {n++} END {print n+0}' "$log")
+
+  # Use awk with last-write-wins indexing to compute effective counts.
+  local effective
+  effective=$(awk -F'|' '
+    {
+      gsub(/^ +| +$/, "", $3); gsub(/^ +| +$/, "", $4); gsub(/^ +| +$/, "", $5)
+      if ($3 != "" && $4 ~ /^R[0-9]/) {
+        # Last status wins for each (spec, rid) pair.
+        key = $3 "|" $4
+        latest[key] = $5
+      }
+    }
+    END {
+      ann = 0; skp = 0; wav = 0
+      for (k in latest) {
+        if (latest[k] == "annotated") ann++
+        else if (latest[k] == "skipped")   skp++
+        else if (latest[k] == "waived")    wav++
+      }
+      print ann " " skp " " wav
+    }
+  ' "$log")
+  read -r ann skp wav <<< "$effective"
   echo "rows: $total  annotated: $ann  skipped: $skp  waived: $wav"
 }
 
