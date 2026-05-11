@@ -447,6 +447,228 @@ else
     fail "status should error when uninitialized"
 fi
 
+# ════════════════════════════════════════════════════════════════════════════
+# State-invariant tests — added after 2026-05-11 adversarial review.
+# The original tests exercised happy-path subcommand effects. They missed
+# CRITICAL and HIGH findings because they used only ASCII-clean inputs
+# and never asserted invariants between sets.
+# ════════════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "── invariants: state.json is always valid JSON"
+echo "  ─────────────────────────────────────────"
+
+# Fresh fixture for a clean state-invariant pass.
+cd "$REPO_ROOT"
+rm -rf "$TEST_BASE"
+mkdir -p "$TEST_BASE/project/.work/inv" "$TEST_BASE/project/.claude/scripts" "$TEST_BASE/project/.spec/domains/test"
+cp "$REPO_ROOT/scripts/work-orchestrator.sh" "$TEST_BASE/project/.claude/scripts/"
+cp "$REPO_ROOT/scripts/work-resolve.sh"      "$TEST_BASE/project/.claude/scripts/"
+cp "$REPO_ROOT/scripts/work-lib.sh"          "$TEST_BASE/project/.claude/scripts/"
+cp "$REPO_ROOT/scripts/spec-lib.sh"          "$TEST_BASE/project/.claude/scripts/"
+cd "$TEST_BASE/project"
+
+for i in 01 02; do
+  cat > ".work/inv/WD-$i.md" <<EOF
+---
+id: WD-$i
+title: Invariant WD $i
+group: inv
+status: SPECIFIED
+domains: [test]
+produces:
+  - { type: spec, path: "test/inv${i}-contract" }
+---
+## Summary
+.
+## Acceptance Criteria
+.
+EOF
+  cat > ".spec/domains/test/inv${i}-contract.md" <<EOF
+---
+{ "id": "test.inv${i}-contract", "version": 1, "status": "ACTIVE", "state": "APPROVED", "domains": ["test"], "requires": [], "invalidates": [], "decision_refs": [], "kb_refs": [] }
+---
+# test.inv${i}-contract
+## Requirements
+R1.
+---
+## Design Narrative
+.
+EOF
+done
+
+# Helper: assert state.json is parseable JSON. Falls back to a python3
+# json.tool round-trip; if python3 isn't present, do a lightweight check.
+assert_valid_state_json() {
+    local label="$1"
+    local f=".work/inv/.orchestrator/state.json"
+    if command -v python3 >/dev/null 2>&1; then
+        if python3 -c "import json; json.load(open('$f'))" 2>/dev/null; then
+            pass "state.json valid JSON after $label"
+        else
+            fail "state.json INVALID JSON after $label" "$(cat "$f")"
+        fi
+    else
+        # Crude fallback: ensure no stray `: ,` patterns (the corruption mode
+        # the CRITICAL finding produced).
+        if grep -qE ':[[:space:]]*,' "$f"; then
+            fail "state.json has empty value after $label" "$(cat "$f")"
+        else
+            pass "state.json passes shape check after $label"
+        fi
+    fi
+}
+
+# Helper: assert no WD appears in two sets (the cross-set window invariant).
+assert_no_cross_set_overlap() {
+    local label="$1"
+    local dir=".work/inv/.orchestrator"
+    local overlap
+    overlap=$(find "$dir/in-flight" "$dir/completed" "$dir/blocked" \
+        -name '*.json' 2>/dev/null \
+        | xargs -I{} basename {} .json 2>/dev/null \
+        | sort | uniq -d | tr '\n' ' ')
+    if [[ -z "$overlap" ]]; then
+        pass "no cross-set overlap after $label"
+    else
+        fail "cross-set overlap after $label: $overlap"
+    fi
+}
+
+ORCH="bash .claude/scripts/work-orchestrator.sh"
+
+$ORCH init inv --cap 2 >/dev/null
+assert_valid_state_json "init"
+assert_no_cross_set_overlap "init"
+
+$ORCH dispatch inv WD-01 inv--WD-01 >/dev/null
+assert_valid_state_json "dispatch"
+assert_no_cross_set_overlap "dispatch"
+
+$ORCH complete inv WD-01 COMPLETE "inv--WD-01: COMPLETE — done" >/dev/null
+assert_valid_state_json "complete"
+assert_no_cross_set_overlap "complete"
+
+$ORCH dispatch inv WD-02 inv--WD-02 >/dev/null
+$ORCH block inv WD-02 "escalation:design-choice" ".feature/inv--WD-02/escalation.json" >/dev/null
+assert_valid_state_json "block"
+assert_no_cross_set_overlap "block"
+
+$ORCH unblock inv WD-02 >/dev/null
+assert_valid_state_json "unblock"
+
+$ORCH resume inv >/dev/null
+assert_valid_state_json "resume"
+
+# ── block with quoted-content reason (CRITICAL #2 reproducer) ──────────────
+
+echo ""
+echo "── block with quoted-content reason"
+echo "  ────────────────────────────────"
+
+# Re-dispatch WD-02 then block with a reason containing literal `"` and `\`.
+# Pre-fix this would have truncated pause_reason at the first `"` and
+# corrupted state.json. Post-fix, pause_reason is no longer in state.json
+# at all — blocked/<wd>.json carries the per-WD reason and state.json
+# stays small + valid.
+$ORCH dispatch inv WD-02 inv--WD-02 >/dev/null 2>&1 || true
+$ORCH block inv WD-02 'design-choice: use "status": "running" or "idle"?' '.feature/inv--WD-02/escalation.json' >/dev/null
+assert_valid_state_json "block with quoted-content reason"
+
+# The reason should round-trip through blocked/<wd>.json without truncation.
+got_reason=$(grep -oE '"reason":[[:space:]]*"[^"]*"' .work/inv/.orchestrator/blocked/WD-02.json | head -1 | sed -E 's/.*"reason":[[:space:]]*"([^"]*)".*/\1/')
+# The reason value will include the outer quotes intact because json_escape
+# turned them into \". After unescaping we should see the literal text up to
+# the first unescaped quote — which here is the start of the embedded `"status"`.
+# We assert that the prefix is preserved (this is the part that would have
+# corrupted state.json pre-fix).
+if [[ "$got_reason" == *"design-choice"* ]]; then
+    pass "blocked record preserves reason prefix with quoted content"
+else
+    fail "blocked record lost reason content" "got: $got_reason"
+fi
+
+# ── resume refuses while blocked/ non-empty (MEDIUM #7) ────────────────────
+
+echo ""
+echo "── multi-block + resume guard"
+echo "  ─────────────────────────────"
+
+# WD-02 is currently blocked. Resume should refuse.
+if ! $ORCH resume inv 2>/dev/null; then
+    pass "resume refuses while blocked/ non-empty"
+else
+    fail "resume should refuse with blocked WDs present"
+fi
+
+# Unblock and resume succeeds.
+$ORCH unblock inv WD-02 >/dev/null
+if $ORCH resume inv >/dev/null 2>&1; then
+    pass "resume succeeds once all unblocked"
+else
+    fail "resume should succeed when blocked is empty"
+fi
+
+# ── dispatch refuses empty feature_slug (MEDIUM #8) ────────────────────────
+
+echo ""
+echo "── dispatch input validation"
+echo "  ─────────────────────────"
+
+# Need a queued WD first. WD-02 is in queue after unblock+resume.
+if ! $ORCH dispatch inv WD-02 "" 2>/dev/null; then
+    pass "dispatch refuses empty feature_slug"
+else
+    fail "dispatch should refuse empty feature_slug"
+fi
+
+$ORCH dispatch inv WD-02 inv--WD-02 >/dev/null
+if ! $ORCH dispatch inv WD-02 inv--WD-02 2>/dev/null; then
+    err=$($ORCH dispatch inv WD-02 inv--WD-02 2>&1 || true)
+    if echo "$err" | grep -q "already in-flight"; then
+        pass "double-dispatch error message says 'already in-flight'"
+    else
+        fail "double-dispatch error message incorrect" "$err"
+    fi
+else
+    fail "double-dispatch should fail"
+fi
+
+# ── init refuses for nonexistent group (HIGH #5) ───────────────────────────
+
+echo ""
+echo "── init error paths"
+echo "  ────────────────"
+
+if ! $ORCH init nonexistent-typo --cap 2 2>/dev/null; then
+    pass "init refuses nonexistent group (loud error, not silent empty queue)"
+else
+    fail "init should error for missing group dir"
+    $ORCH clear nonexistent-typo >/dev/null 2>&1 || true
+fi
+
+# ── state.json survives a state_write with all-default inputs ──────────────
+
+# Force a tick (state_tick uses fallback defaults).
+echo ""
+echo "── tick with corrupted state.json recovers cleanly"
+echo "  ───────────────────────────────────────────────"
+
+# Manually corrupt one field; the next tick should reset it to a sane
+# default rather than emit invalid JSON.
+$ORCH dispatch inv WD-01 inv--WD-01 2>/dev/null || true  # may already exist
+echo '{ "schema_version": 1, "group_slug": "inv" }' > .work/inv/.orchestrator/state.json
+$ORCH complete inv WD-02 COMPLETE "x" >/dev/null 2>&1 || true
+assert_valid_state_json "complete after corrupted state.json"
+
+# WD-id validation already covered by the validate_wd_id function and
+# tested implicitly via dispatch's ^WD-[0-9]+ regex. Add an explicit one.
+if ! $ORCH dispatch inv "../WD-99" inv--WD-99 2>/dev/null; then
+    pass "dispatch rejects path-injection WD-id"
+else
+    fail "WD-id validation missed path-injection"
+fi
+
 # ── Summary ─────────────────────────────────────────────────────────────────
 
 echo ""
