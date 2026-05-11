@@ -170,8 +170,20 @@ else
 fi
 
 if [[ ${#SCAN_DIRS[@]} -eq 0 ]]; then
-  echo "[backfill] no source directories to scan in $PROJECT_ROOT" >&2
-  exit 0
+  # 2026-05-11 adversarial MED #4: previously exited 0 with empty
+  # stdout — Phase A's sub-agent treated this identically to "no
+  # candidate sites found for the requirement", and across a whole
+  # corpus this looked like a quiet zero-result. Now exit 3 with a
+  # distinct error code so the caller can fail-fast for the corpus
+  # rather than presenting "Skip / Waive / Other" for every R-id with
+  # no signal that the underlying scan never happened.
+  if [[ -n "${SPEC_TRACE_DIRS:-}" ]]; then
+    echo "[backfill] ERROR: SPEC_TRACE_DIRS='$SPEC_TRACE_DIRS' but none of those directories exist in $PROJECT_ROOT" >&2
+  else
+    echo "[backfill] ERROR: no source directories found in $PROJECT_ROOT (looked for src/lib/app/main/test/tests/spec/modules/examples/benchmarks)" >&2
+    echo "[backfill]        Set SPEC_TRACE_DIRS=<dir1,dir2,...> if your project uses a non-standard layout." >&2
+  fi
+  exit 3
 fi
 
 # ── Grep each token, accumulate hits, then score ────────────────────────────

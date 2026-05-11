@@ -155,10 +155,29 @@ write_marker() {
 read_field() {
   local path="$1" field="$2"
   [[ -f "$path" ]] || return 0
-  grep -oE "\"$field\":[[:space:]]*\"[^\"]*\"" "$path" 2>/dev/null \
-    | head -1 \
-    | sed -E "s/^\"$field\":[[:space:]]*\"([^\"]*)\"$/\1/" \
-    | head -1 || true
+  # 2026-05-11 adversarial MED #3: the original regex `"[^"]*"` stopped
+  # at the first quote inside the value — even an escaped `\"`. For
+  # result/failure_reason values containing escape sequences (e.g.,
+  # spec-backfill stuck reports with "Re-dispatch \"foo\"" inside),
+  # this returned a truncated prefix. Prefer jq when available since
+  # it handles escape sequences correctly; fall back to a regex that
+  # consumes backslash-escapes greedily.
+  if command -v jq >/dev/null 2>&1; then
+    local val
+    val=$(jq -r --arg f "$field" '.[$f] // empty' "$path" 2>/dev/null || true)
+    printf '%s' "$val"
+    return 0
+  fi
+  # Regex fallback: match `"field": "..."` where the value may contain
+  # `\"` (escaped quote) or `\\` (escaped backslash). The pattern
+  # `([^"\\]|\\.)*` consumes any character that's not `"` or `\`, OR a
+  # `\` followed by any character (which absorbs `\"` and `\\` together).
+  perl -ne 'if (/"'"$field"'":\s*"((?:[^"\\]|\\.)*)"/) { my $v = $1; $v =~ s/\\"/"/g; $v =~ s/\\\\/\\/g; print $v; exit }' "$path" 2>/dev/null \
+    || grep -oE "\"$field\":[[:space:]]*\"[^\"]*\"" "$path" 2>/dev/null \
+       | head -1 \
+       | sed -E "s/^\"$field\":[[:space:]]*\"([^\"]*)\"$/\1/" \
+       | head -1 \
+    || true
 }
 
 read_bool_field() {
