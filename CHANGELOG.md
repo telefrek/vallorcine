@@ -4,6 +4,121 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.19.0] — 2026-05-10
+
+### Added
+
+- **`scripts/dispatch-marker.sh`** — generic counterpart to
+  `scripts/work-dispatch.sh`. Same subcommands (begin / ack / fail /
+  status / stuck / clear), atomic JSON marker writes, control-byte
+  stripping. Marker root is passed as the first argument so any skill
+  can drop markers into its own state directory
+  (`.spec/_backfill-dispatches/`, `.curate/_dispatches/`, etc.).
+  Slugifies ids with unsafe filesystem chars (`/`) while preserving
+  the original id in-marker for round-trip lookup.
+
+- **`spec/_refs/frontmatter.md`** — canonical spec frontmatter schema,
+  analogous to `kb/_refs/frontmatter.md`. Single authoritative
+  reference for the JSON-in-fences format, every required and
+  optional field, the `state` vs `status` distinction (state =
+  lifecycle position, status = implementation posture), ID grammar,
+  cross-reference resolution paths. Installed via `_install_seed` —
+  never overwritten on re-install. `skills/spec-write/SKILL.md` now
+  points at it as the canonical reference.
+
+- **`/curate` Analysis 27 — Spec graduation candidates.** Flags specs
+  marked `status: DEPRECATED` while still `state: APPROVED`. These
+  continue entering `/spec-resolve` bundles despite the author's
+  intent to retire them. Routes to displacement finalization or
+  status retraction.
+
+- **`/curate` Analysis 28 — Spec corpus cross-reference drift.**
+  Aggregates broken `decision_refs` / `kb_refs` across all specs in
+  one pass. Catches the case where a single broken ref is hidden
+  among many — `spec-validate.sh` already emits per-spec stderr
+  warnings, but at scale they're easy to miss.
+
+- **`/curate` Analysis 18b — Spec annotation coverage rollup.**
+  Corpus-level summary that runs at the tail of Analysis 18 inside
+  the existing SPEC_TRACE-found block. Renders a four-row table
+  (fully covered / annotation drift / bare-only / unannotated) with
+  counts and percentages. When ≥10 specs have gaps, surfaces an
+  explicit "`/spec-backfill --all` once rather than picking row-by-
+  row" recommendation.
+
+- **`/curate` Analysis 29 — ADRs without spec coverage.** Walks
+  `.decisions/<slug>/adr.md`, builds the set of ADR slugs referenced
+  by any spec's `decision_refs`, emits the difference. Filters out
+  `rejected | superseded | deferred | withdrawn` automatically. v1
+  and v2 manifest schemas dispatched via `if .specs then ... else
+  ... end` (the `//` alternative operator does not fire on empty
+  streams, only on null/false). Routes to `/spec-author <slug>`.
+
+- **`/spec-backfill --all` two-phase sub-agent dispatch.** Corpus
+  mode now runs each spec as Phase A (autonomous sub-agent: discover
+  + propose JSON), coordinator AskUserQuestion per R-id, Phase B
+  (autonomous sub-agent: apply mechanically, idempotent via
+  `has-decision` query). Coordinator context after 12 specs: ~3 KB
+  of summaries vs ~360 KB inline previously. C0 pre-flight surfaces
+  stuck markers from prior runs via AskUserQuestion. The single-spec
+  mode (`/spec-backfill <spec-id>`) is unchanged.
+
+- **`/curate` Step 4 dispatch protocol.** Same two-phase pattern
+  applied to per-finding resolution for the 9 dispatchable finding
+  types: ADR pressure / gravity / drift, KB stale, spec coverage /
+  spec-code drift, spec annotation drift, spec graduation candidates,
+  spec corpus xref drift, ADRs without spec, KB schema drift,
+  subdivision candidates. Light findings (index rebuild, log appends,
+  bookkeeping) continue using the existing inline patterns under
+  "User picks a number — inline patterns". Coordinator context after
+  30 dispatchable findings: ~6 KB of summaries vs ~200–300 KB inline
+  previously. Step 0 pre-flight surfaces stuck `.curate/_dispatches/`
+  markers via AskUserQuestion (mirrors `/work-resume` rule 0).
+
+- **`tests/scenario-dispatch-marker.sh`** — 21 scenarios covering the
+  dispatch primitive: every subcommand + edge cases (control-byte
+  escaping, slugification, empty / missing roots, idempotent clear,
+  round-trip JSON validity, status-via-slugified-id lookup).
+
+### Changed
+
+- **`scripts/curate-scan.sh`** bumped from 26 to 29 distinct analyses.
+  Analysis 18 (per-spec annotation gaps) gained the corpus rollup
+  emission tail (Analysis 18b) before its existing tmpfile capping.
+  No behavior changes to existing analyses 1–26.
+
+- **`skills/curate/SKILL.md`** Step 4 reorganized: dispatch protocol
+  now leads the section; existing per-finding-type playbooks remain
+  in place under a labeled "User picks a number — inline patterns
+  (light findings + fallback)" subsection. The dispatched sub-agent
+  reads the same playbooks for type-specific instructions, so both
+  paths share one source of truth.
+
+- **`skills/spec-write/SKILL.md`** opening section now references
+  `.spec/_refs/frontmatter.md` as the canonical schema reference for
+  spec frontmatter, removing the previous "read three different files
+  to know what's valid" cognitive load.
+
+- **`DESIGN.md`** scripts/ manifest extended with `dispatch-marker.sh`;
+  curate-scan analysis count updated 26 → 29; top-level seed manifest
+  gains the previously-undocumented `spec/` seed
+  (`CLAUDE.md` + `_refs/frontmatter.md`).
+
+### Fixed
+
+- **`/spec-backfill --all` dispatch design (correcting PR #85).** The
+  initial implementation in PR #85 dispatched the single-spec flow as
+  a sub-agent and told it "AskUserQuestion surfaces to the actual
+  user — the user IS available across the dispatch boundary." A grep
+  across `skills/` and `rules/` finds zero such patterns; the
+  codebase convention (`/work-start all`, `/feature-coordinate`) is
+  `automation_mode: autonomous` for sub-agents with escalations
+  bubbled back via the return line. PR #86 corrects this with the
+  two-phase pattern (sub-agents always autonomous; user interaction
+  in coordinator between phases). PR #85's design is post-release-
+  only — no user ran the broken pattern.
+
+---
 ## [0.18.0] — 2026-05-09
 
 ### Added
