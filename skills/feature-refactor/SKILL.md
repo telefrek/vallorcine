@@ -186,6 +186,25 @@ Run /feature-implement to restore a passing state first."
 
 Update status.md substage as each item begins so a crash is resumable.
 
+**Refactor is a high-over-claim surface** — "I cleaned this up" with no
+behavioral test is the canonical refactor false-COMPLETE. Two contract
+rules apply with extra weight:
+
+- **Verification (`rules/completeness-contract.md` §1).** If a refactor
+  changes observable behavior even slightly, demonstrate the new
+  behavior via revert-test-restore: revert the refactor, run the test
+  suite, paste the failure into cycle-log.md, restore. Pure rename /
+  formatting / structural refactors with no behavioral delta are
+  exempt from the revert proof (no behavior changed → no test could
+  have failed).
+
+- **Test replacement (`rules/completeness-contract.md` §7).** If you
+  see a structure-locking test that asserts the *pre-refactor internal structure*
+  rather than the *observable behavior*, DELETE it and write a behavioral
+  test in its place. Do not preserve tests that lock in the pre-refactor
+  shape — they'll false-fail on the next refactor and obscure real
+  regressions. Log deletions + replacements in cycle-log.md.
+
 ### 2a — Coding standards
 `status.md substage → "refactor: coding-standards"`
 `Display: ── Coding standards ───────────────────────`

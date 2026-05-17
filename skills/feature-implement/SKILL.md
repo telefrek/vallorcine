@@ -280,6 +280,34 @@ For each construct:
 
 If a test fails unexpectedly after implementation: see Escalation Protocol.
 
+**Closure proof (MANDATORY per `rules/completeness-contract.md` §1).**
+Before marking a construct's implementation COMPLETE (Step 2.7 status
+update), demonstrate the test catches the failure mode it's meant to
+catch. Specifically:
+
+1. The fix is in the diff (verifiable via `git diff`).
+2. A test asserts the actual property — not via round-trip behavior
+   that the read path inverts. At byte level / via reflective
+   tripwire / via production-path assertion through the public API.
+3. **Revert the fix locally, run the test, paste the failure output
+   into cycle-log.md, restore the fix.** This proves the test would
+   actually fail without your implementation. "Test passes" alone is
+   insufficient — many vacuous tests pass even when the fix is absent.
+
+If reverting is impractical (e.g., the fix is structural, deleting a
+class), satisfy the spirit by writing a test that exercises the
+production code path end-to-end through the public API and articulating
+in cycle-log.md the specific wrong-property trap your test avoids.
+
+**Test replacement (`rules/completeness-contract.md` §7).** If a test
+codifies a bug as the contract — it passes BECAUSE the buggy behavior
+is what it asserts — DELETE the test and write a new one asserting the
+fixed behavior. Do not preserve the bug-codifying test, do not work
+around it, do not add the new test alongside. Subagent default is
+additive change; the explicit permission to delete is in the contract.
+Test deletions logged in cycle-log.md alongside the replacement test
+name.
+
 **Implementation principles:**
 - Minimum correct implementation — no gold-plating
 - Follow project-config.md conventions exactly
@@ -473,10 +501,22 @@ Write `.feature/<slug>/implement-summary.md` (or append cycle section):
 
 ### Notes
 - <any escalations, workarounds, or design choices made during implementation>
+
+### Closure proof (per construct)
+| Construct | Test (file:line) | Revert-test-restore outcome |
+|-----------|------------------|------------------------------|
+| <name>    | <path:line>      | "test failed at <assertion>" / "n/a — structural" |
+
+### Test replacements (if any)
+| Deleted test | Why bug-codifying | Replacement test (file:line) |
+|--------------|---------------------|-------------------------------|
+| <name>       | <one-line reason>   | <name@path:line>             |
 ```
 
 This summary is consumed by `/feature-refactor` — it avoids reloading all
-implementation and test files from scratch.
+implementation and test files from scratch. The closure-proof and
+test-replacement tables make `rules/completeness-contract.md` §1 and §7
+auditable per-construct rather than per-cycle.
 
 If work units are defined:
 - Mark the active unit as `complete` in the Work Units table in status.md

@@ -23,7 +23,17 @@ You do not optimise. You do not refactor. Minimum correct implementation only.
 - Never modify test files — tests are the specification
 - If a test is impossible given work plan constraints: escalate (do not work around)
   Update status.md substage → escalated-to-test-writer before stopping
+- If you observe a test that codifies a BUG as the contract (the test passes
+  BECAUSE the buggy behavior is what it asserts — common after a Breaker round),
+  escalate to Test Writer per `rules/completeness-contract.md` §7. Do NOT work
+  around the bug to make the broken test pass. Do NOT preserve the bug. The
+  Test Writer deletes-and-replaces; Code Writer flags-and-stops.
 - Append to cycle-log.md and update status.md after completing
+- Before marking a construct COMPLETE: demonstrate the test catches the
+  failure mode it's meant to catch via revert-test-restore — revert your
+  fix locally, run the test, paste the failure into cycle-log.md, restore.
+  Per `rules/completeness-contract.md` §1. "Test passes" alone is not
+  closure; many vacuous tests pass even when the fix is absent.
 
 ## Fix-forward rule
 When fixing a bug (from aTDD, escalation, or test failure), check your code for

@@ -411,6 +411,46 @@ FIX_IMPOSSIBLE with:
 - **Cannot read Suspect's analysis reasoning** — the finding description
   and source code are sufficient.
 
+## Strong-test guidance (avoid wrong-property traps)
+
+Per `rules/completeness-contract.md` §1, a test must assert the property
+the FIX enforces — not a weaker proxy. Common wrong-property traps:
+
+- **Round-trip through API trap.** A test that writes and reads back via
+  the public API passes even if your fix is absent, because the read path
+  inverts whatever the write path did. If the finding is "encryption
+  advertised but absent," the test must search the raw file bytes for the
+  sentinel and assert ABSENCE — not round-trip and assert equality.
+- **Mocked-dependency trap.** A test that mocks the dependency you fixed
+  passes against the mock, not the production behavior. Route through the
+  live dependency or use a reflective tripwire to assert the production
+  path constructs the fixed class.
+- **Equivalence-with-legacy trap.** A test that asserts the new path
+  produces the same output as the legacy path passes vacuously if both
+  paths route through the same legacy code. Add a reflective assertion
+  that the production code path actually instantiates the new class.
+
+If the finding description mentions one of these patterns, your Phase 1
+test MUST address that specific trap. Generic "strong-property test"
+guidance is not enough — the trap must be named and avoided.
+
+## Closure proof (Phase 2 completion)
+
+Before marking CONFIRMED_AND_FIXED, demonstrate the test catches the
+failure mode it's meant to catch (per `rules/completeness-contract.md` §1):
+
+1. Confirm the fix is in the diff (`git diff` shows the change).
+2. Run the new test → it passes.
+3. Temporarily revert the fix (`git stash` or local edit).
+4. Re-run the test → it MUST fail. Paste the failure output into your
+   return's "Closure proof" section.
+5. Restore the fix (`git stash pop` or revert the local edit).
+6. Re-run the test → it passes again.
+
+If step 4 doesn't fail, your test is vacuous. Strengthen the assertion
+before claiming CONFIRMED_AND_FIXED. "Looks right" is not closure;
+revert-test-restore IS closure.
+
 ## Output
 
 Write the output file to the path the orchestrator specified:
@@ -432,7 +472,17 @@ Write the output file to the path the orchestrator specified:
 ### Phase 1: Verify (skipped if Phase 0 = ALREADY_FIXED)
 - **Test method:** <method name> (or "removed" if impossible, or "skipped" if Phase 0)
 - **Test class:** <path to test class>
+- **Wrong-property trap addressed:** <named trap from "Strong-test guidance" section, or "n/a" if finding is not vulnerable to a known trap>
 - **Result:** <CONFIRMED | IMPOSSIBLE | SKIPPED>
+
+### Closure proof (CONFIRMED_AND_FIXED only)
+- **Reverted fix command:** <e.g., `git stash` or specific line revert>
+- **Test failure output without fix:** <one-line failure or "test passed without fix — INVALID, vacuous test">
+- **Restored fix command:** <e.g., `git stash pop`>
+- **Test pass output with fix:** <one-line confirmation>
+
+If the test passed without the fix, the result is NOT CONFIRMED_AND_FIXED.
+Strengthen the test and re-attempt the proof.
 - **Detail:** <what happened — test fails because X>
 
 ### Phase 2: Fix (if Phase 1 confirmed)

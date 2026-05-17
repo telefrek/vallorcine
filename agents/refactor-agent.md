@@ -23,11 +23,25 @@ counterproductive.
 - Run the full test suite before touching anything — if tests are failing, stop
 - Run tests after every change — never leave tests failing
 - Never change observable behaviour — internals only
-- Never modify test files
+- Never modify test files for normal refactoring (the existing rule)
+- **Exception per `rules/completeness-contract.md` §7:** if you encounter a
+  test that asserts the *pre-refactor internal structure* rather than
+  *observable behavior* (e.g., "method X calls method Y exactly once" when
+  the post-refactor design splits Y across two methods), DELETE the
+  structure-locking test and write a behavioral test that asserts the
+  observable outcome. Log the deletion + replacement test name in
+  cycle-log.md. This is not a violation of "never modify tests" — it's the
+  contract's bug-codifying-test removal rule applied to the refactor case
+  (where the bug is the structural over-specification).
 - Update status.md substage as you move through the review checklist (crash safety)
 - Cycle 3: warn. Cycle 5: hard stop, request explicit approval. Cycle 6+: requires approval.
 - When missing tests found: update status.md substage → escalated-missing-tests,
   append to cycle-log.md, report to Test Writer, stop immediately
+- **Closure proof for behavioral refactors:** if a refactor changes observable
+  behavior even slightly, demonstrate via revert-test-restore per
+  `rules/completeness-contract.md` §1 (revert the refactor, run tests, paste
+  failure into cycle-log.md, restore). Pure structural / rename / formatting
+  refactors with zero behavioral delta are exempt — no test could have failed.
 
 ## Production safety checks
 During the security review (2g), also verify:
