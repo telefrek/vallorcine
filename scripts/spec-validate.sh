@@ -202,6 +202,108 @@ if [[ ${#ERRORS[@]} -eq 0 ]]; then
     fi
   fi
 
+  # ── Check 7f: status:DEPRECATED requires the deprecation discipline contract
+  #
+  # When status:DEPRECATED is set, the spec is asserting "still load-bearing
+  # but alternative exists." That assertion requires:
+  #   - state:APPROVED (or state:INVALIDATED for the terminal phase — no
+  #     extra fields enforced there)
+  #   - non-empty displaced_by (the alternative)
+  #   - each displaced_by target is state:APPROVED and not status:DEPRECATED
+  #   - displacement_reason (the rationale)
+  #   - removal_scheduled_in (semver string, > current VERSION)
+  #   - deprecation_date (ISO date)
+  #
+  # See designs/deprecated-state.md and rules/deprecation-discipline.md.
+  if [[ "$STATUS" == "DEPRECATED" ]]; then
+
+    # 7f.1 — state must be APPROVED (load-bearing) or INVALIDATED (terminal)
+    if [[ "$STATE" != "APPROVED" && "$STATE" != "INVALIDATED" ]]; then
+      ERRORS+=("status:DEPRECATED requires state:APPROVED (load-bearing) or state:INVALIDATED (retired); got state:$STATE")
+    fi
+
+    # The required-fields contract applies during the APPROVED phase only.
+    # Once INVALIDATED, the fields were enforced previously and may have
+    # carried forward — they're informational, not gated.
+    if [[ "$STATE" == "APPROVED" ]]; then
+
+      # 7f.2 — displaced_by must be non-empty
+      if [[ "$DISPLACED_BY_COUNT" == "0" || "$DISPLACED_BY_COUNT" == "null" ]]; then
+        ERRORS+=("status:DEPRECATED requires non-empty displaced_by (the alternative spec — without one, this is just being retired, use state:INVALIDATED directly)")
+      else
+        # 7f.3 — each displaced_by target must be state:APPROVED and not
+        # status:DEPRECATED (chained deprecations create confusion)
+        if [[ -f "$MANIFEST" ]]; then
+          while IFS= read -r dby; do
+            [[ -z "$dby" ]] && continue
+            dby_file=$(spec_file_for_id "$MANIFEST" "$dby")
+            [[ -z "$dby_file" || ! -f "$dby_file" ]] && continue  # 7b already flagged
+            dby_state=$(fm "$dby_file" '.state // ""')
+            dby_status=$(fm "$dby_file" '.status // ""')
+            if [[ "$dby_state" != "APPROVED" ]]; then
+              ERRORS+=("displaced_by target '$dby' has state:$dby_state — must be state:APPROVED to displace a DEPRECATED spec (alternative must be live)")
+            fi
+            if [[ "$dby_status" == "DEPRECATED" ]]; then
+              ERRORS+=("displaced_by target '$dby' is itself status:DEPRECATED — chain deprecations create confusion; point directly to the live successor")
+            fi
+          done < <(fm "$FILE" '.displaced_by // [] | .[]')
+        fi
+      fi
+
+      # 7f.4 — displacement_reason required
+      DISP_REASON_NOW=$(fm "$FILE" '.displacement_reason // ""')
+      if [[ -z "$DISP_REASON_NOW" ]]; then
+        ERRORS+=("status:DEPRECATED requires displacement_reason (one-line rationale; often 'superseded by <displaced_by[0]>')")
+      fi
+
+      # 7f.5 — removal_scheduled_in required, semver, > current VERSION
+      RSI=$(fm "$FILE" '.removal_scheduled_in // ""')
+      if [[ -z "$RSI" ]]; then
+        ERRORS+=("status:DEPRECATED requires removal_scheduled_in (semver version string, e.g. '0.23.0', must be > current VERSION)")
+      else
+        # Semver pattern: X.Y.Z optionally followed by -prerelease or +build
+        semver_re='^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$'
+        if ! [[ "$RSI" =~ $semver_re ]]; then
+          ERRORS+=("removal_scheduled_in '$RSI' is not a well-formed semver (expected X.Y.Z or X.Y.Z-suffix)")
+        elif [[ -f "$PROJECT_ROOT/VERSION" ]]; then
+          CUR_VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null | tr -d '[:space:]')
+          if [[ -n "$CUR_VERSION" ]]; then
+            # Use sort -V for semver comparison; sort -uV with both values
+            # and check if RSI comes after CUR_VERSION. If equal, that's
+            # already "removal version reached" — disallow at marking time.
+            if [[ "$RSI" == "$CUR_VERSION" ]]; then
+              ERRORS+=("removal_scheduled_in '$RSI' equals current VERSION — must be strictly greater (schedule a future version)")
+            else
+              sorted=$(printf '%s\n%s\n' "$CUR_VERSION" "$RSI" | sort -V | head -1)
+              if [[ "$sorted" != "$CUR_VERSION" ]]; then
+                # current sorts AFTER scheduled — means scheduled is in the past
+                ERRORS+=("removal_scheduled_in '$RSI' is below current VERSION '$CUR_VERSION' — must be strictly greater")
+              fi
+            fi
+          fi
+        fi
+      fi
+
+      # 7f.6 — deprecation_date required, ISO format
+      DEP_DATE=$(fm "$FILE" '.deprecation_date // ""')
+      if [[ -z "$DEP_DATE" ]]; then
+        ERRORS+=("status:DEPRECATED requires deprecation_date (ISO date, e.g. '2026-05-17')")
+      elif ! [[ "$DEP_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        ERRORS+=("deprecation_date '$DEP_DATE' is not a valid ISO date (expected YYYY-MM-DD)")
+      fi
+    fi
+  fi
+
+  # ── Check 7g: status:DEPRECATED cannot apply to a state:DRAFT spec
+  #
+  # Deprecation means "load-bearing AND has alternative." A DRAFT spec
+  # isn't load-bearing yet, so it can't be deprecated. If you no longer
+  # want a DRAFT spec, delete it or transition DRAFT → INVALIDATED
+  # directly with displacement_reason.
+  if [[ "$STATUS" == "DEPRECATED" && "$STATE" == "DRAFT" ]]; then
+    ERRORS+=("status:DEPRECATED on a state:DRAFT spec is not allowed — deprecation requires the spec to have been load-bearing (state:APPROVED) at some point")
+  fi
+
   # ── Check 8: decision_refs resolve (warning, not error)
   while IFS= read -r ref; do
     [[ -z "$ref" ]] && continue

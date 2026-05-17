@@ -1,6 +1,6 @@
 # DEPRECATED spec state — pre-release deprecation discipline
 
-**Status:** proposed (revision 2) — 2026-05-17
+**Status:** approved (revision 3) — 2026-05-17 — implementation in flight
 **Originating signal:** jlsm session proposed a pre-release format-deprecation
 discipline that introduces a `DEPRECATED` state between `APPROVED` and
 `INVALIDATED`. Most of the proposal is jlsm-specific (Java annotations,
@@ -12,7 +12,34 @@ domain specifics stay in `.feature/project-config.md` so other languages
 (Rust, Python, Go, TS) and other artifact types (algorithms, protocols)
 can plug in.
 
-**Revision 2 changes** (after Nathan's review of revision 1):
+**Revision 3 changes** (after Nathan's second review):
+
+1. **The deprecation marker is `status: DEPRECATED`, not a new `state`
+   value.** Discovered while scoping implementation: vallorcine already
+   has a two-field model — `state` (DRAFT|APPROVED|INVALIDATED, the
+   verification dimension) and `status` (DRAFT|ACTIVE|STABLE|DEPRECATED,
+   the lifecycle dimension). `status: DEPRECATED` already exists in the
+   enum; `/curate` already flags `status: DEPRECATED` while still
+   `state: APPROVED` as a structural inconsistency. The natural fit is
+   to **legitimize that combination** as the marker, not to introduce a
+   parallel state value. The mental state machine
+   (DRAFT → APPROVED → DEPRECATED → INVALIDATED) is now expressed via
+   the `(state, status)` pair:
+   - `(state=DRAFT, status=DRAFT)` — authoring
+   - `(state=APPROVED, status=ACTIVE)` or `STABLE` — live
+   - `(state=APPROVED, status=DEPRECATED)` — load-bearing, alternative
+     exists (THE deprecated case)
+   - `(state=INVALIDATED, status=DEPRECATED)` — retired with audit trail
+
+2. **No age-based escalation.** Tier 2 WARNING fires only on
+   version-based and displaced_by-state triggers. The
+   `deprecation_age_threshold_days` field is removed — version is the
+   natural decay axis; age is redundant.
+
+3. **OQ2 resolved — loose coverage for v1.** Tag/domain/applies_to
+   overlap is the v1 default. Strict mode revisits later.
+
+**Revision 2 changes** (after Nathan's first review):
 1. `removal_scheduled_in` is now a **semver version string**, not a
    WD-ID. Removals and WDs aren't strictly related — a version is the
    natural deprecation cycle marker, and SemVer projects already think
@@ -134,62 +161,94 @@ alternative is real.
 
 ## Design
 
-### State machine
+### State machine (expressed via the existing `(state, status)` pair)
 
 ```
-DRAFT ──→ APPROVED ──→ DEPRECATED ──→ INVALIDATED
-                              │
-                              └──→ (resolves required_state: APPROVED)
-                                   resolver checks displaced_by;
-                                   may warn or stay silent based on
-                                   whether alternative covers the
-                                   dependent's domain
+(state=DRAFT,      status=DRAFT)          ──→ authoring
+       │
+       ▼
+(state=APPROVED,   status=ACTIVE|STABLE)  ──→ live, no successor
+       │
+       ▼ (mark deprecated — alternative exists)
+(state=APPROVED,   status=DEPRECATED)     ──→ load-bearing + has alternative
+       │                                        │
+       │                                        └──→ resolves required_state: APPROVED;
+       │                                             resolver checks displaced_by and version
+       │
+       ▼ (audit-trail-before-deletion contract)
+(state=INVALIDATED, status=DEPRECATED)    ──→ retired with audit trail
 ```
 
-| State | Meaning | Satisfies `required_state: APPROVED`? |
+| (state, status) | Meaning | Satisfies `required_state: APPROVED`? |
 |---|---|---|
-| `DRAFT` | Authoring in progress | No |
-| `APPROVED` | Settled and load-bearing, no successor | Yes |
-| `DEPRECATED` | Still load-bearing, but alternative exists — prefer alternative | **Yes** (resolver-aware) |
-| `INVALIDATED` | No longer in force, preserved for history | No |
+| `(DRAFT, DRAFT)` | Authoring in progress | No |
+| `(APPROVED, ACTIVE)` | Live, freshly approved | Yes |
+| `(APPROVED, STABLE)` | Live, settled, no expected churn | Yes |
+| `(APPROVED, DEPRECATED)` | Live, but alternative exists — prefer alternative | **Yes** (resolver-aware) |
+| `(INVALIDATED, *)` | No longer in force, preserved for history | No |
+
+The (state, status) split keeps the verification dimension (state) and
+lifecycle dimension (status) orthogonal, which is the existing
+vallorcine model. The DEPRECATED marker lives in `status` because it's
+a lifecycle event (succession), not a verification event (load-bearing-
+ness).
 
 **Transitions allowed:**
-- `DRAFT → APPROVED` (existing)
-- `DRAFT → INVALIDATED` (existing, for never-shipped specs)
-- `APPROVED → DEPRECATED` (new)
-- `DEPRECATED → INVALIDATED` (new, with audit-trail contract)
-- `APPROVED → INVALIDATED` (existing — direct retirement, no displacement)
+- `(DRAFT, DRAFT) → (APPROVED, ACTIVE)` (existing)
+- `(DRAFT, *) → (INVALIDATED, *)` (existing, for never-shipped specs)
+- `(APPROVED, ACTIVE|STABLE) → (APPROVED, DEPRECATED)` (**new — mark deprecated**)
+- `(APPROVED, DEPRECATED) → (INVALIDATED, DEPRECATED)` (**new — retire with audit trail**)
+- `(APPROVED, ACTIVE|STABLE) → (INVALIDATED, *)` (existing — direct retirement, no displacement)
 
 **Transitions disallowed:**
-- `DEPRECATED → APPROVED` (no rescind)
-- `DEPRECATED → DRAFT` (no rescind)
-- `INVALIDATED → anything` (terminal)
+- `(APPROVED, DEPRECATED) → (APPROVED, ACTIVE|STABLE)` — no rescind
+- `(APPROVED, DEPRECATED) → (DRAFT, *)` — no rescind
+- `(INVALIDATED, *) → anything` — terminal
 
 ### DEPRECATED frontmatter (validator-enforced)
 
-When `state: "DEPRECATED"`, these fields are REQUIRED:
+When `status: "DEPRECATED"`, these fields are REQUIRED:
 
 ```yaml
-state: "DEPRECATED"
-displaced_by: "<spec-id>"          # the spec that supersedes this one.
-                                   # MUST exist and be at state APPROVED.
-                                   # This is the "alternative" — the
-                                   # whole reason DEPRECATED exists.
-deprecation_reason: "..."          # one-line rationale. Often "superseded
-                                   # by <displaced_by>"; may add context.
+state: "APPROVED"                  # still load-bearing
+status: "DEPRECATED"               # the marker — alternative exists
+displaced_by: ["<spec-id>", ...]   # array of specs that supersede this
+                                   # one. MUST be non-empty. Each target
+                                   # MUST exist, be state:APPROVED, and
+                                   # NOT itself be status:DEPRECATED.
+                                   # (Field already exists; multi-displacement
+                                   # is already supported.)
+displacement_reason: "..."         # one-line rationale. Often "superseded
+                                   # by <displaced_by[0]>"; may add context.
+                                   # (Field already exists; promoted from
+                                   # WARNING to required-when-DEPRECATED.)
 removal_scheduled_in: "0.23.0"     # semver version string for the planned
                                    # removal. MUST be > current VERSION.
                                    # NOT tied to a specific WD — removals
                                    # may span multiple WDs or merge across
-                                   # versions.
-deprecation_date: "2026-05-17"     # ISO date when DEPRECATED state set.
-                                   # used for resolver context (e.g.,
-                                   # "deprecated 60 days ago") and
-                                   # /curate aging displays.
+                                   # versions. (New field.)
+deprecation_date: "2026-05-17"     # ISO date when status:DEPRECATED was
+                                   # set. Used for /curate aging displays.
+                                   # (New field.)
 ```
 
-The validator (`spec-validate.sh`) refuses a DEPRECATED spec missing
-any of these fields.
+**Field reuse note:** `displaced_by` and `displacement_reason` already
+exist in the spec frontmatter. Current convention: they're set at
+state:INVALIDATED time. The DEPRECATED-status work **extends** their
+use earlier in the lifecycle — they're now also set when status:DEPRECATED
+is applied at state:APPROVED. The fields carry forward from APPROVED+
+DEPRECATED to INVALIDATED+DEPRECATED naturally; no migration needed.
+
+The validator (`spec-validate.sh`) refuses a spec with `status: DEPRECATED`
+missing any of these fields.
+
+The spec MUST be `state: APPROVED` to take `status: DEPRECATED` — you
+cannot deprecate a DRAFT spec (deprecation means "load-bearing AND has
+alternative"; DRAFT means "not yet load-bearing"). A spec at
+`state: INVALIDATED` with `status: DEPRECATED` is the retired-with-
+audit-trail terminal — the required fields above no longer apply at
+that point (they were enforced during the APPROVED+DEPRECATED phase
+and may be preserved for history).
 
 **Why a version, not a WD-ID** (changed from revision 1):
 
@@ -249,10 +308,9 @@ When a WD's `artifact_deps` references a DEPRECATED spec X:
 
 **Tier 2 — WARNING:**
 - Current VERSION is at or one-minor-bump below `removal_scheduled_in`
-- OR `displaced_by` is not yet APPROVED (still DRAFT) — alternative
-  isn't ready yet, scheduling looks off
-- OR `deprecation_date` is more than `deprecation_age_threshold_days`
-  (default 90) old AND `displaced_by` has not been touched recently
+- OR `displaced_by` resolves to a spec NOT at `state: APPROVED`
+  (still DRAFT, or has been INVALIDATED) — alternative isn't ready
+  or has itself been retired, scheduling looks off
 - Output:
   ```
   [resolve] WARNING: WD <wd-id> depends on <spec-id> which is DEPRECATED
@@ -279,18 +337,10 @@ but the message is severity ERROR rather than ADVISORY, surfacing in
 **Coverage heuristic notes:**
 
 The "covers the dependent's needs" check is a heuristic, not a
-guarantee. The kit's default check uses tag/domain/applies_to overlap.
-Projects can override with a stricter check in
-`.feature/project-config.md`:
-
-```yaml
-displacement_coverage:
-  strict: true  # require explicit displaced_by → dependent mapping
-                # in the migration metadata, not just tag overlap
-```
-
-For v1, default to heuristic (tag/domain overlap). Strict mode is a
-future enhancement.
+guarantee. The kit's check uses tag/domain/applies_to overlap. This
+loose default is fine for v1 (Nathan-confirmed). A strict mode
+(explicit displaced_by → dependent mapping in migration metadata) is
+a future enhancement when real cases prove it's needed.
 
 ### Audit-trail-before-deletion contract (DEPRECATED → INVALIDATED)
 
@@ -467,16 +517,19 @@ directly with displacement_reason.
 
 ## Open questions
 
-**OQ1 — Default `deprecation_age_threshold_days`?** Proposing 90 as
-the default for Tier 2 warning escalation. Long enough that small
-projects don't trip warnings on every routine deprecation; short
-enough that aging deprecations surface within a quarter. User can
-override in project-config. Confirm 90 is the right starting point.
+**OQ1 — Default `deprecation_age_threshold_days`?** ~~Proposing 90 as
+the default for Tier 2 warning escalation.~~ **RESOLVED rev 3:** no
+age-based escalation. Version-based triggers (current VERSION
+approaching `removal_scheduled_in`; current VERSION reaching it) are
+sufficient. The `deprecation_age_threshold_days` field is removed
+entirely from the design. Age is redundant with version on a
+SemVer-tracking project.
 
-**OQ2 — Coverage heuristic for `displaced_by`.** Default v1 is
+**OQ2 — Coverage heuristic for `displaced_by`.** ~~Default v1 is
 tag/domain/applies_to overlap. Strict mode (explicit displaced_by →
-dependent mapping) is a future enhancement. Confirm the loose
-default is fine for v1.
+dependent mapping) is a future enhancement.~~ **RESOLVED rev 3:** loose
+(tag/domain/applies_to overlap) for v1. Strict mode revisits later if
+real cases emerge.
 
 **OQ3 — Should `removal_scheduled_in` allow a version *range*?**
 E.g., `removal_scheduled_in: "0.23.0..0.25.0"` meaning "any time
@@ -562,26 +615,28 @@ keeps the kit language-agnostic per `project_multi_language_intent.md`.
 This is a 5-PR sequence, each independently mergeable. Total ~3–5
 sessions depending on pace.
 
-**P1 — Spec state machine + validator basics** (~1 session)
-- Add `DEPRECATED` to the state enum in `scripts/spec-validate.sh`
-- Required-field validation: `displaced_by`, `deprecation_reason`,
-  `removal_scheduled_in`, `deprecation_date`
-- `displaced_by` resolution: spec must exist, be APPROVED, and not
-  be DEPRECATED itself (EC1, EC2, EC3)
+**P1 — Validator extensions for `status: DEPRECATED`** (~1 session)
+- Required-field validation when `status: DEPRECATED`: `displaced_by`,
+  `deprecation_reason`, `removal_scheduled_in`, `deprecation_date`
+- `displaced_by` resolution: spec must exist, be `state: APPROVED`,
+  and not itself be `status: DEPRECATED` (EC1, EC2, EC3)
 - `removal_scheduled_in` validation: well-formed semver, strictly
   greater than current VERSION (EC4)
-- Forbid `DEPRECATED → APPROVED` transition (no rescind)
-- Refuse `DEPRECATED` state on DRAFT spec (EC9)
-- Tests: `tests/scenario-deprecated-state-validate.sh`
+- Forbid `status: DEPRECATED` on a `state: DRAFT` spec (EC9 — can't
+  deprecate something not yet load-bearing)
+- Forbid `status: DEPRECATED → ACTIVE|STABLE` reverse transition (no
+  rescind) by tracking previous status via git or by adding a
+  monotonicity check
+- Tests: `tests/scenario-deprecated-status-validate.sh`
 
-**P2 — Resolver tiered warnings** (~1 session)
+**P2 — Resolver tiered messages** (~1 session)
 - Resolver emits Tier 0 SILENT when displaced_by covers + version far
 - Tier 1 ADVISORY when WD genuinely needs deprecated surface
-- Tier 2 WARNING when approaching `removal_scheduled_in` or
-  `displaced_by` is DRAFT or `deprecation_date` is over threshold
+- Tier 2 WARNING when approaching `removal_scheduled_in` OR
+  `displaced_by` is not `state: APPROVED`
 - Tier 3 ERROR when current VERSION >= `removal_scheduled_in`
-- Coverage heuristic (tag/domain/applies_to overlap)
-- `deprecation_age_threshold_days` configurable via project-config
+- Coverage heuristic (tag/domain/applies_to overlap) — loose default
+- No age-based escalation (per rev 3 — removed)
 - Tests: `tests/scenario-deprecated-resolver.sh`
 
 **P3 — Audit-trail-before-deletion contract (DEPRECATED → INVALIDATED)**
