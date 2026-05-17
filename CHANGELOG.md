@@ -4,6 +4,86 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.21.0] — 2026-05-17
+
+This is the "subagent rigor hardening" release. Codifies the
+**completeness contract** as a load-bearing rule, wires it into every
+dispatching skill, and adds a mechanical validator that orchestrators
+run on every subagent return. Derived from review of 70+ deferral
+cases across vallorcine and jlsm sessions where subagents shipped
+half-baked work by classifying scope as "follow-on" / "candidate" /
+"out of scope" using their own judgment.
+
+The contract: **Claude has no authority to defer assigned scope.
+Default action is fix/complete. Escalation requires user-validatable
+proof — not judgment.**
+
+### Added
+
+- **`rules/completeness-contract.md`** — new always-loaded rule. Six
+  concrete contracts emerge from the authority rule:
+  - **Verification** — strong-property tests, not vacuous equivalence
+  - **Production-path** — test through real entry points, not SPI shortcuts
+  - **Measurement** — no verbal substitution for required measurements
+  - **Annotation** — `@spec` must enforce, not just exist
+  - **Quality-bar** — no "preexisting" excuse for red checks
+  - **Scope-reconciliation** — point to satisfier for every AC item
+
+- **`scripts/validate-subagent-return.sh`** — mechanical helper that
+  orchestrators run on every subagent return. Greps for contract
+  trigger phrases ("candidate", "follow-on", "out of scope",
+  "deferred", "future work", "non-critical", etc.). With
+  `--require-ac-coverage` flag, also verifies the return contains an
+  AC satisfaction mapping. Exit 0 = clean; exit 1 = contract violation
+  (block COMPLETE, route to user via AskUserQuestion); exit 2 =
+  tooling error. WD-handling orchestrators (work-run, work-start,
+  work-plan, feature-coordinate) pass `--require-ac-coverage`; audit /
+  spec-backfill / curate dispatches don't carry WD-style ACs.
+
+- **Subagent contract preamble** wired into 10 dispatching skills
+  (architect, audit, curate, feature-coordinate, feature-plan,
+  spec-author, spec-backfill, work-plan, work-run, work-start). Every
+  dispatch prompt includes the load-bearing preamble citing
+  `rules/completeness-contract.md`.
+
+- **Agent identity preamble** in all 9 agent files (architect,
+  breaker, code-writer, domain-scout, refactor, research, scoping,
+  test-writer, work-planner). Defense in depth — three layers of
+  contract reinforcement.
+
+### Changed
+
+- **`/spec-verify`** — Step 1.3 now requires an enforcement check
+  before claiming SATISFIED. ASSERT-style requirements need the
+  actual validation in production code; BEHAVIOR-style need a test
+  through the production entry point; RETIRE / REMOVE-style require
+  whole-codebase grep for the deprecated symbol. Catches phantom
+  `@spec` annotations like the 2026-05 jlsm
+  `sstable.sparse-key-index.R2` case where v5 writer path was marked
+  SATISFIED while still being the sole footer writer on the encrypted
+  path.
+
+- **`/feature-pr`** — new Step 1b Quality-bar gate. Repository check
+  command must pass before PR draft. "Preexisting failures" no longer
+  an automatic exemption. `.flake-allowlist.md` provides a controlled
+  escape hatch with mandatory deadline + assignee. Addresses Finding 7
+  from the jlsm session report (PR #118 merged with 3 "preexisting"
+  red checks).
+
+### Notes
+
+- The standalone orchestrator-level falsification subagent (Finding 6)
+  is **not** in this release. The Verification contract + validator
+  cover most of F6's surface; the additive defense-in-depth gate has
+  no design yet and would substantively expand this release's scope.
+  Slated for v0.22.0.
+
+- This release is paired with PR #103 ([designs/wd-sizing-feedback.md](designs/wd-sizing-feedback.md)),
+  the design proposal for a decomposition-time feedback loop that
+  signals when WDs are sized too large. Implementation queued behind
+  this release.
+
+---
 ## [0.20.0] — 2026-05-11
 
 This is the "adversarial sweep" release. A four-agent review across
