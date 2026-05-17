@@ -231,6 +231,105 @@ else
     fail "graceful fallback when VERSION file missing (still emits a tier)" "rc=$rc; out=$out"
 fi
 
+# ──────────────────────────────────────────────────────────────────────────
+# v0.23.1 — retirement mode (no successor)
+# ──────────────────────────────────────────────────────────────────────────
+
+# Build a retirement-mode legacy spec (no displaced_by, retirement: true)
+setup_retirement_project() {
+    local pdir="$1"
+    local version="$2"
+    local removal_in="$3"
+
+    rm -rf "$pdir"
+    mkdir -p "$pdir/.spec/domains/example" "$pdir/.spec/registry"
+    echo "$version" > "$pdir/VERSION"
+
+    cat > "$pdir/.spec/domains/example/legacy.md" <<EOF
+---
+{
+  "id": "example.legacy",
+  "version": 1,
+  "status": "DEPRECATED",
+  "state": "APPROVED",
+  "domains": ["example"],
+  "retirement": true,
+  "displacement_reason": "v5 format retired entirely per pre-release policy",
+  "removal_scheduled_in": "$removal_in",
+  "deprecation_date": "2026-05-17"
+}
+---
+
+# example.legacy — Retired (no successor)
+
+## Requirements
+R1. Legacy continues to read existing files during retention window.
+
+---
+
+## Design Narrative
+Body.
+EOF
+
+    cat > "$pdir/.spec/registry/manifest.json" <<EOF
+{
+  "version": 1,
+  "specs": {
+    "example.legacy": {
+      "id": "example.legacy",
+      "path": ".spec/domains/example/legacy.md",
+      "state": "APPROVED",
+      "status": "DEPRECATED"
+    }
+  }
+}
+EOF
+}
+
+# ── Test 9: retirement mode — ADVISORY when far from removal ────────────────
+P9="$TEST_BASE/p9"
+setup_retirement_project "$P9" "0.10.0" "1.0.0"
+rc=0
+out=$(run_check "$P9" "example.legacy" APPROVED 2>&1) || rc=$?
+if [[ $rc -eq 0 ]] && echo "$out" | grep -q '\[deprecation:ADVISORY\].*retirement; no successor'; then
+    pass "Tier 1 ADVISORY retirement message has 'no successor' marker"
+else
+    fail "Tier 1 ADVISORY retirement message has 'no successor' marker" "rc=$rc; out=$out"
+fi
+
+# ── Test 10: retirement mode — WARNING when within 1 minor of removal ──────
+P10="$TEST_BASE/p10"
+setup_retirement_project "$P10" "0.21.0" "0.22.0"
+rc=0
+out=$(run_check "$P10" "example.legacy" APPROVED 2>&1) || rc=$?
+if [[ $rc -eq 0 ]] && echo "$out" | grep -q '\[deprecation:WARNING\].*retirement.*retire dependent code'; then
+    pass "Tier 2 WARNING retirement message says 'retire dependent code'"
+else
+    fail "Tier 2 WARNING retirement message says 'retire dependent code'" "rc=$rc; out=$out"
+fi
+
+# ── Test 11: retirement mode — ERROR when past removal version ─────────────
+P11="$TEST_BASE/p11"
+setup_retirement_project "$P11" "0.23.0" "0.22.0"
+rc=0
+out=$(run_check "$P11" "example.legacy" APPROVED 2>&1) || rc=$?
+if [[ $rc -eq 0 ]] && echo "$out" | grep -q '\[deprecation:ERROR\]'; then
+    pass "Tier 3 ERROR fires for retirement mode when past removal"
+else
+    fail "Tier 3 ERROR fires for retirement mode when past removal" "rc=$rc; out=$out"
+fi
+
+# ── Test 12: retirement mode dep stays SATISFIED ────────────────────────────
+P12="$TEST_BASE/p12"
+setup_retirement_project "$P12" "0.10.0" "1.0.0"
+rc=0
+run_check "$P12" "example.legacy" APPROVED >/dev/null 2>&1 || rc=$?
+if [[ $rc -eq 0 ]]; then
+    pass "retirement-mode DEPRECATED dep still SATISFIES (rc=0)"
+else
+    fail "retirement-mode DEPRECATED dep still SATISFIES (rc=0)" "rc=$rc"
+fi
+
 # ── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 echo "── Scenario summary ───────────────────────────────────────────"

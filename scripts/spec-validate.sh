@@ -227,12 +227,25 @@ if [[ ${#ERRORS[@]} -eq 0 ]]; then
     # carried forward — they're informational, not gated.
     if [[ "$STATE" == "APPROVED" ]]; then
 
-      # 7f.2 — displaced_by must be non-empty
-      if [[ "$DISPLACED_BY_COUNT" == "0" || "$DISPLACED_BY_COUNT" == "null" ]]; then
-        ERRORS+=("status:DEPRECATED requires non-empty displaced_by (the alternative spec — without one, this is just being retired, use state:INVALIDATED directly)")
-      else
-        # 7f.3 — each displaced_by target must be state:APPROVED and not
-        # status:DEPRECATED (chained deprecations create confusion)
+      # 7f.2 — declare deprecation MODE: succession (displaced_by non-empty)
+      # OR retirement (retirement: true, no successor). Mutually exclusive.
+      RETIREMENT=$(fm "$FILE" '.retirement // ""')
+      DISPLACED_NONEMPTY=false
+      if [[ "$DISPLACED_BY_COUNT" != "0" && "$DISPLACED_BY_COUNT" != "null" ]]; then
+        DISPLACED_NONEMPTY=true
+      fi
+      RETIREMENT_TRUE=false
+      if [[ "$RETIREMENT" == "true" ]]; then
+        RETIREMENT_TRUE=true
+      fi
+
+      if $DISPLACED_NONEMPTY && $RETIREMENT_TRUE; then
+        ERRORS+=("status:DEPRECATED has BOTH displaced_by AND retirement:true — these are mutually exclusive. Succession mode uses displaced_by; retirement mode uses retirement:true. Pick one.")
+      elif ! $DISPLACED_NONEMPTY && ! $RETIREMENT_TRUE; then
+        ERRORS+=("status:DEPRECATED requires either non-empty displaced_by (succession mode: alternative exists) OR retirement:true (retirement mode: no successor, code path going away). Declare your intent.")
+      elif $DISPLACED_NONEMPTY; then
+        # 7f.3 — succession mode: each displaced_by target must be
+        # state:APPROVED and not status:DEPRECATED
         if [[ -f "$MANIFEST" ]]; then
           while IFS= read -r dby; do
             [[ -z "$dby" ]] && continue
@@ -249,6 +262,7 @@ if [[ ${#ERRORS[@]} -eq 0 ]]; then
           done < <(fm "$FILE" '.displaced_by // [] | .[]')
         fi
       fi
+      # else: retirement mode — no target validation needed
 
       # 7f.4 — displacement_reason required
       DISP_REASON_NOW=$(fm "$FILE" '.displacement_reason // ""')
@@ -347,24 +361,27 @@ if [[ ${#ERRORS[@]} -eq 0 ]]; then
 
   # ── Check 7h: audit-trail-before-deletion contract
   #
-  # When state:INVALIDATED AND displaced_by is non-empty, the spec has
-  # been retired with a successor. The kit requires three artifacts to
-  # land alongside this transition so the removed work is forensically
-  # recoverable:
-  #   1. displacement_reason (already enforced via 7e warning; promoted
-  #      to ERROR here when displaced_by is non-empty AND state:INVALIDATED)
+  # When state:INVALIDATED AND the spec was previously DEPRECATED (either
+  # mode), the kit requires three artifacts to land alongside this
+  # transition so the removed work is forensically recoverable:
+  #   1. displacement_reason
   #   2. reproducer frontmatter — type + path; path must exist
   #   3. KB archaeology article at .kb/_legacy/<spec-id>.md
   #
-  # Specs invalidated WITHOUT displacement (direct retire, no successor)
-  # bypass this check — the audit-trail captures what was lost when a
-  # successor exists; direct retirement of an unused contract doesn't
-  # need a reproducer.
+  # "Was previously DEPRECATED" is detected via:
+  #   - displaced_by non-empty (succession mode marker carried forward), OR
+  #   - retirement: true (retirement mode marker carried forward)
+  #
+  # Specs invalidated WITHOUT either marker (direct retire that never went
+  # through DEPRECATED) bypass this check.
   #
   # See designs/deprecated-state.md §"Audit-trail-before-deletion contract".
-  if [[ "$STATE" == "INVALIDATED" \
-        && "$DISPLACED_BY_COUNT" != "0" \
-        && "$DISPLACED_BY_COUNT" != "null" ]]; then
+  INV_RETIREMENT=$(fm "$FILE" '.retirement // ""')
+  INV_RETIREMENT_TRUE=false
+  [[ "$INV_RETIREMENT" == "true" ]] && INV_RETIREMENT_TRUE=true
+  INV_HAS_DISPLACED=false
+  [[ "$DISPLACED_BY_COUNT" != "0" && "$DISPLACED_BY_COUNT" != "null" ]] && INV_HAS_DISPLACED=true
+  if [[ "$STATE" == "INVALIDATED" ]] && ($INV_HAS_DISPLACED || $INV_RETIREMENT_TRUE); then
 
     # 7h.1 — displacement_reason required (promote 7e warning to error)
     DISP_REASON_INV=$(fm "$FILE" '.displacement_reason // ""')

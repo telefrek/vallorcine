@@ -161,6 +161,27 @@ for fid in "${ALL_FEATURE_IDS[@]}"; do
   status=$(fm "$spec_file" '.status // "UNKNOWN"')
   if [[ "$state" == "APPROVED" || "$status" == "ACTIVE" ]]; then
     CANDIDATE_FILES+=("$spec_file")
+    # Deprecation discipline (rules/deprecation-discipline.md):
+    # When bundling a status:DEPRECATED + state:APPROVED spec, emit a tier
+    # message on stderr so users see the deprecation signal during
+    # /spec-resolve. Parity with work_check_spec_dep in work-lib.sh.
+    if [[ "$status" == "DEPRECATED" && "$state" == "APPROVED" ]]; then
+      # Source work-lib's emitter if available; fall back to a minimal
+      # inline message if work-lib isn't on the path.
+      if declare -F work_emit_deprecation_message >/dev/null 2>&1; then
+        work_emit_deprecation_message "$PROJECT_ROOT" "$spec_file" "$fid" >&2
+      elif [[ -f "$SCRIPT_DIR/work-lib.sh" ]]; then
+        # shellcheck disable=SC1091
+        source "$SCRIPT_DIR/work-lib.sh" 2>/dev/null || true
+        if declare -F work_emit_deprecation_message >/dev/null 2>&1; then
+          work_emit_deprecation_message "$PROJECT_ROOT" "$spec_file" "$fid" >&2
+        else
+          echo "[deprecation:ADVISORY] bundling DEPRECATED spec $fid" >&2
+        fi
+      else
+        echo "[deprecation:ADVISORY] bundling DEPRECATED spec $fid" >&2
+      fi
+    fi
   elif [[ "$state" == "DRAFT" ]]; then
     # Check for unresolved conflict markers before including a DRAFT spec
     has_conflicts=false

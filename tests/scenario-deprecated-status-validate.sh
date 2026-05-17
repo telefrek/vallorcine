@@ -139,10 +139,10 @@ write_spec "$PROJECT" '{
   "deprecation_date": "2026-05-17"
 }'
 out=$(run_validate "$PROJECT" || true)
-if echo "$out" | grep -q "requires non-empty displaced_by"; then
-    pass "missing displaced_by is flagged"
+if echo "$out" | grep -q "Declare your intent"; then
+    pass "missing both displaced_by and retirement is flagged (declare intent)"
 else
-    fail "missing displaced_by is flagged" "$out"
+    fail "missing both displaced_by and retirement is flagged (declare intent)" "$out"
 fi
 
 # ── Test 2: missing displacement_reason → fail ─────────────────────────
@@ -526,6 +526,114 @@ if echo "$out" | grep -q "spec_ref.*does not match"; then
     pass "KB article wrong spec_ref is flagged"
 else
     fail "KB article wrong spec_ref is flagged" "$out"
+fi
+
+# ──────────────────────────────────────────────────────────────────────────
+# v0.23.1 — retirement mode (no successor)
+# ──────────────────────────────────────────────────────────────────────────
+
+# ── Test 18: valid retirement spec → pass ───────────────────────────────
+setup_project "$PROJECT"
+write_spec "$PROJECT" '{
+  "id": "example.under-test",
+  "version": 1,
+  "status": "DEPRECATED",
+  "state": "APPROVED",
+  "domains": ["example"],
+  "retirement": true,
+  "displacement_reason": "v5 format retired entirely per pre-release policy",
+  "removal_scheduled_in": "0.22.0",
+  "deprecation_date": "2026-05-17"
+}'
+rc=0
+out=$(run_validate "$PROJECT" 2>&1) || rc=$?
+if [[ $rc -eq 0 ]]; then
+    pass "well-formed retirement spec (no successor) validates clean"
+else
+    fail "well-formed retirement spec (no successor) validates clean" "rc=$rc; out=$out"
+fi
+
+# ── Test 19: retirement: true + displaced_by → mutual exclusion ERROR ───
+setup_project "$PROJECT"
+write_spec "$PROJECT" '{
+  "id": "example.under-test",
+  "version": 1,
+  "status": "DEPRECATED",
+  "state": "APPROVED",
+  "domains": ["example"],
+  "retirement": true,
+  "displaced_by": ["example.successor"],
+  "displacement_reason": "contradiction",
+  "removal_scheduled_in": "0.22.0",
+  "deprecation_date": "2026-05-17"
+}'
+out=$(run_validate "$PROJECT" || true)
+if echo "$out" | grep -q "mutually exclusive"; then
+    pass "displaced_by + retirement:true mutual exclusion is flagged"
+else
+    fail "displaced_by + retirement:true mutual exclusion is flagged" "$out"
+fi
+
+# ── Test 20: retirement-mode INVALIDATED requires audit trail ───────────
+setup_project "$PROJECT"
+write_spec "$PROJECT" '{
+  "id": "example.under-test",
+  "version": 1,
+  "status": "DEPRECATED",
+  "state": "INVALIDATED",
+  "domains": ["example"],
+  "retirement": true,
+  "displacement_reason": "v5 format retired"
+}'
+out=$(run_validate "$PROJECT" || true)
+if echo "$out" | grep -q "reproducer frontmatter" && echo "$out" | grep -q "missing KB archaeology"; then
+    pass "retirement-mode INVALIDATED still gated by audit-trail-before-deletion"
+else
+    fail "retirement-mode INVALIDATED still gated by audit-trail-before-deletion" "$out"
+fi
+
+# ── Test 21: retirement-mode INVALIDATED with full audit trail → pass ───
+setup_project "$PROJECT"
+mkdir -p "$PROJECT/src/legacy" "$PROJECT/.kb/_legacy"
+echo "// reproducer" > "$PROJECT/src/legacy/V5.java"
+cat > "$PROJECT/.kb/_legacy/example.under-test.md" <<'EOF'
+---
+{
+  "type": "legacy-archaeology",
+  "spec_ref": "example.under-test",
+  "removed_in": "0.22.0",
+  "removed_at": "2026-05-17"
+}
+---
+
+# Legacy v5 reader
+
+## What it was
+The v5 SSTable reader path.
+
+## Why it was removed
+Pre-release policy — no SemVer retention obligation.
+EOF
+write_spec "$PROJECT" '{
+  "id": "example.under-test",
+  "version": 1,
+  "status": "DEPRECATED",
+  "state": "INVALIDATED",
+  "domains": ["example"],
+  "retirement": true,
+  "displacement_reason": "v5 format retired entirely",
+  "reproducer": {
+    "type": "synthesizer",
+    "path": "src/legacy/V5.java",
+    "description": "v5 byte-stream synthesizer"
+  }
+}'
+rc=0
+out=$(run_validate "$PROJECT" 2>&1) || rc=$?
+if [[ $rc -eq 0 ]]; then
+    pass "retirement-mode INVALIDATED with full audit trail validates clean"
+else
+    fail "retirement-mode INVALIDATED with full audit trail validates clean" "rc=$rc; out=$out"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────
