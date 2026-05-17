@@ -363,9 +363,9 @@ else
     fail "well-formed status:DEPRECATED spec validates clean" "rc=$rc; out=$out"
 fi
 
-# ── Test 13: status:DEPRECATED + state:INVALIDATED (terminal) → pass ────
-# In the terminal phase, the required fields are not re-checked (they
-# were enforced earlier). Spec just needs to be otherwise valid.
+# ── Test 13: state:INVALIDATED + displaced_by WITHOUT audit-trail → fail
+# (audit-trail-before-deletion contract: reproducer + KB article required
+#  when invalidating a spec that had a successor)
 setup_project "$PROJECT"
 write_spec "$PROJECT" '{
   "id": "example.under-test",
@@ -376,12 +376,156 @@ write_spec "$PROJECT" '{
   "displaced_by": ["example.successor"],
   "displacement_reason": "retired after migration"
 }'
+out=$(run_validate "$PROJECT" || true)
+if echo "$out" | grep -q "reproducer frontmatter"; then
+    pass "INVALIDATED+displaced_by without reproducer is flagged"
+else
+    fail "INVALIDATED+displaced_by without reproducer is flagged" "$out"
+fi
+if echo "$out" | grep -q "missing KB archaeology article"; then
+    pass "INVALIDATED+displaced_by without KB article is flagged"
+else
+    fail "INVALIDATED+displaced_by without KB article is flagged" "$out"
+fi
+
+# ── Test 14: state:INVALIDATED + displaced_by WITH audit-trail → pass
+setup_project "$PROJECT"
+# Create the reproducer file + KB article
+mkdir -p "$PROJECT/src/legacy"
+echo "// reproducer for legacy v5 format" > "$PROJECT/src/legacy/V5Synthesizer.java"
+mkdir -p "$PROJECT/.kb/_legacy"
+cat > "$PROJECT/.kb/_legacy/example.under-test.md" <<'EOF'
+---
+{
+  "type": "legacy-archaeology",
+  "spec_ref": "example.under-test",
+  "removed_in": "0.22.0",
+  "removed_at": "2026-05-17"
+}
+---
+
+# Legacy: example.under-test
+
+## What it was
+A test artifact.
+
+## Why it existed
+For testing the audit trail.
+
+## Why it was removed
+Superseded by example.successor.
+
+## How to reproduce
+Use src/legacy/V5Synthesizer.java.
+EOF
+write_spec "$PROJECT" '{
+  "id": "example.under-test",
+  "version": 1,
+  "status": "DEPRECATED",
+  "state": "INVALIDATED",
+  "domains": ["example"],
+  "displaced_by": ["example.successor"],
+  "displacement_reason": "retired after migration",
+  "reproducer": {
+    "type": "synthesizer",
+    "path": "src/legacy/V5Synthesizer.java",
+    "description": "v5 byte-stream synthesizer for forensic tests"
+  }
+}'
 rc=0
 out=$(run_validate "$PROJECT" 2>&1) || rc=$?
 if [[ $rc -eq 0 ]]; then
-    pass "status:DEPRECATED + state:INVALIDATED (terminal) validates clean"
+    pass "INVALIDATED+displaced_by with full audit-trail validates clean"
 else
-    fail "status:DEPRECATED + state:INVALIDATED (terminal) validates clean" "rc=$rc; out=$out"
+    fail "INVALIDATED+displaced_by with full audit-trail validates clean" "rc=$rc; out=$out"
+fi
+
+# ── Test 15: state:INVALIDATED WITHOUT displaced_by → no audit-trail required
+# (direct retirement of an unused contract)
+setup_project "$PROJECT"
+write_spec "$PROJECT" '{
+  "id": "example.under-test",
+  "version": 1,
+  "status": "ACTIVE",
+  "state": "INVALIDATED",
+  "domains": ["example"]
+}'
+rc=0
+out=$(run_validate "$PROJECT" 2>&1) || rc=$?
+if [[ $rc -eq 0 ]]; then
+    pass "INVALIDATED without displaced_by (direct retire) bypasses audit-trail gate"
+else
+    fail "INVALIDATED without displaced_by (direct retire) bypasses audit-trail gate" "rc=$rc; out=$out"
+fi
+
+# ── Test 16: reproducer path doesn't exist → fail
+setup_project "$PROJECT"
+mkdir -p "$PROJECT/.kb/_legacy"
+cat > "$PROJECT/.kb/_legacy/example.under-test.md" <<'EOF'
+---
+{
+  "type": "legacy-archaeology",
+  "spec_ref": "example.under-test",
+  "removed_in": "0.22.0",
+  "removed_at": "2026-05-17"
+}
+---
+
+# Legacy
+Body.
+EOF
+write_spec "$PROJECT" '{
+  "id": "example.under-test",
+  "version": 1,
+  "status": "DEPRECATED",
+  "state": "INVALIDATED",
+  "domains": ["example"],
+  "displaced_by": ["example.successor"],
+  "displacement_reason": "retired",
+  "reproducer": {
+    "type": "synthesizer",
+    "path": "src/legacy/DoesNotExist.java"
+  }
+}'
+out=$(run_validate "$PROJECT" || true)
+if echo "$out" | grep -q "reproducer path does not exist"; then
+    pass "missing reproducer file is flagged"
+else
+    fail "missing reproducer file is flagged" "$out"
+fi
+
+# ── Test 17: KB article has wrong spec_ref → fail
+setup_project "$PROJECT"
+mkdir -p "$PROJECT/src/legacy" "$PROJECT/.kb/_legacy"
+echo "// reproducer" > "$PROJECT/src/legacy/V5.java"
+cat > "$PROJECT/.kb/_legacy/example.under-test.md" <<'EOF'
+---
+{
+  "type": "legacy-archaeology",
+  "spec_ref": "different.spec",
+  "removed_in": "0.22.0",
+  "removed_at": "2026-05-17"
+}
+---
+
+# Legacy
+Body.
+EOF
+write_spec "$PROJECT" '{
+  "id": "example.under-test",
+  "version": 1,
+  "status": "DEPRECATED",
+  "state": "INVALIDATED",
+  "domains": ["example"],
+  "displaced_by": ["example.successor"],
+  "displacement_reason": "retired",
+  "reproducer": {"type": "synthesizer", "path": "src/legacy/V5.java"}
+}'
+out=$(run_validate "$PROJECT" || true)
+if echo "$out" | grep -q "spec_ref.*does not match"; then
+    pass "KB article wrong spec_ref is flagged"
+else
+    fail "KB article wrong spec_ref is flagged" "$out"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────

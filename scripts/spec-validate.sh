@@ -304,6 +304,104 @@ if [[ ${#ERRORS[@]} -eq 0 ]]; then
     ERRORS+=("status:DEPRECATED on a state:DRAFT spec is not allowed — deprecation requires the spec to have been load-bearing (state:APPROVED) at some point")
   fi
 
+  # ── Check 7i: code-marker presence for status:DEPRECATED + state:APPROVED
+  #
+  # Code carrying behavior governed by a DEPRECATED spec SHOULD have a
+  # code-level deprecation marker (Java @Deprecated, Rust #[deprecated],
+  # Python warnings.warn, Go // Deprecated:, TS @deprecated, etc.).
+  #
+  # The kit performs a loose grep-based check: for each @spec annotation
+  # referencing this spec in the codebase, check whether the same file
+  # contains "deprecat" (case-insensitive substring covering all common
+  # language conventions). Emit WARNING per file lacking the marker —
+  # NEVER block the validation.
+  #
+  # This is intentionally loose. Per-language strict checks are out of
+  # scope for v1 — a future enhancement reads .feature/project-config.md
+  # for per-language patterns. The substring "deprecat" catches the
+  # 5 common languages cheaply.
+  #
+  # Skipped when:
+  #   - $PROJECT_ROOT/.git doesn't exist (test/sandbox environments)
+  #   - the spec is not status:DEPRECATED + state:APPROVED (terminal
+  #     phase doesn't care about markers anymore)
+  if [[ "$STATUS" == "DEPRECATED" && "$STATE" == "APPROVED" ]]; then
+    SELF_ID_CM=$(fm "$FILE" '.id // ""')
+    if [[ -n "$SELF_ID_CM" && -d "$PROJECT_ROOT/.git" ]]; then
+      # Find files annotated with @spec <SELF_ID_CM> (with or without R-clause).
+      # Use git grep for speed; fall back to grep -r if not a git repo.
+      annotation_re="@spec[[:space:]]+${SELF_ID_CM//./\\.}"
+      annotated_files=$(cd "$PROJECT_ROOT" && git grep -l -E "$annotation_re" 2>/dev/null || true)
+      if [[ -n "$annotated_files" ]]; then
+        while IFS= read -r afile; do
+          [[ -z "$afile" ]] && continue
+          [[ "$afile" == *"$FILE"* ]] && continue  # skip the spec file itself
+          # Check for any case-insensitive substring of "deprecat" in the file
+          if ! grep -qi "deprecat" "$PROJECT_ROOT/$afile" 2>/dev/null; then
+            echo "  WARN: code file '$afile' carries @spec $SELF_ID_CM annotation but no deprecation marker (no 'deprecat*' substring found) — consider adding language-appropriate marker (Java @Deprecated, Rust #[deprecated], Python warnings.warn, Go // Deprecated:, TS @deprecated)" >&2
+          fi
+        done <<< "$annotated_files"
+      fi
+    fi
+  fi
+
+  # ── Check 7h: audit-trail-before-deletion contract
+  #
+  # When state:INVALIDATED AND displaced_by is non-empty, the spec has
+  # been retired with a successor. The kit requires three artifacts to
+  # land alongside this transition so the removed work is forensically
+  # recoverable:
+  #   1. displacement_reason (already enforced via 7e warning; promoted
+  #      to ERROR here when displaced_by is non-empty AND state:INVALIDATED)
+  #   2. reproducer frontmatter — type + path; path must exist
+  #   3. KB archaeology article at .kb/_legacy/<spec-id>.md
+  #
+  # Specs invalidated WITHOUT displacement (direct retire, no successor)
+  # bypass this check — the audit-trail captures what was lost when a
+  # successor exists; direct retirement of an unused contract doesn't
+  # need a reproducer.
+  #
+  # See designs/deprecated-state.md §"Audit-trail-before-deletion contract".
+  if [[ "$STATE" == "INVALIDATED" \
+        && "$DISPLACED_BY_COUNT" != "0" \
+        && "$DISPLACED_BY_COUNT" != "null" ]]; then
+
+    # 7h.1 — displacement_reason required (promote 7e warning to error)
+    DISP_REASON_INV=$(fm "$FILE" '.displacement_reason // ""')
+    if [[ -z "$DISP_REASON_INV" ]]; then
+      ERRORS+=("INVALIDATED spec with displaced_by requires displacement_reason (audit-trail-before-deletion contract)")
+    fi
+
+    # 7h.2 — reproducer frontmatter (type + path)
+    REPRO_TYPE=$(fm "$FILE" '.reproducer.type // ""')
+    REPRO_PATH=$(fm "$FILE" '.reproducer.path // ""')
+    if [[ -z "$REPRO_TYPE" || -z "$REPRO_PATH" ]]; then
+      ERRORS+=("INVALIDATED spec with displaced_by requires reproducer frontmatter (type + path) — see audit-trail-before-deletion contract")
+    elif [[ ! -e "$PROJECT_ROOT/$REPRO_PATH" ]]; then
+      ERRORS+=("reproducer path does not exist: $REPRO_PATH (relative to project root)")
+    fi
+
+    # 7h.3 — KB archaeology article at .kb/_legacy/<spec-id>.md
+    SELF_ID=$(fm "$FILE" '.id // ""')
+    if [[ -n "$SELF_ID" ]]; then
+      # Default path: .kb/_legacy/<spec-id>.md (dot-separated ID kept as-is)
+      KB_LEGACY_PATH="$PROJECT_ROOT/.kb/_legacy/${SELF_ID}.md"
+      if [[ ! -f "$KB_LEGACY_PATH" ]]; then
+        ERRORS+=("missing KB archaeology article: .kb/_legacy/${SELF_ID}.md (audit-trail-before-deletion contract requires forensic record of removed contracts)")
+      else
+        # 7h.4 — KB article frontmatter sanity check
+        KB_TYPE=$(fm "$KB_LEGACY_PATH" '.type // ""')
+        KB_SPEC_REF=$(fm "$KB_LEGACY_PATH" '.spec_ref // ""')
+        if [[ "$KB_TYPE" != "legacy-archaeology" ]]; then
+          ERRORS+=("KB article $KB_LEGACY_PATH missing type:legacy-archaeology (got '$KB_TYPE')")
+        fi
+        if [[ "$KB_SPEC_REF" != "$SELF_ID" ]]; then
+          ERRORS+=("KB article $KB_LEGACY_PATH spec_ref ('$KB_SPEC_REF') does not match this spec's ID ('$SELF_ID')")
+        fi
+      fi
+    fi
+  fi
+
   # ── Check 8: decision_refs resolve (warning, not error)
   while IFS= read -r ref; do
     [[ -z "$ref" ]] && continue
