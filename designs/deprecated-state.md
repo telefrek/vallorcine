@@ -1,6 +1,6 @@
 # DEPRECATED spec state — pre-release deprecation discipline
 
-**Status:** approved (revision 3) — 2026-05-17 — implementation in flight
+**Status:** approved (revision 4) — 2026-05-17 — v0.23.1 retirement mode
 **Originating signal:** jlsm session proposed a pre-release format-deprecation
 discipline that introduces a `DEPRECATED` state between `APPROVED` and
 `INVALIDATED`. Most of the proposal is jlsm-specific (Java annotations,
@@ -11,6 +11,53 @@ This design scopes the vallorcine-kit-level support. Language and
 domain specifics stay in `.feature/project-config.md` so other languages
 (Rust, Python, Go, TS) and other artifact types (algorithms, protocols)
 can plug in.
+
+**Revision 4 changes** (v0.23.1 — discovered when auditing jlsm PR #127
+against v0.23.0):
+
+1. **Two deprecation modes: succession and retirement.** v0.23.0
+   required `displaced_by` to be non-empty when `status: DEPRECATED`,
+   which assumed every deprecation has a successor spec. jlsm's legacy
+   v5/v6/v7 reader specs have NO successor — the code paths are being
+   removed entirely, not replaced by a new spec. v0.23.1 splits
+   deprecation into two modes:
+   - **Succession mode**: `displaced_by` non-empty (the alternative).
+     Validator requires the array, each target must be `state:APPROVED`
+     and not itself `status:DEPRECATED`.
+   - **Retirement mode**: `retirement: true` (the marker — no successor).
+     Validator allows empty `displaced_by` only when `retirement: true`
+     is explicitly set. Mutual exclusion: both set → ERROR; neither →
+     ERROR ("declare your intent").
+
+2. **`displacement_reason` works for both modes.** Kept as the
+   one-line rationale field. For succession: "superseded by X". For
+   retirement: "v5 format retired entirely per pre-release policy."
+   The validator doesn't care about the wording; the rule asks the
+   author to be honest.
+
+3. **Resolver behavior for retirement mode:**
+   - **Tier 0 SILENT no longer applies** — no successor to "cover" the
+     dependent's needs.
+   - **Tier 1 ADVISORY default** for retirement-mode specs not yet
+     approaching removal version. Message reads "(retirement; no
+     successor)" instead of "(superseded by ...)".
+   - **Tier 2 WARNING** fires only on version-proximity (the
+     "`displaced_by` target not APPROVED" trigger doesn't apply).
+   - **Tier 3 ERROR** unchanged — overdue is overdue.
+
+4. **Audit-trail-before-deletion gate extends.** Fires at INVALIDATION
+   when `(displaced_by non-empty OR retirement: true)`. v0.23.0 only
+   triggered on succession; v0.23.1 covers both. `retirement: true`
+   carries forward into INVALIDATED state so the validator knows the
+   spec was DEPRECATED at some point.
+
+5. **Two related scripts updated** (caught in audit, gaps from v0.23.0):
+   - `curate-scan.sh` Analysis 27 surface text: removes the "Retract
+     status" instruction (conflicts with v0.23.0 no-rescind rule),
+     adds succession-vs-retirement distinction.
+   - `spec-resolve.sh`: emits a tier message on stderr when a
+     DEPRECATED spec is included in a bundle. Parity with
+     `work_check_spec_dep` behavior.
 
 **Revision 3 changes** (after Nathan's second review):
 
@@ -209,28 +256,36 @@ ness).
 
 When `status: "DEPRECATED"`, these fields are REQUIRED:
 
+**Succession mode** (alternative exists):
+
 ```yaml
 state: "APPROVED"                  # still load-bearing
-status: "DEPRECATED"               # the marker — alternative exists
-displaced_by: ["<spec-id>", ...]   # array of specs that supersede this
-                                   # one. MUST be non-empty. Each target
-                                   # MUST exist, be state:APPROVED, and
-                                   # NOT itself be status:DEPRECATED.
-                                   # (Field already exists; multi-displacement
-                                   # is already supported.)
-displacement_reason: "..."         # one-line rationale. Often "superseded
-                                   # by <displaced_by[0]>"; may add context.
-                                   # (Field already exists; promoted from
-                                   # WARNING to required-when-DEPRECATED.)
-removal_scheduled_in: "0.23.0"     # semver version string for the planned
-                                   # removal. MUST be > current VERSION.
-                                   # NOT tied to a specific WD — removals
-                                   # may span multiple WDs or merge across
-                                   # versions. (New field.)
-deprecation_date: "2026-05-17"     # ISO date when status:DEPRECATED was
-                                   # set. Used for /curate aging displays.
-                                   # (New field.)
+status: "DEPRECATED"               # the marker
+displaced_by: ["<spec-id>", ...]   # non-empty. Each target MUST exist,
+                                   # be state:APPROVED, and NOT itself
+                                   # be status:DEPRECATED.
+displacement_reason: "..."         # rationale; typically "superseded by ..."
+removal_scheduled_in: "0.23.0"     # semver; MUST be > current VERSION
+deprecation_date: "2026-05-17"     # ISO date the marker was applied
 ```
+
+**Retirement mode** (no successor — code path going away entirely):
+
+```yaml
+state: "APPROVED"                  # still load-bearing
+status: "DEPRECATED"               # the marker
+retirement: true                   # explicit "no successor" intent
+                                   # (mutually exclusive with displaced_by)
+displacement_reason: "..."         # rationale; typically "X format retired
+                                   # entirely per pre-release policy"
+removal_scheduled_in: "0.23.0"     # semver; MUST be > current VERSION
+deprecation_date: "2026-05-17"     # ISO date the marker was applied
+```
+
+**Validator rejects:**
+- `displaced_by` non-empty AND `retirement: true` → ERROR (contradiction)
+- `displaced_by` empty AND `retirement` not set → ERROR (must declare
+  intent: succession or retirement)
 
 **Field reuse note:** `displaced_by` and `displacement_reason` already
 exist in the spec frontmatter. Current convention: they're set at

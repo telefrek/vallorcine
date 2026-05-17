@@ -33,27 +33,31 @@ is expressed via the `(state, status)` pair.
 
 ## What `status: DEPRECATED` means
 
-> "Still active, but alternatives exist — prefer the alternative."
+> "Still load-bearing, but going away."
 
 A `status: DEPRECATED` spec:
 
 - Still **satisfies** `required_state: APPROVED` dependencies (the
   verification dimension is unchanged)
-- **Names a successor** (`displaced_by`) so consumers know where to
-  migrate
-- **Has a scheduled removal version** so the deprecation isn't
+- Has a **scheduled removal version** so the deprecation isn't
   open-ended
+- Declares **one of two modes** (validator-enforced, mutually exclusive):
+  - **Succession** (`displaced_by` non-empty): alternative spec exists;
+    migrate to it
+  - **Retirement** (`retirement: true`): no successor; the code path
+    is going away entirely (added v0.23.1 for pre-release projects
+    that retire whole capabilities)
 - **Is one-way** — no rescind back to ACTIVE/STABLE. Once you've
-  declared alternatives exist, that's a downstream-visible commitment.
-
-If you intended "this spec is being retired with no successor," use
-`state: INVALIDATED` directly (no audit-trail-before-deletion contract).
+  declared the spec is going away, that's a downstream-visible
+  commitment.
 
 ---
 
 ## Required fields when `status: DEPRECATED`
 
-Set on the deprecated spec's frontmatter (validator-enforced):
+Set on the deprecated spec's frontmatter (validator-enforced).
+
+**Succession mode** (alternative exists):
 
 ```yaml
 state: "APPROVED"                  # still load-bearing
@@ -61,10 +65,26 @@ status: "DEPRECATED"               # the marker
 displaced_by: ["<spec-id>", ...]   # non-empty; targets must exist
                                    # and be state:APPROVED, not
                                    # themselves status:DEPRECATED
-displacement_reason: "..."         # one-line rationale
+displacement_reason: "..."         # rationale; typically "superseded by ..."
 removal_scheduled_in: "0.23.0"     # valid semver, > current VERSION
 deprecation_date: "YYYY-MM-DD"     # ISO date the spec was deprecated
 ```
+
+**Retirement mode** (no successor — added v0.23.1):
+
+```yaml
+state: "APPROVED"                  # still load-bearing
+status: "DEPRECATED"               # the marker
+retirement: true                   # "no successor; code path going away"
+displacement_reason: "..."         # rationale; typically "X retired entirely per Y policy"
+removal_scheduled_in: "0.23.0"     # valid semver, > current VERSION
+deprecation_date: "YYYY-MM-DD"     # ISO date the spec was deprecated
+```
+
+**Validator rejects:**
+- `displaced_by` non-empty AND `retirement: true` → contradiction
+- `displaced_by` empty AND `retirement` not set → "declare your intent"
+- Any required field missing or malformed
 
 The validator refuses the deprecation if any of these is missing,
 malformed, or contradictory. See `tests/scenario-deprecated-status-validate.sh`
@@ -75,8 +95,10 @@ for the full enforcement matrix.
 ## Resolver tier escalation
 
 When a WD's `artifact_deps` references a `status: DEPRECATED` spec,
-the resolver emits a tiered message on stderr:
+the resolver emits a tiered message on stderr. `/spec-resolve` does
+the same when bundling a DEPRECATED spec into a feature context.
 
+**Succession mode:**
 - **Tier 0 (SILENT)** — Spec is `APPROVED + ACTIVE/STABLE`. No
   deprecation involvement. Nothing emitted.
 - **Tier 1 (ADVISORY)** — Spec is `DEPRECATED`. Removal version is
@@ -86,6 +108,15 @@ the resolver emits a tiered message on stderr:
   `state: APPROVED`. Migration is needed soon.
 - **Tier 3 (ERROR)** — Current VERSION has reached or passed
   `removal_scheduled_in`. The marker spec is overdue for INVALIDATION.
+
+**Retirement mode** (v0.23.1+):
+- **Tier 0 SILENT does NOT apply** — no successor to "cover" the
+  dependent's needs. Floor is ADVISORY.
+- **Tier 1 ADVISORY** — message reads "(retirement; no successor)"
+  instead of "(superseded by ...)".
+- **Tier 2 WARNING** — version proximity only. Message reads "retire
+  dependent code" instead of "migrate to ...".
+- **Tier 3 ERROR** — same as succession mode.
 
 All tiers leave the dep **SATISFIED** (rc=0). The resolver doesn't
 block in-flight work on deprecation alone — warnings raise awareness,

@@ -423,13 +423,15 @@ work_emit_deprecation_message() {
   local spec_path="$3"
 
   # Read the DEPRECATED spec's frontmatter fields
-  local rsi displaced_by_count displaced_first
+  local rsi displaced_by_count displaced_first retirement
   rsi=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$spec_file" \
     | jq -r '.removal_scheduled_in // ""' 2>/dev/null || echo "")
   displaced_by_count=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$spec_file" \
     | jq -r '(.displaced_by // []) | length' 2>/dev/null || echo "0")
   displaced_first=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$spec_file" \
     | jq -r '(.displaced_by // [""])[0]' 2>/dev/null || echo "")
+  retirement=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$spec_file" \
+    | jq -r '.retirement // ""' 2>/dev/null || echo "")
 
   # Read current VERSION (graceful fallback if missing)
   local cur_version=""
@@ -454,26 +456,36 @@ work_emit_deprecation_message() {
     fi
   fi
 
-  # Check displaced_by target state — Tier 2 if alternative isn't APPROVED
-  local manifest="$project_root/.spec/registry/manifest.json"
-  local displaced_state="UNKNOWN"
-  if [[ -n "$displaced_first" && -f "$manifest" ]]; then
-    local dby_file
-    dby_file=$(spec_file_for_id "$manifest" "$displaced_first")
-    if [[ -n "$dby_file" && -f "$dby_file" ]]; then
-      displaced_state=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$dby_file" \
-        | jq -r '.state // ""' 2>/dev/null || echo "UNKNOWN")
-    fi
-  fi
+  # Detect deprecation mode: succession (displaced_by non-empty) vs
+  # retirement (retirement: true, no successor).
+  local is_retirement=false
+  [[ "$retirement" == "true" ]] && is_retirement=true
 
-  if [[ "$displaced_state" != "APPROVED" ]]; then
-    printf '[deprecation:WARNING] spec %s is DEPRECATED but its displaced_by target (%s) is %s — alternative is not state:APPROVED; scheduling looks off\n' \
-      "$spec_path" "$displaced_first" "$displaced_state"
-    return 0
+  # Succession mode only: check displaced_by target state — Tier 2 if
+  # alternative isn't APPROVED. Retirement mode skips this check (no
+  # successor to evaluate).
+  if ! $is_retirement; then
+    local manifest="$project_root/.spec/registry/manifest.json"
+    local displaced_state="UNKNOWN"
+    if [[ -n "$displaced_first" && -f "$manifest" ]]; then
+      local dby_file
+      dby_file=$(spec_file_for_id "$manifest" "$displaced_first")
+      if [[ -n "$dby_file" && -f "$dby_file" ]]; then
+        displaced_state=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$dby_file" \
+          | jq -r '.state // ""' 2>/dev/null || echo "UNKNOWN")
+      fi
+    fi
+
+    if [[ "$displaced_state" != "APPROVED" ]]; then
+      printf '[deprecation:WARNING] spec %s is DEPRECATED but its displaced_by target (%s) is %s — alternative is not state:APPROVED; scheduling looks off\n' \
+        "$spec_path" "$displaced_first" "$displaced_state"
+      return 0
+    fi
   fi
 
   # Approaching-removal heuristic — Tier 2 when current VERSION's
   # minor is one below rsi's minor (rough "within a minor bump").
+  # Applies to BOTH succession and retirement modes.
   if [[ -n "$cur_version" && -n "$rsi" ]]; then
     local cur_major cur_minor rsi_major rsi_minor
     cur_major=$(printf '%s' "$cur_version" | cut -d. -f1)
@@ -483,16 +495,28 @@ work_emit_deprecation_message() {
     if [[ "$cur_major" == "$rsi_major" ]]; then
       local minor_gap=$(( rsi_minor - cur_minor ))
       if (( minor_gap <= 1 )) && (( minor_gap >= 0 )); then
-        printf '[deprecation:WARNING] spec %s is DEPRECATED and approaching removal in %s (current %s) — migrate to %s before %s\n' \
-          "$spec_path" "$rsi" "$cur_version" "$displaced_first" "$rsi"
+        if $is_retirement; then
+          printf '[deprecation:WARNING] spec %s is DEPRECATED (retirement; no successor) and approaching removal in %s (current %s) — retire dependent code before %s\n' \
+            "$spec_path" "$rsi" "$cur_version" "$rsi"
+        else
+          printf '[deprecation:WARNING] spec %s is DEPRECATED and approaching removal in %s (current %s) — migrate to %s before %s\n' \
+            "$spec_path" "$rsi" "$cur_version" "$displaced_first" "$rsi"
+        fi
         return 0
       fi
     fi
   fi
 
-  # Default — Tier 1 ADVISORY (deprecated, alternative ready, removal not imminent)
-  printf '[deprecation:ADVISORY] spec %s is DEPRECATED (superseded by %s; scheduled removal in %s; current %s)\n' \
-    "$spec_path" "${displaced_first:-<none>}" "${rsi:-<unset>}" "${cur_version:-<unset>}"
+  # Default — Tier 1 ADVISORY. Message differs by mode.
+  # Note: retirement mode has NO Tier 0 SILENT case (no successor to "cover");
+  # ADVISORY is the floor.
+  if $is_retirement; then
+    printf '[deprecation:ADVISORY] spec %s is DEPRECATED (retirement; no successor; scheduled removal in %s; current %s)\n' \
+      "$spec_path" "${rsi:-<unset>}" "${cur_version:-<unset>}"
+  else
+    printf '[deprecation:ADVISORY] spec %s is DEPRECATED (superseded by %s; scheduled removal in %s; current %s)\n' \
+      "$spec_path" "${displaced_first:-<none>}" "${rsi:-<unset>}" "${cur_version:-<unset>}"
+  fi
 }
 
 # ── Check if an ADR artifact exists and is in required status ────────────────
