@@ -4,6 +4,88 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.23.0] — 2026-05-17
+
+This release adds **deprecation discipline** for spec contracts —
+pre-release and released projects can now mark specs as deprecated
+with a load-bearing audit trail. Derived from jlsm's pre-release
+deprecation proposal but generalized to be language-agnostic and
+reusable across any project.
+
+Key insight from scoping: vallorcine already has a two-field model
+(`state` for verification, `status` for lifecycle). `DEPRECATED` is
+already a value in the `status` enum — the natural fit is to
+legitimize the `(state=APPROVED, status=DEPRECATED)` combination,
+not to introduce a parallel state value. The mental state machine
+`DRAFT → APPROVED → DEPRECATED → INVALIDATED` is now expressed via
+the `(state, status)` pair.
+
+### Added
+
+- **`rules/deprecation-discipline.md`** — new always-loaded rule
+  codifying the kit-level deprecation contract. Covers the
+  `(state, status)` pair model, required fields when
+  `status: DEPRECATED`, resolver tier escalation,
+  audit-trail-before-deletion contract, code-marker convention,
+  allowed/disallowed transitions, workflow steps, and the
+  no-rescind rationale. Language-agnostic.
+
+- **Validator enforcement** in `scripts/spec-validate.sh`:
+  - **Check 7f** — `status: DEPRECATED` requires non-empty
+    `displaced_by` (each target must be `state: APPROVED` and not
+    itself `status: DEPRECATED`), `displacement_reason`,
+    `removal_scheduled_in` (well-formed semver, > current VERSION),
+    `deprecation_date` (ISO date).
+  - **Check 7g** — `status: DEPRECATED` on a `state: DRAFT` spec
+    is refused. Deprecation requires the spec to have been
+    load-bearing at some point.
+  - **Check 7h** — audit-trail-before-deletion gate:
+    `state: INVALIDATED` with non-empty `displaced_by` requires
+    `displacement_reason`, `reproducer` frontmatter (with type +
+    path that exists), and a KB archaeology article at
+    `.kb/_legacy/<spec-id>.md` with `type: legacy-archaeology`
+    and matching `spec_ref`.
+  - **Check 7i** — loose code-marker grep: emits WARNING when
+    `@spec`-annotated source files lack a `deprecat*` substring.
+    Catches Java/Rust/Python/Go/TS conventions cheaply.
+
+- **Resolver tier escalation** in `scripts/work-lib.sh`
+  `work_check_spec_dep` — emits four-tier deprecation messages on
+  stderr when a resolved spec has `status: DEPRECATED`. Tier 0
+  SILENT, Tier 1 ADVISORY, Tier 2 WARNING (within 1 minor of
+  removal OR `displaced_by` target not APPROVED), Tier 3 ERROR
+  (current VERSION >= `removal_scheduled_in` — overdue). All tiers
+  leave the dep SATISFIED — the resolver never blocks in-flight
+  work on deprecation alone.
+
+- **`designs/deprecated-state.md`** — full design at revision 3,
+  including the `(state, status)` pair model, no-rescind rule,
+  audit-trail-before-deletion contract, language-agnostic split,
+  7 rejected alternatives, 9 edge cases. Already merged via PR #106
+  (review-only). This release implements against it.
+
+### Tests
+
+- `tests/scenario-deprecated-status-validate.sh` — 18 validator
+  checks covering all four new checks plus edge cases.
+- `tests/scenario-deprecated-resolver.sh` — 8 resolver tier checks.
+- Total kit test count rises to 183 (74 install + 41 completeness-
+  contract + 18 validate-subagent-return + 24 central-invariant-gate
+  + 18 deprecated-status-validate + 8 deprecated-resolver).
+
+### Out of scope (queued for v0.23.1)
+
+- Helper commands `/spec-deprecate` and `/spec-invalidate` —
+  validator already enforces the discipline mechanically; helpers
+  reduce friction but are not load-bearing for safety. Shipping
+  the load-bearing part first lets jlsm adopt; helpers follow.
+- Per-language strict code-marker patterns via
+  `.feature/project-config.md` — v1 loose `deprecat*` substring
+  check catches common languages cheaply.
+- `.kb/_legacy/` path override via project-config — v1 uses the
+  default path.
+
+---
 ## [0.22.0] — 2026-05-17
 
 This release implements **Finding 6** from the 2026-05 jlsm session
