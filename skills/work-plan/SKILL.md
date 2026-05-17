@@ -44,7 +44,7 @@ BEFORE accepting COMPLETE:
 mkdir -p /tmp/vallorcine
 return_file=/tmp/vallorcine/work-plan-return-"<group-slug>"-"<wd-id>".txt
 printf '%s\n' "$FULL_RETURN_TEXT" > "$return_file"
-bash .claude/scripts/validate-subagent-return.sh "$return_file" 2>/tmp/vallorcine/validator-stderr.txt
+bash .claude/scripts/validate-subagent-return.sh "$return_file" --require-ac-coverage 2>/tmp/vallorcine/validator-stderr.txt
 rc=$?
 ```
 

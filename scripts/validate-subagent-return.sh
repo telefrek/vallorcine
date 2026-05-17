@@ -11,11 +11,18 @@
 # accepting the return.
 #
 # Usage:
-#   bash validate-subagent-return.sh <return-file>
+#   bash validate-subagent-return.sh <return-file> [--require-ac-coverage]
+#
+# Flags:
+#   --require-ac-coverage  Also require the return to contain an AC satisfaction
+#                          mapping (per rules/completeness-contract.md §6).
+#                          Pass this for WD-return orchestrators (work-run,
+#                          work-start, work-plan). Skip for audit / spec-backfill /
+#                          curate dispatches that don't carry WD-style ACs.
 #
 # Exit codes:
-#   0 = clean (no trigger phrases found)
-#   1 = trigger phrase found (deferral detected — block COMPLETE, route to user)
+#   0 = clean (no contract violations found)
+#   1 = contract violation found (trigger phrase OR missing AC coverage when required)
 #   2 = file not found / usage error
 #
 # Design notes:
@@ -24,15 +31,36 @@
 #   ships incomplete work. The asymmetry favors the user.
 # - Case-insensitive substring matching (-iF) keeps phrase definitions simple
 #   and avoids regex escaping for hyphens and apostrophes.
-# - Returns the matched phrase + first matching line to stderr so the
-#   orchestrator can surface useful context in its AskUserQuestion prompt.
+# - Writes findings to stderr so orchestrators can surface them in the
+#   AskUserQuestion prompt as context.
 
 set -euo pipefail
 
-return_file="${1:-}"
+return_file=""
+require_ac_coverage=false
+
+for arg in "$@"; do
+  case "$arg" in
+    --require-ac-coverage)
+      require_ac_coverage=true
+      ;;
+    --*)
+      printf 'ERROR: unknown flag: %s\n' "$arg" >&2
+      exit 2
+      ;;
+    *)
+      if [[ -z "$return_file" ]]; then
+        return_file="$arg"
+      else
+        printf 'ERROR: unexpected positional argument: %s\n' "$arg" >&2
+        exit 2
+      fi
+      ;;
+  esac
+done
 
 if [[ -z "$return_file" ]]; then
-  printf 'ERROR: usage: %s <return-file>\n' "$(basename "$0")" >&2
+  printf 'ERROR: usage: %s <return-file> [--require-ac-coverage]\n' "$(basename "$0")" >&2
   exit 2
 fi
 
@@ -78,6 +106,8 @@ for phrase in "${TRIGGER_PHRASES[@]}"; do
   fi
 done
 
+violation_count=0
+
 if (( ${#found[@]} > 0 )); then
   printf 'VIOLATION: deferral trigger phrases detected in subagent return.\n' >&2
   printf '  See rules/completeness-contract.md for the contract.\n' >&2
@@ -91,7 +121,44 @@ if (( ${#found[@]} > 0 )); then
     fi
     printf '    - "%s" in: %s\n' "$phrase" "$line" >&2
   done
-  printf '\n  Orchestrator action: block COMPLETE, route to user via AskUserQuestion.\n' >&2
+  printf '\n' >&2
+  violation_count=$((violation_count + 1))
+fi
+
+if $require_ac_coverage; then
+  # Look for AC-satisfaction markers. Returns claiming COMPLETE for a WD
+  # MUST include a section mapping each acceptance criterion to a satisfier.
+  # See rules/completeness-contract.md §6 (Scope-reconciliation contract).
+  AC_PATTERNS=(
+    "AC satisfaction"
+    "AC coverage"
+    "AC mapping"
+    "Acceptance criteria satisfaction"
+    "Acceptance criteria coverage"
+    "Acceptance criterion"
+    "satisfies AC"
+    "AC[0-9]"
+    "AC-[0-9]"
+  )
+  ac_found=false
+  for pattern in "${AC_PATTERNS[@]}"; do
+    if grep -iE -- "$pattern" "$return_file" >/dev/null 2>&1; then
+      ac_found=true
+      break
+    fi
+  done
+  if ! $ac_found; then
+    printf 'VIOLATION: return missing AC satisfaction mapping.\n' >&2
+    printf '  See rules/completeness-contract.md §6 (Scope-reconciliation).\n' >&2
+    printf '  Returns claiming COMPLETE for a WD MUST include a section\n' >&2
+    printf '  mapping each acceptance criterion to its satisfier (code, test,\n' >&2
+    printf '  or doc with file:line citation).\n\n' >&2
+    violation_count=$((violation_count + 1))
+  fi
+fi
+
+if (( violation_count > 0 )); then
+  printf '  Orchestrator action: block COMPLETE, route to user via AskUserQuestion.\n' >&2
   exit 1
 fi
 
