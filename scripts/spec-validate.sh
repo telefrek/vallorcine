@@ -202,6 +202,206 @@ if [[ ${#ERRORS[@]} -eq 0 ]]; then
     fi
   fi
 
+  # ── Check 7f: status:DEPRECATED requires the deprecation discipline contract
+  #
+  # When status:DEPRECATED is set, the spec is asserting "still load-bearing
+  # but alternative exists." That assertion requires:
+  #   - state:APPROVED (or state:INVALIDATED for the terminal phase — no
+  #     extra fields enforced there)
+  #   - non-empty displaced_by (the alternative)
+  #   - each displaced_by target is state:APPROVED and not status:DEPRECATED
+  #   - displacement_reason (the rationale)
+  #   - removal_scheduled_in (semver string, > current VERSION)
+  #   - deprecation_date (ISO date)
+  #
+  # See designs/deprecated-state.md and rules/deprecation-discipline.md.
+  if [[ "$STATUS" == "DEPRECATED" ]]; then
+
+    # 7f.1 — state must be APPROVED (load-bearing) or INVALIDATED (terminal)
+    if [[ "$STATE" != "APPROVED" && "$STATE" != "INVALIDATED" ]]; then
+      ERRORS+=("status:DEPRECATED requires state:APPROVED (load-bearing) or state:INVALIDATED (retired); got state:$STATE")
+    fi
+
+    # The required-fields contract applies during the APPROVED phase only.
+    # Once INVALIDATED, the fields were enforced previously and may have
+    # carried forward — they're informational, not gated.
+    if [[ "$STATE" == "APPROVED" ]]; then
+
+      # 7f.2 — displaced_by must be non-empty
+      if [[ "$DISPLACED_BY_COUNT" == "0" || "$DISPLACED_BY_COUNT" == "null" ]]; then
+        ERRORS+=("status:DEPRECATED requires non-empty displaced_by (the alternative spec — without one, this is just being retired, use state:INVALIDATED directly)")
+      else
+        # 7f.3 — each displaced_by target must be state:APPROVED and not
+        # status:DEPRECATED (chained deprecations create confusion)
+        if [[ -f "$MANIFEST" ]]; then
+          while IFS= read -r dby; do
+            [[ -z "$dby" ]] && continue
+            dby_file=$(spec_file_for_id "$MANIFEST" "$dby")
+            [[ -z "$dby_file" || ! -f "$dby_file" ]] && continue  # 7b already flagged
+            dby_state=$(fm "$dby_file" '.state // ""')
+            dby_status=$(fm "$dby_file" '.status // ""')
+            if [[ "$dby_state" != "APPROVED" ]]; then
+              ERRORS+=("displaced_by target '$dby' has state:$dby_state — must be state:APPROVED to displace a DEPRECATED spec (alternative must be live)")
+            fi
+            if [[ "$dby_status" == "DEPRECATED" ]]; then
+              ERRORS+=("displaced_by target '$dby' is itself status:DEPRECATED — chain deprecations create confusion; point directly to the live successor")
+            fi
+          done < <(fm "$FILE" '.displaced_by // [] | .[]')
+        fi
+      fi
+
+      # 7f.4 — displacement_reason required
+      DISP_REASON_NOW=$(fm "$FILE" '.displacement_reason // ""')
+      if [[ -z "$DISP_REASON_NOW" ]]; then
+        ERRORS+=("status:DEPRECATED requires displacement_reason (one-line rationale; often 'superseded by <displaced_by[0]>')")
+      fi
+
+      # 7f.5 — removal_scheduled_in required, semver, > current VERSION
+      RSI=$(fm "$FILE" '.removal_scheduled_in // ""')
+      if [[ -z "$RSI" ]]; then
+        ERRORS+=("status:DEPRECATED requires removal_scheduled_in (semver version string, e.g. '0.23.0', must be > current VERSION)")
+      else
+        # Semver pattern: X.Y.Z optionally followed by -prerelease or +build
+        semver_re='^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$'
+        if ! [[ "$RSI" =~ $semver_re ]]; then
+          ERRORS+=("removal_scheduled_in '$RSI' is not a well-formed semver (expected X.Y.Z or X.Y.Z-suffix)")
+        elif [[ -f "$PROJECT_ROOT/VERSION" ]]; then
+          CUR_VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null | tr -d '[:space:]')
+          if [[ -n "$CUR_VERSION" ]]; then
+            # Use sort -V for semver comparison; sort -uV with both values
+            # and check if RSI comes after CUR_VERSION. If equal, that's
+            # already "removal version reached" — disallow at marking time.
+            if [[ "$RSI" == "$CUR_VERSION" ]]; then
+              ERRORS+=("removal_scheduled_in '$RSI' equals current VERSION — must be strictly greater (schedule a future version)")
+            else
+              sorted=$(printf '%s\n%s\n' "$CUR_VERSION" "$RSI" | sort -V | head -1)
+              if [[ "$sorted" != "$CUR_VERSION" ]]; then
+                # current sorts AFTER scheduled — means scheduled is in the past
+                ERRORS+=("removal_scheduled_in '$RSI' is below current VERSION '$CUR_VERSION' — must be strictly greater")
+              fi
+            fi
+          fi
+        fi
+      fi
+
+      # 7f.6 — deprecation_date required, ISO format
+      DEP_DATE=$(fm "$FILE" '.deprecation_date // ""')
+      if [[ -z "$DEP_DATE" ]]; then
+        ERRORS+=("status:DEPRECATED requires deprecation_date (ISO date, e.g. '2026-05-17')")
+      elif ! [[ "$DEP_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        ERRORS+=("deprecation_date '$DEP_DATE' is not a valid ISO date (expected YYYY-MM-DD)")
+      fi
+    fi
+  fi
+
+  # ── Check 7g: status:DEPRECATED cannot apply to a state:DRAFT spec
+  #
+  # Deprecation means "load-bearing AND has alternative." A DRAFT spec
+  # isn't load-bearing yet, so it can't be deprecated. If you no longer
+  # want a DRAFT spec, delete it or transition DRAFT → INVALIDATED
+  # directly with displacement_reason.
+  if [[ "$STATUS" == "DEPRECATED" && "$STATE" == "DRAFT" ]]; then
+    ERRORS+=("status:DEPRECATED on a state:DRAFT spec is not allowed — deprecation requires the spec to have been load-bearing (state:APPROVED) at some point")
+  fi
+
+  # ── Check 7i: code-marker presence for status:DEPRECATED + state:APPROVED
+  #
+  # Code carrying behavior governed by a DEPRECATED spec SHOULD have a
+  # code-level deprecation marker (Java @Deprecated, Rust #[deprecated],
+  # Python warnings.warn, Go // Deprecated:, TS @deprecated, etc.).
+  #
+  # The kit performs a loose grep-based check: for each @spec annotation
+  # referencing this spec in the codebase, check whether the same file
+  # contains "deprecat" (case-insensitive substring covering all common
+  # language conventions). Emit WARNING per file lacking the marker —
+  # NEVER block the validation.
+  #
+  # This is intentionally loose. Per-language strict checks are out of
+  # scope for v1 — a future enhancement reads .feature/project-config.md
+  # for per-language patterns. The substring "deprecat" catches the
+  # 5 common languages cheaply.
+  #
+  # Skipped when:
+  #   - $PROJECT_ROOT/.git doesn't exist (test/sandbox environments)
+  #   - the spec is not status:DEPRECATED + state:APPROVED (terminal
+  #     phase doesn't care about markers anymore)
+  if [[ "$STATUS" == "DEPRECATED" && "$STATE" == "APPROVED" ]]; then
+    SELF_ID_CM=$(fm "$FILE" '.id // ""')
+    if [[ -n "$SELF_ID_CM" && -d "$PROJECT_ROOT/.git" ]]; then
+      # Find files annotated with @spec <SELF_ID_CM> (with or without R-clause).
+      # Use git grep for speed; fall back to grep -r if not a git repo.
+      annotation_re="@spec[[:space:]]+${SELF_ID_CM//./\\.}"
+      annotated_files=$(cd "$PROJECT_ROOT" && git grep -l -E "$annotation_re" 2>/dev/null || true)
+      if [[ -n "$annotated_files" ]]; then
+        while IFS= read -r afile; do
+          [[ -z "$afile" ]] && continue
+          [[ "$afile" == *"$FILE"* ]] && continue  # skip the spec file itself
+          # Check for any case-insensitive substring of "deprecat" in the file
+          if ! grep -qi "deprecat" "$PROJECT_ROOT/$afile" 2>/dev/null; then
+            echo "  WARN: code file '$afile' carries @spec $SELF_ID_CM annotation but no deprecation marker (no 'deprecat*' substring found) — consider adding language-appropriate marker (Java @Deprecated, Rust #[deprecated], Python warnings.warn, Go // Deprecated:, TS @deprecated)" >&2
+          fi
+        done <<< "$annotated_files"
+      fi
+    fi
+  fi
+
+  # ── Check 7h: audit-trail-before-deletion contract
+  #
+  # When state:INVALIDATED AND displaced_by is non-empty, the spec has
+  # been retired with a successor. The kit requires three artifacts to
+  # land alongside this transition so the removed work is forensically
+  # recoverable:
+  #   1. displacement_reason (already enforced via 7e warning; promoted
+  #      to ERROR here when displaced_by is non-empty AND state:INVALIDATED)
+  #   2. reproducer frontmatter — type + path; path must exist
+  #   3. KB archaeology article at .kb/_legacy/<spec-id>.md
+  #
+  # Specs invalidated WITHOUT displacement (direct retire, no successor)
+  # bypass this check — the audit-trail captures what was lost when a
+  # successor exists; direct retirement of an unused contract doesn't
+  # need a reproducer.
+  #
+  # See designs/deprecated-state.md §"Audit-trail-before-deletion contract".
+  if [[ "$STATE" == "INVALIDATED" \
+        && "$DISPLACED_BY_COUNT" != "0" \
+        && "$DISPLACED_BY_COUNT" != "null" ]]; then
+
+    # 7h.1 — displacement_reason required (promote 7e warning to error)
+    DISP_REASON_INV=$(fm "$FILE" '.displacement_reason // ""')
+    if [[ -z "$DISP_REASON_INV" ]]; then
+      ERRORS+=("INVALIDATED spec with displaced_by requires displacement_reason (audit-trail-before-deletion contract)")
+    fi
+
+    # 7h.2 — reproducer frontmatter (type + path)
+    REPRO_TYPE=$(fm "$FILE" '.reproducer.type // ""')
+    REPRO_PATH=$(fm "$FILE" '.reproducer.path // ""')
+    if [[ -z "$REPRO_TYPE" || -z "$REPRO_PATH" ]]; then
+      ERRORS+=("INVALIDATED spec with displaced_by requires reproducer frontmatter (type + path) — see audit-trail-before-deletion contract")
+    elif [[ ! -e "$PROJECT_ROOT/$REPRO_PATH" ]]; then
+      ERRORS+=("reproducer path does not exist: $REPRO_PATH (relative to project root)")
+    fi
+
+    # 7h.3 — KB archaeology article at .kb/_legacy/<spec-id>.md
+    SELF_ID=$(fm "$FILE" '.id // ""')
+    if [[ -n "$SELF_ID" ]]; then
+      # Default path: .kb/_legacy/<spec-id>.md (dot-separated ID kept as-is)
+      KB_LEGACY_PATH="$PROJECT_ROOT/.kb/_legacy/${SELF_ID}.md"
+      if [[ ! -f "$KB_LEGACY_PATH" ]]; then
+        ERRORS+=("missing KB archaeology article: .kb/_legacy/${SELF_ID}.md (audit-trail-before-deletion contract requires forensic record of removed contracts)")
+      else
+        # 7h.4 — KB article frontmatter sanity check
+        KB_TYPE=$(fm "$KB_LEGACY_PATH" '.type // ""')
+        KB_SPEC_REF=$(fm "$KB_LEGACY_PATH" '.spec_ref // ""')
+        if [[ "$KB_TYPE" != "legacy-archaeology" ]]; then
+          ERRORS+=("KB article $KB_LEGACY_PATH missing type:legacy-archaeology (got '$KB_TYPE')")
+        fi
+        if [[ "$KB_SPEC_REF" != "$SELF_ID" ]]; then
+          ERRORS+=("KB article $KB_LEGACY_PATH spec_ref ('$KB_SPEC_REF') does not match this spec's ID ('$SELF_ID')")
+        fi
+      fi
+    fi
+  fi
+
   # ── Check 8: decision_refs resolve (warning, not error)
   while IFS= read -r ref; do
     [[ -z "$ref" ]] && continue

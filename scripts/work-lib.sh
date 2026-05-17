@@ -381,7 +381,118 @@ work_check_spec_dep() {
     return 1
   fi
 
+  # ── Deprecation discipline (rules/deprecation-discipline.md) ──────────────
+  # If the resolved spec has status:DEPRECATED, the dep is still SATISFIED
+  # (state:APPROVED is the load-bearing dimension), but emit a tiered
+  # message on stderr so callers / users can act on the upcoming removal.
+  #
+  # Tiers (severity ascending — version-based only; no age threshold):
+  #   Tier 0 SILENT  — displaced_by covers and removal version is far away
+  #   Tier 1 ADVISORY — uses the deprecated surface; removal not yet imminent
+  #   Tier 2 WARNING — current VERSION is approaching removal_scheduled_in,
+  #                    OR displaced_by target is not state:APPROVED
+  #   Tier 3 ERROR   — current VERSION >= removal_scheduled_in (overdue)
+  #
+  # All tiers leave the dep SATISFIED (return 0). The resolver doesn't block
+  # in-flight work on deprecation alone; warnings raise awareness.
+  local found_status
+  found_status=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$found_file" \
+    | jq -r '.status // ""' 2>/dev/null || true)
+  if [[ "$found_status" == "DEPRECATED" && "$found_state" == "APPROVED" ]]; then
+    work_emit_deprecation_message "$project_root" "$found_file" "$spec_path" >&2
+  fi
+
   return 0
+}
+
+# ── Emit a tiered deprecation message for a DEPRECATED spec ──────────────────
+# Inputs:
+#   $1  project_root  — needed for VERSION lookup
+#   $2  spec_file     — the resolved DEPRECATED spec
+#   $3  spec_path     — the human-readable reference the caller used
+#
+# Writes one line to stdout in the format:
+#   [deprecation:TIER] <message>
+# where TIER ∈ {SILENT, ADVISORY, WARNING, ERROR}. SILENT writes nothing.
+#
+# The caller redirects to stderr or wherever the message should surface.
+# See designs/deprecated-state.md §"Resolver behavior".
+work_emit_deprecation_message() {
+  local project_root="$1"
+  local spec_file="$2"
+  local spec_path="$3"
+
+  # Read the DEPRECATED spec's frontmatter fields
+  local rsi displaced_by_count displaced_first
+  rsi=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$spec_file" \
+    | jq -r '.removal_scheduled_in // ""' 2>/dev/null || echo "")
+  displaced_by_count=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$spec_file" \
+    | jq -r '(.displaced_by // []) | length' 2>/dev/null || echo "0")
+  displaced_first=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$spec_file" \
+    | jq -r '(.displaced_by // [""])[0]' 2>/dev/null || echo "")
+
+  # Read current VERSION (graceful fallback if missing)
+  local cur_version=""
+  if [[ -f "$project_root/VERSION" ]]; then
+    cur_version=$(cat "$project_root/VERSION" 2>/dev/null | tr -d '[:space:]')
+  fi
+
+  # Tier 3 ERROR — current VERSION >= removal_scheduled_in
+  if [[ -n "$cur_version" && -n "$rsi" ]]; then
+    if [[ "$cur_version" == "$rsi" ]]; then
+      printf '[deprecation:ERROR] spec %s is DEPRECATED and the scheduled removal version (%s) has been reached (current %s) — overdue for INVALIDATION\n' \
+        "$spec_path" "$rsi" "$cur_version"
+      return 0
+    fi
+    # If cur_version > rsi (rsi sorts before cur_version when ascending)
+    local first_sort
+    first_sort=$(printf '%s\n%s\n' "$cur_version" "$rsi" | sort -V | head -1)
+    if [[ "$first_sort" == "$rsi" ]]; then
+      printf '[deprecation:ERROR] spec %s is DEPRECATED and the scheduled removal version (%s) has been passed (current %s) — overdue for INVALIDATION\n' \
+        "$spec_path" "$rsi" "$cur_version"
+      return 0
+    fi
+  fi
+
+  # Check displaced_by target state — Tier 2 if alternative isn't APPROVED
+  local manifest="$project_root/.spec/registry/manifest.json"
+  local displaced_state="UNKNOWN"
+  if [[ -n "$displaced_first" && -f "$manifest" ]]; then
+    local dby_file
+    dby_file=$(spec_file_for_id "$manifest" "$displaced_first")
+    if [[ -n "$dby_file" && -f "$dby_file" ]]; then
+      displaced_state=$(awk '/^---$/{n++; next} n==1{print} n>=2{exit}' "$dby_file" \
+        | jq -r '.state // ""' 2>/dev/null || echo "UNKNOWN")
+    fi
+  fi
+
+  if [[ "$displaced_state" != "APPROVED" ]]; then
+    printf '[deprecation:WARNING] spec %s is DEPRECATED but its displaced_by target (%s) is %s — alternative is not state:APPROVED; scheduling looks off\n' \
+      "$spec_path" "$displaced_first" "$displaced_state"
+    return 0
+  fi
+
+  # Approaching-removal heuristic — Tier 2 when current VERSION's
+  # minor is one below rsi's minor (rough "within a minor bump").
+  if [[ -n "$cur_version" && -n "$rsi" ]]; then
+    local cur_major cur_minor rsi_major rsi_minor
+    cur_major=$(printf '%s' "$cur_version" | cut -d. -f1)
+    cur_minor=$(printf '%s' "$cur_version" | cut -d. -f2)
+    rsi_major=$(printf '%s' "$rsi" | cut -d. -f1)
+    rsi_minor=$(printf '%s' "$rsi" | cut -d. -f2)
+    if [[ "$cur_major" == "$rsi_major" ]]; then
+      local minor_gap=$(( rsi_minor - cur_minor ))
+      if (( minor_gap <= 1 )) && (( minor_gap >= 0 )); then
+        printf '[deprecation:WARNING] spec %s is DEPRECATED and approaching removal in %s (current %s) — migrate to %s before %s\n' \
+          "$spec_path" "$rsi" "$cur_version" "$displaced_first" "$rsi"
+        return 0
+      fi
+    fi
+  fi
+
+  # Default — Tier 1 ADVISORY (deprecated, alternative ready, removal not imminent)
+  printf '[deprecation:ADVISORY] spec %s is DEPRECATED (superseded by %s; scheduled removal in %s; current %s)\n' \
+    "$spec_path" "${displaced_first:-<none>}" "${rsi:-<unset>}" "${cur_version:-<unset>}"
 }
 
 # ── Check if an ADR artifact exists and is in required status ────────────────
