@@ -289,6 +289,146 @@ permanent silence.
 
 ---
 
+## Step 1c — Central-invariant gate (mandatory before Step 2)
+
+Per `designs/central-invariant-gate.md` and the Verification contract in
+`rules/completeness-contract.md` §1, run an external falsification pass
+on the completed work before drafting the PR. This catches the
+"vacuous equivalence" failure mode (R53 pattern) and other cases where
+self-falsification missed the central claim.
+
+### Skip detection
+
+First check `.feature/<slug>/status.md` for an explicit skip:
+
+```bash
+if grep -q "^central_invariant_gate: skip$" .feature/<slug>/status.md 2>/dev/null; then
+    skipped=true
+fi
+```
+
+If `skipped=true`, display a prominent notice and record the skip in the
+PR description's "Notes for reviewer" section. Proceed to Step 2. Skip is
+opt-in per feature (default: run the gate).
+
+### Empty-diff detection
+
+```bash
+if git diff --quiet "$BASE_BRANCH"..HEAD; then
+    # No changes — gate has nothing to falsify
+    skipped=true
+    skip_reason="empty diff"
+fi
+```
+
+If empty, treat like skip with reason recorded.
+
+### Dispatch the falsifier
+
+```bash
+mkdir -p /tmp/vallorcine
+diff_file=/tmp/vallorcine/falsifier-diff-"<slug>".txt
+ac_file=/tmp/vallorcine/falsifier-ac-"<slug>".txt
+
+# Capture diff (cap at 200K chars to fit context)
+git diff "$BASE_BRANCH"..HEAD | head -c 200000 > "$diff_file"
+
+# Source of AC: WD file if exists, else brief
+if [[ -f .work/<group>/<wd-id>.md ]]; then
+    cp .work/<group>/<wd-id>.md "$ac_file"
+elif [[ -f .feature/<slug>/brief.md ]]; then
+    cp .feature/<slug>/brief.md "$ac_file"
+fi
+```
+
+Then dispatch a subagent via the Agent tool with these inputs and
+instruct it to read `.claude/prompts/feature-pr/central-invariant-falsify.md`
+for the complete falsifier protocol.
+
+The subagent prompt MUST include the standard subagent-contract preamble
+citing `rules/completeness-contract.md` (load-bearing).
+
+### Validate the falsifier's own return
+
+After the falsifier returns, run the validator on its return text:
+
+```bash
+falsifier_return_file=/tmp/vallorcine/falsifier-return-"<slug>".txt
+printf '%s\n' "$FALSIFIER_RETURN_TEXT" > "$falsifier_return_file"
+bash .claude/scripts/validate-subagent-return.sh "$falsifier_return_file" 2>/tmp/vallorcine/validator-stderr.txt
+val_rc=$?
+```
+
+If `val_rc=1` (trigger phrases in the falsifier's return), the falsifier
+itself violated the contract. Surface to user via AskUserQuestion before
+trusting the verdict.
+
+### Parse the verdict
+
+Extract the `VERDICT:` line from the falsifier's return:
+
+```bash
+verdict=$(grep -E '^VERDICT(\[[0-9]+\])?:' "$falsifier_return_file" | head -1 | sed 's/^VERDICT[^:]*: *//')
+```
+
+Multiple-invariant returns (VERDICT[1], VERDICT[2], ...) are parsed for
+the **highest severity** verdict — FAILS > UNCLEAR > HOLDS.
+
+### Branch on verdict
+
+**On ✓ HOLDS:**
+- Display the one-line invariant + evidence summary
+- Proceed to Step 2
+
+**On ✗ FAILS:**
+- Display the verdict + evidence
+- Use AskUserQuestion:
+  > Title: "Falsifier found a central-invariant failure for <slug>"
+  > Options:
+  >   1. **Stop and fix** — pause the pipeline; the user investigates the
+  >      gap and either fixes it (re-run /feature-pr after) or returns
+  >      to choose another option.
+  >   2. **Override gate (record verdict in PR)** — proceed with the
+  >      falsifier's verdict captured verbatim in the PR description's
+  >      "Notes for reviewer" section. Reserved for cases where the user
+  >      disagrees with the falsifier's analysis.
+  >   3. **Stop entirely** — exit /feature-pr without drafting.
+
+**On ? UNCLEAR:**
+- Display the verdict + obstacles
+- Use AskUserQuestion:
+  > Title: "Falsifier could not reach a verdict for <slug>"
+  > Options:
+  >   1. **Re-dispatch with more context** — let the user specify the
+  >      missing piece (file path, spec ID, clarifying note) and re-run
+  >      Step 1c.
+  >   2. **Proceed anyway (record uncertainty in PR)** — capture the
+  >      UNCLEAR verdict + obstacles in the PR description's "Notes for
+  >      reviewer" section.
+  >   3. **Stop and inspect manually** — pause for user investigation.
+
+### Dispatch failure / timeout
+
+If the Agent dispatch itself errors (subagent crashed, payload-lost,
+internal error), the gate is advisory — log the failure to stderr and
+proceed to Step 2 with a note in the PR description: "Central-invariant
+gate dispatch failed; see <log location> for details." Do not silently
+re-dispatch; let the user re-run /feature-pr if they want a fresh
+attempt.
+
+### Cost expectation
+
+Per gate dispatch:
+- Sonnet 4.6 (default): ~$0.05–$0.20
+- Opus 4.7 (large diffs): up to ~$2
+
+The gate runs ONCE per /feature-pr invocation. Idempotency rule (Step 1a)
+means re-running /feature-pr re-runs the gate; this is intentional —
+the gate is cheap enough to re-run, and the verdict should reflect the
+current diff state.
+
+---
+
 ## Step 2 — Draft the PR
 
 Construct the PR draft in this order:
