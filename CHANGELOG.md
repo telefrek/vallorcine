@@ -4,6 +4,91 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.22.0] — 2026-05-17
+
+This release implements **Finding 6** from the 2026-05 jlsm session
+report — the central-invariant gate — that was explicitly deferred
+from v0.21.0 because no design existed. Also includes the **memory →
+KB migration design** as a review-only proposal for a future release.
+
+The central-invariant gate is the orchestrator-level external
+falsification that complements v0.21.0's subagent-level self-
+falsification: the v0.21.0 validator catches *betrayal phrases* in
+returns, the central-invariant gate catches *shallow reasoning*. They
+work together as defense in depth.
+
+### Added
+
+- **`/feature-pr` Step 1c — Central-invariant gate.** A per-WD
+  adversarial falsifier subagent runs after the Quality-bar gate
+  (Step 1b) and before PR draft (Step 2). The falsifier:
+  1. Identifies THE central invariant the WD/feature claims
+  2. Traces the production code path (not internal SPI shortcuts)
+  3. Constructs a falsifier scenario from 5 patterns: vacuous
+     equivalence (R53), mocked-vs-live, end-to-end vs unit, verbal
+     argument for measurement, phantom annotation
+  4. Returns one of: ✓ HOLDS / ✗ FAILS / ? UNCLEAR with concrete
+     evidence
+  /feature-pr proceeds only on ✓. ✗ and ? block PR draft and route
+  to user via AskUserQuestion. Override paths exist for both — user
+  is final authority.
+
+- **`prompts/feature-pr/central-invariant-falsify.md`** — falsifier
+  subagent prompt with 5 falsifier patterns, calibration examples,
+  and required output format (VERDICT/INVARIANT/EVIDENCE block).
+  Multiple-invariant returns supported via VERDICT[N] indexing.
+
+- **`designs/central-invariant-gate.md`** — full design covering
+  placement (Step 1c), inputs (WD AC + diff + spec R-clauses),
+  output format, 7 edge cases, 5 open questions, 5 rejected
+  alternatives (including why we didn't use /audit's heavy pipeline
+  for this), cost model (~$0.05–$0.20 Sonnet, ~$2 Opus worst-case),
+  and 4-phase implementation plan.
+
+- **`designs/memory-to-kb-migration.md`** — review-only design for a
+  future release. Proposes migrating durable memory content into
+  `.kb/` via `/curate memory-promote` sub-mode so dispatched
+  subagents can find it via `/kb` search. Three handling rules
+  (promote / keep / delete), format mapping (memory frontmatter →
+  KB frontmatter), deduplication and conflict resolution, 5 open
+  questions, 4 rejected alternatives, 4-PR implementation sequence.
+  No implementation in this release.
+
+- **`tests/test-central-invariant-gate.sh`** — 24 structural checks
+  verifying the gate is wired correctly (Step 1c section present,
+  prompt installed, MANIFEST entry, install.sh plumbing, branching
+  on all 3 verdicts, skip detection, empty-diff handling, validator
+  pass on the falsifier's own return).
+
+### Skip and override paths
+
+- **Skip:** set `central_invariant_gate: skip` in
+  `.feature/<slug>/status.md` for refactors or doc-only features
+  with no meaningful central invariant. Skip is recorded in the PR
+  description's "Notes for reviewer" section.
+- **Override on ✗ FAILS:** user can "Override gate (record verdict
+  in PR)" to ship anyway when they disagree with the falsifier's
+  analysis. Reserved for rare cases.
+- **Override on ? UNCLEAR:** user can "Re-dispatch with more
+  context" (supply missing piece) or "Proceed anyway (record
+  uncertainty in PR)".
+
+### Notes
+
+- The falsifier's own return is subject to the completeness
+  contract — `validate-subagent-return.sh` runs on it. If the
+  falsifier ships trigger phrases ("candidate", "follow-on",
+  etc.), surface to user before trusting the verdict. No
+  exemptions for the gate itself.
+
+- Empty-diff invocations (`git diff --quiet base..HEAD`) auto-skip
+  the gate with a recorded note.
+
+- Dispatch failures (Agent tool errors, payload-lost, internal
+  errors) are advisory — log and proceed to Step 2 with a note in
+  PR description rather than silently retrying.
+
+---
 ## [0.21.0] — 2026-05-17
 
 This is the "subagent rigor hardening" release. Codifies the
