@@ -108,12 +108,63 @@ For each numbered requirement (R1, R2, ...), determine one of:
 
 | Verdict | Meaning |
 |---------|---------|
-| SATISFIED | Implementation fully meets the requirement |
+| SATISFIED | Implementation fully meets the requirement (see enforcement check below) |
 | PARTIAL | Implementation partially meets the requirement — note what's missing |
 | VIOLATED | Implementation contradicts the requirement |
 | UNTESTABLE | Requirement cannot be verified from code alone (e.g., performance claims) |
 
 For each verdict, provide a one-line evidence reference (file:line or method name).
+
+#### Enforcement check (MANDATORY before claiming SATISFIED)
+
+Per the annotation contract in `rules/completeness-contract.md` §4, a
+`@spec R<n>` annotation is a claim that the annotated code ENFORCES the
+R-clause — not just that the annotation exists. Before assigning SATISFIED
+to any requirement, apply the appropriate check below:
+
+**For ASSERT-style requirements** ("input X must produce Y", "type Z must
+be enforced", "the system MUST reject malformed P"):
+
+- Find the actual assertion / validation / type-check in code. A method
+  that *could* enforce the requirement but doesn't actually contain the
+  check counts as PARTIAL, not SATISFIED.
+- The check must be in the production code path — internal SPI adapters
+  and isolated codec utilities don't count if the requirement governs
+  observable behavior at the public API boundary.
+
+**For BEHAVIOR-style requirements** ("on event X, do Y", "format conversion
+must preserve Z"):
+
+- Find a test that exercises the requirement through the production entry
+  point. A test that bypasses the production code path (constructs an
+  internal class directly, mocks the live dependency) does not count.
+- If no such test exists, the verdict is at most PARTIAL — the behavior
+  may happen to work but is not protected against regression.
+
+**For RETIRE / REMOVE-style requirements** ("v5 writer path has been
+retired", "the legacy XYZ codec is no longer used", "the old API has been
+removed"):
+
+- Grep the WHOLE codebase for the deprecated symbol or path, not just the
+  file containing the annotation. A spec marked SATISFIED because the
+  symbol no longer appears in one file is wrong if the symbol still lives
+  in another file.
+- Run:
+  ```bash
+  grep -rn "<deprecated-symbol>" --include="*.<ext>" . | grep -v "<expected-locations>"
+  ```
+  If any matches survive in production code paths, the verdict is VIOLATED.
+  If matches only exist in tests for the retired behavior (verifying it
+  doesn't run), the verdict is SATISFIED.
+
+**Why this matters.** Phantom annotations — `@spec R<n>` on code that
+doesn't enforce the clause — are worse than missing annotations: they
+tell downstream consumers (work-plan, audit, spec-author) that the
+requirement holds when it doesn't. The 2026-05 jlsm session shipped a
+sstable.sparse-key-index.R2 marked SATISFIED ("v5 writer path removed")
+while the v5 writer was still the sole footer writer on the encrypted
+path. Catching this requires reading what the code DOES, not what the
+annotation CLAIMS.
 
 ### Step 1.4 — Check for undocumented behavior
 

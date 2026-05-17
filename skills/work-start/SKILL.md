@@ -23,6 +23,40 @@ interface contracts), use `/work-plan` instead.
 
 If no WD argument is provided, defaults to `next`.
 
+**Subagent contract — MANDATORY for every dispatch.** Every WD this skill
+dispatches (in `all`, `--parallel`, or single-WD modes) MUST be given this
+preamble at the top of its prompt:
+
+> **Subagent contract:** Honor `rules/completeness-contract.md`
+> (load-bearing — no silent deferrals; trigger phrases = escalation
+> signals, not completion modes). If you cannot complete assigned
+> scope, escalate via AskUserQuestion with user-validatable proof. A
+> return claiming COMPLETE alongside deferred items is a contract
+> violation.
+
+When WD sub-agents return, `/work-start` MUST run the return-validation
+script BEFORE accepting COMPLETE:
+
+```bash
+mkdir -p /tmp/vallorcine
+return_file=/tmp/vallorcine/work-start-return-"<group-slug>"-"<wd-id>".txt
+printf '%s\n' "$FULL_RETURN_TEXT" > "$return_file"
+bash .claude/scripts/validate-subagent-return.sh "$return_file" --require-ac-coverage 2>/tmp/vallorcine/validator-stderr.txt
+rc=$?
+```
+
+- `rc=0` → proceed with COMPLETE.
+- `rc=1` → trigger phrase detected. Block COMPLETE. Use AskUserQuestion
+  with the question "WD-<wd-id> claimed COMPLETE but the return contains
+  deferral trigger phrases. Approve as-is, re-dispatch with expanded
+  scope, or stop?" and the validator's stderr as context. Options:
+    - "Approve as-is" — user authorizes deferred items, mark COMPLETE
+    - "Re-dispatch with expanded scope" — send back with deferred items
+      added to scope
+    - "Stop" — pause and inspect manually
+- `rc=2` → tooling error. Log to stderr, treat as `rc=0` (don't block on
+  infrastructure failures).
+
 **Choosing between `all` and `--parallel`:**
 
 Both delegate to the same single-WD `/work-start` flow, so quality at

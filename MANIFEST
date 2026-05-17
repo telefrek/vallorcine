@@ -86,6 +86,7 @@
 .claude/agents/test-writer-agent.md
 .claude/agents/breaker-agent.md
 .claude/agents/work-planner-agent.md
+.claude/rules/completeness-contract.md
 .claude/rules/kb-architect.md
 .claude/rules/kb-protocol.md
 .claude/rules/kb-research-agent.md
@@ -93,6 +94,7 @@
 .claude/rules/spec-annotation-protocol.md
 .claude/rules/tdd-protocol.md
 .claude/scripts/token-usage.sh
+.claude/scripts/validate-subagent-return.sh
 .claude/scripts/version-check.sh
 .claude/scripts/merge-driver-index.sh
 .claude/scripts/ensure-merge-driver.sh

@@ -224,6 +224,33 @@ If `skipped` count > 0, tell the user how to resume:
 
 ## Corpus mode (`--all`)
 
+**Subagent contract — MANDATORY for every dispatch.** Every per-spec
+sub-agent this skill dispatches MUST be given this preamble at the top
+of its prompt:
+
+> **Subagent contract:** Honor `rules/completeness-contract.md`
+> (load-bearing — no silent deferrals; trigger phrases = escalation
+> signals, not completion modes). If you cannot complete assigned
+> scope, escalate via AskUserQuestion with user-validatable proof. A
+> return claiming COMPLETE alongside deferred items is a contract
+> violation.
+
+When per-spec sub-agents return, the coordinator MUST run the validation
+script BEFORE accepting:
+
+```bash
+mkdir -p /tmp/vallorcine
+return_file=/tmp/vallorcine/spec-backfill-return-"<spec-id>".txt
+printf '%s\n' "$FULL_RETURN_TEXT" > "$return_file"
+bash .claude/scripts/validate-subagent-return.sh "$return_file" 2>/tmp/vallorcine/validator-stderr.txt
+rc=$?
+```
+
+- `rc=0` → accept and continue to the next spec.
+- `rc=1` → trigger phrase detected. Surface to user via AskUserQuestion
+  with validator stderr. Do not advance to the next spec until resolved.
+- `rc=2` → tooling error. Log and treat as `rc=0`.
+
 When invoked with `--all`, iterate every APPROVED spec in the manifest
 and run the per-spec walk against each via the **subagent dispatch
 pattern** — each spec is processed by a dedicated sub-agent that owns

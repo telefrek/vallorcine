@@ -11,6 +11,37 @@ is `balanced` or `speed`.
 
 ---
 
+## Subagent contract — MANDATORY for every dispatch
+
+Every Agent dispatch this skill issues (test-writer, code-writer, refactor,
+adversarial, PR draft, or any other subagent) MUST include this preamble at
+the top of its prompt:
+
+> **Subagent contract:** Honor `rules/completeness-contract.md` (load-bearing —
+> no silent deferrals; trigger phrases = escalation signals, not completion
+> modes). If you cannot complete assigned scope, escalate via AskUserQuestion
+> with user-validatable proof. A return claiming COMPLETE alongside deferred
+> items is a contract violation.
+
+When work-unit subagents return, the coordinator MUST run the validation
+script BEFORE marking the unit complete:
+
+```bash
+mkdir -p /tmp/vallorcine
+return_file=/tmp/vallorcine/coord-return-"<slug>"-"<unit-id>".txt
+printf '%s\n' "$FULL_RETURN_TEXT" > "$return_file"
+bash .claude/scripts/validate-subagent-return.sh "$return_file" --require-ac-coverage 2>/tmp/vallorcine/validator-stderr.txt
+rc=$?
+```
+
+- `rc=0` → proceed with unit COMPLETE.
+- `rc=1` → trigger phrase detected. Block COMPLETE for that unit and surface
+  to user via AskUserQuestion with the validator's stderr as context. Do
+  not advance to the next batch until the user resolves.
+- `rc=2` → tooling error. Log and treat as `rc=0`.
+
+---
+
 ## Step 0 — Pre-flight
 
 Read `.feature/<slug>/status.md`.

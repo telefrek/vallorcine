@@ -12,6 +12,37 @@ them with failing tests, fixes the code, and leaves the codebase clean.
 
 ---
 
+## Subagent contract — MANDATORY for every dispatch
+
+Every subagent this skill dispatches MUST be given the following preamble at
+the top of its prompt — no exceptions:
+
+> **Subagent contract:** Honor `rules/completeness-contract.md` (load-bearing —
+> no silent deferrals; trigger phrases = escalation signals, not completion
+> modes). If you cannot complete assigned scope, escalate via AskUserQuestion
+> with user-validatable proof. A return claiming COMPLETE alongside deferred
+> items is a contract violation.
+
+This applies to Classification, Exploration, Suspect, Prove, Fix, Regression,
+Report, Reconciliation, and any other subagent dispatched by /audit.
+
+When any subagent returns, the orchestrator MUST run the validation script
+BEFORE accepting the return:
+
+```bash
+mkdir -p /tmp/vallorcine
+return_file=/tmp/vallorcine/audit-return-"<job-name>".txt
+printf '%s\n' "$FULL_RETURN_TEXT" > "$return_file"
+bash .claude/scripts/validate-subagent-return.sh "$return_file" 2>/tmp/vallorcine/validator-stderr.txt
+rc=$?
+```
+
+- `rc=0` → accept the return.
+- `rc=1` → trigger phrase detected (sub-agent shipped partial work as
+  complete). Surface to user via AskUserQuestion with validator stderr.
+  Do not advance to the next job until resolved.
+- `rc=2` → tooling error. Log and treat as `rc=0`.
+
 ## Orchestrator discipline — MANDATORY
 
 You are a state machine. Your ONLY job is to dispatch subagents serially

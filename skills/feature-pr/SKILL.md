@@ -219,6 +219,76 @@ spec-backfill or curation pass — not as a routine PR check.
 
 ---
 
+## Step 1b — Quality-bar gate (mandatory before Step 2)
+
+Per `rules/completeness-contract.md` §5 (Quality-bar contract), the
+repository's check command MUST pass before a PR is drafted. "Preexisting
+failures" is NOT an exemption.
+
+Detect the check command from project conventions:
+
+```bash
+# Order: project-config.md override → conventional commands
+check_cmd=""
+if [[ -f .feature/project-config.md ]]; then
+  check_cmd=$(grep -E '^check_command:' .feature/project-config.md | sed 's/check_command://;s/^ *//;s/ *$//')
+fi
+
+if [[ -z "$check_cmd" ]]; then
+  if   [[ -f gradlew ]];        then check_cmd="./gradlew check"
+  elif [[ -f pnpm-lock.yaml ]]; then check_cmd="pnpm test"
+  elif [[ -f yarn.lock ]];      then check_cmd="yarn test"
+  elif [[ -f package.json ]];   then check_cmd="npm test"
+  elif [[ -f Cargo.toml ]];     then check_cmd="cargo test"
+  elif [[ -f go.mod ]];         then check_cmd="go test ./..."
+  elif [[ -f Makefile ]];       then check_cmd="make check"
+  fi
+fi
+```
+
+If `check_cmd` is empty, surface to user via AskUserQuestion: ask the user
+to supply the check command or skip the gate with explicit justification.
+
+If `check_cmd` is set, run it:
+
+```bash
+eval "$check_cmd"
+check_rc=$?
+```
+
+**If `check_rc=0`:** proceed to Step 2.
+
+**If `check_rc≠0`:** the gate fails. PR draft is blocked. Display the
+failures and surface to user via AskUserQuestion with three options:
+
+1. **Fix the failures** — stop, fix the failing tests/checks in this PR,
+   re-run /feature-pr.
+2. **Move failures to .flake-allowlist.md** — if a failure is genuinely
+   preexisting and out of this WD's scope, add it to `.flake-allowlist.md`
+   with the schema below, then re-run /feature-pr. The flake-allowlist is
+   committed; reviewers see what's been deferred and why.
+3. **Override the gate (rare)** — only if you can demonstrate the failure
+   is unrelated to this change AND fixing it materially expands scope.
+   Record user-supplied justification verbatim in the PR description.
+   This is the contract's "escape hatch" — use sparingly.
+
+`.flake-allowlist.md` schema (one entry per failing test):
+
+```markdown
+## <test-id or test-class.method>
+
+- **Why flaky/broken:** <one-line reason>
+- **Assignee:** <github-username or team>
+- **Deadline:** <YYYY-MM-DD — when this allowlist entry expires>
+- **Added:** <YYYY-MM-DD>
+- **Originating PR:** #<pr-number>
+```
+
+No deadline = no exemption. The deadline forces a follow-up rather than
+permanent silence.
+
+---
+
 ## Step 2 — Draft the PR
 
 Construct the PR draft in this order:
