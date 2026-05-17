@@ -4,6 +4,98 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.24.0] — 2026-05-17
+
+This release lifts 4 high-value subagent dispatch patterns from jlsm's
+post-PR-127 prompt-engineering findings into `rules/completeness-contract.md`
+and the specific dispatch surfaces that need them. Targets 3 failure
+modes the v0.21.0 contract didn't catch:
+
+1. **"Tests pass" used as closure even when the test is vacuous** —
+   Pattern 2 fix: revert-test-restore as the closure proof.
+2. **Bug-codifying tests preserved instead of replaced** (additive
+   change default) — Pattern 5 fix: explicit DELETE permission.
+3. **Returns as paragraphs-of-intent instead of verifiable artifacts** —
+   Pattern 7 fix: structured return with file:line citations.
+
+Plus Pattern 3 sharpened: escalation channel template gains
+"What I am NOT doing without approval" / "What I AM doing" clauses to
+kill the silent-deferral failure mode.
+
+### Changed
+
+- **`rules/completeness-contract.md` §1 Verification — sharpened.**
+  Was "articulate the test that would FAIL"; now requires DEMONSTRATED
+  closure via revert-test-restore: revert fix locally, run test, paste
+  failure into return, restore fix. The third clause is load-bearing —
+  without it, weak tests pass trivially even when the fix is absent.
+
+- **`rules/completeness-contract.md` escalation channel template
+  sharpened** with "What I am NOT doing without approval" + "What I AM
+  doing" clauses. Prevents the silent-deferral failure mode where the
+  agent says "escalating" but ships partial work.
+
+### Added
+
+- **`rules/completeness-contract.md` §7 Test-replacement (NEW)** —
+  explicit permission to DELETE bug-codifying tests. Subagents default
+  to additive change; without permission to delete, they work around
+  broken tests and ship the bug. Deletions must be accompanied by the
+  replacement test (which satisfies §1).
+
+- **`rules/completeness-contract.md` §8 Structured-return (NEW)** —
+  returns must contain verifiable artifacts (file:line citations, test
+  names, revert-test-restore output), not paragraphs of intent. For
+  escalations, the escalation channel template above.
+
+- **`skills/feature-implement` Step 2** gains a MANDATORY closure-proof
+  block requiring revert-test-restore per construct. Cycle summary
+  template gains Closure-proof + Test-replacement tables.
+
+- **`skills/feature-refactor` Step 2 preamble** — refactor named as
+  "high over-claim surface"; §1 enforced for behavioral refactors;
+  §7 permits deletion of structure-locking tests (with explicit
+  exception to the existing "never modify test files" rule).
+
+- **`agents/code-writer-agent`** — revert-test-restore required before
+  marking constructs COMPLETE; flags-and-stops on bug-codifying tests
+  per §7 (Code Writer flags, Test Writer deletes — preserves the
+  existing "never modify tests" rule for Code Writer's normal cycle).
+
+- **`agents/refactor-agent`** — explicit §7 exception to "never modify
+  tests" for structure-locking tests that assert pre-refactor internal
+  structure; closure proof for behavioral refactors.
+
+- **`prompts/audit/prove-fix`** Strong-test guidance section names 3
+  wrong-property traps (round-trip-API / mocked-dependency /
+  equivalence-with-legacy) so the prove-fix subagent avoids the
+  specific traps that bit the jlsm dispatches. New Closure proof
+  (Phase 2 completion) section requires revert-test-restore in the
+  return.
+
+### Tests
+
+- `tests/test-completeness-contract.sh`: 41 → 57 checks (16 new for
+  §7, §8, sharpened escalation, and skill/agent/prompt cross-references)
+- Full kit: 191 → 207 checks green; no regressions.
+
+### Notes (patterns not lifted)
+
+Four patterns from jlsm's proposal were intentionally left out:
+- **Pattern 1 (sequence position "you are the 4th")** — requires
+  orchestrator plumbing to track failed dispatch counts; deferred.
+  Also edges into manipulative framing.
+- **Pattern 4 (per-finding wrong-property guidance)** — can't
+  generalize into static prompts (per-finding knowledge required).
+  Lifted as principle into audit prove-fix only.
+- **Pattern 6 (per-finding escalation permission)** — per-finding
+  orchestrator decision; documented in contract as principle, not
+  mechanically encoded.
+- **Pattern 8 (embed user memory verbatim)** — partially solved
+  (kit `rules/*.md` are always-loaded for subagents); project-local
+  memory covered by `designs/memory-to-kb-migration.md`.
+
+---
 ## [0.23.1] — 2026-05-17
 
 Patch release adding **retirement mode** to the deprecation discipline,
