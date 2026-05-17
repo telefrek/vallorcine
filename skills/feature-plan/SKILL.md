@@ -551,6 +551,12 @@ interaction is needed for the mechanical writing phase.
 design data from Step 2:
 
 ````
+**Subagent contract:** Honor `rules/completeness-contract.md` (load-bearing —
+no silent deferrals; trigger phrases = escalation signals, not completion
+modes). If you cannot complete assigned scope, escalate via AskUserQuestion
+with user-validatable proof. A return claiming COMPLETE alongside deferred
+items is a contract violation.
+
 You are a Work Planner Agent completing the mechanical writing phase for
 feature "<slug>".
 

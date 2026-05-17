@@ -21,6 +21,22 @@ in-flight sub-agents continue to run — only the dispatch loop is
 paused — so the user only blocks the dispatcher, not the work that
 was already underway.
 
+**Subagent contract — MANDATORY for every dispatch.** Every WD this
+skill dispatches MUST be given this preamble at the top of its prompt:
+
+> **Subagent contract:** Honor `rules/completeness-contract.md`
+> (load-bearing — no silent deferrals; trigger phrases = escalation
+> signals, not completion modes). If you cannot complete assigned
+> scope, escalate via AskUserQuestion with user-validatable proof. A
+> return claiming COMPLETE alongside deferred items is a contract
+> violation.
+
+When WD sub-agents return, `/work-run` MUST scan the return for
+trigger phrases ("candidate", "follow-on", "out of scope", "deferred",
+"future work", "covered transitively", "edge case") and treat any
+occurrence as an escalation signal — block the WD's COMPLETE acceptance
+and route to user via AskUserQuestion before marking the WD done.
+
 **Arguments:**
 - `<group-slug>` — the work group to run
 - `--cap N` — maximum concurrent sub-agents (default: 3). Higher uses

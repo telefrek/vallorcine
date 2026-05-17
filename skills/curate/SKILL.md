@@ -87,6 +87,24 @@ When the user picks "skip" instead of "dismiss", nothing is recorded
 
 ---
 
+## Subagent contract — MANDATORY for every dispatch
+
+Every Agent dispatch this skill issues (invoke-architect, invoke-research,
+invoke-spec-author, or any future side-effect that uses the Agent tool)
+MUST be given this preamble at the top of the dispatched skill's prompt:
+
+> **Subagent contract:** Honor `rules/completeness-contract.md` (load-bearing —
+> no silent deferrals; trigger phrases = escalation signals, not completion
+> modes). If you cannot complete assigned scope, escalate via AskUserQuestion
+> with user-validatable proof. A return claiming COMPLETE alongside deferred
+> items is a contract violation.
+
+When dispatched skills return, the curator MUST scan returns for trigger
+phrases ("candidate", "follow-on", "out of scope", "deferred", "future work",
+"covered transitively", "edge case") and treat any occurrence as an
+escalation signal — block the finding's `resolved` status and re-route to
+the user via AskUserQuestion.
+
 ## Step 0 — Pre-flight
 
 Check that `.curate/` directory exists. If not, create it.

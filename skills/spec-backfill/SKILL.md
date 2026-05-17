@@ -224,6 +224,23 @@ If `skipped` count > 0, tell the user how to resume:
 
 ## Corpus mode (`--all`)
 
+**Subagent contract — MANDATORY for every dispatch.** Every per-spec
+sub-agent this skill dispatches MUST be given this preamble at the top
+of its prompt:
+
+> **Subagent contract:** Honor `rules/completeness-contract.md`
+> (load-bearing — no silent deferrals; trigger phrases = escalation
+> signals, not completion modes). If you cannot complete assigned
+> scope, escalate via AskUserQuestion with user-validatable proof. A
+> return claiming COMPLETE alongside deferred items is a contract
+> violation.
+
+When per-spec sub-agents return, the coordinator MUST scan the return
+for trigger phrases ("candidate", "follow-on", "out of scope",
+"deferred", "future work", "covered transitively", "edge case") and
+treat any occurrence as an escalation signal — block COMPLETE
+acceptance and route to user via AskUserQuestion.
+
 When invoked with `--all`, iterate every APPROVED spec in the manifest
 and run the per-spec walk against each via the **subagent dispatch
 pattern** — each spec is processed by a dedicated sub-agent that owns

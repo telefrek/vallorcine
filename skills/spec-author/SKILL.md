@@ -365,6 +365,14 @@ Launch a subagent for this pass. The subagent receives:
 
 The subagent's prompt must include:
 
+### 2.0 — Subagent contract (load-bearing preamble)
+
+**Subagent contract:** Honor `rules/completeness-contract.md` (load-bearing —
+no silent deferrals; trigger phrases = escalation signals, not completion
+modes). If you cannot complete assigned scope, escalate via AskUserQuestion
+with user-validatable proof. A return claiming COMPLETE alongside deferred
+items is a contract violation.
+
 ### 2a — Requirement-level falsification
 
 For each requirement in the draft, begin with the assertion: **"This

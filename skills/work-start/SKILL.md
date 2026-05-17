@@ -23,6 +23,23 @@ interface contracts), use `/work-plan` instead.
 
 If no WD argument is provided, defaults to `next`.
 
+**Subagent contract — MANDATORY for every dispatch.** Every WD this skill
+dispatches (in `all`, `--parallel`, or single-WD modes) MUST be given this
+preamble at the top of its prompt:
+
+> **Subagent contract:** Honor `rules/completeness-contract.md`
+> (load-bearing — no silent deferrals; trigger phrases = escalation
+> signals, not completion modes). If you cannot complete assigned
+> scope, escalate via AskUserQuestion with user-validatable proof. A
+> return claiming COMPLETE alongside deferred items is a contract
+> violation.
+
+When WD sub-agents return, `/work-start` MUST scan the return for trigger
+phrases ("candidate", "follow-on", "out of scope", "deferred", "future
+work", "covered transitively", "edge case") and treat any occurrence as
+an escalation signal — block COMPLETE acceptance and route to user via
+AskUserQuestion before marking the WD done.
+
 **Choosing between `all` and `--parallel`:**
 
 Both delegate to the same single-WD `/work-start` flow, so quality at

@@ -747,6 +747,12 @@ Launch a subagent with these inputs:
 
 ### Subagent prompt
 
+> **Subagent contract:** Honor `rules/completeness-contract.md` (load-bearing —
+> no silent deferrals; trigger phrases = escalation signals, not completion
+> modes). If you cannot complete assigned scope, escalate via AskUserQuestion
+> with user-validatable proof. A return claiming COMPLETE alongside deferred
+> items is a contract violation.
+>
 > You are a falsification agent. Your job is to find reasons the recommendation
 > is wrong. You are not trying to be balanced — you are trying to break the
 > recommendation. If it survives, the decision is stronger.

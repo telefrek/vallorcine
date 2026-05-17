@@ -11,6 +11,25 @@ is `balanced` or `speed`.
 
 ---
 
+## Subagent contract — MANDATORY for every dispatch
+
+Every Agent dispatch this skill issues (test-writer, code-writer, refactor,
+adversarial, PR draft, or any other subagent) MUST include this preamble at
+the top of its prompt:
+
+> **Subagent contract:** Honor `rules/completeness-contract.md` (load-bearing —
+> no silent deferrals; trigger phrases = escalation signals, not completion
+> modes). If you cannot complete assigned scope, escalate via AskUserQuestion
+> with user-validatable proof. A return claiming COMPLETE alongside deferred
+> items is a contract violation.
+
+When subagents return, the coordinator MUST scan returns for trigger phrases
+("candidate", "follow-on", "out of scope", "deferred", "future work", "covered
+transitively", "edge case") and treat any occurrence as an escalation signal
+— route to the user via AskUserQuestion rather than accepting as completion.
+
+---
+
 ## Step 0 — Pre-flight
 
 Read `.feature/<slug>/status.md`.

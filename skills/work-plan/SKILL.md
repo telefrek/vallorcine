@@ -26,6 +26,23 @@ For implementation after specification is complete, use `/work-start`.
 
 If no WD argument is provided, defaults to `next`.
 
+**Subagent contract — MANDATORY for every dispatch.** Every WD this skill
+dispatches (sequential-all or single-WD recursion) MUST be given this
+preamble at the top of its prompt:
+
+> **Subagent contract:** Honor `rules/completeness-contract.md`
+> (load-bearing — no silent deferrals; trigger phrases = escalation
+> signals, not completion modes). If you cannot complete assigned
+> scope, escalate via AskUserQuestion with user-validatable proof. A
+> return claiming COMPLETE alongside deferred items is a contract
+> violation.
+
+When WD sub-agents return, `/work-plan` MUST scan the return for trigger
+phrases ("candidate", "follow-on", "out of scope", "deferred", "future
+work", "covered transitively", "edge case") and treat any occurrence as
+an escalation signal — block COMPLETE acceptance and route to user via
+AskUserQuestion.
+
 **A note on `all` and arbitration prompts.** `/spec-author` Pass 2
 surfaces falsification findings that require user decisions
 (arbitration). In `all` mode, those `AskUserQuestion` calls surface to

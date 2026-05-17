@@ -12,6 +12,25 @@ them with failing tests, fixes the code, and leaves the codebase clean.
 
 ---
 
+## Subagent contract — MANDATORY for every dispatch
+
+Every subagent this skill dispatches MUST be given the following preamble at
+the top of its prompt — no exceptions:
+
+> **Subagent contract:** Honor `rules/completeness-contract.md` (load-bearing —
+> no silent deferrals; trigger phrases = escalation signals, not completion
+> modes). If you cannot complete assigned scope, escalate via AskUserQuestion
+> with user-validatable proof. A return claiming COMPLETE alongside deferred
+> items is a contract violation.
+
+This applies to Classification, Exploration, Suspect, Prove, Fix, Regression,
+Report, Reconciliation, and any other subagent dispatched by /audit. When
+relaying subagent returns, the orchestrator MUST treat trigger phrases
+("candidate", "follow-on", "out of scope", "deferred", "future work", "for
+later", "covered transitively", "edge case we can punt", "minor — can
+address later") as escalation signals and route them to the user via
+AskUserQuestion rather than accepting them as completion.
+
 ## Orchestrator discipline — MANDATORY
 
 You are a state machine. Your ONLY job is to dispatch subagents serially
