@@ -85,15 +85,29 @@ else
     fail "rules/completeness-contract.md exists" "file not found"
 fi
 
-# ── Test 4: rule file contains the six contracts ──────────────────────
+# ── Test 4: rule file contains the eight contracts (v0.24.0 added §7, §8) ──
 if [[ -f "$rule_path" ]]; then
-    for contract in "Verification contract" "Production-path contract" "Measurement contract" "Annotation contract" "Quality-bar contract" "Scope-reconciliation contract"; do
+    for contract in "Verification contract" "Production-path contract" "Measurement contract" "Annotation contract" "Quality-bar contract" "Scope-reconciliation contract" "Test-replacement contract" "Structured-return contract"; do
         if grep -q "$contract" "$rule_path"; then
             pass "rule file contains '$contract'"
         else
             fail "rule file contains '$contract'" "missing"
         fi
     done
+
+    # v0.24.0 — Verification contract requires revert-test-restore closure proof
+    if grep -q "revert-test-restore\|Revert the fix locally" "$rule_path"; then
+        pass "Verification contract requires revert-test-restore closure proof"
+    else
+        fail "Verification contract requires revert-test-restore closure proof" "missing"
+    fi
+
+    # v0.24.0 — Escalation channel has "What I am NOT doing" + "What I AM doing"
+    if grep -q "What I am NOT doing" "$rule_path" && grep -q "What I AM doing" "$rule_path"; then
+        pass "Escalation channel template has NOT-doing/AM-doing clauses"
+    else
+        fail "Escalation channel template has NOT-doing/AM-doing clauses" "missing"
+    fi
 fi
 
 # ── Test 5: rule listed in MANIFEST ───────────────────────────────────
@@ -181,6 +195,89 @@ if [[ -f "$sv_skill" ]]; then
         pass "spec-verify has RETIRE/REMOVE enforcement guidance"
     else
         fail "spec-verify has RETIRE/REMOVE enforcement guidance" "not found"
+    fi
+fi
+
+# ── Test 11 (v0.24.0): feature-implement Step 2 enforces closure proof ────
+fi_skill="$REPO_ROOT/skills/feature-implement/SKILL.md"
+if [[ -f "$fi_skill" ]]; then
+    if grep -q "Closure proof (MANDATORY" "$fi_skill"; then
+        pass "feature-implement Step 2 has Closure proof MANDATORY section"
+    else
+        fail "feature-implement Step 2 has Closure proof MANDATORY section" "missing"
+    fi
+    if grep -q "Revert the fix locally" "$fi_skill"; then
+        pass "feature-implement requires revert-test-restore demonstration"
+    else
+        fail "feature-implement requires revert-test-restore demonstration" "missing"
+    fi
+    if grep -q "Test replacement" "$fi_skill"; then
+        pass "feature-implement references Test replacement contract §7"
+    else
+        fail "feature-implement references Test replacement contract §7" "missing"
+    fi
+fi
+
+# ── Test 12 (v0.24.0): feature-refactor §1/§7 enforcement ─────────────
+fr_skill="$REPO_ROOT/skills/feature-refactor/SKILL.md"
+if [[ -f "$fr_skill" ]]; then
+    if grep -q "high-over-claim surface" "$fr_skill"; then
+        pass "feature-refactor names itself as high-over-claim surface"
+    else
+        fail "feature-refactor names itself as high-over-claim surface" "missing"
+    fi
+    if grep -q "revert-test-restore" "$fr_skill"; then
+        pass "feature-refactor references revert-test-restore for behavioral refactors"
+    else
+        fail "feature-refactor references revert-test-restore for behavioral refactors" "missing"
+    fi
+    if grep -q "structure-locking test\|pre-refactor internal structure" "$fr_skill"; then
+        pass "feature-refactor permits §7 deletion of structure-locking tests"
+    else
+        fail "feature-refactor permits §7 deletion of structure-locking tests" "missing"
+    fi
+fi
+
+# ── Test 13 (v0.24.0): code-writer-agent + refactor-agent reference §1/§7 ──
+cw_agent="$REPO_ROOT/agents/code-writer-agent.md"
+if [[ -f "$cw_agent" ]]; then
+    if grep -q "revert-test-restore" "$cw_agent"; then
+        pass "code-writer-agent enforces revert-test-restore"
+    else
+        fail "code-writer-agent enforces revert-test-restore" "missing"
+    fi
+    if grep -q "completeness-contract.md.*§7\|§7\b" "$cw_agent"; then
+        pass "code-writer-agent flags-and-stops on bug-codifying tests (§7)"
+    else
+        fail "code-writer-agent flags-and-stops on bug-codifying tests (§7)" "missing"
+    fi
+fi
+ra_agent="$REPO_ROOT/agents/refactor-agent.md"
+if [[ -f "$ra_agent" ]]; then
+    if grep -q "structure-locking\|pre-refactor internal structure" "$ra_agent"; then
+        pass "refactor-agent permits §7 deletion of structure-locking tests"
+    else
+        fail "refactor-agent permits §7 deletion of structure-locking tests" "missing"
+    fi
+fi
+
+# ── Test 14 (v0.24.0): audit prove-fix has strong-test guidance + closure proof ──
+pf_prompt="$REPO_ROOT/prompts/audit/prove-fix.md"
+if [[ -f "$pf_prompt" ]]; then
+    if grep -q "wrong-property trap" "$pf_prompt"; then
+        pass "prove-fix prompt has wrong-property trap guidance"
+    else
+        fail "prove-fix prompt has wrong-property trap guidance" "missing"
+    fi
+    if grep -q "Round-trip through API trap" "$pf_prompt"; then
+        pass "prove-fix prompt names the round-trip-API trap"
+    else
+        fail "prove-fix prompt names the round-trip-API trap" "missing"
+    fi
+    if grep -q "Closure proof (Phase 2 completion)" "$pf_prompt"; then
+        pass "prove-fix prompt requires Closure proof for Phase 2"
+    else
+        fail "prove-fix prompt requires Closure proof for Phase 2" "missing"
     fi
 fi
 

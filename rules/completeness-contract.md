@@ -36,16 +36,34 @@ When you genuinely cannot complete assigned scope, escalate via AskUserQuestion
 with this shape:
 
 ```
-I cannot do X because <concrete reason>.
+What is wired:
+  <specific file:line citations of the state that IS working>
 
-Proof you can validate:
-  <file:line evidence, failing command output, missing type, broken dep, etc.>
+What is NOT wired:
+  <specific file:line citations of the gap — what's missing or broken>
 
-To proceed, you need to:
-  <specific user action — confirm scope, fix upstream, approve workaround>
+Why escalating rather than fixing:
+  <the concrete blocker — the cost of picking blindly, the design ambiguity,
+   the dependency that doesn't exist yet, the policy decision required>
+
+Options (with cons, not just pros):
+  1. <option A> — <what's good> — <what's bad / what it costs>
+  2. <option B> — <what's good> — <what's bad / what it costs>
+  3. <option C if any>
+
+What I am NOT doing without approval:
+  <the specific change you'd make if you had carte blanche>
+
+What I AM doing:
+  <the bounded work you're committing to in the meantime, if any>
 ```
 
 Then **wait** for the user's decision. Do not mark COMPLETE.
+
+The "What I am NOT doing" and "What I AM doing" lines are load-bearing —
+they prevent the silent-deferral failure mode where the agent says
+"escalating" but actually ships partial work and labels the rest as
+follow-up.
 
 The proof must be user-checkable:
 
@@ -62,19 +80,34 @@ have authority for judgment calls about scope.
 
 ## Specific applications
 
-The authority rule implies six concrete contracts. Each catches a failure
+The authority rule implies eight concrete contracts. Each catches a failure
 mode the kit has seen repeatedly:
 
 ### 1. Verification contract
 
-Before claiming work COMPLETE, articulate the test that would FAIL if you
-took the path of least resistance — vacuous equivalence, mocked path,
-isolated codec, fallthrough to legacy code. If your tests do not cover
-that scenario, your tests are insufficient.
-
 A test passing is not evidence the strong property holds. Two paths
 producing identical output is a true assertion that proves nothing if
 both paths route through the same legacy code.
+
+Before claiming work COMPLETE, you must DEMONSTRATE (not just articulate)
+that your tests catch the failure mode they're meant to catch:
+
+1. **The fix is in the diff** — verifiable by `git diff`.
+2. **A test asserts the actual property** at byte level, via reflective
+   tripwire, via production-path assertion — not via round-trip behavior
+   that the read path inverts.
+3. **You SHOW why the test would fail without the fix.** Revert the fix
+   locally (e.g., `git stash`), rerun the test, paste the failure into
+   your return, then restore the fix (`git stash pop`).
+
+The third clause is load-bearing. Without it, weak tests pass trivially
+even when the fix is absent. With it, you have to either (a) write a
+test strong enough to fail without the fix, or (b) discover your test
+isn't strong enough and rewrite it.
+
+"Looks right" is not closure. "I added a test" is not closure. The only
+closure is "the test failed without the fix and passed with it, and
+here is the evidence."
 
 ### 2. Production-path contract
 
@@ -126,6 +159,43 @@ acceptance criteria item-by-item. For each AC item, point to the
 specific code, test, or doc that satisfies it. If you cannot point to
 something for an AC item, you have not completed the work — escalate
 per the channel above or finish.
+
+### 7. Test-replacement contract
+
+If a test codifies a bug as the contract (the test passes BECAUSE the
+buggy behavior is what it asserts), DELETE the test and write a new
+one that asserts the FIXED behavior. Do not preserve "adversarial"
+tests that lock in broken behavior, do not work around them, do not
+add a new test alongside.
+
+Subagents default to additive change — adding tests, not deleting.
+That default ships bugs. Explicit permission to delete is required
+because the alternative (work around the bug-codifying test) is the
+path of least resistance.
+
+A test deletion in a return MUST be accompanied by the new test that
+replaces it, and the new test must satisfy the Verification contract
+(§1 — revert-test-restore proof).
+
+### 8. Structured-return contract
+
+Returns must contain verifiable artifacts, not paragraphs of intent.
+For each closed finding, the return must include:
+
+- The fix's file:line citation (so the orchestrator can re-read it)
+- The asserting test's name + file:line
+- The revert-test-restore evidence from §1
+- For deleted tests (§7): the deleted test's name + the replacement test's name
+
+For escalated findings, the return must use the escalation channel
+template (see below) — not a `TODO`, not a "follow-up note", not a
+"will address later" sentence.
+
+Paragraphs of intent ("I cleaned this up", "I made it more robust") are
+not artifacts. Without specific items requested, returns drift into
+prose. The orchestrator's validator catches some of this (trigger phrase
+detection); the structured-return contract catches the rest by requiring
+verifiable references.
 
 ## How dispatch uses this rule
 
