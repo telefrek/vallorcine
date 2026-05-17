@@ -94,6 +94,7 @@
 .claude/rules/spec-annotation-protocol.md
 .claude/rules/tdd-protocol.md
 .claude/scripts/token-usage.sh
+.claude/scripts/validate-subagent-return.sh
 .claude/scripts/version-check.sh
 .claude/scripts/merge-driver-index.sh
 .claude/scripts/ensure-merge-driver.sh
