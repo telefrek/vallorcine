@@ -4,6 +4,77 @@ All notable changes to vallorcine are documented here.
 Format: `## [version] — YYYY-MM-DD` with sections Added / Changed / Fixed / Removed.
 
 ---
+## [0.23.1] — 2026-05-17
+
+Patch release adding **retirement mode** to the deprecation discipline,
+plus two v0.23.0 gaps caught during an audit of jlsm PR #127.
+
+v0.23.0 required `displaced_by` to be non-empty when `status: DEPRECATED`,
+assuming every deprecation has a successor spec. jlsm's legacy v5/v6/v7
+reader specs have NO successor — the code paths are going away entirely,
+not replaced by a new spec. v0.23.1 splits deprecation into two modes:
+**succession** (`displaced_by` non-empty) and **retirement**
+(`retirement: true`, no successor). Mutually exclusive; validator
+enforces "declare your intent."
+
+### Added
+
+- **Retirement mode** in `scripts/spec-validate.sh` (check 7f):
+  `displaced_by` becomes optional; `retirement: true` is the alternative
+  required field. Both set → contradiction ERROR; neither → "declare
+  your intent" ERROR. Retirement-mode validation skips the
+  displaced_by-target checks (no successor to evaluate).
+
+- **Retirement mode** in `scripts/work-lib.sh`
+  `work_emit_deprecation_message`:
+  - Tier 0 SILENT no longer applies (no successor to "cover" the dependent)
+  - Tier 1 ADVISORY message reads "(retirement; no successor; ...)"
+  - Tier 2 WARNING message reads "retire dependent code before X"
+  - Tier 3 ERROR unchanged
+
+- **Audit-trail-before-deletion gate extended** (check 7h): fires at
+  state:INVALIDATED when `(displaced_by non-empty OR retirement: true)`.
+  `retirement: true` carries forward into the INVALIDATED state so the
+  validator can detect that the spec was DEPRECATED at some point.
+
+### Changed (v0.23.0 gaps caught in audit)
+
+- **`scripts/curate-scan.sh` Analysis 27 surface text** — the existing
+  text told users they could "Retract status — change status back to
+  STABLE or ACTIVE if the DEPRECATED label was premature." This
+  directly contradicted the v0.23.0 no-rescind rule (text predated the
+  discipline). Rewritten to describe succession vs retirement modes and
+  the one-way ratchet discipline.
+
+- **`scripts/spec-resolve.sh`** — silently included DEPRECATED specs
+  in bundles. No deprecation signal for users running `/spec-resolve`.
+  Now sources `work_emit_deprecation_message` from `work-lib.sh` and
+  emits the same tier message on stderr (parity with
+  `work_check_spec_dep` behavior).
+
+### Tests
+
+- `tests/scenario-deprecated-status-validate.sh`: 18 → 22 checks
+  (added retirement-mode + mutual-exclusion + retirement-mode-INVALIDATION
+  scenarios)
+- `tests/scenario-deprecated-resolver.sh`: 8 → 12 checks (added
+  retirement-mode ADVISORY/WARNING/ERROR + SATISFIES scenarios)
+- Full kit: 183 → 191 tests green, no regressions
+
+### Migration path for jlsm PR #127
+
+The three legacy reader specs (`sstable.legacy-v5-reader`,
+`sstable.legacy-v6-reader`, `sstable.legacy-v7-reader`) need:
+- `state: DEPRECATED` → `state: APPROVED`
+- `status: ACTIVE` → `status: DEPRECATED`
+- Drop `deprecated_by` (vallorcine doesn't use this field)
+- Rename `deprecation_reason` → `displacement_reason`
+- `removal_scheduled_in: "post-PR-127-merge-..."` → `"<semver>"`
+  (e.g., `"0.6.0"` or whatever jlsm targets)
+- Add `deprecation_date: "<ISO date>"`
+- Add `retirement: true` (these are no-successor cases)
+
+---
 ## [0.23.0] — 2026-05-17
 
 This release adds **deprecation discipline** for spec contracts —
