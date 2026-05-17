@@ -75,6 +75,7 @@
 .claude/prompts/audit/reconcile-cards.js
 .claude/prompts/audit/reconcile-cards.sh
 .claude/prompts/audit/reconcile-cards-wrapper.sh
+.claude/prompts/feature-pr/central-invariant-falsify.md
 .claude/scripts/audit-budget.sh
 .claude/scripts/extract-findings.sh
 .claude/agents/architect-agent.md

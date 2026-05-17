@@ -261,6 +261,14 @@ for f in "$SCRIPT_DIR"/prompts/audit/*.md "$SCRIPT_DIR"/prompts/audit/*.py "$SCR
     install_file "$f" "$TARGET/.claude/prompts/audit/$(basename "$f")"
 done
 
+echo ""
+echo "── feature-pr prompts ─────────────────────────────"
+mkdir -p "$TARGET/.claude/prompts/feature-pr"
+for f in "$SCRIPT_DIR"/prompts/feature-pr/*.md; do
+    [[ -f "$f" ]] || continue
+    install_file "$f" "$TARGET/.claude/prompts/feature-pr/$(basename "$f")"
+done
+
 # ── Scripts ───────────────────────────────────────────────────────────────────
 
 echo ""
