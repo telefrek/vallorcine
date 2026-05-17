@@ -34,11 +34,28 @@ preamble at the top of its prompt:
 > return claiming COMPLETE alongside deferred items is a contract
 > violation.
 
-When WD sub-agents return, `/work-start` MUST scan the return for trigger
-phrases ("candidate", "follow-on", "out of scope", "deferred", "future
-work", "covered transitively", "edge case") and treat any occurrence as
-an escalation signal — block COMPLETE acceptance and route to user via
-AskUserQuestion before marking the WD done.
+When WD sub-agents return, `/work-start` MUST run the return-validation
+script BEFORE accepting COMPLETE:
+
+```bash
+mkdir -p /tmp/vallorcine
+return_file=/tmp/vallorcine/work-start-return-"<group-slug>"-"<wd-id>".txt
+printf '%s\n' "$FULL_RETURN_TEXT" > "$return_file"
+bash .claude/scripts/validate-subagent-return.sh "$return_file" 2>/tmp/vallorcine/validator-stderr.txt
+rc=$?
+```
+
+- `rc=0` → proceed with COMPLETE.
+- `rc=1` → trigger phrase detected. Block COMPLETE. Use AskUserQuestion
+  with the question "WD-<wd-id> claimed COMPLETE but the return contains
+  deferral trigger phrases. Approve as-is, re-dispatch with expanded
+  scope, or stop?" and the validator's stderr as context. Options:
+    - "Approve as-is" — user authorizes deferred items, mark COMPLETE
+    - "Re-dispatch with expanded scope" — send back with deferred items
+      added to scope
+    - "Stop" — pause and inspect manually
+- `rc=2` → tooling error. Log to stderr, treat as `rc=0` (don't block on
+  infrastructure failures).
 
 **Choosing between `all` and `--parallel`:**
 

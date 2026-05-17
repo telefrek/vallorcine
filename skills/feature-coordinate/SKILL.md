@@ -23,10 +23,22 @@ the top of its prompt:
 > with user-validatable proof. A return claiming COMPLETE alongside deferred
 > items is a contract violation.
 
-When subagents return, the coordinator MUST scan returns for trigger phrases
-("candidate", "follow-on", "out of scope", "deferred", "future work", "covered
-transitively", "edge case") and treat any occurrence as an escalation signal
-— route to the user via AskUserQuestion rather than accepting as completion.
+When work-unit subagents return, the coordinator MUST run the validation
+script BEFORE marking the unit complete:
+
+```bash
+mkdir -p /tmp/vallorcine
+return_file=/tmp/vallorcine/coord-return-"<slug>"-"<unit-id>".txt
+printf '%s\n' "$FULL_RETURN_TEXT" > "$return_file"
+bash .claude/scripts/validate-subagent-return.sh "$return_file" 2>/tmp/vallorcine/validator-stderr.txt
+rc=$?
+```
+
+- `rc=0` → proceed with unit COMPLETE.
+- `rc=1` → trigger phrase detected. Block COMPLETE for that unit and surface
+  to user via AskUserQuestion with the validator's stderr as context. Do
+  not advance to the next batch until the user resolves.
+- `rc=2` → tooling error. Log and treat as `rc=0`.
 
 ---
 

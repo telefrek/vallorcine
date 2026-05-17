@@ -255,6 +255,47 @@ For each completion:
    - Agent return literally equals `[Tool result missing due to internal error]` → **payload-lost**
    - Agent return contains `The user doesn't want to proceed with this tool use.` → **user-stopped**
 
+**2.5. Completeness-contract validation (MANDATORY if classification is `clean`).**
+
+If step 2 classified the return as `clean`, run the validator BEFORE
+routing to the orchestrator:
+
+```bash
+mkdir -p /tmp/vallorcine
+return_file=/tmp/vallorcine/subagent-return-"<group-slug>"-"<wd-id>".txt
+printf '%s\n' "$FULL_RETURN_TEXT" > "$return_file"
+bash .claude/scripts/validate-subagent-return.sh "$return_file" 2>/tmp/vallorcine/validator-stderr.txt
+rc=$?
+```
+
+Branch on `rc`:
+- **0** → validation clean, proceed to step 3 with `clean` classification.
+- **1** → trigger phrases detected. The sub-agent claimed COMPLETE while
+  deferring scope. **DOWNGRADE** classification to `escalation` with
+  category `deferral-detected`. Construct an escalation.json:
+
+  ```bash
+  cat > .feature/"<slug>"/escalation.json <<'JSON'
+  {
+    "question": "WD-<wd-id> claimed COMPLETE but the return contains deferral trigger phrases. Approve as-is, re-dispatch with expanded scope, or stop?",
+    "options": [
+      {"label": "Approve as-is", "description": "User authorizes the deferred items — treat the WD as COMPLETE"},
+      {"label": "Re-dispatch with expanded scope", "description": "Send back to the WD pipeline with the deferred items added to scope"}
+    ],
+    "validator_findings": "<paste contents of /tmp/vallorcine/validator-stderr.txt>"
+  }
+  JSON
+  ```
+
+  Then route as `block <group> <wd-id> 'escalation:deferral-detected' '.feature/<slug>/escalation.json'`.
+- **2** → tooling error (file unreadable, script missing). Log stderr but
+  treat as `clean` — do NOT block the work group on infrastructure failures.
+
+The check is mechanical: the script greps for fixed phrases. False positives
+(a legitimate technical use of "candidate") route to the user who can clear
+them in one keystroke. False negatives ship incomplete work — the asymmetry
+favors the user.
+
 3. Route to the orchestrator. **Always single-quote the reason
    argument** (MEDIUM #6, 2026-05-11) — return lines can carry
    `$()`, backticks, or semicolons. Pass via single quotes and

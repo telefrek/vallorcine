@@ -37,11 +37,21 @@ preamble at the top of its prompt:
 > return claiming COMPLETE alongside deferred items is a contract
 > violation.
 
-When WD sub-agents return, `/work-plan` MUST scan the return for trigger
-phrases ("candidate", "follow-on", "out of scope", "deferred", "future
-work", "covered transitively", "edge case") and treat any occurrence as
-an escalation signal — block COMPLETE acceptance and route to user via
-AskUserQuestion.
+When WD sub-agents return, `/work-plan` MUST run the validation script
+BEFORE accepting COMPLETE:
+
+```bash
+mkdir -p /tmp/vallorcine
+return_file=/tmp/vallorcine/work-plan-return-"<group-slug>"-"<wd-id>".txt
+printf '%s\n' "$FULL_RETURN_TEXT" > "$return_file"
+bash .claude/scripts/validate-subagent-return.sh "$return_file" 2>/tmp/vallorcine/validator-stderr.txt
+rc=$?
+```
+
+- `rc=0` → accept the spec / plan return.
+- `rc=1` → trigger phrase detected. Surface to user via AskUserQuestion
+  with validator stderr. Do not advance to the next WD until resolved.
+- `rc=2` → tooling error. Log and treat as `rc=0`.
 
 **A note on `all` and arbitration prompts.** `/spec-author` Pass 2
 surfaces falsification findings that require user decisions

@@ -99,11 +99,21 @@ MUST be given this preamble at the top of the dispatched skill's prompt:
 > with user-validatable proof. A return claiming COMPLETE alongside deferred
 > items is a contract violation.
 
-When dispatched skills return, the curator MUST scan returns for trigger
-phrases ("candidate", "follow-on", "out of scope", "deferred", "future work",
-"covered transitively", "edge case") and treat any occurrence as an
-escalation signal — block the finding's `resolved` status and re-route to
-the user via AskUserQuestion.
+When dispatched skills return, the curator MUST run the validation script
+BEFORE marking the finding `resolved`:
+
+```bash
+mkdir -p /tmp/vallorcine
+return_file=/tmp/vallorcine/curate-return-"<finding-key>".txt
+printf '%s\n' "$FULL_RETURN_TEXT" > "$return_file"
+bash .claude/scripts/validate-subagent-return.sh "$return_file" 2>/tmp/vallorcine/validator-stderr.txt
+rc=$?
+```
+
+- `rc=0` → mark finding `resolved` and continue.
+- `rc=1` → trigger phrase detected. Surface to user via AskUserQuestion with
+  validator stderr. Block `resolved` until user clears.
+- `rc=2` → tooling error. Log and treat as `rc=0`.
 
 ## Step 0 — Pre-flight
 
